@@ -1066,6 +1066,39 @@
         "2:0 T3 fallback"
       ]
     },
+    "replay-regressions/bracket-lane-current-frame.json#/analysis": {
+      "frames": "o2Kj79js vSsZghjU 9Ar8pK5w 1pYaBrX5 c5TojiAw 4aH-G0NJ ea7qKx8Y Q7-yi1W2 76ptHJUg PMqYTSUJ qU_DwESn yGUZy1Ww tErZ5sEP VyWaVrk5 yXe1wbIo 9YIufJOR D1cE4YDx D666F7iZ hLmi97Ao oZP-ZzIV -ErR38q2 dVqA-0Of _MVkwciw ZUj8a7iY GDy1Z4UO WnJdsoCm 82epFnZ_ cyoxfk6u hYgXqGLD JEMMWGr- ZQZpmTUi yAchzaid qbtsdahk zGRcFIu3 IzXub8Fp DEljKI8E qUZ2ui8t Ww2UfEDC szOZ7stp hLynj4vy Vp3DEXTm u2-rj5kk ZPyxs1Iv uKNrh4xP tfHdbrqk vbYqOjWI -b7rXoQk Ue0Vs8hx fJ4AiPUE y_t8dH6w zwsJfHb- z66dEZAC NckizHTk 3nQboJD7 oYkBOJxk 07h63--E O1tnDjOM lkYRvbVX oMSMrX_N h0Tw_9Gt r5lnnie1 mGd9H0Ut 0wMZuB4M 3k1mw8u_ ZX28whF0 kRvTUE63 3E1h4azG NI2tBvv8 SQnqwouh NTwKrizx Az2GMQ-c E-UPto6W DwG0Wdt- 4EJ-M4_x HzAeR1bd i-HU3c0p WsZIIzBj eE09duJK Dnl7F-Kl",
+      "canopy": "W0ttmbbm",
+      "tiers": [
+        "0:0 T3 fallback",
+        "10:0 T1 node-badges theta.grid",
+        "10:0 T1 node-plaque theta.grid",
+        "11:0 T1 node-badges theta.grid",
+        "11:0 T1 node-plaque theta.grid",
+        "11:1 T1 directed-path case-assignment.path",
+        "11:2 T3 fallback",
+        "11:3 T3 fallback",
+        "12:0 T2 node-badges tier2.gap-notation gap.notation",
+        "12:0 T2 trajectory tier2.movement-path movement.path",
+        "1:0 T3 fallback",
+        "2:0 T1 node-badges theta.grid",
+        "2:0 T1 node-plaque theta.grid",
+        "3:0 T1 node-badges theta.grid",
+        "3:0 T1 node-plaque theta.grid",
+        "3:1 T1 directed-path case-assignment.path",
+        "4:0 T2 node-badges tier2.gap-notation gap.notation",
+        "4:0 T2 trajectory tier2.movement-path movement.path",
+        "5:0 T2 node-badges tier2.gap-notation gap.notation",
+        "5:0 T2 trajectory tier2.movement-path movement.path",
+        "6:0 T3 fallback",
+        "7:0 T1 undirected-link predication.paths",
+        "7:1 T1 directed-path case-assignment.path",
+        "7:2 T3 fallback",
+        "8:0 T2 node-badges tier2.gap-notation gap.notation",
+        "8:0 T2 trajectory tier2.movement-path movement.path",
+        "9:0 T3 fallback"
+      ]
+    },
     "replay-regressions/case-source-transfer.json#": {
       "frames": "-caPRh3s tqskEgmz 6bx1qPiO Jm2nNuP4 -R-z6BcO LS9K5Kl1 e9GMAr6k 5Mt8_Ld7 f8RUshJJ _MnXamVT OPcgYDP5 p_9sJfxd -ISgZ_bM anILlwvY mjkSsjea Lv7YpvYk Tado57In 1Ln__y9F CwrGP8Xe d41uqvZE yAijJokW GOVVPG6n jxOavh5h FrNPXCkD MXpi2ZDY 6alg6UUb uolotu9I BEQscQ8N DNwC-xgX U70PA6dO 9KVO3j_q 5qqmJUbP KBcb18Rs 290KJDdC 8_7uNhTy qqsFxGGU",
       "canopy": "Idw5c7N2",

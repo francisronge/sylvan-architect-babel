@@ -1,0 +1,3671 @@
+{
+ "description": "Three phrasal movements whose claims name the moving occurrence under an open field (mover), its lower occurrence as trace, and the head that attracts it as target: eppMovement {mover: e_she, trace: e_shetr, target: e_t} (sixth stage), operatorMovement {mover: e_obj, trace: e_objtr, target: e_than} (seventh stage) and eppMovement {mover: m_rosa, trace: m_rosatr, target: m_t} (fourteenth stage). Each mover keeps its ID at the landing and its new trace holds the exact preceding slot. Recognition took the target head as the landing, found no shared lineage with the trace (MOVEMENT_LINEAGE_UNPROVEN) and drew gap badges with no arrow. The kept-ID occurrence is now the landing and the attracting head stays context, as when a target field names the landing. Test input for tests/keptLandingAttractingHead.test.mjs; kept out of fixtures/ because its agree plaque at e_t sits beyond its nearby reach on main (1.29) and with this fix (1.38), the far-plaque family ROADMAP lists as not active.",
+ "source": "Claude Opus 5.5 (claude-opus-5-5), high effort, Anthropic Messages API qualification run (npm run qualification:anthropic) under contract commit 35e88f0, 29 October 2026 (held-out batch heldout-20261029, run h1-023-en-pseudogapping, analysis 1 of 1). Tokens are the model’s own final words.",
+ "sentence": "Rosa gave more money to the school than she did to the hospital.",
+ "framework": "minimalism",
+ "contract": "character-spellout-v3",
+ "inputTokens": [
+  "Rosa",
+  "gave",
+  "more",
+  "money",
+  "to",
+  "the",
+  "school",
+  "than",
+  "she",
+  "did",
+  "to",
+  "the",
+  "hospital"
+ ],
+ "derivationStages": [
+  {
+   "statement": "The compared nominal of the than-clause, a silent degree operator with 'much money', is assembled.",
+   "stageRecord": "Comparative deletion here is treated as movement of the whole compared constituent. So the than-clause starts from a full nominal that parallels the matrix 'more money', but its degree slot is filled by a silent operator rather than by the comparative morpheme. The operator merges with the quantity head 'much', and the result merges with the noun 'money'. The degreeArgument relation records that the operator saturates the degree argument of 'much'. This is what later lets the clause denote a degree description, roughly 'the amount x such that she gave x-much money to the hospital'.",
+   "relations": [
+    {
+     "relation": "degreeArgument",
+     "anchors": {
+      "degree": "e_op",
+      "quantityHead": "e_much"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "e_obj",
+     "label": "N",
+     "lineageId": "L_eobj",
+     "children": [
+      {
+       "id": "e_qp",
+       "label": "Q",
+       "children": [
+        {
+         "id": "e_op",
+         "label": "Op",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "e_much",
+         "label": "Q",
+         "word": "much",
+         "children": []
+        }
+       ]
+      },
+      {
+       "id": "e_money",
+       "label": "N",
+       "word": "money",
+       "children": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The goal phrase 'to the hospital' of the than-clause is built as a separate object.",
+   "stageRecord": "The determiner 'the' merges with 'hospital', and the preposition 'to' merges with that phrase. The resulting goal phrase sits in the workspace beside the compared nominal. It will become the pseudogapping remnant that contrasts with 'to the school', so it is built before the verb that selects it. No non-structural relation is established yet.",
+   "relations": [],
+   "workspaceForest": [
+    {
+     "id": "e_obj",
+     "label": "N",
+     "lineageId": "L_eobj",
+     "children": [
+      {
+       "id": "e_qp",
+       "label": "Q",
+       "children": [
+        {
+         "id": "e_op",
+         "label": "Op",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "e_much",
+         "label": "Q",
+         "word": "much",
+         "children": []
+        }
+       ]
+      },
+      {
+       "id": "e_money",
+       "label": "N",
+       "word": "money",
+       "children": []
+      }
+     ]
+    },
+    {
+     "id": "e_pp",
+     "label": "P",
+     "lineageId": "L_epp",
+     "children": [
+      {
+       "id": "e_to",
+       "label": "P",
+       "word": "to",
+       "children": []
+      },
+      {
+       "id": "e_dp",
+       "label": "D",
+       "children": [
+        {
+         "id": "e_the",
+         "label": "D",
+         "word": "the",
+         "children": []
+        },
+        {
+         "id": "e_hosp",
+         "label": "N",
+         "word": "hospital",
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The embedded lexical verb 'give' forms a Larsonian VP with its goal and theme.",
+   "stageRecord": "The verb 'give' first merges with the goal phrase 'to the hospital' and assigns it the goal role. The resulting verbal object then merges with the compared nominal, which takes the theme role in the higher position. This ditransitive shell mirrors the one the matrix clause will build. The first thetaAssignment relation links 'give' to the goal phrase, and the second links 'give' to the compared nominal as theme.",
+   "relations": [
+    {
+     "relation": "thetaAssignment",
+     "anchors": {
+      "assigner": "e_give",
+      "argument": "e_pp"
+     },
+     "values": {
+      "role": "goal"
+     }
+    },
+    {
+     "relation": "thetaAssignment",
+     "anchors": {
+      "assigner": "e_give",
+      "argument": "e_obj"
+     },
+     "values": {
+      "role": "theme"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "e_vp",
+     "label": "V",
+     "children": [
+      {
+       "id": "e_obj",
+       "label": "N",
+       "lineageId": "L_eobj",
+       "children": [
+        {
+         "id": "e_qp",
+         "label": "Q",
+         "children": [
+          {
+           "id": "e_op",
+           "label": "Op",
+           "silent": true,
+           "children": []
+          },
+          {
+           "id": "e_much",
+           "label": "Q",
+           "word": "much",
+           "children": []
+          }
+         ]
+        },
+        {
+         "id": "e_money",
+         "label": "N",
+         "word": "money",
+         "children": []
+        }
+       ]
+      },
+      {
+       "id": "e_v1",
+       "label": "V",
+       "children": [
+        {
+         "id": "e_give",
+         "label": "V",
+         "word": "give",
+         "lineageId": "L_egive",
+         "children": []
+        },
+        {
+         "id": "e_pp",
+         "label": "P",
+         "lineageId": "L_epp",
+         "children": [
+          {
+           "id": "e_to",
+           "label": "P",
+           "word": "to",
+           "children": []
+          },
+          {
+           "id": "e_dp",
+           "label": "D",
+           "children": [
+            {
+             "id": "e_the",
+             "label": "D",
+             "word": "the",
+             "children": []
+            },
+            {
+             "id": "e_hosp",
+             "label": "N",
+             "word": "hospital",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Light v merges, 'give' raises to v, and the subject 'she' is merged as agent.",
+   "stageRecord": "A silent light verb merges with the VP. The verb 'give' then raises and adjoins to it, leaving a silent trace inside the VP. This is the same head movement that will give 'gave more money' its order in the matrix clause. After that, the pronoun 'she' is externally merged at the edge of the v projection. The headMovement relation connects the raised verb, its trace and the host light verb. The thetaAssignment relation then records that the light verb assigns the agent role to 'she'.",
+   "relations": [
+    {
+     "relation": "headMovement",
+     "anchors": {
+      "mover": "e_give",
+      "trace": "e_givetr",
+      "host": "e_lv"
+     }
+    },
+    {
+     "relation": "thetaAssignment",
+     "anchors": {
+      "assigner": "e_lv",
+      "argument": "e_she"
+     },
+     "values": {
+      "role": "agent"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "e_vP",
+     "label": "v",
+     "children": [
+      {
+       "id": "e_she",
+       "label": "D",
+       "word": "she",
+       "lineageId": "L_eshe",
+       "children": []
+      },
+      {
+       "id": "e_vbar",
+       "label": "v",
+       "children": [
+        {
+         "id": "e_vcomplex",
+         "label": "v",
+         "children": [
+          {
+           "id": "e_give",
+           "label": "V",
+           "word": "give",
+           "lineageId": "L_egive",
+           "children": []
+          },
+          {
+           "id": "e_lv",
+           "label": "v",
+           "silent": true,
+           "children": []
+          }
+         ]
+        },
+        {
+         "id": "e_vp",
+         "label": "V",
+         "children": [
+          {
+           "id": "e_obj",
+           "label": "N",
+           "lineageId": "L_eobj",
+           "children": [
+            {
+             "id": "e_qp",
+             "label": "Q",
+             "children": [
+              {
+               "id": "e_op",
+               "label": "Op",
+               "silent": true,
+               "children": []
+              },
+              {
+               "id": "e_much",
+               "label": "Q",
+               "word": "much",
+               "children": []
+              }
+             ]
+            },
+            {
+             "id": "e_money",
+             "label": "N",
+             "word": "money",
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "e_v1",
+           "label": "V",
+           "children": [
+            {
+             "id": "e_givetr",
+             "label": "V",
+             "silent": true,
+             "lineageId": "L_egive",
+             "children": []
+            },
+            {
+             "id": "e_pp",
+             "label": "P",
+             "lineageId": "L_epp",
+             "children": [
+              {
+               "id": "e_to",
+               "label": "P",
+               "word": "to",
+               "children": []
+              },
+              {
+               "id": "e_dp",
+               "label": "D",
+               "children": [
+                {
+                 "id": "e_the",
+                 "label": "D",
+                 "word": "the",
+                 "children": []
+                },
+                {
+                 "id": "e_hosp",
+                 "label": "N",
+                 "word": "hospital",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "A Focus head above vP attracts the remnant 'to the hospital' out of the future ellipsis site.",
+   "stageRecord": "Pseudogapping leaves 'to the hospital' pronounced while the rest of the verb phrase goes unpronounced. So the remnant must escape the verb phrase before ellipsis. A silent Focus head merges with the v projection. It carries a contrastive-focus feature and also the ellipsis feature that will later license deletion of its complement. The goal phrase then moves from its VP-internal position to the specifier of Focus, leaving a silent trace. The focusMovement relation links the moved goal phrase, its trace and the attracting Focus head.",
+   "relations": [
+    {
+     "relation": "focusMovement",
+     "anchors": {
+      "mover": "e_pp",
+      "trace": "e_pptr",
+      "probe": "e_foc"
+     },
+     "values": {
+      "feature": "contrastive focus"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "e_focP",
+     "label": "Foc",
+     "children": [
+      {
+       "id": "e_pp",
+       "label": "P",
+       "lineageId": "L_epp",
+       "children": [
+        {
+         "id": "e_to",
+         "label": "P",
+         "word": "to",
+         "children": []
+        },
+        {
+         "id": "e_dp",
+         "label": "D",
+         "children": [
+          {
+           "id": "e_the",
+           "label": "D",
+           "word": "the",
+           "children": []
+          },
+          {
+           "id": "e_hosp",
+           "label": "N",
+           "word": "hospital",
+           "children": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "e_focbar",
+       "label": "Foc",
+       "children": [
+        {
+         "id": "e_foc",
+         "label": "Foc",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "e_vP",
+         "label": "v",
+         "children": [
+          {
+           "id": "e_she",
+           "label": "D",
+           "word": "she",
+           "lineageId": "L_eshe",
+           "children": []
+          },
+          {
+           "id": "e_vbar",
+           "label": "v",
+           "children": [
+            {
+             "id": "e_vcomplex",
+             "label": "v",
+             "children": [
+              {
+               "id": "e_give",
+               "label": "V",
+               "word": "give",
+               "lineageId": "L_egive",
+               "children": []
+              },
+              {
+               "id": "e_lv",
+               "label": "v",
+               "silent": true,
+               "children": []
+              }
+             ]
+            },
+            {
+             "id": "e_vp",
+             "label": "V",
+             "children": [
+              {
+               "id": "e_obj",
+               "label": "N",
+               "lineageId": "L_eobj",
+               "children": [
+                {
+                 "id": "e_qp",
+                 "label": "Q",
+                 "children": [
+                  {
+                   "id": "e_op",
+                   "label": "Op",
+                   "silent": true,
+                   "children": []
+                  },
+                  {
+                   "id": "e_much",
+                   "label": "Q",
+                   "word": "much",
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "id": "e_money",
+                 "label": "N",
+                 "word": "money",
+                 "children": []
+                }
+               ]
+              },
+              {
+               "id": "e_v1",
+               "label": "V",
+               "children": [
+                {
+                 "id": "e_givetr",
+                 "label": "V",
+                 "silent": true,
+                 "lineageId": "L_egive",
+                 "children": []
+                },
+                {
+                 "id": "e_pptr",
+                 "label": "P",
+                 "silent": true,
+                 "lineageId": "L_epp",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Past T, spelled out as 'did', agrees with 'she', and 'she' raises to the T edge.",
+   "stageRecord": "Past tense T merges above the Focus phrase. The verb complex is buried below Focus and inside the soon-to-be-elided verb phrase, so tense cannot be realized on the verb. T is therefore spelled out by do-support as 'did'. T first probes and agrees with the subject 'she' for phi-features and nominative case. 'She' then raises to the specifier of T, leaving a silent trace in the agent position. The doSupport relation records that past tense on T is realized as 'did'. The agree relation links T to 'she'. The epp movement relation links the raised 'she', its trace and T.",
+   "relations": [
+    {
+     "relation": "doSupport",
+     "anchors": {
+      "tense": "e_t"
+     },
+     "values": {
+      "tense": "past",
+      "form": "did"
+     }
+    },
+    {
+     "relation": "agree",
+     "anchors": {
+      "probe": "e_t",
+      "goal": "e_she"
+     },
+     "values": {
+      "features": [
+       "phi",
+       "nominative case"
+      ]
+     }
+    },
+    {
+     "relation": "eppMovement",
+     "anchors": {
+      "mover": "e_she",
+      "trace": "e_shetr",
+      "target": "e_t"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "e_tp",
+     "label": "T",
+     "children": [
+      {
+       "id": "e_she",
+       "label": "D",
+       "word": "she",
+       "lineageId": "L_eshe",
+       "children": []
+      },
+      {
+       "id": "e_tbar",
+       "label": "T",
+       "children": [
+        {
+         "id": "e_t",
+         "label": "T",
+         "word": "did",
+         "children": []
+        },
+        {
+         "id": "e_focP",
+         "label": "Foc",
+         "children": [
+          {
+           "id": "e_pp",
+           "label": "P",
+           "lineageId": "L_epp",
+           "children": [
+            {
+             "id": "e_to",
+             "label": "P",
+             "word": "to",
+             "children": []
+            },
+            {
+             "id": "e_dp",
+             "label": "D",
+             "children": [
+              {
+               "id": "e_the",
+               "label": "D",
+               "word": "the",
+               "children": []
+              },
+              {
+               "id": "e_hosp",
+               "label": "N",
+               "word": "hospital",
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "e_focbar",
+           "label": "Foc",
+           "children": [
+            {
+             "id": "e_foc",
+             "label": "Foc",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "e_vP",
+             "label": "v",
+             "children": [
+              {
+               "id": "e_shetr",
+               "label": "D",
+               "silent": true,
+               "lineageId": "L_eshe",
+               "children": []
+              },
+              {
+               "id": "e_vbar",
+               "label": "v",
+               "children": [
+                {
+                 "id": "e_vcomplex",
+                 "label": "v",
+                 "children": [
+                  {
+                   "id": "e_give",
+                   "label": "V",
+                   "word": "give",
+                   "lineageId": "L_egive",
+                   "children": []
+                  },
+                  {
+                   "id": "e_lv",
+                   "label": "v",
+                   "silent": true,
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "id": "e_vp",
+                 "label": "V",
+                 "children": [
+                  {
+                   "id": "e_obj",
+                   "label": "N",
+                   "lineageId": "L_eobj",
+                   "children": [
+                    {
+                     "id": "e_qp",
+                     "label": "Q",
+                     "children": [
+                      {
+                       "id": "e_op",
+                       "label": "Op",
+                       "silent": true,
+                       "children": []
+                      },
+                      {
+                       "id": "e_much",
+                       "label": "Q",
+                       "word": "much",
+                       "children": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "e_money",
+                     "label": "N",
+                     "word": "money",
+                     "children": []
+                    }
+                   ]
+                  },
+                  {
+                   "id": "e_v1",
+                   "label": "V",
+                   "children": [
+                    {
+                     "id": "e_givetr",
+                     "label": "V",
+                     "silent": true,
+                     "lineageId": "L_egive",
+                     "children": []
+                    },
+                    {
+                     "id": "e_pptr",
+                     "label": "P",
+                     "silent": true,
+                     "lineageId": "L_epp",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The complementizer 'than' merges and the operator-bearing nominal moves to its specifier, forming the than-clause.",
+   "stageRecord": "The complementizer 'than' merges with the T phrase. Its operator feature attracts the compared nominal containing the degree operator. That nominal moves from the theme position to the specifier of 'than', leaving a silent trace in the VP. The clause is thereby turned into a degree abstraction. At this point the moved nominal still carries its own phonology. Its deletion depends on the matrix antecedent, which is not yet in the workspace. The operatorMovement relation links the moved nominal, its trace and the complementizer 'than'.",
+   "relations": [
+    {
+     "relation": "operatorMovement",
+     "anchors": {
+      "mover": "e_obj",
+      "trace": "e_objtr",
+      "target": "e_than"
+     },
+     "values": {
+      "feature": "degree operator"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "e_cp",
+     "label": "C",
+     "lineageId": "L_ecp",
+     "children": [
+      {
+       "id": "e_obj",
+       "label": "N",
+       "lineageId": "L_eobj",
+       "children": [
+        {
+         "id": "e_qp",
+         "label": "Q",
+         "children": [
+          {
+           "id": "e_op",
+           "label": "Op",
+           "silent": true,
+           "children": []
+          },
+          {
+           "id": "e_much",
+           "label": "Q",
+           "word": "much",
+           "children": []
+          }
+         ]
+        },
+        {
+         "id": "e_money",
+         "label": "N",
+         "word": "money",
+         "children": []
+        }
+       ]
+      },
+      {
+       "id": "e_cbar",
+       "label": "C",
+       "children": [
+        {
+         "id": "e_than",
+         "label": "C",
+         "word": "than",
+         "children": []
+        },
+        {
+         "id": "e_tp",
+         "label": "T",
+         "children": [
+          {
+           "id": "e_she",
+           "label": "D",
+           "word": "she",
+           "lineageId": "L_eshe",
+           "children": []
+          },
+          {
+           "id": "e_tbar",
+           "label": "T",
+           "children": [
+            {
+             "id": "e_t",
+             "label": "T",
+             "word": "did",
+             "children": []
+            },
+            {
+             "id": "e_focP",
+             "label": "Foc",
+             "children": [
+              {
+               "id": "e_pp",
+               "label": "P",
+               "lineageId": "L_epp",
+               "children": [
+                {
+                 "id": "e_to",
+                 "label": "P",
+                 "word": "to",
+                 "children": []
+                },
+                {
+                 "id": "e_dp",
+                 "label": "D",
+                 "children": [
+                  {
+                   "id": "e_the",
+                   "label": "D",
+                   "word": "the",
+                   "children": []
+                  },
+                  {
+                   "id": "e_hosp",
+                   "label": "N",
+                   "word": "hospital",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "e_focbar",
+               "label": "Foc",
+               "children": [
+                {
+                 "id": "e_foc",
+                 "label": "Foc",
+                 "silent": true,
+                 "children": []
+                },
+                {
+                 "id": "e_vP",
+                 "label": "v",
+                 "children": [
+                  {
+                   "id": "e_shetr",
+                   "label": "D",
+                   "silent": true,
+                   "lineageId": "L_eshe",
+                   "children": []
+                  },
+                  {
+                   "id": "e_vbar",
+                   "label": "v",
+                   "children": [
+                    {
+                     "id": "e_vcomplex",
+                     "label": "v",
+                     "children": [
+                      {
+                       "id": "e_give",
+                       "label": "V",
+                       "word": "give",
+                       "lineageId": "L_egive",
+                       "children": []
+                      },
+                      {
+                       "id": "e_lv",
+                       "label": "v",
+                       "silent": true,
+                       "children": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "e_vp",
+                     "label": "V",
+                     "children": [
+                      {
+                       "id": "e_objtr",
+                       "label": "N",
+                       "silent": true,
+                       "lineageId": "L_eobj",
+                       "children": []
+                      },
+                      {
+                       "id": "e_v1",
+                       "label": "V",
+                       "children": [
+                        {
+                         "id": "e_givetr",
+                         "label": "V",
+                         "silent": true,
+                         "lineageId": "L_egive",
+                         "children": []
+                        },
+                        {
+                         "id": "e_pptr",
+                         "label": "P",
+                         "silent": true,
+                         "lineageId": "L_epp",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The matrix object 'more money' is built with the comparative morpheme selecting the than-clause, and comparative deletion applies.",
+   "stageRecord": "The comparative degree head '-er' merges with the than-clause as its complement. The resulting degree phrase merges with the quantity head 'much', and that phrase merges with 'money', giving the matrix theme. The comparativeSelection relation records that '-er' selects the than-clause as its standard of comparison. The degreeArgument relation records that the degree phrase saturates the degree argument of matrix 'much'. The comparativeDeletion relation then links the fronted compared nominal of the than-clause to its antecedents, matrix 'much' and 'money'. Because the two are identical, the fronted nominal becomes silent, which is why no 'much money' is heard after 'than'.",
+   "relations": [
+    {
+     "relation": "comparativeSelection",
+     "anchors": {
+      "degreeHead": "m_er",
+      "standard": "e_cp"
+     }
+    },
+    {
+     "relation": "degreeArgument",
+     "anchors": {
+      "degree": "m_deg",
+      "quantityHead": "m_much"
+     }
+    },
+    {
+     "relation": "comparativeDeletion",
+     "anchors": {
+      "deleted": "e_obj",
+      "antecedent": [
+       "m_much",
+       "m_money"
+      ]
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "m_obj",
+     "label": "N",
+     "children": [
+      {
+       "id": "m_qp",
+       "label": "Q",
+       "children": [
+        {
+         "id": "m_deg",
+         "label": "Deg",
+         "children": [
+          {
+           "id": "m_er",
+           "label": "Deg",
+           "word": "-er",
+           "children": []
+          },
+          {
+           "id": "e_cp",
+           "label": "C",
+           "lineageId": "L_ecp",
+           "children": [
+            {
+             "id": "e_obj",
+             "label": "N",
+             "silent": true,
+             "lineageId": "L_eobj",
+             "children": [
+              {
+               "id": "e_qp",
+               "label": "Q",
+               "children": [
+                {
+                 "id": "e_op",
+                 "label": "Op",
+                 "silent": true,
+                 "children": []
+                },
+                {
+                 "id": "e_much",
+                 "label": "Q",
+                 "word": "much",
+                 "children": []
+                }
+               ]
+              },
+              {
+               "id": "e_money",
+               "label": "N",
+               "word": "money",
+               "children": []
+              }
+             ]
+            },
+            {
+             "id": "e_cbar",
+             "label": "C",
+             "children": [
+              {
+               "id": "e_than",
+               "label": "C",
+               "word": "than",
+               "children": []
+              },
+              {
+               "id": "e_tp",
+               "label": "T",
+               "children": [
+                {
+                 "id": "e_she",
+                 "label": "D",
+                 "word": "she",
+                 "lineageId": "L_eshe",
+                 "children": []
+                },
+                {
+                 "id": "e_tbar",
+                 "label": "T",
+                 "children": [
+                  {
+                   "id": "e_t",
+                   "label": "T",
+                   "word": "did",
+                   "children": []
+                  },
+                  {
+                   "id": "e_focP",
+                   "label": "Foc",
+                   "children": [
+                    {
+                     "id": "e_pp",
+                     "label": "P",
+                     "lineageId": "L_epp",
+                     "children": [
+                      {
+                       "id": "e_to",
+                       "label": "P",
+                       "word": "to",
+                       "children": []
+                      },
+                      {
+                       "id": "e_dp",
+                       "label": "D",
+                       "children": [
+                        {
+                         "id": "e_the",
+                         "label": "D",
+                         "word": "the",
+                         "children": []
+                        },
+                        {
+                         "id": "e_hosp",
+                         "label": "N",
+                         "word": "hospital",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    },
+                    {
+                     "id": "e_focbar",
+                     "label": "Foc",
+                     "children": [
+                      {
+                       "id": "e_foc",
+                       "label": "Foc",
+                       "silent": true,
+                       "children": []
+                      },
+                      {
+                       "id": "e_vP",
+                       "label": "v",
+                       "children": [
+                        {
+                         "id": "e_shetr",
+                         "label": "D",
+                         "silent": true,
+                         "lineageId": "L_eshe",
+                         "children": []
+                        },
+                        {
+                         "id": "e_vbar",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "e_vcomplex",
+                           "label": "v",
+                           "children": [
+                            {
+                             "id": "e_give",
+                             "label": "V",
+                             "word": "give",
+                             "lineageId": "L_egive",
+                             "children": []
+                            },
+                            {
+                             "id": "e_lv",
+                             "label": "v",
+                             "silent": true,
+                             "children": []
+                            }
+                           ]
+                          },
+                          {
+                           "id": "e_vp",
+                           "label": "V",
+                           "children": [
+                            {
+                             "id": "e_objtr",
+                             "label": "N",
+                             "silent": true,
+                             "lineageId": "L_eobj",
+                             "children": []
+                            },
+                            {
+                             "id": "e_v1",
+                             "label": "V",
+                             "children": [
+                              {
+                               "id": "e_givetr",
+                               "label": "V",
+                               "silent": true,
+                               "lineageId": "L_egive",
+                               "children": []
+                              },
+                              {
+                               "id": "e_pptr",
+                               "label": "P",
+                               "silent": true,
+                               "lineageId": "L_epp",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "m_much",
+         "label": "Q",
+         "word": "much",
+         "children": []
+        }
+       ]
+      },
+      {
+       "id": "m_money",
+       "label": "N",
+       "word": "money",
+       "children": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The matrix goal phrase 'to the school' is built alongside the matrix object.",
+   "stageRecord": "The determiner 'the' merges with 'school', and 'to' merges with the result. This gives the matrix goal phrase, the correlate of the focused remnant 'to the hospital'. It remains a separate object next to the matrix theme. No non-structural relation is established here.",
+   "relations": [],
+   "workspaceForest": [
+    {
+     "id": "m_obj",
+     "label": "N",
+     "children": [
+      {
+       "id": "m_qp",
+       "label": "Q",
+       "children": [
+        {
+         "id": "m_deg",
+         "label": "Deg",
+         "children": [
+          {
+           "id": "m_er",
+           "label": "Deg",
+           "word": "-er",
+           "children": []
+          },
+          {
+           "id": "e_cp",
+           "label": "C",
+           "lineageId": "L_ecp",
+           "children": [
+            {
+             "id": "e_obj",
+             "label": "N",
+             "silent": true,
+             "lineageId": "L_eobj",
+             "children": [
+              {
+               "id": "e_qp",
+               "label": "Q",
+               "children": [
+                {
+                 "id": "e_op",
+                 "label": "Op",
+                 "silent": true,
+                 "children": []
+                },
+                {
+                 "id": "e_much",
+                 "label": "Q",
+                 "word": "much",
+                 "children": []
+                }
+               ]
+              },
+              {
+               "id": "e_money",
+               "label": "N",
+               "word": "money",
+               "children": []
+              }
+             ]
+            },
+            {
+             "id": "e_cbar",
+             "label": "C",
+             "children": [
+              {
+               "id": "e_than",
+               "label": "C",
+               "word": "than",
+               "children": []
+              },
+              {
+               "id": "e_tp",
+               "label": "T",
+               "children": [
+                {
+                 "id": "e_she",
+                 "label": "D",
+                 "word": "she",
+                 "lineageId": "L_eshe",
+                 "children": []
+                },
+                {
+                 "id": "e_tbar",
+                 "label": "T",
+                 "children": [
+                  {
+                   "id": "e_t",
+                   "label": "T",
+                   "word": "did",
+                   "children": []
+                  },
+                  {
+                   "id": "e_focP",
+                   "label": "Foc",
+                   "children": [
+                    {
+                     "id": "e_pp",
+                     "label": "P",
+                     "lineageId": "L_epp",
+                     "children": [
+                      {
+                       "id": "e_to",
+                       "label": "P",
+                       "word": "to",
+                       "children": []
+                      },
+                      {
+                       "id": "e_dp",
+                       "label": "D",
+                       "children": [
+                        {
+                         "id": "e_the",
+                         "label": "D",
+                         "word": "the",
+                         "children": []
+                        },
+                        {
+                         "id": "e_hosp",
+                         "label": "N",
+                         "word": "hospital",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    },
+                    {
+                     "id": "e_focbar",
+                     "label": "Foc",
+                     "children": [
+                      {
+                       "id": "e_foc",
+                       "label": "Foc",
+                       "silent": true,
+                       "children": []
+                      },
+                      {
+                       "id": "e_vP",
+                       "label": "v",
+                       "children": [
+                        {
+                         "id": "e_shetr",
+                         "label": "D",
+                         "silent": true,
+                         "lineageId": "L_eshe",
+                         "children": []
+                        },
+                        {
+                         "id": "e_vbar",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "e_vcomplex",
+                           "label": "v",
+                           "children": [
+                            {
+                             "id": "e_give",
+                             "label": "V",
+                             "word": "give",
+                             "lineageId": "L_egive",
+                             "children": []
+                            },
+                            {
+                             "id": "e_lv",
+                             "label": "v",
+                             "silent": true,
+                             "children": []
+                            }
+                           ]
+                          },
+                          {
+                           "id": "e_vp",
+                           "label": "V",
+                           "children": [
+                            {
+                             "id": "e_objtr",
+                             "label": "N",
+                             "silent": true,
+                             "lineageId": "L_eobj",
+                             "children": []
+                            },
+                            {
+                             "id": "e_v1",
+                             "label": "V",
+                             "children": [
+                              {
+                               "id": "e_givetr",
+                               "label": "V",
+                               "silent": true,
+                               "lineageId": "L_egive",
+                               "children": []
+                              },
+                              {
+                               "id": "e_pptr",
+                               "label": "P",
+                               "silent": true,
+                               "lineageId": "L_epp",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "m_much",
+         "label": "Q",
+         "word": "much",
+         "children": []
+        }
+       ]
+      },
+      {
+       "id": "m_money",
+       "label": "N",
+       "word": "money",
+       "children": []
+      }
+     ]
+    },
+    {
+     "id": "m_pp",
+     "label": "P",
+     "children": [
+      {
+       "id": "m_to",
+       "label": "P",
+       "word": "to",
+       "children": []
+      },
+      {
+       "id": "m_dp",
+       "label": "D",
+       "children": [
+        {
+         "id": "m_the",
+         "label": "D",
+         "word": "the",
+         "children": []
+        },
+        {
+         "id": "m_school",
+         "label": "N",
+         "word": "school",
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Matrix 'gave' forms a Larsonian VP with goal 'to the school' and theme 'more money'.",
+   "stageRecord": "The verb 'gave' merges first with 'to the school' and assigns it the goal role. The verbal object then merges with 'more money', which receives the theme role. This builds the same shell as in the than-clause, which is what makes the later ellipsis parallel. The two thetaAssignment relations link 'gave' to the goal phrase and then to the theme.",
+   "relations": [
+    {
+     "relation": "thetaAssignment",
+     "anchors": {
+      "assigner": "m_gave",
+      "argument": "m_pp"
+     },
+     "values": {
+      "role": "goal"
+     }
+    },
+    {
+     "relation": "thetaAssignment",
+     "anchors": {
+      "assigner": "m_gave",
+      "argument": "m_obj"
+     },
+     "values": {
+      "role": "theme"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "m_vp",
+     "label": "V",
+     "children": [
+      {
+       "id": "m_obj",
+       "label": "N",
+       "children": [
+        {
+         "id": "m_qp",
+         "label": "Q",
+         "children": [
+          {
+           "id": "m_deg",
+           "label": "Deg",
+           "children": [
+            {
+             "id": "m_er",
+             "label": "Deg",
+             "word": "-er",
+             "children": []
+            },
+            {
+             "id": "e_cp",
+             "label": "C",
+             "lineageId": "L_ecp",
+             "children": [
+              {
+               "id": "e_obj",
+               "label": "N",
+               "silent": true,
+               "lineageId": "L_eobj",
+               "children": [
+                {
+                 "id": "e_qp",
+                 "label": "Q",
+                 "children": [
+                  {
+                   "id": "e_op",
+                   "label": "Op",
+                   "silent": true,
+                   "children": []
+                  },
+                  {
+                   "id": "e_much",
+                   "label": "Q",
+                   "word": "much",
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "id": "e_money",
+                 "label": "N",
+                 "word": "money",
+                 "children": []
+                }
+               ]
+              },
+              {
+               "id": "e_cbar",
+               "label": "C",
+               "children": [
+                {
+                 "id": "e_than",
+                 "label": "C",
+                 "word": "than",
+                 "children": []
+                },
+                {
+                 "id": "e_tp",
+                 "label": "T",
+                 "children": [
+                  {
+                   "id": "e_she",
+                   "label": "D",
+                   "word": "she",
+                   "lineageId": "L_eshe",
+                   "children": []
+                  },
+                  {
+                   "id": "e_tbar",
+                   "label": "T",
+                   "children": [
+                    {
+                     "id": "e_t",
+                     "label": "T",
+                     "word": "did",
+                     "children": []
+                    },
+                    {
+                     "id": "e_focP",
+                     "label": "Foc",
+                     "children": [
+                      {
+                       "id": "e_pp",
+                       "label": "P",
+                       "lineageId": "L_epp",
+                       "children": [
+                        {
+                         "id": "e_to",
+                         "label": "P",
+                         "word": "to",
+                         "children": []
+                        },
+                        {
+                         "id": "e_dp",
+                         "label": "D",
+                         "children": [
+                          {
+                           "id": "e_the",
+                           "label": "D",
+                           "word": "the",
+                           "children": []
+                          },
+                          {
+                           "id": "e_hosp",
+                           "label": "N",
+                           "word": "hospital",
+                           "children": []
+                          }
+                         ]
+                        }
+                       ]
+                      },
+                      {
+                       "id": "e_focbar",
+                       "label": "Foc",
+                       "children": [
+                        {
+                         "id": "e_foc",
+                         "label": "Foc",
+                         "silent": true,
+                         "children": []
+                        },
+                        {
+                         "id": "e_vP",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "e_shetr",
+                           "label": "D",
+                           "silent": true,
+                           "lineageId": "L_eshe",
+                           "children": []
+                          },
+                          {
+                           "id": "e_vbar",
+                           "label": "v",
+                           "children": [
+                            {
+                             "id": "e_vcomplex",
+                             "label": "v",
+                             "children": [
+                              {
+                               "id": "e_give",
+                               "label": "V",
+                               "word": "give",
+                               "lineageId": "L_egive",
+                               "children": []
+                              },
+                              {
+                               "id": "e_lv",
+                               "label": "v",
+                               "silent": true,
+                               "children": []
+                              }
+                             ]
+                            },
+                            {
+                             "id": "e_vp",
+                             "label": "V",
+                             "children": [
+                              {
+                               "id": "e_objtr",
+                               "label": "N",
+                               "silent": true,
+                               "lineageId": "L_eobj",
+                               "children": []
+                              },
+                              {
+                               "id": "e_v1",
+                               "label": "V",
+                               "children": [
+                                {
+                                 "id": "e_givetr",
+                                 "label": "V",
+                                 "silent": true,
+                                 "lineageId": "L_egive",
+                                 "children": []
+                                },
+                                {
+                                 "id": "e_pptr",
+                                 "label": "P",
+                                 "silent": true,
+                                 "lineageId": "L_epp",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "m_much",
+           "label": "Q",
+           "word": "much",
+           "children": []
+          }
+         ]
+        },
+        {
+         "id": "m_money",
+         "label": "N",
+         "word": "money",
+         "children": []
+        }
+       ]
+      },
+      {
+       "id": "m_v1",
+       "label": "V",
+       "children": [
+        {
+         "id": "m_gave",
+         "label": "V",
+         "word": "gave",
+         "lineageId": "L_mgave",
+         "children": []
+        },
+        {
+         "id": "m_pp",
+         "label": "P",
+         "children": [
+          {
+           "id": "m_to",
+           "label": "P",
+           "word": "to",
+           "children": []
+          },
+          {
+           "id": "m_dp",
+           "label": "D",
+           "children": [
+            {
+             "id": "m_the",
+             "label": "D",
+             "word": "the",
+             "children": []
+            },
+            {
+             "id": "m_school",
+             "label": "N",
+             "word": "school",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Matrix light v merges, 'gave' raises to it, and 'Rosa' is merged as agent.",
+   "stageRecord": "A silent light verb merges with the matrix VP. 'Gave' raises to it, leaving a silent trace, so the verb now precedes 'more money' as in the surface order. 'Rosa' is then externally merged at the v edge. The headMovement relation links the raised 'gave', its trace and the host light verb. The thetaAssignment relation records that the light verb assigns the agent role to 'Rosa'.",
+   "relations": [
+    {
+     "relation": "headMovement",
+     "anchors": {
+      "mover": "m_gave",
+      "trace": "m_gavetr",
+      "host": "m_lv"
+     }
+    },
+    {
+     "relation": "thetaAssignment",
+     "anchors": {
+      "assigner": "m_lv",
+      "argument": "m_rosa"
+     },
+     "values": {
+      "role": "agent"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "m_vP",
+     "label": "v",
+     "children": [
+      {
+       "id": "m_rosa",
+       "label": "D",
+       "word": "Rosa",
+       "lineageId": "L_rosa",
+       "children": []
+      },
+      {
+       "id": "m_vbar",
+       "label": "v",
+       "children": [
+        {
+         "id": "m_vcomplex",
+         "label": "v",
+         "children": [
+          {
+           "id": "m_gave",
+           "label": "V",
+           "word": "gave",
+           "lineageId": "L_mgave",
+           "children": []
+          },
+          {
+           "id": "m_lv",
+           "label": "v",
+           "silent": true,
+           "children": []
+          }
+         ]
+        },
+        {
+         "id": "m_vp",
+         "label": "V",
+         "children": [
+          {
+           "id": "m_obj",
+           "label": "N",
+           "children": [
+            {
+             "id": "m_qp",
+             "label": "Q",
+             "children": [
+              {
+               "id": "m_deg",
+               "label": "Deg",
+               "children": [
+                {
+                 "id": "m_er",
+                 "label": "Deg",
+                 "word": "-er",
+                 "children": []
+                },
+                {
+                 "id": "e_cp",
+                 "label": "C",
+                 "lineageId": "L_ecp",
+                 "children": [
+                  {
+                   "id": "e_obj",
+                   "label": "N",
+                   "silent": true,
+                   "lineageId": "L_eobj",
+                   "children": [
+                    {
+                     "id": "e_qp",
+                     "label": "Q",
+                     "children": [
+                      {
+                       "id": "e_op",
+                       "label": "Op",
+                       "silent": true,
+                       "children": []
+                      },
+                      {
+                       "id": "e_much",
+                       "label": "Q",
+                       "word": "much",
+                       "children": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "e_money",
+                     "label": "N",
+                     "word": "money",
+                     "children": []
+                    }
+                   ]
+                  },
+                  {
+                   "id": "e_cbar",
+                   "label": "C",
+                   "children": [
+                    {
+                     "id": "e_than",
+                     "label": "C",
+                     "word": "than",
+                     "children": []
+                    },
+                    {
+                     "id": "e_tp",
+                     "label": "T",
+                     "children": [
+                      {
+                       "id": "e_she",
+                       "label": "D",
+                       "word": "she",
+                       "lineageId": "L_eshe",
+                       "children": []
+                      },
+                      {
+                       "id": "e_tbar",
+                       "label": "T",
+                       "children": [
+                        {
+                         "id": "e_t",
+                         "label": "T",
+                         "word": "did",
+                         "children": []
+                        },
+                        {
+                         "id": "e_focP",
+                         "label": "Foc",
+                         "children": [
+                          {
+                           "id": "e_pp",
+                           "label": "P",
+                           "lineageId": "L_epp",
+                           "children": [
+                            {
+                             "id": "e_to",
+                             "label": "P",
+                             "word": "to",
+                             "children": []
+                            },
+                            {
+                             "id": "e_dp",
+                             "label": "D",
+                             "children": [
+                              {
+                               "id": "e_the",
+                               "label": "D",
+                               "word": "the",
+                               "children": []
+                              },
+                              {
+                               "id": "e_hosp",
+                               "label": "N",
+                               "word": "hospital",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          },
+                          {
+                           "id": "e_focbar",
+                           "label": "Foc",
+                           "children": [
+                            {
+                             "id": "e_foc",
+                             "label": "Foc",
+                             "silent": true,
+                             "children": []
+                            },
+                            {
+                             "id": "e_vP",
+                             "label": "v",
+                             "children": [
+                              {
+                               "id": "e_shetr",
+                               "label": "D",
+                               "silent": true,
+                               "lineageId": "L_eshe",
+                               "children": []
+                              },
+                              {
+                               "id": "e_vbar",
+                               "label": "v",
+                               "children": [
+                                {
+                                 "id": "e_vcomplex",
+                                 "label": "v",
+                                 "children": [
+                                  {
+                                   "id": "e_give",
+                                   "label": "V",
+                                   "word": "give",
+                                   "lineageId": "L_egive",
+                                   "children": []
+                                  },
+                                  {
+                                   "id": "e_lv",
+                                   "label": "v",
+                                   "silent": true,
+                                   "children": []
+                                  }
+                                 ]
+                                },
+                                {
+                                 "id": "e_vp",
+                                 "label": "V",
+                                 "children": [
+                                  {
+                                   "id": "e_objtr",
+                                   "label": "N",
+                                   "silent": true,
+                                   "lineageId": "L_eobj",
+                                   "children": []
+                                  },
+                                  {
+                                   "id": "e_v1",
+                                   "label": "V",
+                                   "children": [
+                                    {
+                                     "id": "e_givetr",
+                                     "label": "V",
+                                     "silent": true,
+                                     "lineageId": "L_egive",
+                                     "children": []
+                                    },
+                                    {
+                                     "id": "e_pptr",
+                                     "label": "P",
+                                     "silent": true,
+                                     "lineageId": "L_epp",
+                                     "children": []
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                }
+                               ]
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "m_much",
+               "label": "Q",
+               "word": "much",
+               "children": []
+              }
+             ]
+            },
+            {
+             "id": "m_money",
+             "label": "N",
+             "word": "money",
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "m_v1",
+           "label": "V",
+           "children": [
+            {
+             "id": "m_gavetr",
+             "label": "V",
+             "silent": true,
+             "lineageId": "L_mgave",
+             "children": []
+            },
+            {
+             "id": "m_pp",
+             "label": "P",
+             "children": [
+              {
+               "id": "m_to",
+               "label": "P",
+               "word": "to",
+               "children": []
+              },
+              {
+               "id": "m_dp",
+               "label": "D",
+               "children": [
+                {
+                 "id": "m_the",
+                 "label": "D",
+                 "word": "the",
+                 "children": []
+                },
+                {
+                 "id": "m_school",
+                 "label": "N",
+                 "word": "school",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The than-clause extraposes from the degree phrase and right-adjoins to the matrix vP.",
+   "stageRecord": "The than-clause leaves its base position as complement of '-er' and right-adjoins to the matrix v projection, leaving a silent trace inside 'more money'. This movement does three things for this sentence. It places 'than she did to the hospital' after 'to the school'. It marks the matrix vP as the scope of the comparative. It also lifts the future ellipsis site out of the matrix vP that will serve as its antecedent, so no antecedent-containment problem arises. The extraposition relation links the moved than-clause, its trace and the matrix vP it adjoins to.",
+   "relations": [
+    {
+     "relation": "extraposition",
+     "anchors": {
+      "mover": "e_cp",
+      "trace": "e_cptr",
+      "adjunctionSite": "m_vP"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "m_vPadj",
+     "label": "v",
+     "children": [
+      {
+       "id": "m_vP",
+       "label": "v",
+       "children": [
+        {
+         "id": "m_rosa",
+         "label": "D",
+         "word": "Rosa",
+         "lineageId": "L_rosa",
+         "children": []
+        },
+        {
+         "id": "m_vbar",
+         "label": "v",
+         "children": [
+          {
+           "id": "m_vcomplex",
+           "label": "v",
+           "children": [
+            {
+             "id": "m_gave",
+             "label": "V",
+             "word": "gave",
+             "lineageId": "L_mgave",
+             "children": []
+            },
+            {
+             "id": "m_lv",
+             "label": "v",
+             "silent": true,
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "m_vp",
+           "label": "V",
+           "children": [
+            {
+             "id": "m_obj",
+             "label": "N",
+             "children": [
+              {
+               "id": "m_qp",
+               "label": "Q",
+               "children": [
+                {
+                 "id": "m_deg",
+                 "label": "Deg",
+                 "children": [
+                  {
+                   "id": "m_er",
+                   "label": "Deg",
+                   "word": "-er",
+                   "children": []
+                  },
+                  {
+                   "id": "e_cptr",
+                   "label": "C",
+                   "silent": true,
+                   "lineageId": "L_ecp",
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "id": "m_much",
+                 "label": "Q",
+                 "word": "much",
+                 "children": []
+                }
+               ]
+              },
+              {
+               "id": "m_money",
+               "label": "N",
+               "word": "money",
+               "children": []
+              }
+             ]
+            },
+            {
+             "id": "m_v1",
+             "label": "V",
+             "children": [
+              {
+               "id": "m_gavetr",
+               "label": "V",
+               "silent": true,
+               "lineageId": "L_mgave",
+               "children": []
+              },
+              {
+               "id": "m_pp",
+               "label": "P",
+               "children": [
+                {
+                 "id": "m_to",
+                 "label": "P",
+                 "word": "to",
+                 "children": []
+                },
+                {
+                 "id": "m_dp",
+                 "label": "D",
+                 "children": [
+                  {
+                   "id": "m_the",
+                   "label": "D",
+                   "word": "the",
+                   "children": []
+                  },
+                  {
+                   "id": "m_school",
+                   "label": "N",
+                   "word": "school",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "e_cp",
+       "label": "C",
+       "lineageId": "L_ecp",
+       "children": [
+        {
+         "id": "e_obj",
+         "label": "N",
+         "silent": true,
+         "lineageId": "L_eobj",
+         "children": [
+          {
+           "id": "e_qp",
+           "label": "Q",
+           "children": [
+            {
+             "id": "e_op",
+             "label": "Op",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "e_much",
+             "label": "Q",
+             "word": "much",
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "e_money",
+           "label": "N",
+           "word": "money",
+           "children": []
+          }
+         ]
+        },
+        {
+         "id": "e_cbar",
+         "label": "C",
+         "children": [
+          {
+           "id": "e_than",
+           "label": "C",
+           "word": "than",
+           "children": []
+          },
+          {
+           "id": "e_tp",
+           "label": "T",
+           "children": [
+            {
+             "id": "e_she",
+             "label": "D",
+             "word": "she",
+             "lineageId": "L_eshe",
+             "children": []
+            },
+            {
+             "id": "e_tbar",
+             "label": "T",
+             "children": [
+              {
+               "id": "e_t",
+               "label": "T",
+               "word": "did",
+               "children": []
+              },
+              {
+               "id": "e_focP",
+               "label": "Foc",
+               "children": [
+                {
+                 "id": "e_pp",
+                 "label": "P",
+                 "lineageId": "L_epp",
+                 "children": [
+                  {
+                   "id": "e_to",
+                   "label": "P",
+                   "word": "to",
+                   "children": []
+                  },
+                  {
+                   "id": "e_dp",
+                   "label": "D",
+                   "children": [
+                    {
+                     "id": "e_the",
+                     "label": "D",
+                     "word": "the",
+                     "children": []
+                    },
+                    {
+                     "id": "e_hosp",
+                     "label": "N",
+                     "word": "hospital",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "e_focbar",
+                 "label": "Foc",
+                 "children": [
+                  {
+                   "id": "e_foc",
+                   "label": "Foc",
+                   "silent": true,
+                   "children": []
+                  },
+                  {
+                   "id": "e_vP",
+                   "label": "v",
+                   "children": [
+                    {
+                     "id": "e_shetr",
+                     "label": "D",
+                     "silent": true,
+                     "lineageId": "L_eshe",
+                     "children": []
+                    },
+                    {
+                     "id": "e_vbar",
+                     "label": "v",
+                     "children": [
+                      {
+                       "id": "e_vcomplex",
+                       "label": "v",
+                       "children": [
+                        {
+                         "id": "e_give",
+                         "label": "V",
+                         "word": "give",
+                         "lineageId": "L_egive",
+                         "children": []
+                        },
+                        {
+                         "id": "e_lv",
+                         "label": "v",
+                         "silent": true,
+                         "children": []
+                        }
+                       ]
+                      },
+                      {
+                       "id": "e_vp",
+                       "label": "V",
+                       "children": [
+                        {
+                         "id": "e_objtr",
+                         "label": "N",
+                         "silent": true,
+                         "lineageId": "L_eobj",
+                         "children": []
+                        },
+                        {
+                         "id": "e_v1",
+                         "label": "V",
+                         "children": [
+                          {
+                           "id": "e_givetr",
+                           "label": "V",
+                           "silent": true,
+                           "lineageId": "L_egive",
+                           "children": []
+                          },
+                          {
+                           "id": "e_pptr",
+                           "label": "P",
+                           "silent": true,
+                           "lineageId": "L_epp",
+                           "children": []
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The embedded vP is elided under identity with the matrix vP, and 'to the hospital' is set in contrast with 'to the school'.",
+   "stageRecord": "With the matrix vP now available as an antecedent outside the than-clause, the ellipsis feature on the embedded Focus head deletes its complement. The deleted complement is the embedded v projection containing the traces of 'give', 'she', the compared nominal and the goal phrase. This yields the pseudogapping string 'she did to the hospital'. The vpEllipsis relation links the licensing Focus head, the elided embedded vP and its matrix vP antecedent. The contrastiveFocus relation then pairs the surviving remnant 'to the hospital' with its matrix correlate 'to the school'. This contrast is the parallelism that licenses the focus-driven escape of the remnant.",
+   "relations": [
+    {
+     "relation": "vpEllipsis",
+     "anchors": {
+      "licensor": "e_foc",
+      "ellipsisSite": "e_vP",
+      "antecedent": "m_vP"
+     }
+    },
+    {
+     "relation": "contrastiveFocus",
+     "anchors": {
+      "remnant": "e_pp",
+      "correlate": "m_pp"
+     },
+     "values": {
+      "remnant": "to the hospital",
+      "correlate": "to the school"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "m_vPadj",
+     "label": "v",
+     "children": [
+      {
+       "id": "m_vP",
+       "label": "v",
+       "children": [
+        {
+         "id": "m_rosa",
+         "label": "D",
+         "word": "Rosa",
+         "lineageId": "L_rosa",
+         "children": []
+        },
+        {
+         "id": "m_vbar",
+         "label": "v",
+         "children": [
+          {
+           "id": "m_vcomplex",
+           "label": "v",
+           "children": [
+            {
+             "id": "m_gave",
+             "label": "V",
+             "word": "gave",
+             "lineageId": "L_mgave",
+             "children": []
+            },
+            {
+             "id": "m_lv",
+             "label": "v",
+             "silent": true,
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "m_vp",
+           "label": "V",
+           "children": [
+            {
+             "id": "m_obj",
+             "label": "N",
+             "children": [
+              {
+               "id": "m_qp",
+               "label": "Q",
+               "children": [
+                {
+                 "id": "m_deg",
+                 "label": "Deg",
+                 "children": [
+                  {
+                   "id": "m_er",
+                   "label": "Deg",
+                   "word": "-er",
+                   "children": []
+                  },
+                  {
+                   "id": "e_cptr",
+                   "label": "C",
+                   "silent": true,
+                   "lineageId": "L_ecp",
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "id": "m_much",
+                 "label": "Q",
+                 "word": "much",
+                 "children": []
+                }
+               ]
+              },
+              {
+               "id": "m_money",
+               "label": "N",
+               "word": "money",
+               "children": []
+              }
+             ]
+            },
+            {
+             "id": "m_v1",
+             "label": "V",
+             "children": [
+              {
+               "id": "m_gavetr",
+               "label": "V",
+               "silent": true,
+               "lineageId": "L_mgave",
+               "children": []
+              },
+              {
+               "id": "m_pp",
+               "label": "P",
+               "children": [
+                {
+                 "id": "m_to",
+                 "label": "P",
+                 "word": "to",
+                 "children": []
+                },
+                {
+                 "id": "m_dp",
+                 "label": "D",
+                 "children": [
+                  {
+                   "id": "m_the",
+                   "label": "D",
+                   "word": "the",
+                   "children": []
+                  },
+                  {
+                   "id": "m_school",
+                   "label": "N",
+                   "word": "school",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "e_cp",
+       "label": "C",
+       "lineageId": "L_ecp",
+       "children": [
+        {
+         "id": "e_obj",
+         "label": "N",
+         "silent": true,
+         "lineageId": "L_eobj",
+         "children": [
+          {
+           "id": "e_qp",
+           "label": "Q",
+           "children": [
+            {
+             "id": "e_op",
+             "label": "Op",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "e_much",
+             "label": "Q",
+             "word": "much",
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "e_money",
+           "label": "N",
+           "word": "money",
+           "children": []
+          }
+         ]
+        },
+        {
+         "id": "e_cbar",
+         "label": "C",
+         "children": [
+          {
+           "id": "e_than",
+           "label": "C",
+           "word": "than",
+           "children": []
+          },
+          {
+           "id": "e_tp",
+           "label": "T",
+           "children": [
+            {
+             "id": "e_she",
+             "label": "D",
+             "word": "she",
+             "lineageId": "L_eshe",
+             "children": []
+            },
+            {
+             "id": "e_tbar",
+             "label": "T",
+             "children": [
+              {
+               "id": "e_t",
+               "label": "T",
+               "word": "did",
+               "children": []
+              },
+              {
+               "id": "e_focP",
+               "label": "Foc",
+               "children": [
+                {
+                 "id": "e_pp",
+                 "label": "P",
+                 "lineageId": "L_epp",
+                 "children": [
+                  {
+                   "id": "e_to",
+                   "label": "P",
+                   "word": "to",
+                   "children": []
+                  },
+                  {
+                   "id": "e_dp",
+                   "label": "D",
+                   "children": [
+                    {
+                     "id": "e_the",
+                     "label": "D",
+                     "word": "the",
+                     "children": []
+                    },
+                    {
+                     "id": "e_hosp",
+                     "label": "N",
+                     "word": "hospital",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "e_focbar",
+                 "label": "Foc",
+                 "children": [
+                  {
+                   "id": "e_foc",
+                   "label": "Foc",
+                   "silent": true,
+                   "children": []
+                  },
+                  {
+                   "id": "e_vP",
+                   "label": "v",
+                   "silent": true,
+                   "children": [
+                    {
+                     "id": "e_shetr",
+                     "label": "D",
+                     "silent": true,
+                     "lineageId": "L_eshe",
+                     "children": []
+                    },
+                    {
+                     "id": "e_vbar",
+                     "label": "v",
+                     "children": [
+                      {
+                       "id": "e_vcomplex",
+                       "label": "v",
+                       "children": [
+                        {
+                         "id": "e_give",
+                         "label": "V",
+                         "word": "give",
+                         "lineageId": "L_egive",
+                         "children": []
+                        },
+                        {
+                         "id": "e_lv",
+                         "label": "v",
+                         "silent": true,
+                         "children": []
+                        }
+                       ]
+                      },
+                      {
+                       "id": "e_vp",
+                       "label": "V",
+                       "children": [
+                        {
+                         "id": "e_objtr",
+                         "label": "N",
+                         "silent": true,
+                         "lineageId": "L_eobj",
+                         "children": []
+                        },
+                        {
+                         "id": "e_v1",
+                         "label": "V",
+                         "children": [
+                          {
+                           "id": "e_givetr",
+                           "label": "V",
+                           "silent": true,
+                           "lineageId": "L_egive",
+                           "children": []
+                          },
+                          {
+                           "id": "e_pptr",
+                           "label": "P",
+                           "silent": true,
+                           "lineageId": "L_epp",
+                           "children": []
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Silent past T merges in the matrix, values past tense on 'gave', agrees with 'Rosa', and 'Rosa' raises.",
+   "stageRecord": "A silent past-tense T merges with the matrix v projection, including the adjoined than-clause. No auxiliary intervenes, so tense is realized on the raised verb, as 'gave', rather than by do-support. The tenseValuation relation records that T values past tense on the verb complex. The agree relation links T to 'Rosa' for phi-features and nominative case. 'Rosa' then raises to the specifier of T, leaving a silent trace. The eppMovement relation links the raised 'Rosa', its trace and T.",
+   "relations": [
+    {
+     "relation": "tenseValuation",
+     "anchors": {
+      "probe": "m_t",
+      "goal": "m_vcomplex"
+     },
+     "values": {
+      "tense": "past"
+     }
+    },
+    {
+     "relation": "agree",
+     "anchors": {
+      "probe": "m_t",
+      "goal": "m_rosa"
+     },
+     "values": {
+      "features": [
+       "phi",
+       "nominative case"
+      ]
+     }
+    },
+    {
+     "relation": "eppMovement",
+     "anchors": {
+      "mover": "m_rosa",
+      "trace": "m_rosatr",
+      "target": "m_t"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "m_tp",
+     "label": "T",
+     "children": [
+      {
+       "id": "m_rosa",
+       "label": "D",
+       "word": "Rosa",
+       "lineageId": "L_rosa",
+       "children": []
+      },
+      {
+       "id": "m_tbar",
+       "label": "T",
+       "children": [
+        {
+         "id": "m_t",
+         "label": "T",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "m_vPadj",
+         "label": "v",
+         "children": [
+          {
+           "id": "m_vP",
+           "label": "v",
+           "children": [
+            {
+             "id": "m_rosatr",
+             "label": "D",
+             "silent": true,
+             "lineageId": "L_rosa",
+             "children": []
+            },
+            {
+             "id": "m_vbar",
+             "label": "v",
+             "children": [
+              {
+               "id": "m_vcomplex",
+               "label": "v",
+               "children": [
+                {
+                 "id": "m_gave",
+                 "label": "V",
+                 "word": "gave",
+                 "lineageId": "L_mgave",
+                 "children": []
+                },
+                {
+                 "id": "m_lv",
+                 "label": "v",
+                 "silent": true,
+                 "children": []
+                }
+               ]
+              },
+              {
+               "id": "m_vp",
+               "label": "V",
+               "children": [
+                {
+                 "id": "m_obj",
+                 "label": "N",
+                 "children": [
+                  {
+                   "id": "m_qp",
+                   "label": "Q",
+                   "children": [
+                    {
+                     "id": "m_deg",
+                     "label": "Deg",
+                     "children": [
+                      {
+                       "id": "m_er",
+                       "label": "Deg",
+                       "word": "-er",
+                       "children": []
+                      },
+                      {
+                       "id": "e_cptr",
+                       "label": "C",
+                       "silent": true,
+                       "lineageId": "L_ecp",
+                       "children": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "m_much",
+                     "label": "Q",
+                     "word": "much",
+                     "children": []
+                    }
+                   ]
+                  },
+                  {
+                   "id": "m_money",
+                   "label": "N",
+                   "word": "money",
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "id": "m_v1",
+                 "label": "V",
+                 "children": [
+                  {
+                   "id": "m_gavetr",
+                   "label": "V",
+                   "silent": true,
+                   "lineageId": "L_mgave",
+                   "children": []
+                  },
+                  {
+                   "id": "m_pp",
+                   "label": "P",
+                   "children": [
+                    {
+                     "id": "m_to",
+                     "label": "P",
+                     "word": "to",
+                     "children": []
+                    },
+                    {
+                     "id": "m_dp",
+                     "label": "D",
+                     "children": [
+                      {
+                       "id": "m_the",
+                       "label": "D",
+                       "word": "the",
+                       "children": []
+                      },
+                      {
+                       "id": "m_school",
+                       "label": "N",
+                       "word": "school",
+                       "children": []
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "e_cp",
+           "label": "C",
+           "lineageId": "L_ecp",
+           "children": [
+            {
+             "id": "e_obj",
+             "label": "N",
+             "silent": true,
+             "lineageId": "L_eobj",
+             "children": [
+              {
+               "id": "e_qp",
+               "label": "Q",
+               "children": [
+                {
+                 "id": "e_op",
+                 "label": "Op",
+                 "silent": true,
+                 "children": []
+                },
+                {
+                 "id": "e_much",
+                 "label": "Q",
+                 "word": "much",
+                 "children": []
+                }
+               ]
+              },
+              {
+               "id": "e_money",
+               "label": "N",
+               "word": "money",
+               "children": []
+              }
+             ]
+            },
+            {
+             "id": "e_cbar",
+             "label": "C",
+             "children": [
+              {
+               "id": "e_than",
+               "label": "C",
+               "word": "than",
+               "children": []
+              },
+              {
+               "id": "e_tp",
+               "label": "T",
+               "children": [
+                {
+                 "id": "e_she",
+                 "label": "D",
+                 "word": "she",
+                 "lineageId": "L_eshe",
+                 "children": []
+                },
+                {
+                 "id": "e_tbar",
+                 "label": "T",
+                 "children": [
+                  {
+                   "id": "e_t",
+                   "label": "T",
+                   "word": "did",
+                   "children": []
+                  },
+                  {
+                   "id": "e_focP",
+                   "label": "Foc",
+                   "children": [
+                    {
+                     "id": "e_pp",
+                     "label": "P",
+                     "lineageId": "L_epp",
+                     "children": [
+                      {
+                       "id": "e_to",
+                       "label": "P",
+                       "word": "to",
+                       "children": []
+                      },
+                      {
+                       "id": "e_dp",
+                       "label": "D",
+                       "children": [
+                        {
+                         "id": "e_the",
+                         "label": "D",
+                         "word": "the",
+                         "children": []
+                        },
+                        {
+                         "id": "e_hosp",
+                         "label": "N",
+                         "word": "hospital",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    },
+                    {
+                     "id": "e_focbar",
+                     "label": "Foc",
+                     "children": [
+                      {
+                       "id": "e_foc",
+                       "label": "Foc",
+                       "silent": true,
+                       "children": []
+                      },
+                      {
+                       "id": "e_vP",
+                       "label": "v",
+                       "silent": true,
+                       "children": [
+                        {
+                         "id": "e_shetr",
+                         "label": "D",
+                         "silent": true,
+                         "lineageId": "L_eshe",
+                         "children": []
+                        },
+                        {
+                         "id": "e_vbar",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "e_vcomplex",
+                           "label": "v",
+                           "children": [
+                            {
+                             "id": "e_give",
+                             "label": "V",
+                             "word": "give",
+                             "lineageId": "L_egive",
+                             "children": []
+                            },
+                            {
+                             "id": "e_lv",
+                             "label": "v",
+                             "silent": true,
+                             "children": []
+                            }
+                           ]
+                          },
+                          {
+                           "id": "e_vp",
+                           "label": "V",
+                           "children": [
+                            {
+                             "id": "e_objtr",
+                             "label": "N",
+                             "silent": true,
+                             "lineageId": "L_eobj",
+                             "children": []
+                            },
+                            {
+                             "id": "e_v1",
+                             "label": "V",
+                             "children": [
+                              {
+                               "id": "e_givetr",
+                               "label": "V",
+                               "silent": true,
+                               "lineageId": "L_egive",
+                               "children": []
+                              },
+                              {
+                               "id": "e_pptr",
+                               "label": "P",
+                               "silent": true,
+                               "lineageId": "L_epp",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "A silent declarative C completes the sentence, and '-er' with 'much' is spelled out as 'more'.",
+   "stageRecord": "A silent declarative complementizer merges with the matrix T phrase, completing the clause. At spell-out, the comparative degree head and the quantity head 'much' are realized together by the suppletive form 'more'. They stay separate in the syntax because '-er' alone selects the than-clause and 'much' alone parallels the deleted 'much' of the compared nominal. The morphologicalRealization relation establishes this joint spell-out of '-er' and 'much' as 'more'.",
+   "relations": [
+    {
+     "relation": "morphologicalRealization",
+     "anchors": {
+      "exponents": [
+       "m_er",
+       "m_much"
+      ]
+     },
+     "values": {
+      "form": "more"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "m_cp",
+     "label": "C",
+     "children": [
+      {
+       "id": "m_c",
+       "label": "C",
+       "silent": true,
+       "children": []
+      },
+      {
+       "id": "m_tp",
+       "label": "T",
+       "children": [
+        {
+         "id": "m_rosa",
+         "label": "D",
+         "word": "Rosa",
+         "lineageId": "L_rosa",
+         "children": []
+        },
+        {
+         "id": "m_tbar",
+         "label": "T",
+         "children": [
+          {
+           "id": "m_t",
+           "label": "T",
+           "silent": true,
+           "children": []
+          },
+          {
+           "id": "m_vPadj",
+           "label": "v",
+           "children": [
+            {
+             "id": "m_vP",
+             "label": "v",
+             "children": [
+              {
+               "id": "m_rosatr",
+               "label": "D",
+               "silent": true,
+               "lineageId": "L_rosa",
+               "children": []
+              },
+              {
+               "id": "m_vbar",
+               "label": "v",
+               "children": [
+                {
+                 "id": "m_vcomplex",
+                 "label": "v",
+                 "children": [
+                  {
+                   "id": "m_gave",
+                   "label": "V",
+                   "word": "gave",
+                   "lineageId": "L_mgave",
+                   "children": []
+                  },
+                  {
+                   "id": "m_lv",
+                   "label": "v",
+                   "silent": true,
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "id": "m_vp",
+                 "label": "V",
+                 "children": [
+                  {
+                   "id": "m_obj",
+                   "label": "N",
+                   "children": [
+                    {
+                     "id": "m_qp",
+                     "label": "Q",
+                     "children": [
+                      {
+                       "id": "m_deg",
+                       "label": "Deg",
+                       "children": [
+                        {
+                         "id": "m_er",
+                         "label": "Deg",
+                         "word": "-er",
+                         "children": []
+                        },
+                        {
+                         "id": "e_cptr",
+                         "label": "C",
+                         "silent": true,
+                         "lineageId": "L_ecp",
+                         "children": []
+                        }
+                       ]
+                      },
+                      {
+                       "id": "m_much",
+                       "label": "Q",
+                       "word": "much",
+                       "children": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "m_money",
+                     "label": "N",
+                     "word": "money",
+                     "children": []
+                    }
+                   ]
+                  },
+                  {
+                   "id": "m_v1",
+                   "label": "V",
+                   "children": [
+                    {
+                     "id": "m_gavetr",
+                     "label": "V",
+                     "silent": true,
+                     "lineageId": "L_mgave",
+                     "children": []
+                    },
+                    {
+                     "id": "m_pp",
+                     "label": "P",
+                     "children": [
+                      {
+                       "id": "m_to",
+                       "label": "P",
+                       "word": "to",
+                       "children": []
+                      },
+                      {
+                       "id": "m_dp",
+                       "label": "D",
+                       "children": [
+                        {
+                         "id": "m_the",
+                         "label": "D",
+                         "word": "the",
+                         "children": []
+                        },
+                        {
+                         "id": "m_school",
+                         "label": "N",
+                         "word": "school",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "e_cp",
+             "label": "C",
+             "lineageId": "L_ecp",
+             "children": [
+              {
+               "id": "e_obj",
+               "label": "N",
+               "silent": true,
+               "lineageId": "L_eobj",
+               "children": [
+                {
+                 "id": "e_qp",
+                 "label": "Q",
+                 "children": [
+                  {
+                   "id": "e_op",
+                   "label": "Op",
+                   "silent": true,
+                   "children": []
+                  },
+                  {
+                   "id": "e_much",
+                   "label": "Q",
+                   "word": "much",
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "id": "e_money",
+                 "label": "N",
+                 "word": "money",
+                 "children": []
+                }
+               ]
+              },
+              {
+               "id": "e_cbar",
+               "label": "C",
+               "children": [
+                {
+                 "id": "e_than",
+                 "label": "C",
+                 "word": "than",
+                 "children": []
+                },
+                {
+                 "id": "e_tp",
+                 "label": "T",
+                 "children": [
+                  {
+                   "id": "e_she",
+                   "label": "D",
+                   "word": "she",
+                   "lineageId": "L_eshe",
+                   "children": []
+                  },
+                  {
+                   "id": "e_tbar",
+                   "label": "T",
+                   "children": [
+                    {
+                     "id": "e_t",
+                     "label": "T",
+                     "word": "did",
+                     "children": []
+                    },
+                    {
+                     "id": "e_focP",
+                     "label": "Foc",
+                     "children": [
+                      {
+                       "id": "e_pp",
+                       "label": "P",
+                       "lineageId": "L_epp",
+                       "children": [
+                        {
+                         "id": "e_to",
+                         "label": "P",
+                         "word": "to",
+                         "children": []
+                        },
+                        {
+                         "id": "e_dp",
+                         "label": "D",
+                         "children": [
+                          {
+                           "id": "e_the",
+                           "label": "D",
+                           "word": "the",
+                           "children": []
+                          },
+                          {
+                           "id": "e_hosp",
+                           "label": "N",
+                           "word": "hospital",
+                           "children": []
+                          }
+                         ]
+                        }
+                       ]
+                      },
+                      {
+                       "id": "e_focbar",
+                       "label": "Foc",
+                       "children": [
+                        {
+                         "id": "e_foc",
+                         "label": "Foc",
+                         "silent": true,
+                         "children": []
+                        },
+                        {
+                         "id": "e_vP",
+                         "label": "v",
+                         "silent": true,
+                         "children": [
+                          {
+                           "id": "e_shetr",
+                           "label": "D",
+                           "silent": true,
+                           "lineageId": "L_eshe",
+                           "children": []
+                          },
+                          {
+                           "id": "e_vbar",
+                           "label": "v",
+                           "children": [
+                            {
+                             "id": "e_vcomplex",
+                             "label": "v",
+                             "children": [
+                              {
+                               "id": "e_give",
+                               "label": "V",
+                               "word": "give",
+                               "lineageId": "L_egive",
+                               "children": []
+                              },
+                              {
+                               "id": "e_lv",
+                               "label": "v",
+                               "silent": true,
+                               "children": []
+                              }
+                             ]
+                            },
+                            {
+                             "id": "e_vp",
+                             "label": "V",
+                             "children": [
+                              {
+                               "id": "e_objtr",
+                               "label": "N",
+                               "silent": true,
+                               "lineageId": "L_eobj",
+                               "children": []
+                              },
+                              {
+                               "id": "e_v1",
+                               "label": "V",
+                               "children": [
+                                {
+                                 "id": "e_givetr",
+                                 "label": "V",
+                                 "silent": true,
+                                 "lineageId": "L_egive",
+                                 "children": []
+                                },
+                                {
+                                 "id": "e_pptr",
+                                 "label": "P",
+                                 "silent": true,
+                                 "lineageId": "L_epp",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "realizations": [
+    {
+     "nodeIds": [
+      "m_er",
+      "m_much"
+     ],
+     "tokenIndices": [
+      2
+     ]
+    }
+   ]
+  }
+ ]
+}

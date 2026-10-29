@@ -162,7 +162,9 @@ export function measureFallbackLabels({
         && planItemDependencyNodeIds(item).every(id => Boolean(resolveOverlayAnchor(id)));
     }).map(([, rect]) => rect),
     branches: [...new Set(frameLayoutById.values())].flatMap(node => node.parent && !isSyntheticWorkspaceRootNode(node.parent)
-      && !isUnderTriangulation(node as unknown as HierNode) ? [fallbackBranchBox(node.parent, node)] : []),
+      && !isUnderTriangulation(node as unknown as HierNode) && (!replayVisibleNodeIdSet
+        || replayVisibleNodeIdSet.has(getNodeId(node as unknown as HierNode)) && replayVisibleNodeIdSet.has(getNodeId(node.parent as unknown as HierNode)))
+      ? [fallbackBranchBox(node.parent, node)] : []),
     labelFor: (id: string) => fallbackRectFor(id),
     subtreeFor: (id: string) => fallbackRectFor(id, true),
     spanFor: (id: string) => {

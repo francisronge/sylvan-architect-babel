@@ -1,0 +1,3277 @@
+{
+  "description": "Opus 5.5 held-out run: the first stage of a Finnish agent participle. Its Tier-3 degree-modification bracket at step 8 once hung below syntax that appears later in the stage, about 1,250 px under its two words and off the canvas.",
+  "source": "Claude Opus 5.5, high effort, Anthropic qualification run heldout-20261029/h1-084-fi-agent-participle, analysis 1. Exact copy of the response analysis. Saved in ~/Library/Application Support/Babel/anthropic-qualification/heldout-20261029/runs/h1-084-fi-agent-participle.",
+  "sentence": "Luulen, että Pekan ostama auto on liian kallis.",
+  "inputTokens": [
+    "Luule",
+    "n",
+    "että",
+    "Pekan",
+    "osta",
+    "ma",
+    "auto",
+    "on",
+    "liian",
+    "kallis"
+  ],
+  "analysis": {
+    "tree": {
+      "id": "ip_m",
+      "label": "IP",
+      "children": [
+        {
+          "id": "pro",
+          "label": "pro",
+          "silent": true,
+          "children": []
+        },
+        {
+          "id": "ibar_m",
+          "label": "I'",
+          "children": [
+            {
+              "id": "i_cx_m",
+              "label": "I",
+              "children": [
+                {
+                  "id": "v_luule",
+                  "label": "V",
+                  "word": "luule",
+                  "lineageId": "luule",
+                  "children": [],
+                  "tokenIndex": 0,
+                  "surfaceSpan": [
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "id": "i_m",
+                  "label": "I",
+                  "word": "n",
+                  "children": [],
+                  "tokenIndex": 1,
+                  "surfaceSpan": [
+                    1,
+                    1
+                  ]
+                }
+              ],
+              "surfaceSpan": [
+                0,
+                1
+              ]
+            },
+            {
+              "id": "vp_m",
+              "label": "VP",
+              "children": [
+                {
+                  "id": "vbar_m",
+                  "label": "V'",
+                  "children": [
+                    {
+                      "id": "t_luule",
+                      "label": "t",
+                      "silent": true,
+                      "lineageId": "luule",
+                      "children": []
+                    },
+                    {
+                      "id": "cp_emb",
+                      "label": "CP",
+                      "children": [
+                        {
+                          "id": "cbar_emb",
+                          "label": "C'",
+                          "children": [
+                            {
+                              "id": "c_etta",
+                              "label": "C",
+                              "word": "että",
+                              "children": [],
+                              "tokenIndex": 2,
+                              "surfaceSpan": [
+                                2,
+                                2
+                              ]
+                            },
+                            {
+                              "id": "ip_emb",
+                              "label": "IP",
+                              "children": [
+                                {
+                                  "id": "np_auto",
+                                  "label": "NP",
+                                  "children": [
+                                    {
+                                      "id": "nbar_auto2",
+                                      "label": "N'",
+                                      "children": [
+                                        {
+                                          "id": "cp_rel",
+                                          "label": "CP",
+                                          "children": [
+                                            {
+                                              "id": "op",
+                                              "label": "Op",
+                                              "silent": true,
+                                              "lineageId": "op",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "cbar_rel",
+                                              "label": "C'",
+                                              "children": [
+                                                {
+                                                  "id": "c_rel",
+                                                  "label": "C",
+                                                  "silent": true,
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "partp",
+                                                  "label": "PartP",
+                                                  "children": [
+                                                    {
+                                                      "id": "np_pekka",
+                                                      "label": "NP",
+                                                      "children": [
+                                                        {
+                                                          "id": "nbar_pekka",
+                                                          "label": "N'",
+                                                          "children": [
+                                                            {
+                                                              "id": "n_pekka",
+                                                              "label": "N",
+                                                              "word": "Pekan",
+                                                              "children": [],
+                                                              "tokenIndex": 3,
+                                                              "surfaceSpan": [
+                                                                3,
+                                                                3
+                                                              ]
+                                                            }
+                                                          ],
+                                                          "surfaceSpan": [
+                                                            3,
+                                                            3
+                                                          ]
+                                                        }
+                                                      ],
+                                                      "surfaceSpan": [
+                                                        3,
+                                                        3
+                                                      ]
+                                                    },
+                                                    {
+                                                      "id": "partbar",
+                                                      "label": "Part'",
+                                                      "children": [
+                                                        {
+                                                          "id": "part_cx",
+                                                          "label": "Part",
+                                                          "children": [
+                                                            {
+                                                              "id": "v_osta",
+                                                              "label": "V",
+                                                              "word": "osta",
+                                                              "lineageId": "osta",
+                                                              "children": [],
+                                                              "tokenIndex": 4,
+                                                              "surfaceSpan": [
+                                                                4,
+                                                                4
+                                                              ]
+                                                            },
+                                                            {
+                                                              "id": "part_ma",
+                                                              "label": "Part",
+                                                              "word": "ma",
+                                                              "children": [],
+                                                              "tokenIndex": 5,
+                                                              "surfaceSpan": [
+                                                                5,
+                                                                5
+                                                              ]
+                                                            }
+                                                          ],
+                                                          "surfaceSpan": [
+                                                            4,
+                                                            5
+                                                          ]
+                                                        },
+                                                        {
+                                                          "id": "vp_rel",
+                                                          "label": "VP",
+                                                          "children": [
+                                                            {
+                                                              "id": "vbar_rel",
+                                                              "label": "V'",
+                                                              "children": [
+                                                                {
+                                                                  "id": "t_osta",
+                                                                  "label": "t",
+                                                                  "silent": true,
+                                                                  "lineageId": "osta",
+                                                                  "children": []
+                                                                },
+                                                                {
+                                                                  "id": "t_op",
+                                                                  "label": "t",
+                                                                  "silent": true,
+                                                                  "lineageId": "op",
+                                                                  "children": []
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ],
+                                                      "surfaceSpan": [
+                                                        4,
+                                                        5
+                                                      ]
+                                                    }
+                                                  ],
+                                                  "surfaceSpan": [
+                                                    3,
+                                                    5
+                                                  ]
+                                                }
+                                              ],
+                                              "surfaceSpan": [
+                                                3,
+                                                5
+                                              ]
+                                            }
+                                          ],
+                                          "surfaceSpan": [
+                                            3,
+                                            5
+                                          ]
+                                        },
+                                        {
+                                          "id": "nbar_auto",
+                                          "label": "N'",
+                                          "children": [
+                                            {
+                                              "id": "n_auto",
+                                              "label": "N",
+                                              "word": "auto",
+                                              "children": [],
+                                              "tokenIndex": 6,
+                                              "surfaceSpan": [
+                                                6,
+                                                6
+                                              ]
+                                            }
+                                          ],
+                                          "surfaceSpan": [
+                                            6,
+                                            6
+                                          ]
+                                        }
+                                      ],
+                                      "surfaceSpan": [
+                                        3,
+                                        6
+                                      ]
+                                    }
+                                  ],
+                                  "surfaceSpan": [
+                                    3,
+                                    6
+                                  ]
+                                },
+                                {
+                                  "id": "ibar_emb",
+                                  "label": "I'",
+                                  "children": [
+                                    {
+                                      "id": "i_cx_emb",
+                                      "label": "I",
+                                      "children": [
+                                        {
+                                          "id": "v_on",
+                                          "label": "V",
+                                          "word": "on",
+                                          "lineageId": "on",
+                                          "children": [],
+                                          "tokenIndex": 7,
+                                          "surfaceSpan": [
+                                            7,
+                                            7
+                                          ]
+                                        },
+                                        {
+                                          "id": "i_emb",
+                                          "label": "I",
+                                          "children": []
+                                        }
+                                      ],
+                                      "surfaceSpan": [
+                                        7,
+                                        7
+                                      ]
+                                    },
+                                    {
+                                      "id": "vp2",
+                                      "label": "VP",
+                                      "children": [
+                                        {
+                                          "id": "vbar2",
+                                          "label": "V'",
+                                          "children": [
+                                            {
+                                              "id": "t_on",
+                                              "label": "t",
+                                              "silent": true,
+                                              "lineageId": "on",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "ap",
+                                              "label": "AP",
+                                              "children": [
+                                                {
+                                                  "id": "degp",
+                                                  "label": "DegP",
+                                                  "children": [
+                                                    {
+                                                      "id": "deg_liian",
+                                                      "label": "Deg",
+                                                      "word": "liian",
+                                                      "children": [],
+                                                      "tokenIndex": 8,
+                                                      "surfaceSpan": [
+                                                        8,
+                                                        8
+                                                      ]
+                                                    }
+                                                  ],
+                                                  "surfaceSpan": [
+                                                    8,
+                                                    8
+                                                  ]
+                                                },
+                                                {
+                                                  "id": "abar",
+                                                  "label": "A'",
+                                                  "children": [
+                                                    {
+                                                      "id": "a_kallis",
+                                                      "label": "A",
+                                                      "word": "kallis",
+                                                      "children": [],
+                                                      "tokenIndex": 9,
+                                                      "surfaceSpan": [
+                                                        9,
+                                                        9
+                                                      ]
+                                                    }
+                                                  ],
+                                                  "surfaceSpan": [
+                                                    9,
+                                                    9
+                                                  ]
+                                                }
+                                              ],
+                                              "surfaceSpan": [
+                                                8,
+                                                9
+                                              ]
+                                            }
+                                          ],
+                                          "surfaceSpan": [
+                                            8,
+                                            9
+                                          ]
+                                        }
+                                      ],
+                                      "surfaceSpan": [
+                                        8,
+                                        9
+                                      ]
+                                    }
+                                  ],
+                                  "surfaceSpan": [
+                                    7,
+                                    9
+                                  ]
+                                }
+                              ],
+                              "surfaceSpan": [
+                                3,
+                                9
+                              ]
+                            }
+                          ],
+                          "surfaceSpan": [
+                            2,
+                            9
+                          ]
+                        }
+                      ],
+                      "surfaceSpan": [
+                        2,
+                        9
+                      ]
+                    }
+                  ],
+                  "surfaceSpan": [
+                    2,
+                    9
+                  ]
+                }
+              ],
+              "surfaceSpan": [
+                2,
+                9
+              ]
+            }
+          ],
+          "surfaceSpan": [
+            0,
+            9
+          ]
+        }
+      ],
+      "surfaceSpan": [
+        0,
+        9
+      ]
+    },
+    "finalForest": [
+      {
+        "id": "ip_m",
+        "label": "IP",
+        "children": [
+          {
+            "id": "pro",
+            "label": "pro",
+            "silent": true,
+            "children": []
+          },
+          {
+            "id": "ibar_m",
+            "label": "I'",
+            "children": [
+              {
+                "id": "i_cx_m",
+                "label": "I",
+                "children": [
+                  {
+                    "id": "v_luule",
+                    "label": "V",
+                    "word": "luule",
+                    "lineageId": "luule",
+                    "children": [],
+                    "tokenIndex": 0,
+                    "surfaceSpan": [
+                      0,
+                      0
+                    ]
+                  },
+                  {
+                    "id": "i_m",
+                    "label": "I",
+                    "word": "n",
+                    "children": [],
+                    "tokenIndex": 1,
+                    "surfaceSpan": [
+                      1,
+                      1
+                    ]
+                  }
+                ],
+                "surfaceSpan": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "id": "vp_m",
+                "label": "VP",
+                "children": [
+                  {
+                    "id": "vbar_m",
+                    "label": "V'",
+                    "children": [
+                      {
+                        "id": "t_luule",
+                        "label": "t",
+                        "silent": true,
+                        "lineageId": "luule",
+                        "children": []
+                      },
+                      {
+                        "id": "cp_emb",
+                        "label": "CP",
+                        "children": [
+                          {
+                            "id": "cbar_emb",
+                            "label": "C'",
+                            "children": [
+                              {
+                                "id": "c_etta",
+                                "label": "C",
+                                "word": "että",
+                                "children": [],
+                                "tokenIndex": 2,
+                                "surfaceSpan": [
+                                  2,
+                                  2
+                                ]
+                              },
+                              {
+                                "id": "ip_emb",
+                                "label": "IP",
+                                "children": [
+                                  {
+                                    "id": "np_auto",
+                                    "label": "NP",
+                                    "children": [
+                                      {
+                                        "id": "nbar_auto2",
+                                        "label": "N'",
+                                        "children": [
+                                          {
+                                            "id": "cp_rel",
+                                            "label": "CP",
+                                            "children": [
+                                              {
+                                                "id": "op",
+                                                "label": "Op",
+                                                "silent": true,
+                                                "lineageId": "op",
+                                                "children": []
+                                              },
+                                              {
+                                                "id": "cbar_rel",
+                                                "label": "C'",
+                                                "children": [
+                                                  {
+                                                    "id": "c_rel",
+                                                    "label": "C",
+                                                    "silent": true,
+                                                    "children": []
+                                                  },
+                                                  {
+                                                    "id": "partp",
+                                                    "label": "PartP",
+                                                    "children": [
+                                                      {
+                                                        "id": "np_pekka",
+                                                        "label": "NP",
+                                                        "children": [
+                                                          {
+                                                            "id": "nbar_pekka",
+                                                            "label": "N'",
+                                                            "children": [
+                                                              {
+                                                                "id": "n_pekka",
+                                                                "label": "N",
+                                                                "word": "Pekan",
+                                                                "children": [],
+                                                                "tokenIndex": 3,
+                                                                "surfaceSpan": [
+                                                                  3,
+                                                                  3
+                                                                ]
+                                                              }
+                                                            ],
+                                                            "surfaceSpan": [
+                                                              3,
+                                                              3
+                                                            ]
+                                                          }
+                                                        ],
+                                                        "surfaceSpan": [
+                                                          3,
+                                                          3
+                                                        ]
+                                                      },
+                                                      {
+                                                        "id": "partbar",
+                                                        "label": "Part'",
+                                                        "children": [
+                                                          {
+                                                            "id": "part_cx",
+                                                            "label": "Part",
+                                                            "children": [
+                                                              {
+                                                                "id": "v_osta",
+                                                                "label": "V",
+                                                                "word": "osta",
+                                                                "lineageId": "osta",
+                                                                "children": [],
+                                                                "tokenIndex": 4,
+                                                                "surfaceSpan": [
+                                                                  4,
+                                                                  4
+                                                                ]
+                                                              },
+                                                              {
+                                                                "id": "part_ma",
+                                                                "label": "Part",
+                                                                "word": "ma",
+                                                                "children": [],
+                                                                "tokenIndex": 5,
+                                                                "surfaceSpan": [
+                                                                  5,
+                                                                  5
+                                                                ]
+                                                              }
+                                                            ],
+                                                            "surfaceSpan": [
+                                                              4,
+                                                              5
+                                                            ]
+                                                          },
+                                                          {
+                                                            "id": "vp_rel",
+                                                            "label": "VP",
+                                                            "children": [
+                                                              {
+                                                                "id": "vbar_rel",
+                                                                "label": "V'",
+                                                                "children": [
+                                                                  {
+                                                                    "id": "t_osta",
+                                                                    "label": "t",
+                                                                    "silent": true,
+                                                                    "lineageId": "osta",
+                                                                    "children": []
+                                                                  },
+                                                                  {
+                                                                    "id": "t_op",
+                                                                    "label": "t",
+                                                                    "silent": true,
+                                                                    "lineageId": "op",
+                                                                    "children": []
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ],
+                                                        "surfaceSpan": [
+                                                          4,
+                                                          5
+                                                        ]
+                                                      }
+                                                    ],
+                                                    "surfaceSpan": [
+                                                      3,
+                                                      5
+                                                    ]
+                                                  }
+                                                ],
+                                                "surfaceSpan": [
+                                                  3,
+                                                  5
+                                                ]
+                                              }
+                                            ],
+                                            "surfaceSpan": [
+                                              3,
+                                              5
+                                            ]
+                                          },
+                                          {
+                                            "id": "nbar_auto",
+                                            "label": "N'",
+                                            "children": [
+                                              {
+                                                "id": "n_auto",
+                                                "label": "N",
+                                                "word": "auto",
+                                                "children": [],
+                                                "tokenIndex": 6,
+                                                "surfaceSpan": [
+                                                  6,
+                                                  6
+                                                ]
+                                              }
+                                            ],
+                                            "surfaceSpan": [
+                                              6,
+                                              6
+                                            ]
+                                          }
+                                        ],
+                                        "surfaceSpan": [
+                                          3,
+                                          6
+                                        ]
+                                      }
+                                    ],
+                                    "surfaceSpan": [
+                                      3,
+                                      6
+                                    ]
+                                  },
+                                  {
+                                    "id": "ibar_emb",
+                                    "label": "I'",
+                                    "children": [
+                                      {
+                                        "id": "i_cx_emb",
+                                        "label": "I",
+                                        "children": [
+                                          {
+                                            "id": "v_on",
+                                            "label": "V",
+                                            "word": "on",
+                                            "lineageId": "on",
+                                            "children": [],
+                                            "tokenIndex": 7,
+                                            "surfaceSpan": [
+                                              7,
+                                              7
+                                            ]
+                                          },
+                                          {
+                                            "id": "i_emb",
+                                            "label": "I",
+                                            "children": []
+                                          }
+                                        ],
+                                        "surfaceSpan": [
+                                          7,
+                                          7
+                                        ]
+                                      },
+                                      {
+                                        "id": "vp2",
+                                        "label": "VP",
+                                        "children": [
+                                          {
+                                            "id": "vbar2",
+                                            "label": "V'",
+                                            "children": [
+                                              {
+                                                "id": "t_on",
+                                                "label": "t",
+                                                "silent": true,
+                                                "lineageId": "on",
+                                                "children": []
+                                              },
+                                              {
+                                                "id": "ap",
+                                                "label": "AP",
+                                                "children": [
+                                                  {
+                                                    "id": "degp",
+                                                    "label": "DegP",
+                                                    "children": [
+                                                      {
+                                                        "id": "deg_liian",
+                                                        "label": "Deg",
+                                                        "word": "liian",
+                                                        "children": [],
+                                                        "tokenIndex": 8,
+                                                        "surfaceSpan": [
+                                                          8,
+                                                          8
+                                                        ]
+                                                      }
+                                                    ],
+                                                    "surfaceSpan": [
+                                                      8,
+                                                      8
+                                                    ]
+                                                  },
+                                                  {
+                                                    "id": "abar",
+                                                    "label": "A'",
+                                                    "children": [
+                                                      {
+                                                        "id": "a_kallis",
+                                                        "label": "A",
+                                                        "word": "kallis",
+                                                        "children": [],
+                                                        "tokenIndex": 9,
+                                                        "surfaceSpan": [
+                                                          9,
+                                                          9
+                                                        ]
+                                                      }
+                                                    ],
+                                                    "surfaceSpan": [
+                                                      9,
+                                                      9
+                                                    ]
+                                                  }
+                                                ],
+                                                "surfaceSpan": [
+                                                  8,
+                                                  9
+                                                ]
+                                              }
+                                            ],
+                                            "surfaceSpan": [
+                                              8,
+                                              9
+                                            ]
+                                          }
+                                        ],
+                                        "surfaceSpan": [
+                                          8,
+                                          9
+                                        ]
+                                      }
+                                    ],
+                                    "surfaceSpan": [
+                                      7,
+                                      9
+                                    ]
+                                  }
+                                ],
+                                "surfaceSpan": [
+                                  3,
+                                  9
+                                ]
+                              }
+                            ],
+                            "surfaceSpan": [
+                              2,
+                              9
+                            ]
+                          }
+                        ],
+                        "surfaceSpan": [
+                          2,
+                          9
+                        ]
+                      }
+                    ],
+                    "surfaceSpan": [
+                      2,
+                      9
+                    ]
+                  }
+                ],
+                "surfaceSpan": [
+                  2,
+                  9
+                ]
+              }
+            ],
+            "surfaceSpan": [
+              0,
+              9
+            ]
+          }
+        ],
+        "surfaceSpan": [
+          0,
+          9
+        ]
+      }
+    ],
+    "derivationStages": [
+      {
+        "statement": "The predicative adjective phrase 'liian kallis' is built.",
+        "stageRecord": "The adjective 'kallis' projects to A', and the degree word 'liian' projects its own DegP, which is merged as the specifier of the adjective phrase. The degree-modification relation connects the DegP to the A' it modifies, so 'liian' scales the excessiveness of 'kallis' rather than modifying the clause.",
+        "relations": [
+          {
+            "relation": "degreeModification",
+            "anchors": {
+              "modifier": "degp",
+              "modified": "abar"
+            },
+            "values": {
+              "degree": "liian"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "ap",
+            "label": "AP",
+            "children": [
+              {
+                "id": "degp",
+                "label": "DegP",
+                "children": [
+                  {
+                    "id": "deg_liian",
+                    "label": "Deg",
+                    "word": "liian",
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "abar",
+                "label": "A'",
+                "children": [
+                  {
+                    "id": "a_kallis",
+                    "label": "A",
+                    "word": "kallis",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The copula 'on' takes the AP as its complement.",
+        "stageRecord": "The copular verb 'on' is merged with the adjective phrase, which forms V' and then VP. The complement-selection relation records that the copula selects the predicative AP as its complement. The copula assigns no theta role of its own; the AP is the semantic predicate of the embedded clause.",
+        "relations": [
+          {
+            "relation": "complementSelection",
+            "anchors": {
+              "head": "v_on",
+              "complement": "ap"
+            },
+            "values": {
+              "category": "AP"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "vp2",
+            "label": "VP",
+            "children": [
+              {
+                "id": "vbar2",
+                "label": "V'",
+                "children": [
+                  {
+                    "id": "v_on",
+                    "label": "V",
+                    "word": "on",
+                    "lineageId": "on",
+                    "children": []
+                  },
+                  {
+                    "id": "ap",
+                    "label": "AP",
+                    "children": [
+                      {
+                        "id": "degp",
+                        "label": "DegP",
+                        "children": [
+                          {
+                            "id": "deg_liian",
+                            "label": "Deg",
+                            "word": "liian",
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "abar",
+                        "label": "A'",
+                        "children": [
+                          {
+                            "id": "a_kallis",
+                            "label": "A",
+                            "word": "kallis",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "Inside the participial relative, the verb 'osta' takes a null operator as its object.",
+        "stageRecord": "A separate object is started for the agent-participle modifier. The verb stem 'osta' ('buy') is merged with a silent relative operator in object position, which forms V' and VP. The theta-assignment relation records that 'osta' assigns the Theme role to the operator. The operator, not the noun 'auto', fills the gap, because 'auto' is the head of the containing noun phrase.",
+        "relations": [
+          {
+            "relation": "thetaAssignment",
+            "anchors": {
+              "assigner": "v_osta",
+              "recipient": "op"
+            },
+            "values": {
+              "role": "Theme"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "vp2",
+            "label": "VP",
+            "children": [
+              {
+                "id": "vbar2",
+                "label": "V'",
+                "children": [
+                  {
+                    "id": "v_on",
+                    "label": "V",
+                    "word": "on",
+                    "lineageId": "on",
+                    "children": []
+                  },
+                  {
+                    "id": "ap",
+                    "label": "AP",
+                    "children": [
+                      {
+                        "id": "degp",
+                        "label": "DegP",
+                        "children": [
+                          {
+                            "id": "deg_liian",
+                            "label": "Deg",
+                            "word": "liian",
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "abar",
+                        "label": "A'",
+                        "children": [
+                          {
+                            "id": "a_kallis",
+                            "label": "A",
+                            "word": "kallis",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "vp_rel",
+            "label": "VP",
+            "children": [
+              {
+                "id": "vbar_rel",
+                "label": "V'",
+                "children": [
+                  {
+                    "id": "v_osta",
+                    "label": "V",
+                    "word": "osta",
+                    "lineageId": "osta",
+                    "children": []
+                  },
+                  {
+                    "id": "op",
+                    "label": "Op",
+                    "silent": true,
+                    "lineageId": "op",
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The agent-participle head '-ma' projects PartP, and the genitive agent 'Pekan' is its specifier.",
+        "stageRecord": "The participial head '-ma' takes the VP as its complement, which forms Part'. The proper noun 'Pekan' projects N' and NP, and this NP is merged as the specifier of PartP. Two relations follow, in this order. First, the participial predicate Part' assigns the Agent role to 'Pekan'. Second, the agent-participle head '-ma' licenses genitive case on that specifier. The genitive is the case that Finnish agent participles assign to their agent.",
+        "relations": [
+          {
+            "relation": "thetaAssignment",
+            "anchors": {
+              "assigner": "partbar",
+              "recipient": "np_pekka"
+            },
+            "values": {
+              "role": "Agent"
+            }
+          },
+          {
+            "relation": "caseAssignment",
+            "anchors": {
+              "assigner": "part_ma",
+              "assignee": "np_pekka"
+            },
+            "values": {
+              "case": "genitive"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "vp2",
+            "label": "VP",
+            "children": [
+              {
+                "id": "vbar2",
+                "label": "V'",
+                "children": [
+                  {
+                    "id": "v_on",
+                    "label": "V",
+                    "word": "on",
+                    "lineageId": "on",
+                    "children": []
+                  },
+                  {
+                    "id": "ap",
+                    "label": "AP",
+                    "children": [
+                      {
+                        "id": "degp",
+                        "label": "DegP",
+                        "children": [
+                          {
+                            "id": "deg_liian",
+                            "label": "Deg",
+                            "word": "liian",
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "abar",
+                        "label": "A'",
+                        "children": [
+                          {
+                            "id": "a_kallis",
+                            "label": "A",
+                            "word": "kallis",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "partp",
+            "label": "PartP",
+            "children": [
+              {
+                "id": "np_pekka",
+                "label": "NP",
+                "children": [
+                  {
+                    "id": "nbar_pekka",
+                    "label": "N'",
+                    "children": [
+                      {
+                        "id": "n_pekka",
+                        "label": "N",
+                        "word": "Pekan",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "partbar",
+                "label": "Part'",
+                "children": [
+                  {
+                    "id": "part_ma",
+                    "label": "Part",
+                    "word": "ma",
+                    "children": []
+                  },
+                  {
+                    "id": "vp_rel",
+                    "label": "VP",
+                    "children": [
+                      {
+                        "id": "vbar_rel",
+                        "label": "V'",
+                        "children": [
+                          {
+                            "id": "v_osta",
+                            "label": "V",
+                            "word": "osta",
+                            "lineageId": "osta",
+                            "children": []
+                          },
+                          {
+                            "id": "op",
+                            "label": "Op",
+                            "silent": true,
+                            "lineageId": "op",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The verb 'osta' raises to the participial head and yields 'ostama'.",
+        "stageRecord": "The verb stem 'osta' moves out of VP and adjoins to the participial head '-ma', which creates a complex Part head. It leaves a trace in its base position inside V'. The head-movement relation links the raised verb, its trace and the host head. This movement is why the stem surfaces fused with the suffix as 'ostama'.",
+        "relations": [
+          {
+            "relation": "headMovement",
+            "anchors": {
+              "landing": "v_osta",
+              "trace": "t_osta",
+              "host": "part_ma"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "vp2",
+            "label": "VP",
+            "children": [
+              {
+                "id": "vbar2",
+                "label": "V'",
+                "children": [
+                  {
+                    "id": "v_on",
+                    "label": "V",
+                    "word": "on",
+                    "lineageId": "on",
+                    "children": []
+                  },
+                  {
+                    "id": "ap",
+                    "label": "AP",
+                    "children": [
+                      {
+                        "id": "degp",
+                        "label": "DegP",
+                        "children": [
+                          {
+                            "id": "deg_liian",
+                            "label": "Deg",
+                            "word": "liian",
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "abar",
+                        "label": "A'",
+                        "children": [
+                          {
+                            "id": "a_kallis",
+                            "label": "A",
+                            "word": "kallis",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "partp",
+            "label": "PartP",
+            "children": [
+              {
+                "id": "np_pekka",
+                "label": "NP",
+                "children": [
+                  {
+                    "id": "nbar_pekka",
+                    "label": "N'",
+                    "children": [
+                      {
+                        "id": "n_pekka",
+                        "label": "N",
+                        "word": "Pekan",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "partbar",
+                "label": "Part'",
+                "children": [
+                  {
+                    "id": "part_cx",
+                    "label": "Part",
+                    "children": [
+                      {
+                        "id": "v_osta",
+                        "label": "V",
+                        "word": "osta",
+                        "lineageId": "osta",
+                        "children": []
+                      },
+                      {
+                        "id": "part_ma",
+                        "label": "Part",
+                        "word": "ma",
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "vp_rel",
+                    "label": "VP",
+                    "children": [
+                      {
+                        "id": "vbar_rel",
+                        "label": "V'",
+                        "children": [
+                          {
+                            "id": "t_osta",
+                            "label": "t",
+                            "silent": true,
+                            "lineageId": "osta",
+                            "children": []
+                          },
+                          {
+                            "id": "op",
+                            "label": "Op",
+                            "silent": true,
+                            "lineageId": "op",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "A null complementizer closes the reduced relative, and the operator moves to its specifier.",
+        "stageRecord": "A silent relative complementizer is merged with PartP, which forms C'. The null operator then moves from object position to the specifier of this CP and leaves a trace behind. The operator-movement relation links the operator at the clause edge to its trace. The resulting operator-variable chain lets the gap be interpreted as the thing Pekka bought.",
+        "relations": [
+          {
+            "relation": "operatorMovement",
+            "anchors": {
+              "landing": "op",
+              "trace": "t_op"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "vp2",
+            "label": "VP",
+            "children": [
+              {
+                "id": "vbar2",
+                "label": "V'",
+                "children": [
+                  {
+                    "id": "v_on",
+                    "label": "V",
+                    "word": "on",
+                    "lineageId": "on",
+                    "children": []
+                  },
+                  {
+                    "id": "ap",
+                    "label": "AP",
+                    "children": [
+                      {
+                        "id": "degp",
+                        "label": "DegP",
+                        "children": [
+                          {
+                            "id": "deg_liian",
+                            "label": "Deg",
+                            "word": "liian",
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "abar",
+                        "label": "A'",
+                        "children": [
+                          {
+                            "id": "a_kallis",
+                            "label": "A",
+                            "word": "kallis",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "cp_rel",
+            "label": "CP",
+            "children": [
+              {
+                "id": "op",
+                "label": "Op",
+                "silent": true,
+                "lineageId": "op",
+                "children": []
+              },
+              {
+                "id": "cbar_rel",
+                "label": "C'",
+                "children": [
+                  {
+                    "id": "c_rel",
+                    "label": "C",
+                    "silent": true,
+                    "children": []
+                  },
+                  {
+                    "id": "partp",
+                    "label": "PartP",
+                    "children": [
+                      {
+                        "id": "np_pekka",
+                        "label": "NP",
+                        "children": [
+                          {
+                            "id": "nbar_pekka",
+                            "label": "N'",
+                            "children": [
+                              {
+                                "id": "n_pekka",
+                                "label": "N",
+                                "word": "Pekan",
+                                "children": []
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "partbar",
+                        "label": "Part'",
+                        "children": [
+                          {
+                            "id": "part_cx",
+                            "label": "Part",
+                            "children": [
+                              {
+                                "id": "v_osta",
+                                "label": "V",
+                                "word": "osta",
+                                "lineageId": "osta",
+                                "children": []
+                              },
+                              {
+                                "id": "part_ma",
+                                "label": "Part",
+                                "word": "ma",
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "id": "vp_rel",
+                            "label": "VP",
+                            "children": [
+                              {
+                                "id": "vbar_rel",
+                                "label": "V'",
+                                "children": [
+                                  {
+                                    "id": "t_osta",
+                                    "label": "t",
+                                    "silent": true,
+                                    "lineageId": "osta",
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "t_op",
+                                    "label": "t",
+                                    "silent": true,
+                                    "lineageId": "op",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The relative CP adjoins to N' of 'auto', which forms the embedded subject NP 'Pekan ostama auto'.",
+        "stageRecord": "The noun 'auto' projects N'. The relative CP left-adjoins to that N', which creates a higher N' segment, and the NP is completed. The predication link coindexes the null operator with the N' of 'auto'. By this link the head noun is identified as the bought object, so the phrase means 'the car that Pekka bought'.",
+        "relations": [
+          {
+            "relation": "relativePredicationLink",
+            "anchors": {
+              "operator": "op",
+              "head": "nbar_auto"
+            },
+            "values": {
+              "index": "i"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "vp2",
+            "label": "VP",
+            "children": [
+              {
+                "id": "vbar2",
+                "label": "V'",
+                "children": [
+                  {
+                    "id": "v_on",
+                    "label": "V",
+                    "word": "on",
+                    "lineageId": "on",
+                    "children": []
+                  },
+                  {
+                    "id": "ap",
+                    "label": "AP",
+                    "children": [
+                      {
+                        "id": "degp",
+                        "label": "DegP",
+                        "children": [
+                          {
+                            "id": "deg_liian",
+                            "label": "Deg",
+                            "word": "liian",
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "abar",
+                        "label": "A'",
+                        "children": [
+                          {
+                            "id": "a_kallis",
+                            "label": "A",
+                            "word": "kallis",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "np_auto",
+            "label": "NP",
+            "children": [
+              {
+                "id": "nbar_auto2",
+                "label": "N'",
+                "children": [
+                  {
+                    "id": "cp_rel",
+                    "label": "CP",
+                    "children": [
+                      {
+                        "id": "op",
+                        "label": "Op",
+                        "silent": true,
+                        "lineageId": "op",
+                        "children": []
+                      },
+                      {
+                        "id": "cbar_rel",
+                        "label": "C'",
+                        "children": [
+                          {
+                            "id": "c_rel",
+                            "label": "C",
+                            "silent": true,
+                            "children": []
+                          },
+                          {
+                            "id": "partp",
+                            "label": "PartP",
+                            "children": [
+                              {
+                                "id": "np_pekka",
+                                "label": "NP",
+                                "children": [
+                                  {
+                                    "id": "nbar_pekka",
+                                    "label": "N'",
+                                    "children": [
+                                      {
+                                        "id": "n_pekka",
+                                        "label": "N",
+                                        "word": "Pekan",
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "partbar",
+                                "label": "Part'",
+                                "children": [
+                                  {
+                                    "id": "part_cx",
+                                    "label": "Part",
+                                    "children": [
+                                      {
+                                        "id": "v_osta",
+                                        "label": "V",
+                                        "word": "osta",
+                                        "lineageId": "osta",
+                                        "children": []
+                                      },
+                                      {
+                                        "id": "part_ma",
+                                        "label": "Part",
+                                        "word": "ma",
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "id": "vp_rel",
+                                    "label": "VP",
+                                    "children": [
+                                      {
+                                        "id": "vbar_rel",
+                                        "label": "V'",
+                                        "children": [
+                                          {
+                                            "id": "t_osta",
+                                            "label": "t",
+                                            "silent": true,
+                                            "lineageId": "osta",
+                                            "children": []
+                                          },
+                                          {
+                                            "id": "t_op",
+                                            "label": "t",
+                                            "silent": true,
+                                            "lineageId": "op",
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "nbar_auto",
+                    "label": "N'",
+                    "children": [
+                      {
+                        "id": "n_auto",
+                        "label": "N",
+                        "word": "auto",
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The finite embedded IP is built, with 'Pekan ostama auto' as its subject.",
+        "stageRecord": "An abstract finite present-tense I takes the copular VP as its complement, which forms I'. The subject NP is merged in the specifier of IP. Three relations follow, in this order. First, the subject is predicated of the copular VP, so the car is what is too expensive. Second, finite I assigns nominative case to the subject. Third, I agrees with the subject in third person singular, which the copula 'on' reflects.",
+        "relations": [
+          {
+            "relation": "predication",
+            "anchors": {
+              "subject": "np_auto",
+              "predicate": "vp2"
+            }
+          },
+          {
+            "relation": "caseAssignment",
+            "anchors": {
+              "assigner": "i_emb",
+              "assignee": "np_auto"
+            },
+            "values": {
+              "case": "nominative"
+            }
+          },
+          {
+            "relation": "agreement",
+            "anchors": {
+              "head": "i_emb",
+              "controller": "np_auto"
+            },
+            "values": {
+              "person": "3",
+              "number": "singular"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "ip_emb",
+            "label": "IP",
+            "children": [
+              {
+                "id": "np_auto",
+                "label": "NP",
+                "children": [
+                  {
+                    "id": "nbar_auto2",
+                    "label": "N'",
+                    "children": [
+                      {
+                        "id": "cp_rel",
+                        "label": "CP",
+                        "children": [
+                          {
+                            "id": "op",
+                            "label": "Op",
+                            "silent": true,
+                            "lineageId": "op",
+                            "children": []
+                          },
+                          {
+                            "id": "cbar_rel",
+                            "label": "C'",
+                            "children": [
+                              {
+                                "id": "c_rel",
+                                "label": "C",
+                                "silent": true,
+                                "children": []
+                              },
+                              {
+                                "id": "partp",
+                                "label": "PartP",
+                                "children": [
+                                  {
+                                    "id": "np_pekka",
+                                    "label": "NP",
+                                    "children": [
+                                      {
+                                        "id": "nbar_pekka",
+                                        "label": "N'",
+                                        "children": [
+                                          {
+                                            "id": "n_pekka",
+                                            "label": "N",
+                                            "word": "Pekan",
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "id": "partbar",
+                                    "label": "Part'",
+                                    "children": [
+                                      {
+                                        "id": "part_cx",
+                                        "label": "Part",
+                                        "children": [
+                                          {
+                                            "id": "v_osta",
+                                            "label": "V",
+                                            "word": "osta",
+                                            "lineageId": "osta",
+                                            "children": []
+                                          },
+                                          {
+                                            "id": "part_ma",
+                                            "label": "Part",
+                                            "word": "ma",
+                                            "children": []
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "id": "vp_rel",
+                                        "label": "VP",
+                                        "children": [
+                                          {
+                                            "id": "vbar_rel",
+                                            "label": "V'",
+                                            "children": [
+                                              {
+                                                "id": "t_osta",
+                                                "label": "t",
+                                                "silent": true,
+                                                "lineageId": "osta",
+                                                "children": []
+                                              },
+                                              {
+                                                "id": "t_op",
+                                                "label": "t",
+                                                "silent": true,
+                                                "lineageId": "op",
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "nbar_auto",
+                        "label": "N'",
+                        "children": [
+                          {
+                            "id": "n_auto",
+                            "label": "N",
+                            "word": "auto",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "ibar_emb",
+                "label": "I'",
+                "children": [
+                  {
+                    "id": "i_emb",
+                    "label": "I",
+                    "children": []
+                  },
+                  {
+                    "id": "vp2",
+                    "label": "VP",
+                    "children": [
+                      {
+                        "id": "vbar2",
+                        "label": "V'",
+                        "children": [
+                          {
+                            "id": "v_on",
+                            "label": "V",
+                            "word": "on",
+                            "lineageId": "on",
+                            "children": []
+                          },
+                          {
+                            "id": "ap",
+                            "label": "AP",
+                            "children": [
+                              {
+                                "id": "degp",
+                                "label": "DegP",
+                                "children": [
+                                  {
+                                    "id": "deg_liian",
+                                    "label": "Deg",
+                                    "word": "liian",
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "abar",
+                                "label": "A'",
+                                "children": [
+                                  {
+                                    "id": "a_kallis",
+                                    "label": "A",
+                                    "word": "kallis",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The copula 'on' raises from V to the finite I.",
+        "stageRecord": "The finite copula moves from V and adjoins to the abstract finite I, which forms a complex I head. It leaves a trace before the AP. The head-movement relation links the raised copula, its trace and the I host. Through this movement the copula carries the tense and agreement features of I.",
+        "relations": [
+          {
+            "relation": "headMovement",
+            "anchors": {
+              "landing": "v_on",
+              "trace": "t_on",
+              "host": "i_emb"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "ip_emb",
+            "label": "IP",
+            "children": [
+              {
+                "id": "np_auto",
+                "label": "NP",
+                "children": [
+                  {
+                    "id": "nbar_auto2",
+                    "label": "N'",
+                    "children": [
+                      {
+                        "id": "cp_rel",
+                        "label": "CP",
+                        "children": [
+                          {
+                            "id": "op",
+                            "label": "Op",
+                            "silent": true,
+                            "lineageId": "op",
+                            "children": []
+                          },
+                          {
+                            "id": "cbar_rel",
+                            "label": "C'",
+                            "children": [
+                              {
+                                "id": "c_rel",
+                                "label": "C",
+                                "silent": true,
+                                "children": []
+                              },
+                              {
+                                "id": "partp",
+                                "label": "PartP",
+                                "children": [
+                                  {
+                                    "id": "np_pekka",
+                                    "label": "NP",
+                                    "children": [
+                                      {
+                                        "id": "nbar_pekka",
+                                        "label": "N'",
+                                        "children": [
+                                          {
+                                            "id": "n_pekka",
+                                            "label": "N",
+                                            "word": "Pekan",
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "id": "partbar",
+                                    "label": "Part'",
+                                    "children": [
+                                      {
+                                        "id": "part_cx",
+                                        "label": "Part",
+                                        "children": [
+                                          {
+                                            "id": "v_osta",
+                                            "label": "V",
+                                            "word": "osta",
+                                            "lineageId": "osta",
+                                            "children": []
+                                          },
+                                          {
+                                            "id": "part_ma",
+                                            "label": "Part",
+                                            "word": "ma",
+                                            "children": []
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "id": "vp_rel",
+                                        "label": "VP",
+                                        "children": [
+                                          {
+                                            "id": "vbar_rel",
+                                            "label": "V'",
+                                            "children": [
+                                              {
+                                                "id": "t_osta",
+                                                "label": "t",
+                                                "silent": true,
+                                                "lineageId": "osta",
+                                                "children": []
+                                              },
+                                              {
+                                                "id": "t_op",
+                                                "label": "t",
+                                                "silent": true,
+                                                "lineageId": "op",
+                                                "children": []
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "nbar_auto",
+                        "label": "N'",
+                        "children": [
+                          {
+                            "id": "n_auto",
+                            "label": "N",
+                            "word": "auto",
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "ibar_emb",
+                "label": "I'",
+                "children": [
+                  {
+                    "id": "i_cx_emb",
+                    "label": "I",
+                    "children": [
+                      {
+                        "id": "v_on",
+                        "label": "V",
+                        "word": "on",
+                        "lineageId": "on",
+                        "children": []
+                      },
+                      {
+                        "id": "i_emb",
+                        "label": "I",
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "vp2",
+                    "label": "VP",
+                    "children": [
+                      {
+                        "id": "vbar2",
+                        "label": "V'",
+                        "children": [
+                          {
+                            "id": "t_on",
+                            "label": "t",
+                            "silent": true,
+                            "lineageId": "on",
+                            "children": []
+                          },
+                          {
+                            "id": "ap",
+                            "label": "AP",
+                            "children": [
+                              {
+                                "id": "degp",
+                                "label": "DegP",
+                                "children": [
+                                  {
+                                    "id": "deg_liian",
+                                    "label": "Deg",
+                                    "word": "liian",
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "abar",
+                                "label": "A'",
+                                "children": [
+                                  {
+                                    "id": "a_kallis",
+                                    "label": "A",
+                                    "word": "kallis",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The complementizer 'että' heads the embedded CP.",
+        "stageRecord": "The declarative complementizer 'että' is merged with the finite IP, which forms C' and CP. The complement-selection relation records that 'että' selects a finite IP complement.",
+        "relations": [
+          {
+            "relation": "complementSelection",
+            "anchors": {
+              "head": "c_etta",
+              "complement": "ip_emb"
+            },
+            "values": {
+              "finiteness": "finite"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "cp_emb",
+            "label": "CP",
+            "children": [
+              {
+                "id": "cbar_emb",
+                "label": "C'",
+                "children": [
+                  {
+                    "id": "c_etta",
+                    "label": "C",
+                    "word": "että",
+                    "children": []
+                  },
+                  {
+                    "id": "ip_emb",
+                    "label": "IP",
+                    "children": [
+                      {
+                        "id": "np_auto",
+                        "label": "NP",
+                        "children": [
+                          {
+                            "id": "nbar_auto2",
+                            "label": "N'",
+                            "children": [
+                              {
+                                "id": "cp_rel",
+                                "label": "CP",
+                                "children": [
+                                  {
+                                    "id": "op",
+                                    "label": "Op",
+                                    "silent": true,
+                                    "lineageId": "op",
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "cbar_rel",
+                                    "label": "C'",
+                                    "children": [
+                                      {
+                                        "id": "c_rel",
+                                        "label": "C",
+                                        "silent": true,
+                                        "children": []
+                                      },
+                                      {
+                                        "id": "partp",
+                                        "label": "PartP",
+                                        "children": [
+                                          {
+                                            "id": "np_pekka",
+                                            "label": "NP",
+                                            "children": [
+                                              {
+                                                "id": "nbar_pekka",
+                                                "label": "N'",
+                                                "children": [
+                                                  {
+                                                    "id": "n_pekka",
+                                                    "label": "N",
+                                                    "word": "Pekan",
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "id": "partbar",
+                                            "label": "Part'",
+                                            "children": [
+                                              {
+                                                "id": "part_cx",
+                                                "label": "Part",
+                                                "children": [
+                                                  {
+                                                    "id": "v_osta",
+                                                    "label": "V",
+                                                    "word": "osta",
+                                                    "lineageId": "osta",
+                                                    "children": []
+                                                  },
+                                                  {
+                                                    "id": "part_ma",
+                                                    "label": "Part",
+                                                    "word": "ma",
+                                                    "children": []
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "id": "vp_rel",
+                                                "label": "VP",
+                                                "children": [
+                                                  {
+                                                    "id": "vbar_rel",
+                                                    "label": "V'",
+                                                    "children": [
+                                                      {
+                                                        "id": "t_osta",
+                                                        "label": "t",
+                                                        "silent": true,
+                                                        "lineageId": "osta",
+                                                        "children": []
+                                                      },
+                                                      {
+                                                        "id": "t_op",
+                                                        "label": "t",
+                                                        "silent": true,
+                                                        "lineageId": "op",
+                                                        "children": []
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "nbar_auto",
+                                "label": "N'",
+                                "children": [
+                                  {
+                                    "id": "n_auto",
+                                    "label": "N",
+                                    "word": "auto",
+                                    "children": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "ibar_emb",
+                        "label": "I'",
+                        "children": [
+                          {
+                            "id": "i_cx_emb",
+                            "label": "I",
+                            "children": [
+                              {
+                                "id": "v_on",
+                                "label": "V",
+                                "word": "on",
+                                "lineageId": "on",
+                                "children": []
+                              },
+                              {
+                                "id": "i_emb",
+                                "label": "I",
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "id": "vp2",
+                            "label": "VP",
+                            "children": [
+                              {
+                                "id": "vbar2",
+                                "label": "V'",
+                                "children": [
+                                  {
+                                    "id": "t_on",
+                                    "label": "t",
+                                    "silent": true,
+                                    "lineageId": "on",
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "ap",
+                                    "label": "AP",
+                                    "children": [
+                                      {
+                                        "id": "degp",
+                                        "label": "DegP",
+                                        "children": [
+                                          {
+                                            "id": "deg_liian",
+                                            "label": "Deg",
+                                            "word": "liian",
+                                            "children": []
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "id": "abar",
+                                        "label": "A'",
+                                        "children": [
+                                          {
+                                            "id": "a_kallis",
+                                            "label": "A",
+                                            "word": "kallis",
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The matrix verb 'luule' takes the että-clause as its internal argument.",
+        "stageRecord": "The verb stem 'luule' ('think') is merged with the embedded CP, which forms V' and VP. The theta-assignment relation records that 'luule' assigns its internal Proposition role to the että-clause.",
+        "relations": [
+          {
+            "relation": "thetaAssignment",
+            "anchors": {
+              "assigner": "v_luule",
+              "recipient": "cp_emb"
+            },
+            "values": {
+              "role": "Proposition"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "vp_m",
+            "label": "VP",
+            "children": [
+              {
+                "id": "vbar_m",
+                "label": "V'",
+                "children": [
+                  {
+                    "id": "v_luule",
+                    "label": "V",
+                    "word": "luule",
+                    "lineageId": "luule",
+                    "children": []
+                  },
+                  {
+                    "id": "cp_emb",
+                    "label": "CP",
+                    "children": [
+                      {
+                        "id": "cbar_emb",
+                        "label": "C'",
+                        "children": [
+                          {
+                            "id": "c_etta",
+                            "label": "C",
+                            "word": "että",
+                            "children": []
+                          },
+                          {
+                            "id": "ip_emb",
+                            "label": "IP",
+                            "children": [
+                              {
+                                "id": "np_auto",
+                                "label": "NP",
+                                "children": [
+                                  {
+                                    "id": "nbar_auto2",
+                                    "label": "N'",
+                                    "children": [
+                                      {
+                                        "id": "cp_rel",
+                                        "label": "CP",
+                                        "children": [
+                                          {
+                                            "id": "op",
+                                            "label": "Op",
+                                            "silent": true,
+                                            "lineageId": "op",
+                                            "children": []
+                                          },
+                                          {
+                                            "id": "cbar_rel",
+                                            "label": "C'",
+                                            "children": [
+                                              {
+                                                "id": "c_rel",
+                                                "label": "C",
+                                                "silent": true,
+                                                "children": []
+                                              },
+                                              {
+                                                "id": "partp",
+                                                "label": "PartP",
+                                                "children": [
+                                                  {
+                                                    "id": "np_pekka",
+                                                    "label": "NP",
+                                                    "children": [
+                                                      {
+                                                        "id": "nbar_pekka",
+                                                        "label": "N'",
+                                                        "children": [
+                                                          {
+                                                            "id": "n_pekka",
+                                                            "label": "N",
+                                                            "word": "Pekan",
+                                                            "children": []
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  },
+                                                  {
+                                                    "id": "partbar",
+                                                    "label": "Part'",
+                                                    "children": [
+                                                      {
+                                                        "id": "part_cx",
+                                                        "label": "Part",
+                                                        "children": [
+                                                          {
+                                                            "id": "v_osta",
+                                                            "label": "V",
+                                                            "word": "osta",
+                                                            "lineageId": "osta",
+                                                            "children": []
+                                                          },
+                                                          {
+                                                            "id": "part_ma",
+                                                            "label": "Part",
+                                                            "word": "ma",
+                                                            "children": []
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "id": "vp_rel",
+                                                        "label": "VP",
+                                                        "children": [
+                                                          {
+                                                            "id": "vbar_rel",
+                                                            "label": "V'",
+                                                            "children": [
+                                                              {
+                                                                "id": "t_osta",
+                                                                "label": "t",
+                                                                "silent": true,
+                                                                "lineageId": "osta",
+                                                                "children": []
+                                                              },
+                                                              {
+                                                                "id": "t_op",
+                                                                "label": "t",
+                                                                "silent": true,
+                                                                "lineageId": "op",
+                                                                "children": []
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "id": "nbar_auto",
+                                        "label": "N'",
+                                        "children": [
+                                          {
+                                            "id": "n_auto",
+                                            "label": "N",
+                                            "word": "auto",
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "ibar_emb",
+                                "label": "I'",
+                                "children": [
+                                  {
+                                    "id": "i_cx_emb",
+                                    "label": "I",
+                                    "children": [
+                                      {
+                                        "id": "v_on",
+                                        "label": "V",
+                                        "word": "on",
+                                        "lineageId": "on",
+                                        "children": []
+                                      },
+                                      {
+                                        "id": "i_emb",
+                                        "label": "I",
+                                        "children": []
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "id": "vp2",
+                                    "label": "VP",
+                                    "children": [
+                                      {
+                                        "id": "vbar2",
+                                        "label": "V'",
+                                        "children": [
+                                          {
+                                            "id": "t_on",
+                                            "label": "t",
+                                            "silent": true,
+                                            "lineageId": "on",
+                                            "children": []
+                                          },
+                                          {
+                                            "id": "ap",
+                                            "label": "AP",
+                                            "children": [
+                                              {
+                                                "id": "degp",
+                                                "label": "DegP",
+                                                "children": [
+                                                  {
+                                                    "id": "deg_liian",
+                                                    "label": "Deg",
+                                                    "word": "liian",
+                                                    "children": []
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "id": "abar",
+                                                "label": "A'",
+                                                "children": [
+                                                  {
+                                                    "id": "a_kallis",
+                                                    "label": "A",
+                                                    "word": "kallis",
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The matrix IP is built, with first-person agreement '-n' in I and a null pro subject.",
+        "stageRecord": "The finite I bearing the first-person singular ending '-n' takes the matrix VP, which forms I'. A silent pronominal subject is merged in the specifier of IP. Four relations follow, in this order. First, the VP assigns the Experiencer role to pro. Second, finite I assigns nominative case to pro. Third, I agrees with pro in first person singular. Fourth, this rich agreement identifies the content of pro, which licenses the subject drop that Finnish allows in the first person.",
+        "relations": [
+          {
+            "relation": "thetaAssignment",
+            "anchors": {
+              "assigner": "vp_m",
+              "recipient": "pro"
+            },
+            "values": {
+              "role": "Experiencer"
+            }
+          },
+          {
+            "relation": "caseAssignment",
+            "anchors": {
+              "assigner": "i_m",
+              "assignee": "pro"
+            },
+            "values": {
+              "case": "nominative"
+            }
+          },
+          {
+            "relation": "agreement",
+            "anchors": {
+              "head": "i_m",
+              "controller": "pro"
+            },
+            "values": {
+              "person": "1",
+              "number": "singular"
+            }
+          },
+          {
+            "relation": "proIdentification",
+            "anchors": {
+              "identifier": "i_m",
+              "pro": "pro"
+            },
+            "values": {
+              "person": "1",
+              "number": "singular"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "ip_m",
+            "label": "IP",
+            "children": [
+              {
+                "id": "pro",
+                "label": "pro",
+                "silent": true,
+                "children": []
+              },
+              {
+                "id": "ibar_m",
+                "label": "I'",
+                "children": [
+                  {
+                    "id": "i_m",
+                    "label": "I",
+                    "word": "n",
+                    "children": []
+                  },
+                  {
+                    "id": "vp_m",
+                    "label": "VP",
+                    "children": [
+                      {
+                        "id": "vbar_m",
+                        "label": "V'",
+                        "children": [
+                          {
+                            "id": "v_luule",
+                            "label": "V",
+                            "word": "luule",
+                            "lineageId": "luule",
+                            "children": []
+                          },
+                          {
+                            "id": "cp_emb",
+                            "label": "CP",
+                            "children": [
+                              {
+                                "id": "cbar_emb",
+                                "label": "C'",
+                                "children": [
+                                  {
+                                    "id": "c_etta",
+                                    "label": "C",
+                                    "word": "että",
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "ip_emb",
+                                    "label": "IP",
+                                    "children": [
+                                      {
+                                        "id": "np_auto",
+                                        "label": "NP",
+                                        "children": [
+                                          {
+                                            "id": "nbar_auto2",
+                                            "label": "N'",
+                                            "children": [
+                                              {
+                                                "id": "cp_rel",
+                                                "label": "CP",
+                                                "children": [
+                                                  {
+                                                    "id": "op",
+                                                    "label": "Op",
+                                                    "silent": true,
+                                                    "lineageId": "op",
+                                                    "children": []
+                                                  },
+                                                  {
+                                                    "id": "cbar_rel",
+                                                    "label": "C'",
+                                                    "children": [
+                                                      {
+                                                        "id": "c_rel",
+                                                        "label": "C",
+                                                        "silent": true,
+                                                        "children": []
+                                                      },
+                                                      {
+                                                        "id": "partp",
+                                                        "label": "PartP",
+                                                        "children": [
+                                                          {
+                                                            "id": "np_pekka",
+                                                            "label": "NP",
+                                                            "children": [
+                                                              {
+                                                                "id": "nbar_pekka",
+                                                                "label": "N'",
+                                                                "children": [
+                                                                  {
+                                                                    "id": "n_pekka",
+                                                                    "label": "N",
+                                                                    "word": "Pekan",
+                                                                    "children": []
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "id": "partbar",
+                                                            "label": "Part'",
+                                                            "children": [
+                                                              {
+                                                                "id": "part_cx",
+                                                                "label": "Part",
+                                                                "children": [
+                                                                  {
+                                                                    "id": "v_osta",
+                                                                    "label": "V",
+                                                                    "word": "osta",
+                                                                    "lineageId": "osta",
+                                                                    "children": []
+                                                                  },
+                                                                  {
+                                                                    "id": "part_ma",
+                                                                    "label": "Part",
+                                                                    "word": "ma",
+                                                                    "children": []
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "id": "vp_rel",
+                                                                "label": "VP",
+                                                                "children": [
+                                                                  {
+                                                                    "id": "vbar_rel",
+                                                                    "label": "V'",
+                                                                    "children": [
+                                                                      {
+                                                                        "id": "t_osta",
+                                                                        "label": "t",
+                                                                        "silent": true,
+                                                                        "lineageId": "osta",
+                                                                        "children": []
+                                                                      },
+                                                                      {
+                                                                        "id": "t_op",
+                                                                        "label": "t",
+                                                                        "silent": true,
+                                                                        "lineageId": "op",
+                                                                        "children": []
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "id": "nbar_auto",
+                                                "label": "N'",
+                                                "children": [
+                                                  {
+                                                    "id": "n_auto",
+                                                    "label": "N",
+                                                    "word": "auto",
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "id": "ibar_emb",
+                                        "label": "I'",
+                                        "children": [
+                                          {
+                                            "id": "i_cx_emb",
+                                            "label": "I",
+                                            "children": [
+                                              {
+                                                "id": "v_on",
+                                                "label": "V",
+                                                "word": "on",
+                                                "lineageId": "on",
+                                                "children": []
+                                              },
+                                              {
+                                                "id": "i_emb",
+                                                "label": "I",
+                                                "children": []
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "id": "vp2",
+                                            "label": "VP",
+                                            "children": [
+                                              {
+                                                "id": "vbar2",
+                                                "label": "V'",
+                                                "children": [
+                                                  {
+                                                    "id": "t_on",
+                                                    "label": "t",
+                                                    "silent": true,
+                                                    "lineageId": "on",
+                                                    "children": []
+                                                  },
+                                                  {
+                                                    "id": "ap",
+                                                    "label": "AP",
+                                                    "children": [
+                                                      {
+                                                        "id": "degp",
+                                                        "label": "DegP",
+                                                        "children": [
+                                                          {
+                                                            "id": "deg_liian",
+                                                            "label": "Deg",
+                                                            "word": "liian",
+                                                            "children": []
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "id": "abar",
+                                                        "label": "A'",
+                                                        "children": [
+                                                          {
+                                                            "id": "a_kallis",
+                                                            "label": "A",
+                                                            "word": "kallis",
+                                                            "children": []
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "statement": "The matrix verb raises to I and surfaces as 'luulen', which completes the sentence.",
+        "stageRecord": "The verb stem 'luule' moves from V and adjoins to the finite I '-n', which forms a complex I head. It leaves a trace before the embedded clause. The head-movement relation links the raised verb, its trace and the agreement host. The movement accounts for the inflected form 'luulen' preceding 'että', and it yields the final structure of the sentence.",
+        "relations": [
+          {
+            "relation": "headMovement",
+            "anchors": {
+              "landing": "v_luule",
+              "trace": "t_luule",
+              "host": "i_m"
+            }
+          }
+        ],
+        "workspaceForest": [
+          {
+            "id": "ip_m",
+            "label": "IP",
+            "children": [
+              {
+                "id": "pro",
+                "label": "pro",
+                "silent": true,
+                "children": []
+              },
+              {
+                "id": "ibar_m",
+                "label": "I'",
+                "children": [
+                  {
+                    "id": "i_cx_m",
+                    "label": "I",
+                    "children": [
+                      {
+                        "id": "v_luule",
+                        "label": "V",
+                        "word": "luule",
+                        "lineageId": "luule",
+                        "children": []
+                      },
+                      {
+                        "id": "i_m",
+                        "label": "I",
+                        "word": "n",
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "id": "vp_m",
+                    "label": "VP",
+                    "children": [
+                      {
+                        "id": "vbar_m",
+                        "label": "V'",
+                        "children": [
+                          {
+                            "id": "t_luule",
+                            "label": "t",
+                            "silent": true,
+                            "lineageId": "luule",
+                            "children": []
+                          },
+                          {
+                            "id": "cp_emb",
+                            "label": "CP",
+                            "children": [
+                              {
+                                "id": "cbar_emb",
+                                "label": "C'",
+                                "children": [
+                                  {
+                                    "id": "c_etta",
+                                    "label": "C",
+                                    "word": "että",
+                                    "children": []
+                                  },
+                                  {
+                                    "id": "ip_emb",
+                                    "label": "IP",
+                                    "children": [
+                                      {
+                                        "id": "np_auto",
+                                        "label": "NP",
+                                        "children": [
+                                          {
+                                            "id": "nbar_auto2",
+                                            "label": "N'",
+                                            "children": [
+                                              {
+                                                "id": "cp_rel",
+                                                "label": "CP",
+                                                "children": [
+                                                  {
+                                                    "id": "op",
+                                                    "label": "Op",
+                                                    "silent": true,
+                                                    "lineageId": "op",
+                                                    "children": []
+                                                  },
+                                                  {
+                                                    "id": "cbar_rel",
+                                                    "label": "C'",
+                                                    "children": [
+                                                      {
+                                                        "id": "c_rel",
+                                                        "label": "C",
+                                                        "silent": true,
+                                                        "children": []
+                                                      },
+                                                      {
+                                                        "id": "partp",
+                                                        "label": "PartP",
+                                                        "children": [
+                                                          {
+                                                            "id": "np_pekka",
+                                                            "label": "NP",
+                                                            "children": [
+                                                              {
+                                                                "id": "nbar_pekka",
+                                                                "label": "N'",
+                                                                "children": [
+                                                                  {
+                                                                    "id": "n_pekka",
+                                                                    "label": "N",
+                                                                    "word": "Pekan",
+                                                                    "children": []
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "id": "partbar",
+                                                            "label": "Part'",
+                                                            "children": [
+                                                              {
+                                                                "id": "part_cx",
+                                                                "label": "Part",
+                                                                "children": [
+                                                                  {
+                                                                    "id": "v_osta",
+                                                                    "label": "V",
+                                                                    "word": "osta",
+                                                                    "lineageId": "osta",
+                                                                    "children": []
+                                                                  },
+                                                                  {
+                                                                    "id": "part_ma",
+                                                                    "label": "Part",
+                                                                    "word": "ma",
+                                                                    "children": []
+                                                                  }
+                                                                ]
+                                                              },
+                                                              {
+                                                                "id": "vp_rel",
+                                                                "label": "VP",
+                                                                "children": [
+                                                                  {
+                                                                    "id": "vbar_rel",
+                                                                    "label": "V'",
+                                                                    "children": [
+                                                                      {
+                                                                        "id": "t_osta",
+                                                                        "label": "t",
+                                                                        "silent": true,
+                                                                        "lineageId": "osta",
+                                                                        "children": []
+                                                                      },
+                                                                      {
+                                                                        "id": "t_op",
+                                                                        "label": "t",
+                                                                        "silent": true,
+                                                                        "lineageId": "op",
+                                                                        "children": []
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "id": "nbar_auto",
+                                                "label": "N'",
+                                                "children": [
+                                                  {
+                                                    "id": "n_auto",
+                                                    "label": "N",
+                                                    "word": "auto",
+                                                    "children": []
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "id": "ibar_emb",
+                                        "label": "I'",
+                                        "children": [
+                                          {
+                                            "id": "i_cx_emb",
+                                            "label": "I",
+                                            "children": [
+                                              {
+                                                "id": "v_on",
+                                                "label": "V",
+                                                "word": "on",
+                                                "lineageId": "on",
+                                                "children": []
+                                              },
+                                              {
+                                                "id": "i_emb",
+                                                "label": "I",
+                                                "children": []
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "id": "vp2",
+                                            "label": "VP",
+                                            "children": [
+                                              {
+                                                "id": "vbar2",
+                                                "label": "V'",
+                                                "children": [
+                                                  {
+                                                    "id": "t_on",
+                                                    "label": "t",
+                                                    "silent": true,
+                                                    "lineageId": "on",
+                                                    "children": []
+                                                  },
+                                                  {
+                                                    "id": "ap",
+                                                    "label": "AP",
+                                                    "children": [
+                                                      {
+                                                        "id": "degp",
+                                                        "label": "DegP",
+                                                        "children": [
+                                                          {
+                                                            "id": "deg_liian",
+                                                            "label": "Deg",
+                                                            "word": "liian",
+                                                            "children": []
+                                                          }
+                                                        ]
+                                                      },
+                                                      {
+                                                        "id": "abar",
+                                                        "label": "A'",
+                                                        "children": [
+                                                          {
+                                                            "id": "a_kallis",
+                                                            "label": "A",
+                                                            "word": "kallis",
+                                                            "children": []
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "provenance": {
+      "modelRoute": "claude",
+      "framework": "xbar",
+      "treeSource": "derivationStages",
+      "payloadIntegrityFlags": [
+        "derivation_stages_compiled_to_derivation_frames"
+      ],
+      "hasDerivationStages": true
+    }
+  }
+}
