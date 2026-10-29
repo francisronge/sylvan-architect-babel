@@ -660,6 +660,9 @@ export const compileDispatchedRelationRenderPlan = (
         // persistent drawing. When its claim draws nothing but neutral marks,
         // it keeps the recognized rail's lifetime (Francis, 27 Oct 2026). A
         // neutral role beside a recognized one still lends no lifetime.
+        // Its identity, like a recognized claim's replacement thread, is its
+        // participants: the exact entries it numbers, whatever the relation or
+        // role is called. A later rail over them replaces it at that moment.
         const ownLifetime = owner.kind === 'fallback' && relationItems.every(item => item.kind === 'fallback');
         const companion: AnchorSetPlanItem = {
           kind: 'anchor-set',
@@ -667,19 +670,28 @@ export const compileDispatchedRelationRenderPlan = (
           appearsAtStage: owner.appearsAtStage,
           persistence: ownLifetime ? 'replace-previous-instance' : owner.persistence,
           ...(ownLifetime ? { replacementGroup: JSON.stringify({ organization: 'large-anchor-set',
-            relation: parentRelation.relation, roles: set.roles.map(role => role.role) }) } : {}),
+            participants: [...new Set(roles.flatMap(role => role.anchors.map(anchor => anchor.nodeId)))].sort() }) } : {}),
           backward: owner.backward,
           priorWitnessNodeIds: owner.priorWitnessNodeIds,
           tier2WitnessNodeIds: planItemDependencyNodeIds(owner),
           claimTier: owner.claimTier ?? claim.tier,
           organizationOwners: [claim.canonicalClaimIdentity],
-          // A persisting rail numbers its own entries once the neutral role labels
-          // it joins at the moment are gone; at the moment those labels still win.
+          // A persisting rail numbers its own entries from its moment on, as a
+          // recognized rail does, so it never changes when the neutral labels expire.
           showBadges: owner.kind !== 'fallback' || ownLifetime,
+          ...(ownLifetime ? { ownNumerals: true } : {}),
           badgeSize: owner.familyId === 'pf.cyclic-linearization' ? 'compact' : 'standard',
           set: { ...set, roles }
         };
-        if (ownLifetime) { standaloneRails.push(companion); return; }
+        if (ownLifetime) {
+          // A restatement in the same stage shares the rail and adds its moment.
+          const restated = standaloneRails.find(rail => rail.appearsAtStage === companion.appearsAtStage
+            && rail.relationRef.relationIndex !== companion.relationRef.relationIndex
+            && rail.replacementGroup === companion.replacementGroup);
+          if (restated) restated.coalescedRefs = [...restated.coalescedRefs ?? [], companion.relationRef];
+          else standaloneRails.push(companion);
+          return;
+        }
         const companions = organizationCompanions.get(owner) ?? [];
         companions.push(companion);
         organizationCompanions.set(owner, companions);

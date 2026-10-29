@@ -551,6 +551,9 @@ export type AnchorSetPlanItem = PlanItemBase & {
   set: LargeAnchorSet;
   /** Fallback already numbers its own witnesses; in that case add only the rail. */
   showBadges: boolean;
+  /** The rail joins only its own badges, never a neutral numeral, so a rail
+   * outliving its neutral marks keeps its geometry from its own moment on. */
+  ownNumerals?: boolean;
   badgeSize: 'standard' | 'compact';
   /** Exact claims whose already-materialized entries this organization follows. */
   organizationOwners?: string[];

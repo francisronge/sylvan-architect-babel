@@ -578,7 +578,7 @@ Tree Bank previews capture the visible portion at its correct bounds, with all
 rows preserved in the saved analysis. A static thumbnail does not promise a full
 print layout for extreme content.
 
-The organizational Anchor rail includes its Orchard joining lines. A rail whose claim draws nothing but neutral marks keeps the recognized rail's lifetime instead of expiring with them: it joins the neutral role labels at its moment and numbers its own entries afterwards (Francis, 27 Oct 2026). A neutral role beside a recognized one still lends that role no lifetime. Bound geometry
+The organizational Anchor rail includes its Orchard joining lines. A rail whose claim draws nothing but neutral marks keeps the recognized rail's lifetime instead of expiring with them (Francis, 27 Oct 2026). Like a recognized rail it numbers its own entries from its moment, so it does not change when the neutral role labels expire. Its identity is the entries it numbers: a later rail over them replaces it at that moment, a restatement in the same stage shares it, and a rail over other entries stands beside it. This holds for a malformed registered claim too: the rail organizes its authored array and asserts nothing about the claim, whose own ink stays neutral and expires. A neutral role beside a recognized one still lends that role no lifetime. Bound geometry
 retains the exact marks belonging to its authored relation, including existing
 neutral badges, and carries their joins through Fit and zoom. It does not select
 another claim's mark because the two claims share a node.

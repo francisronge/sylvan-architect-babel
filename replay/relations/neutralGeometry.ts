@@ -131,6 +131,7 @@ export const neutralGeometry = {
         && entry.arrayIndex === badge.arrayIndex)
       : item.showBadges;
     const neutralBadge = (badge: typeof layout.badges[number]): BoundFallbackMark | undefined => {
+      if (item.ownNumerals) return undefined;
       const matches = primitives.filter((mark): mark is BoundFallbackMark => {
         if (mark.type !== 'fallback-mark' || mark.nodeId !== badge.nodeId || mark.role !== badge.role
           || options.isItemRevealed && !options.isItemRevealed(mark.itemIndex)) return false;
