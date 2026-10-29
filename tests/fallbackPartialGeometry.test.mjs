@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { anchorSetRailPaths, fitFallbackGeometry } from '../replay/relations/fallbackGeometry.ts';
-import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { bindAnchorSetBadges, bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
@@ -12,6 +12,16 @@ import { buildReplayPanelContent } from '../replay/replayPanel.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import { FALLBACK_ROLE_STYLE } from '../replay/relations/fallbackGeometry.ts';
 const node = id => ({ id, label: id });
+/** Where Fit places each bound anchor-set badge at `scale`: the binder's own
+ * placement at that scale, as the renderer's Fit does (fallbackDrawing.ts). */
+const fittedBadges = (bound, plan, positionFor, options, scale) => {
+  const key = badge => `${badge.itemIndex} ${badge.stackIndex} ${badge.nodeId}`;
+  const placed = new Map(bindAnchorSetBadges(plan, 0, positionFor, { ...options, markerScale: scale }).map(badge => [key(badge), badge]));
+  return new Map(bound.primitives.filter(p => p.type === 'anchor-set-badge')
+    .map(badge => [badge, { x: placed.get(key(badge)).x, y: placed.get(key(badge)).y }]));
+};
+/** Each join's start, which must be the painted badge or neutral mark it leaves. */
+const joinStarts = (rail, scale) => anchorSetRailPaths(rail, scale).joins.split(/(?=M )/).map(join => join.match(/^M (\S+) (\S+)/).slice(1).map(Number));
 const stage = relations => ({ statement: 'Test', stageRecord: 'Test', relations, workspaceForest: [node('a'), node('b'), node('c')] });
 const plan = compileRelationRenderPlan([stage([{ relation: 'Open claim', anchors: { first: 'a', second: 'b' } }])]);
 const bind = ids => bindRelationPlanFrame(plan, 0, id => ids.includes(id) ? { x: ids.indexOf(id) * 150, y: 100 } : null);
@@ -96,18 +106,28 @@ test('Orchard marks clear measured labels; scalar links start below subtrees, fa
 
 test('dense shared witnesses reserve distinct marks and organizational rails follow the fitted ownership', () => {
   const ids = ['a', 'b', 'c', 'd', 'e'];
-  const relations = Array.from({ length: 8 }, (_, i) => ({ relation: `Context ${i}`, anchors: { participant: 'a' } }));
-  relations.push({ relation: 'Large set', anchors: { members: ids } });
-  const p = compileRelationRenderPlan([{ ...stage(relations), workspaceForest: ids.map(node) }]);
-  const bound = bindRelationPlanFrame(p, 0, id => ({ x: ids.indexOf(id) * 300, y: 0 }));
-  const updates = fitFallbackGeometry(bound, { fittedMarkerScale: 2 });
-  const atA = [...updates.values()].filter(p => p.type === 'fallback-mark' && p.nodeId === 'a');
-  assert.equal(new Set(atA.map(mark => `${mark.x}:${mark.y}`)).size, atA.length);
-  const rail = bound.primitives.find(p => p.type === 'anchor-set-rail');
-  const fittedRail = updates.get(rail);
-  assert.deepEqual(fittedRail.anchors.map(a => a.nodeId), ids);
-  for (const [i, mark] of rail.anchors.entries()) assert.deepEqual(fittedRail.anchors[i], updates.get(mark));
-  assert.equal(anchorSetRailPaths(fittedRail, 2).joins.split('M ').length - 1, ids.length);
+  // A wholly neutral set's rail joins its own badges from its moment; a rail
+  // beside a recognized role still joins the neutral numerals drawn there.
+  for (const [large, joins] of [[{ relation: 'Large set', anchors: { members: ids } }, 'anchor-set-badge'],
+    [{ relation: 'Current forms', anchors: { context: ids, verb: ids }, values: { verbForm: ids.map(() => 'past') } }, 'fallback-mark']]) {
+    const relations = Array.from({ length: 8 }, (_, i) => ({ relation: `Context ${i}`, anchors: { participant: 'a' } }));
+    relations.push(large);
+    const p = compileRelationRenderPlan([{ ...stage(relations), workspaceForest: ids.map(node) }]);
+    const positionFor = id => ({ x: ids.indexOf(id) * 300, y: 0 });
+    const bound = bindRelationPlanFrame(p, 0, positionFor);
+    const badgesAtFit = fittedBadges(bound, p, positionFor, {}, 2);
+    const updates = fitFallbackGeometry(bound, { fittedMarkerScale: 2, fittedAnchorSetBadges: badgesAtFit });
+    const atA = [...updates.values()].filter(p => p.type === 'fallback-mark' && p.nodeId === 'a');
+    assert.equal(new Set(atA.map(mark => `${mark.x}:${mark.y}`)).size, atA.length);
+    const rail = bound.primitives.find(p => p.type === 'anchor-set-rail');
+    assert(rail.anchors.every(anchor => anchor.type === joins), `${large.relation} joins ${joins}`);
+    const fittedRail = updates.get(rail);
+    assert.deepEqual(fittedRail.anchors.map(a => a.nodeId), ids);
+    const painted = rail.anchors.map(mark => mark.type === 'fallback-mark' ? updates.get(mark) : { ...mark, ...badgesAtFit.get(mark) });
+    assert.deepEqual(fittedRail.anchors, painted, 'each join follows the mark Fit paints');
+    assert.deepEqual(joinStarts(fittedRail, 2).map(([x]) => x), painted.map(mark => mark.x));
+    assert.equal(anchorSetRailPaths(fittedRail, 2).joins.split('M ').length - 1, ids.length);
+  }
 });
 
 test('neutral roles reserve plaque space before reveal and retain that clearance at Fit', () => {
@@ -319,10 +339,16 @@ test('separate Replay moments cannot displace or clip one another, including own
   assert.equal(new Set(marks.map(m => `${m.x}:${m.y}`)).size, marks.length, 'roles visible together still reserve separate positions');
   const large = compileRelationRenderPlan([{ ...stage([...contexts, { relation: 'Set', anchors: { members: ['a', 'b', 'c', 'd', 'e'] } }]),
     workspaceForest: ['a', 'b', 'c', 'd', 'e'].map(node) }]);
-  const bound = bindRelationPlanFrame(large, 0, id => ({ x: id.charCodeAt(0) * 300, y: 0 }), options);
-  const fitted = fitFallbackGeometry(bound, { ...options, fittedMarkerScale: 3 });
+  const largeAt = id => ({ x: id.charCodeAt(0) * 300, y: 0 });
+  const bound = bindRelationPlanFrame(large, 0, largeAt, options);
+  const badgesAtFit = fittedBadges(bound, large, largeAt, options, 3);
+  const fitted = fitFallbackGeometry(bound, { ...options, fittedMarkerScale: 3, fittedAnchorSetBadges: badgesAtFit });
   const rail = bound.primitives.find(p => p.type === 'anchor-set-rail');
-  assert.deepEqual(fitted.get(rail).anchors, rail.anchors.map(mark => fitted.get(mark)));
+  // A wholly neutral set's rail joins its own badges, where Fit paints them.
+  assert(rail.anchors.every(anchor => anchor.type === 'anchor-set-badge'));
+  const painted = rail.anchors.map(mark => ({ ...mark, ...badgesAtFit.get(mark) }));
+  assert.deepEqual(fitted.get(rail).anchors, painted);
+  assert.deepEqual(joinStarts(fitted.get(rail), 3), painted.map(mark => [mark.x, mark.y + 9 * 3]));
 });
 
 test('a role placed above its node clears text height without drifting by its width', () => {

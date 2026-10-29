@@ -377,7 +377,7 @@ export type AnchorSetBadge = {
   role: string;
   nodeId: string;
   arrayIndex: number;
-  /** How many earlier badges already sit on this node; 0 is the first. */
+  /** Badge slot below the node: the rail band plus earlier badges of this set there; 0 is the first. */
   stackIndex: number;
   x: number;
   y: number;
@@ -432,11 +432,14 @@ export const planAnchorSetLayout = (
   config: {
     badgeOffsetY?: number;
     railGap?: number;
+    /** The rail's band: its lanes and badge stack slots start here (anchorRailBands.ts). */
+    band?: number;
     clearance?: { obstacles: readonly Rect[]; radiusFor: (role: string, arrayIndex: number) => number; gap: number };
   } = {}
 ): AnchorSetLayout => {
   const badgeOffsetY = config.badgeOffsetY ?? 14;
   const railGap = config.railGap ?? 12;
+  const band = config.band ?? 0;
   const placedBoxes: Rect[] = [];
   const badgeY = (x: number, preferredY: number, minY: number, radius: number): number => {
     const { obstacles, gap } = config.clearance!;
@@ -473,8 +476,9 @@ export const planAnchorSetLayout = (
           });
           return;
         }
-        const stackIndex = stackCounts.get(anchor.nodeId) ?? 0;
-        stackCounts.set(anchor.nodeId, stackIndex + 1);
+        const stacked = stackCounts.get(anchor.nodeId) ?? 0;
+        stackCounts.set(anchor.nodeId, stacked + 1);
+        const stackIndex = band + stacked;
         const x = rect.x + rect.width / 2;
         const nominalY = rect.y + rect.height + badgeOffsetY * (stackIndex + 1);
         const radius = config.clearance?.radiusFor(roleGroup.role, anchor.arrayIndex) ?? 0;
@@ -507,7 +511,7 @@ export const planAnchorSetLayout = (
   const rails: AnchorSetRail[] = railSpans.map((span, index) => ({
     setIndex: span.setIndex,
     role: span.role,
-    lane: lanes[index],
+    lane: band + lanes[index],
     x1: span.start,
     x2: span.end
   }));

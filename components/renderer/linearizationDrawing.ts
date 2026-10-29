@@ -97,6 +97,7 @@ export function createLinearizationDrawing({
           {
             badgeOffsetY: localPx(16),
             railGap: localPx(14),
+            band: anchorSetItem.railBand,
             // Compact badges in screen pixels; their stroke does not scale.
             ...(badgeObstacles ? { clearance: {
               obstacles: badgeObstacles,

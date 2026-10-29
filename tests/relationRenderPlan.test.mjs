@@ -1005,7 +1005,9 @@ test('an unknown membership array remains neutral without inventing identity', (
       : null
   );
   assert.equal(bound.primitives.filter((p) => p.type === 'fallback-mark').length, 6);
-  assert.equal(bound.primitives.filter((p) => p.type === 'anchor-set-badge').length, 0);
+  assert.equal(plan.frames[0].items.some((item) => item.kind === 'coindex'), false);
+  assert.deepEqual(bound.primitives.filter((p) => p.type === 'anchor-set-badge').map((p) => p.numeral), [1, 2, 3, 4, 5, 6],
+    'the persisting rail numbers its own entries from its moment; ordinals assert no identity');
   assert.equal(bound.primitives.filter((p) => p.type === 'anchor-set-rail').length, 1, 'neutral topology may organize a large set without asserting identity');
 });
 
@@ -1141,7 +1143,8 @@ test('unresolved large-array entries stay diagnostics and get no geometry', () =
   const fallbackMarks = bound.primitives.filter((p) => p.type === 'fallback-mark');
   assert.equal(fallbackMarks.length, 4, 'incomplete Tier-2 evidence fails closed to Tier 3');
   assert.ok(fallbackMarks.every((mark) => mark.nodeId !== 'missing_3'));
-  assert.equal(bound.primitives.filter((p) => p.type === 'anchor-set-badge').length, 0);
+  assert.deepEqual(bound.primitives.filter((p) => p.type === 'anchor-set-badge').map((p) => p.nodeId),
+    ['ok_1', 'ok_2', 'ok_4', 'ok_5'], 'the rail numbers only its resolved entries');
   assert.equal(bound.primitives.filter((p) => p.type === 'anchor-set-rail').length, 1);
 });
 
