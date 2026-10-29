@@ -157,6 +157,21 @@ export function approvalProblem(entry) {
   return null;
 }
 
+/** An approval is a record of the owner's words. While its entry stays
+ * within what it accepts, its owner, date and note stay exactly as written
+ * (its `accepts` may narrow with the entry) and it is never removed. A new
+ * approval for a value the old one does not accept may follow it, never
+ * dated earlier. Returns what was changed, or null. */
+function approvalRewritten(previous, entry) {
+  const before = previous?.approval, after = entry.approval;
+  if (!before) return null;
+  if (!after) return 'removed';
+  if (growthOf({ at: before.accepts }, entry).length) return String(after.on) < String(before.on) ? 'dated earlier' : null;
+  const changed = ['by', 'on', 'note'].filter(field => String(before[field] ?? '').trim() !== String(after[field] ?? '').trim());
+  if (growthOf({ at: before.accepts }, { at: after.accepts }).length) changed.push('accepts widened');
+  return changed.length ? changed.join(', ') : null;
+}
+
 /** Compares exception lists (`{ name: entries }`, keyed by file and export)
  * between a change's base and head. Every head entry needs a reason; an entry
  * the change adds or lets grow needs a valid owner approval; any approval
@@ -169,9 +184,16 @@ export function exceptionGrowth(base, head) {
     for (const entry of entries) {
       const name = `${list} ${entry.rule}/${entry.subtype ?? '-'} ${entry.record} ${entry.subject}`;
       if (typeof entry.reason !== 'string' || !entry.reason.trim()) problems.push({ name, problem: 'no reason' });
-      const grown = growthOf(before.get(identity(entry)), entry);
+      const previous = before.get(identity(entry));
+      const grown = growthOf(previous, entry);
       const problem = (grown.length || entry.approval) && approvalProblem(entry);
       if (problem) problems.push({ name, grown, problem });
+      else {
+        const edit = approvalRewritten(previous, entry);
+        if (edit) problems.push({ name, grown, problem: `its existing approval was edited (${edit}). An approval records what the `
+          + 'owner said, when and where: keep its by, on and note exactly as written. Only a new approval for a value the old one '
+          + 'does not accept may replace it, and never with an earlier date' });
+      }
     }
   }
   return problems;

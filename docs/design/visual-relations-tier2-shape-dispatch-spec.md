@@ -1652,6 +1652,17 @@ Numbered badges share one visual component with explicit variants:
 The distinct text prevents two different meanings from becoming visually
 indistinguishable.
 
+An anchor-array badge stands in its node's column, below the node. Where its
+nominal place would cover a painted label of any node (each line of a wrapped
+label and each index run) or a displayed plaque, it moves along that column to
+the nearest clear height, toward its own node first. A badge that already
+clears keeps its place, and a relation's badges on one node never cover each
+other. (Badges of two different anchor arrays on the same node still share a
+place; that is open.)
+Fit places badges for the marker scale it draws them at; like role labels, they
+then keep that size and share the tree's scale during manual zoom, so the
+clearance holds at every zoom. The visual audits judge badges as mark text.
+
 ## Persistence
 
 Every executable facet declares both a persistence policy and a replacement
@@ -1805,7 +1816,13 @@ name must not reject a complete compound shape that the registered reader suppor
 
 Operator binding does not depend on a raw relation count. Every complete
 operator-variable-domain facet earns one scope hull and one binding path. The
-renderer ranks the distinct operator-domain facets that are visible together.
+renderer counts each scope domain node once. Domains that share the screen at
+any Replay step are ranked together by size for hull padding and binding lane,
+the larger outside, and each keeps that rank throughout, so a step never moves
+another domain's hull or lane. Colour follows played appearance: a domain alone
+takes the base colour, a domain appearing beside others takes the first colour
+none of them holds, and a domain keeps its colour while it stays on screen
+(`replay/relations/scopeDomainPaint.ts`).
 
 An asserted relative interpretation, abstraction or restriction can recover that
 same binding path from an explicit operator and a qualified variable role. Both

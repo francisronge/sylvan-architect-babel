@@ -43,7 +43,9 @@ export function panelText({ buildReplayPanelContent, buildReplayDisplayDetailBlo
 export function canonicalFrame(frame, panel = null) {
   const plaques = frame.plaques.map(({ key: _key, pocket: _pocket, content: _content, realization: _realization, ...plaque }) => plaque);
   const marks = (frame.marks ?? []).map(({ painted: _painted, ...mark }) => mark);
-  return JSON.stringify({ zoom: frame.zoom, chrome: frame.chrome, texts: byId(frame.texts), plaques: byId(plaques),
+  // Badge texts restate anchor-set badges, which `marks` already holds.
+  const texts = frame.texts.filter(text => text.kind !== 'badge');
+  return JSON.stringify({ zoom: frame.zoom, chrome: frame.chrome, texts: byId(texts), plaques: byId(plaques),
     lines: byId(frame.lines), marks: byId(marks), panel }, round);
 }
 

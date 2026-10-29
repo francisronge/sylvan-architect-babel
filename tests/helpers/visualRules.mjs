@@ -14,6 +14,9 @@ import { blocksCarriedPocket } from '../../replay/relations/plaquePlacement.ts';
  *   carry between two frames { dx, dy } when the adapter measures it.
  *   texts   [{ id, kind, text, boxes, halo, nodes, claims, lines?, plaque?, reach?, distance? }]
  *     kind 'category' or 'word' is tree text; any other kind is a mark's own text.
+ *     An anchor-set badge is kind 'badge', its one box the painted circle; it
+ *     labels no node, so like other marks it may not cover any label, its
+ *     anchor's included.
  *     boxes are glyph boxes, one per painted line or index run; halo is the width
  *     of the dark outline painted under them; nodes are the tree nodes it labels;
  *     claims are the relation keys ('stage:relation') whose mark it belongs to;
@@ -146,7 +149,8 @@ const near = (outline, box, pad) => outline.x - pad <= box.x + box.width && outl
 /** glyph-overlap: two glyph or plaque boxes overlap by more than the tolerance
  * in both directions, one grown by the larger outline (a text's dark outline
  * over another's glyphs counts). Exempt: boxes of one tree node, text held by a
- * plaque, two mark texts of one claim (laid out together), and nested shells. */
+ * plaque, two mark texts of one claim (laid out together) other than two
+ * anchor-set badges, which are placed one by one, and nested shells. */
 export function checkGlyphOverlap(frame, thresholds = THRESHOLDS) {
   const boxes = [
     ...frame.texts.flatMap(text => text.boxes.map(rect => ({ item: text, rect, pad: text.halo ?? 0, tree: TREE_TEXT.has(text.kind) }))),
@@ -157,7 +161,8 @@ export function checkGlyphOverlap(frame, thresholds = THRESHOLDS) {
     const a = boxes[i], b = boxes[j];
     if (b.rect.x - widest > a.rect.x + a.rect.width) break;
     if (a.item === b.item || shares(a.item.nodes, b.item.nodes)) continue;
-    if (!a.tree && !b.tree && !a.plaque && !b.plaque && shares(a.item.claims, b.item.claims)) continue;
+    if (!a.tree && !b.tree && !a.plaque && !b.plaque && shares(a.item.claims, b.item.claims)
+      && !(a.item.kind === 'badge' && b.item.kind === 'badge')) continue;
     if (a.item.plaque === b.item.id || b.item.plaque === a.item.id) continue;
     if (a.plaque && b.plaque && (contains(a.rect, b.rect) || contains(b.rect, a.rect))) continue;
     const pad = Math.max(a.pad, b.pad);

@@ -955,6 +955,43 @@
         "4:0 T3 fallback"
       ]
     },
+    "replay-regressions/anchor-set-badge-label-clearance.json#": {
+      "frames": "2pVyDX0r D7_XmxpO rnd2Ght9 8V-hEkY9 5NxNRu_G z-z4KzDo uPp2hHtl ryAORoci 43vCXlkl L_-bfpDW c9aqG_KV bHRITjr_ gB7cZ0vU 9AdWjJjh rt1FBF-X TPdHrFyG SGrUnt4v RURT5Ylv xOc4_sGp Bd_Kgks_ Z0HigkxU Noiiw89V JVUz8-NG 3T0YPpg5 kyjXoarW pqXUJvsM eNnw69X6 ZXwHN4Qv qnj5potZ U1Z_seua WL3UcPKK jqNafsRB _BlBAbxS Pm7hDRDN EHHjG7YQ 5P-rG7TB 98-qNG-C 6M8Mg1oY hbulGPEh jdgU0f4o iIP9UeF9 A8EurvQF x2I4ujwo oD42Dlrb ruMWYe8g CNBwyOD_ tQ1t1-Z7 rIwN6hIw RM94Z1uV 0C7Yaxf9 7efsU5Po 9oRRULdP siiKKzqF YG8qZNoF m9_j6-9a 7bCT0ebE f1VNTe0T s7mMjbk- 56kUmd9F PuKjj2VF Wyr1h04r UM2ZpfoG tVw-Pb_e HMvSXbQm Da1uLPX8 cyQSlr0d z5DhxAyd p17bOra- W7l_dFuI i_PjKGWp PEzMeizB LVhsDelt sq3xim0R u8WlkyvK pA_hLfMu er2A0WlB 1F6JnjfL Wqi--1_0 ylevARHh uqyrYAUW J7-Jg30G vPEvoGc4 AzzYkD_G V_IubWJt 02tg308r C7wNUXBU uNH6Oq1J vIdBpI09 vgZlkuZN R85i1oh8 jaqYwQ_l",
+      "canopy": "rYwANb1a",
+      "tiers": [
+        "0:0 T3 fallback",
+        "0:1 T3 fallback",
+        "0:2 T3 fallback",
+        "0:3 T3 fallback",
+        "0:4 T2 anchor-set",
+        "0:4 T2 directed-path tier2.feature-dependency feature.dependency",
+        "0:5 T3 fallback",
+        "0:6 T2 undirected-link pair-merge.fork pair-merge",
+        "0:6 T3 fallback",
+        "1:0 T2 trajectory tier2.movement-path movement.path",
+        "1:0 T3 fallback",
+        "1:1 T2 node-badges tier2.gap-notation gap.notation",
+        "1:1 T3 fallback",
+        "1:2 T3 fallback",
+        "1:3 T2 trajectory tier2.movement-path movement.path",
+        "1:3 T3 fallback",
+        "1:4 T2 node-badges tier2.gap-notation gap.notation",
+        "1:4 T3 fallback",
+        "1:5 T3 fallback",
+        "2:0 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "2:0 T2 trajectory tier2.movement-path movement.path",
+        "2:0 T3 fallback",
+        "2:1 T2 directed-path tier2.feature-dependency feature.dependency",
+        "3:0 T2 trajectory tier2.movement-path movement.path",
+        "3:0 T3 fallback",
+        "4:0 T2 trajectory tier2.movement-path movement.path",
+        "4:0 T3 fallback",
+        "4:1 T2 node-badges tier2.gap-notation gap.notation",
+        "4:1 T3 fallback",
+        "4:2 T3 fallback",
+        "4:3 T3 fallback"
+      ]
+    },
     "replay-regressions/astra-spanish-qr.json#/analyses/0": {
       "frames": "nZ3MVCap sstzloTO heBTQlth dKBOfZvv ot9X_jDy l1PBABdv UinCpxmM Xr08ZuH2 XsXrkX8C 68c8LDXZ vHp1-4Rz x6GNPzsF HL6Fau3Z 3s3BvlPQ nzTpA4GN BggGw35f hIjcB3D9 Xo_nEkF1 JRhE-KrW RYRjYDja -jVQgeBP _0tawK_2 BiSuAqa- eD4_mBOx 01wcWUKR QsM44BrQ mgk-p9D1 xlv9v4RW VkVBjUJw tj85TX3t HCxaz9Tc MYytHfqF 4ip7yCJf",
       "canopy": "sjeEaB1s",
