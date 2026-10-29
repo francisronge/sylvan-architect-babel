@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { buildResolvedLinkTraceIndexMap, buildMovementChainIndexCatalogue } from '../replay/movementIndices.ts';
+import { buildResolvedLinkChainIndices, buildMovementChainIndexCatalogue } from '../replay/movementIndices.ts';
 import { formatIndexedSurfaceForDisplayValue, formatTraceSurfaceForDisplayValue } from '../replay/replaySurfaceNotation.ts';
 
 const occurrence = (id, word = 'word') => ({ id, label: 'DP', word });
+// Each occurrence is a DP over its word, so a phrasal chain's index stands on
+// the DP label; the numbering below is the same wherever it is shown.
+const buildResolvedLinkTraceIndexMap = (...args) => {
+  const { terminals, phrases } = buildResolvedLinkChainIndices(...args);
+  return new Map([...terminals, ...phrases]);
+};
 const movement = (sourceNodeId, targetNodeId, stepIndex = 0, extra = {}) => ({
   relation: 'Internal Merge', sourceNodeId, targetNodeId,
   witnessNodeId: sourceNodeId, renderFamily: 'trajectory',
@@ -22,6 +28,7 @@ test('separate movement chains have distinct indices at both ends, regardless of
   const original = structuredClone({ forest, links });
   const map = buildResolvedLinkTraceIndexMap(forest, links, 2);
   assert.deepEqual([...map], [['john-low', '1'], ['john-high', '1'], ['wh-low', '2'], ['wh-high', '2']]);
+  assert.equal(buildResolvedLinkChainIndices(forest, links, 2).terminals.size, 0, 'the words carry no phrasal index');
   const renumbered = links.map(link => ({ ...link, relationIndex: '99' }));
   assert.deepEqual(buildResolvedLinkTraceIndexMap(forest, renumbered, 2), map);
   assert.deepEqual({ forest, links }, original);

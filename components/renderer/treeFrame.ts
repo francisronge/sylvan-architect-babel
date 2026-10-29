@@ -56,6 +56,7 @@ interface FrameReplay extends Pick<SyntaxDrawingContext,
   | 'replayVisibleNodeIdSet'
   | 'playbackSteps'
   | 'traceDisplayIndexByNodeId'
+  | 'phraseChainIndexByNodeId'
   | 'traceDisplayFrame'
   | 'traceDisplayRelationLinks'
   | 'traceDisplayFrameIndex'
@@ -125,6 +126,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     currentReplayUsesFutureLayoutScaffold,
     playbackSteps,
     traceDisplayIndexByNodeId,
+    phraseChainIndexByNodeId,
     traceDisplayFrame,
     traceDisplayRelationLinks,
     traceDisplayFrameIndex,
@@ -239,6 +241,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     getRevealStepForNodeId,
     effectiveRevealThreshold,
     getReplayRenderedTerminalText,
+    getReplayRenderedCategoryLines,
     measureGraphicsElementsInTreeSpace,
     TARGET_EMERALD
   } = paintSyntaxTree({
@@ -248,6 +251,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     animated,
     activeStepIndex,
     traceDisplayIndexByNodeId,
+    phraseChainIndexByNodeId,
     traceDisplayFrame,
     traceDisplayRelationLinks,
     traceDisplayFrameIndex,
@@ -292,6 +296,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     g,
     measureGraphicsElementsInTreeSpace,
     getReplayRenderedTerminalText,
+    getReplayRenderedCategoryLines,
     measureCategoryText,
     replayPlaqueLayout,
     replayVisibleNodeIdSet,

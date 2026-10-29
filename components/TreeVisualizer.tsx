@@ -3,7 +3,7 @@ import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } f
 import { useReplayStepDevBridge } from '../hooks/useDevPreview.ts';
 import { CAMERA_ZOOM, CATEGORY_FALLBACK_GLYPH_WIDTH, CATEGORY_FONT } from '../replay/rendererMetrics.ts';
 import { initialReplayStepIndex, replayStartState } from '../replay/initialReplayStep.ts';
-import { buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
+import { buildResolvedLinkChainIndices } from '../replay/movementIndices.ts';
 import { isPhrasalReplayMovement } from '../replay/movementLinks.ts';
 import { STEP_DELAY_MS } from '../replay/playbackFormatting.ts';
 import { prepareReplay, type PreparedReplay } from '../replay/prepareReplay.ts';
@@ -327,16 +327,18 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const traceDisplayRelationLinks = usesDerivationFrames
     ? activeDerivationRelationLinks
     : committedDerivationVisualLinks;
-  const traceDisplayIndexByNodeId = useMemo(() => (
+  const traceDisplayChainIndices = useMemo(() => (
     traceDisplayFrame
-      ? buildResolvedLinkTraceIndexMap(
+      ? buildResolvedLinkChainIndices(
         traceDisplayFrame.workspaceForest || [],
         traceDisplayRelationLinks,
         traceDisplayFrameIndex,
         movementChainIndexCatalogue
       )
-      : new Map<string, string>()
+      : { terminals: new Map<string, string>(), phrases: new Map<string, string>() }
   ), [traceDisplayFrame, traceDisplayFrameIndex, traceDisplayRelationLinks, movementChainIndexCatalogue]);
+  const traceDisplayIndexByNodeId = traceDisplayChainIndices.terminals;
+  const phraseChainIndexByNodeId = traceDisplayChainIndices.phrases;
   useReplayStepDevBridge(playbackSteps, setActiveStepIndex, setIsAutoPlaying);
 
   const canvasData = useMemo(() => selectReplayCanvas({
@@ -627,6 +629,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         currentReplayUsesFutureLayoutScaffold,
         playbackSteps,
         traceDisplayIndexByNodeId,
+        phraseChainIndexByNodeId,
         traceDisplayFrame,
         traceDisplayRelationLinks,
         traceDisplayFrameIndex,

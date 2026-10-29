@@ -2,7 +2,7 @@
 import { type ResolvedRelationLink } from '../relationLinks.ts';
 import { type SyntaxNode } from '../types.ts';
 import { getNodeId } from './displayIdentity.ts';
-import { isResolvedMovementLink } from './movementLinks.ts';
+import { isHeadLikeResolvedRelation, isResolvedMovementLink } from './movementLinks.ts';
 import { authoredRoleMatcher } from './relationAnchors.ts';
 import { TRAJECTORY_SOURCE_ROLES, TRAJECTORY_WITNESS_ROLES } from './relations/renderFamilies.ts';
 import {
@@ -10,7 +10,9 @@ import {
   isNullLike,
   isStructuralCategorySurface,
   isTraceLike,
-  normalizeTraceIndexForDisplay
+  isWordlessCategoryLeaf,
+  normalizeTraceIndexForDisplay,
+  shouldExpandPreterminalLeaf
 } from './replaySurfaceNotation.ts';
 import { collectLeafSyntaxNodes, collectSubtreeNodeIds, findNodeByIdInForest } from './syntaxForest.ts';
 import { type HierNode, type ReplayAuthoredRelationLink } from './types.ts';
@@ -78,13 +80,43 @@ export const buildMovementChainIndexCatalogue = (forests: SyntaxNode[][], links:
   return { forest, links, authoredIndicesByNodeId };
 };
 
+/**
+ * Where each established chain index is shown. `terminals` holds the index a
+ * terminal's text carries, read through `resolveTraceIndexFromNodeContext`;
+ * `phrases` holds the index a category label carries, read for that node only.
+ */
+export interface MovementChainIndices {
+  terminals: Map<string, string>;
+  phrases: Map<string, string>;
+}
+
+/** The index a category label shows: a moved phrase and each of its copies. */
+export const phraseChainLabelIndex = (node: HierNode, phrases?: Map<string, string>): string =>
+  normalizeTraceIndexForDisplay(phrases?.get(getNodeId(node)));
+
 export const buildResolvedLinkTraceIndexMap = (
   currentForest: SyntaxNode[],
   resolvedRelationLinks: ResolvedRelationLink[] | undefined,
   activeStepIndex: number,
   catalogue?: MovementChainIndexCatalogue
-): Map<string, string> => {
+): Map<string, string> => buildResolvedLinkChainIndices(currentForest, resolvedRelationLinks, activeStepIndex, catalogue).terminals;
+
+/**
+ * The textbook placement of chain indices. A moved phrase carries its index
+ * once, on the category label of each occurrence ([DP which book]₁ … DP₁), so
+ * the words inside it carry none; a word inside it with its own chain keeps
+ * that chain's index. A moved head carries its index on its words (V₁ … t₁).
+ * An occurrence without a category label of its own, a bare word or trace,
+ * carries it on its text, where authored trace notation stays as written.
+ */
+export const buildResolvedLinkChainIndices = (
+  currentForest: SyntaxNode[],
+  resolvedRelationLinks: ResolvedRelationLink[] | undefined,
+  activeStepIndex: number,
+  catalogue?: MovementChainIndexCatalogue
+): MovementChainIndices => {
   const traceIndexByNodeId = new Map<string, string>();
+  const phraseIndexByNodeId = new Map<string, string>();
   const links = Array.isArray(resolvedRelationLinks) ? resolvedRelationLinks : [];
   const catalogueForest = catalogue?.forest ?? currentForest;
   const movementLinks = (catalogue?.links ?? links).filter(isResolvedMovementLink)
@@ -113,13 +145,26 @@ export const buildResolvedLinkTraceIndexMap = (
    * fronts). Without this guard the later, larger constituent repaints the
    * inner gap with its own index — the accidental all-t₂ remnant display.
    */
-  const assignIndexIfUnclaimed = (rawId: string, index: string) => {
+  const assignIndexIfUnclaimed = (rawId: string, index: string, target = traceIndexByNodeId) => {
     const id = String(rawId || '');
-    if (!id || traceIndexByNodeId.has(id))
+    if (!id || traceIndexByNodeId.has(id) || phraseIndexByNodeId.has(id))
       return;
-    traceIndexByNodeId.set(id, index);
+    target.set(id, index);
   };
-  const assignIndexToNodeAndLeaves = (nodeId: string, index: string) => {
+  /*
+   * A phrasal occurrence that has a category label (a parent, a category over
+   * its own word, or a wordless category) carries the index on that label.
+   * One without, a bare word or trace, carries it on its text.
+   */
+  const phrasalTextIds = new Set<string>();
+  const assignIndexToPhraseOccurrence = (nodeId: string, index: string): boolean => {
+    const node = findNodeByIdInForest(currentForest, nodeId);
+    if (!node || !(node.children?.length || shouldExpandPreterminalLeaf(node) || isWordlessCategoryLeaf(node)))
+      return false;
+    assignIndexIfUnclaimed(nodeId, index, phraseIndexByNodeId);
+    return true;
+  };
+  const assignIndexToHeadAndLeaves = (nodeId: string, index: string) => {
     const normalizedNodeId = String(nodeId || '');
     const normalizedIndex = String(index || '').trim();
     if (!normalizedNodeId || !normalizedIndex)
@@ -133,7 +178,7 @@ export const buildResolvedLinkTraceIndexMap = (
       .filter(Boolean)
       .forEach((leafId) => assignIndexIfUnclaimed(leafId, normalizedIndex));
   };
-  const assignIndexToMovementSource = (nodeId: string, index: string) => {
+  const assignIndexToHeadSource = (nodeId: string, index: string) => {
     const normalizedNodeId = String(nodeId || '');
     const normalizedIndex = String(index || '').trim();
     if (!normalizedNodeId || !normalizedIndex)
@@ -144,7 +189,7 @@ export const buildResolvedLinkTraceIndexMap = (
     const sourceContainsPartialDeletion = collectSubtreeNodeIds(node)
       .some((sourceNodeId) => partialDeletionNodeIds.has(sourceNodeId));
     if (!sourceContainsPartialDeletion) {
-      assignIndexToNodeAndLeaves(normalizedNodeId, normalizedIndex);
+      assignIndexToHeadAndLeaves(normalizedNodeId, normalizedIndex);
       return;
     }
     collectLeafSyntaxNodes(node)
@@ -264,6 +309,21 @@ export const buildResolvedLinkTraceIndexMap = (
     /* A resolved relation is not automatically a movement chain. */
     if (!isResolvedMovementLink(link))
       return;
+    const phrasal = !isHeadLikeResolvedRelation(link);
+    const assignIndexToNodeAndLeaves = (nodeId: string, index: string) => {
+      if (phrasal && assignIndexToPhraseOccurrence(String(nodeId || ''), String(index || '').trim()))
+        return;
+      if (phrasal)
+        phrasalTextIds.add(String(nodeId || ''));
+      assignIndexToHeadAndLeaves(nodeId, index);
+    };
+    const assignIndexToMovementSource = (nodeId: string, index: string) => {
+      if (phrasal && assignIndexToPhraseOccurrence(String(nodeId || ''), String(index || '').trim()))
+        return;
+      if (phrasal)
+        phrasalTextIds.add(String(nodeId || ''));
+      assignIndexToHeadSource(nodeId, index);
+    };
     const traceId = String(link?.witnessNodeId || '');
     const sourceId = String(link?.sourceNodeId || '');
     const movedId = String(link?.targetNodeId || '');
@@ -290,7 +350,26 @@ export const buildResolvedLinkTraceIndexMap = (
     if (movedId)
       assignIndexToNodeAndLeaves(movedId, index);
   });
-  return traceIndexByNodeId;
+  /*
+   * An anchor inside an occurrence whose label already shows the same index,
+   * such as a trace witness authored inside its lower copy, is part of that
+   * occurrence and repeats nothing.
+   */
+  if (phraseIndexByNodeId.size) {
+    const insideIndexedOccurrence = (index: string, ancestors: SyntaxNode[]) =>
+      ancestors.some(ancestor => phraseIndexByNodeId.get(ancestor.id) === index);
+    const visit = (node: SyntaxNode, ancestors: SyntaxNode[]) => {
+      const phraseIndex = phraseIndexByNodeId.get(node.id);
+      if (phraseIndex && insideIndexedOccurrence(phraseIndex, ancestors))
+        phraseIndexByNodeId.delete(node.id);
+      const textIndex = phrasalTextIds.has(node.id) ? traceIndexByNodeId.get(node.id) : undefined;
+      if (textIndex && insideIndexedOccurrence(textIndex, ancestors))
+        traceIndexByNodeId.delete(node.id);
+      (node.children || []).forEach(child => visit(child, [...ancestors, node]));
+    };
+    currentForest.forEach(tree => visit(tree, []));
+  }
+  return { terminals: traceIndexByNodeId, phrases: phraseIndexByNodeId };
 };
 
 export const buildResolvedLinkOperatorVariableIndexMap = (

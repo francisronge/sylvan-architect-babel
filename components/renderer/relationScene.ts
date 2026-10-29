@@ -60,6 +60,7 @@ interface RelationSceneContext {
   g: DrawingLayer;
   measureGraphicsElementsInTreeSpace: (elements: SVGGraphicsElement[]) => { x: number; y: number; width: number; height: number; } | null;
   getReplayRenderedTerminalText: (d: HierNode) => string;
+  getReplayRenderedCategoryLines: (d: HierNode) => string[];
   measureCategoryText: (text: string) => number;
   replayPlaqueLayout: ReturnType<typeof projectPlaqueLayout>;
   replayVisibleNodeIdSet: Set<string> | null;
@@ -95,6 +96,7 @@ export function paintRelationScene({
   g,
   measureGraphicsElementsInTreeSpace,
   getReplayRenderedTerminalText,
+  getReplayRenderedCategoryLines,
   measureCategoryText,
   replayPlaqueLayout,
   replayVisibleNodeIdSet,
@@ -204,7 +206,7 @@ export function paintRelationScene({
       g,
       frameLayoutById,
       getReplayRenderedTerminalText,
-      measureCategoryText,
+      getReplayRenderedCategoryLines,
       replayPlaqueLayout,
       replayVisibleNodeIdSet,
       playedRelationIndices,

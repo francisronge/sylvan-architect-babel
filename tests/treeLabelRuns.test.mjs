@@ -57,13 +57,23 @@ test('theta reuses a staged subscript equal to its index instead of repeating it
  assert.deepEqual(thetaLabelState(staged,'1'),{...staged,lines:undefined,indices:[]});
  assert.deepEqual(thetaLabelState(staged,'2').indices,[{text:'2',mode:'theta'}]);
 });
-test('a theta grid on a moved occurrence keeps its chain index beside the theta letter',()=>{
- // french-relative: Jean is a chain occurrence (Jean₂) that a theta grid also indexes.
+test('a theta grid on a moved head keeps its chain index beside the theta letter',()=>{
+ // workspace-source-continuity: the moved head wird is a chain occurrence (wird₁) that a theta grid also indexes.
+ const {cases}=JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/workspace-source-continuity.json',import.meta.url),'utf8'));
+ const replay=prepareReplay({...cases[0],includePlayback:true});
+ const runs=replay.playbackSteps.flatMap((_step,index)=>treeLabelRunsForStep(replay,index).get('wirdV::__leaf')??[])
+   .filter(run=>run.indices.some(index=>index.mode==='theta'));
+ assert(runs.some(run=>run.text==='wird₁'),'a theta letter follows wird₁ once wird is a chain occurrence');
+});
+test('a theta grid on a moved one-word phrase keeps the chain index on its label and the letter on its word',()=>{
+ // french-relative: the DP Jean is a chain occurrence (D₂) that a theta grid also indexes.
  const {derivationStages,sentence,inputTokens}=JSON.parse(readFileSync(new URL('../fixtures/performance/french-relative.json',import.meta.url),'utf8'));
  const replay=prepareReplay({derivationStages,sentence,inputTokens,includePlayback:true});
- const runs=replay.playbackSteps.flatMap((_step,index)=>treeLabelRunsForStep(replay,index).get('jean::__leaf')??[])
-   .filter(run=>run.indices.some(index=>index.mode==='theta'));
- assert(runs.some(run=>run.text==='Jean₂'),'a theta letter follows Jean₂ once Jean is a chain occurrence');
+ const steps=replay.playbackSteps.map((_step,index)=>treeLabelRunsForStep(replay,index))
+   .filter(runs=>runs.get('jean::__leaf')?.some(run=>run.indices.some(index=>index.mode==='theta')));
+ assert(steps.some(runs=>runs.get('jean').some(run=>run.kind==='category'&&run.text==='D₂')
+   && runs.get('jean::__leaf').some(run=>run.text==='Jean'&&run.indices.some(index=>index.mode==='theta'))),
+   'D₂ stands over Jean once Jean is a chain occurrence, and its theta letter stays on the word');
 });
 test('theta category reset preserves current text content and loses wrapping exactly once',()=>{
  const base={kind:'category',text:'DP [silent]',lines:['DP ','[silent]'],indices:[]};
