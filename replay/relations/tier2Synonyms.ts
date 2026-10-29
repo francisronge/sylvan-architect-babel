@@ -643,7 +643,9 @@ export const relationRoleConcepts = (
           .some(field => normalizeTier2Synonym(field) === normalizeTier2Synonym(role)));
   // A values entry with an argument field's own name and length lists that
   // field's role labels: the recipe pairs it as role.label (sameNameEntryServes).
-  const sameNameArgumentLabels = currentEntries.some(([role, ids]) => {
+  // It lets a directional assigner act as the predicate only when no explicit
+  // predicate is named; it does not reassign a claim that names one.
+  const sameNameArgumentLabels = !explicitThematicPredicate && currentEntries.some(([role, ids]) => {
     const count = Array.isArray(ids) ? ids.length : typeof ids === 'string' ? 1 : 0;
     const literal = context.values?.[role];
     return count > 0 && lookupTier2SynonymCandidates(index, 'role', role).includes('theta.arguments')

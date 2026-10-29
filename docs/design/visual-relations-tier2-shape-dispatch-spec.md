@@ -625,7 +625,9 @@ role literals take precedence. The exact key-to-node associations participate in
 drawing identity, so swapping two roles cannot reuse the earlier grid.
 An argument field's same-name, same-length values list supplies its role labels,
 so it also establishes the thematic domain beside a directional assigner:
-`{assigner, argument: [a, b]}` with `argument: [Theme, Source]` is one grid.
+`{assigner, argument: [a, b]}` with `argument: [Theme, Source]` is one grid. A
+claim that names its predicate keeps its existing reading; the list does not
+move the grid onto an introducer or assigner.
 A role-label list beside an explicit predicate pairs by name, never by position,
 when each literal names a different participant field of the claim:
 `{predicate, speaker, content}` with `roles: [Speaker, Content]` labels both

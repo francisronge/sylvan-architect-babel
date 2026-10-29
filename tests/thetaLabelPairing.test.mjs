@@ -45,3 +45,13 @@ test('a role-label list that names each argument field pairs each label with its
   assert.equal(grid({ relation: 'UnregisteredAnalysis', anchors: { head: 'v', speaker: 'subject', content: 'object' },
     values: { roles: ['Speaker', 'Content'] } }), undefined);
 });
+
+test('same-name labels do not move a grid off an explicitly named predicate', () => {
+  // With an explicit predicate the assigner keeps its earlier reading; the labels change nothing.
+  const relation = { relation: 'UnregisteredAnalysis', anchors: { argument: ['subject'], introducer: ['v'], predicate: ['pp'] },
+    values: { argument: ['Agent'] } };
+  const predicates = plan(relation).filter(item => item.familyId === 'theta.grid')
+    .map(item => JSON.parse(item.replacementGroup).anchors.predicate);
+  assert(predicates.length > 0);
+  assert(predicates.every(ids => JSON.stringify(ids) === JSON.stringify(['pp'])), JSON.stringify(predicates));
+});
