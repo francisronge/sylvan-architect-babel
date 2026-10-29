@@ -423,7 +423,8 @@ export const clearAnchorBadgeY = (
  * `obstacles` (labels, plaques) moves along its own column to the nearest
  * height (`clearAnchorBadgeY`) where it keeps `gap` from them and from the
  * badges placed before it. `radiusFor` gives each badge's painted half-size, in
- * the units of the rectangles; a badge that already clears keeps its height.
+ * the units of the rectangles; a badge that already clears the obstacles and
+ * those badges keeps its height, so a badge never covers an earlier one that moved.
  */
 export const planAnchorSetLayout = (
   sets: AnchorSetLayoutInput,
@@ -439,8 +440,9 @@ export const planAnchorSetLayout = (
   const placedBoxes: Rect[] = [];
   const badgeY = (x: number, preferredY: number, minY: number, radius: number): number => {
     const { obstacles, gap } = config.clearance!;
-    if (clearAnchorBadgeY(x, preferredY, minY, radius, obstacles) === preferredY) return preferredY;
-    return clearAnchorBadgeY(x, preferredY, minY + gap, radius + gap, [...obstacles, ...placedBoxes]);
+    const occupied = [...obstacles, ...placedBoxes];
+    if (clearAnchorBadgeY(x, preferredY, minY, radius, occupied) === preferredY) return preferredY;
+    return clearAnchorBadgeY(x, preferredY, minY + gap, radius + gap, occupied);
   };
   const badges: AnchorSetBadge[] = [];
   const failed: AnchorSetLayout['failed'] = [];

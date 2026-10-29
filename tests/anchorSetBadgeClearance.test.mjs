@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { anchorSetBadgeOuterRadius, RELATION_BINDING_METRICS } from '../replay/rendererMetrics.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
-import { clearAnchorBadgeY } from '../replay/relations/overlayGeometry.ts';
+import { clearAnchorBadgeY, planAnchorSetLayout } from '../replay/relations/overlayGeometry.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { classifyText } from '../scripts/visualAudit/pageProbe.mjs';
@@ -50,6 +50,29 @@ test('the clear height prefers the side of the badge\'s own node and falls back 
   assert.equal(clearAnchorBadgeY(0, 135, 20, 10, [box]), 90, 'nearer below, but the clear height above wins');
   assert.equal(clearAnchorBadgeY(0, 105, 100, 10, [box]), 150, 'nothing clear above: the nearest height below');
   assert.equal(clearAnchorBadgeY(30, 120, 20, 10, [box]), 120, 'an obstacle beside the column does not move it');
+});
+
+test('a badge that clears its obstacles still clears the badge before it on the same node', () => {
+  const sets = [{ relation: 'Forms', instanceIndex: 0, roles: [{ role: 'verb', large: true,
+    anchors: [0, 1].map(arrayIndex => ({ nodeId: 'a', arrayIndex, resolved: true })) }] }];
+  // A label under the first badge's nominal height (34) pushes it down toward the second's (48).
+  const label = { x: -10, y: 23, width: 20, height: 12 }, radius = 7;
+  const { badges } = planAnchorSetLayout(sets, () => ({ x: -10, y: 0, width: 20, height: 20 }),
+    { clearance: { obstacles: [label], radiusFor: () => radius, gap: 1 } });
+  assert.equal(badges.length, 2);
+  for (const badge of badges) assert(badge.y - radius >= label.y + label.height || badge.y + radius <= label.y, `badge ${badge.arrayIndex} clears the label`);
+  assert(Math.abs(badges[1].y - badges[0].y) >= 2 * radius, `badges at ${badges.map(badge => badge.y)} must not overlap`);
+});
+
+test('the audit judges two anchor-set badges of one claim against each other', () => {
+  const badge = (numeral, y) => ({ id: `badge(0:4 ${numeral})@a#${numeral - 1}`, kind: 'badge', text: String(numeral),
+    boxes: [{ x: 0, y, width: 20, height: 20 }], halo: 0, nodes: [], claims: ['0:4'] });
+  const frame = texts => ({ frame: 1, viewport: 'desktop', zoom: 1, texts, plaques: [] });
+  assert.deepEqual(checkGlyphOverlap(frame([badge(1, 0), badge(2, 5)])).map(finding => finding.subject),
+    ['badge(0:4 1)@a#0 badge(0:4 2)@a#1']);
+  assert.deepEqual(checkGlyphOverlap(frame([badge(1, 0), badge(2, 21)])), [], 'separate badges of one claim pass');
+  const role = { id: 'role(0:4 verb)@a', kind: 'role', text: 'verb', boxes: [{ x: 0, y: 5, width: 20, height: 20 }], halo: 0, nodes: [], claims: ['0:4'] };
+  assert.deepEqual(checkGlyphOverlap(frame([badge(1, 0), role])), [], 'other mark text of one claim is still laid out with it');
 });
 
 test('a badge is mark text: it may not cover a label, even its own anchor\'s, in either audit adapter', () => {
