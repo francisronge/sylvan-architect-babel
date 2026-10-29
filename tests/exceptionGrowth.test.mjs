@@ -99,3 +99,24 @@ test('a motion exception needs the owner\'s approval, and the committed list has
     assert.equal(approvalProblem(entry), null, `${entry.record} ${entry.subject}`);
   }
 });
+
+test('an existing approval is a record of the owner\'s words: #285 rewrote one\'s date and note while narrowing its entry', () => {
+  const plaque = at => ({ reason: 'Open: the plaque leaves its pocket when new syntax arrives.', record: CATALOG_6,
+    rule: 'plaque-teleport', subtype: 'jump', subject: 'theta 2:1', at });
+  const given = { by: 'Francis Ronge', on: '2026-10-23', note: 'Review page: "Plaques: Ok."', accepts: { desktop: { '33-38': 410 } } };
+  const base = { ...plaque({ desktop: { '33-38': 410 } }), approval: given };
+  const narrowed = plaque({ desktop: { '36-38': 410 } });
+  assert.deepEqual(growth([base], [{ ...narrowed, approval: given }]), [], 'narrowing under the same approval needs nothing');
+  assert.deepEqual(growth([base], [{ ...narrowed, approval: { note: given.note, accepts: narrowed.at, on: given.on, by: given.by } }]), [],
+    'its accepted value may narrow with the entry, in any key order');
+  const edited = growth([base], [{ ...narrowed, approval: { ...given, on: '2026-10-27', note: 'takes this pocket a step early' } }]);
+  assert.match(edited[0]?.problem ?? '', /existing approval was edited \(on, note\)/);
+  assert.match(growth([base], [narrowed])[0]?.problem ?? '', /edited \(removed\)/, 'an approval is never removed');
+  assert.match(growth([base], [{ ...base, approval: { ...given, accepts: { desktop: { '33-38': 999 } } } }])[0]?.problem ?? '',
+    /edited \(accepts widened\)/, 'an approval never accepts more than the owner did');
+  const grown = plaque({ desktop: { '33-39': 410 } });
+  assert.deepEqual(growth([base], [{ ...grown, approval: { by: 'Francis Ronge', on: '2026-10-29', note: 'Chat: frame 39 too',
+    accepts: grown.at } }]), [], 'a new approval for a value the old one does not accept may replace it');
+  assert.match(growth([base], [{ ...grown, approval: { by: 'Francis Ronge', on: '2026-10-20', note: 'Chat: frame 39 too',
+    accepts: grown.at } }])[0]?.problem ?? '', /dated earlier/);
+});

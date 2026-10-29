@@ -7,6 +7,7 @@ import {
 } from '../../replay/relations/bindingDomainGeometry.ts';
 import { type BoundPrimitive } from '../../replay/relations/boundGeometry.ts';
 import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
+import type { ScopeDomainPaint } from '../../replay/relations/scopeDomainPaint.ts';
 import {
   planItemRelationRefs,
   type RelationPlanItem
@@ -36,8 +37,7 @@ interface BindingDrawingContext extends Pick<RelationLayers,
 >, Pick<ClaimDrawing, 'decorateRelationElement' | 'relationLayerKey'>, Pick<TreeMeasurements, 'measuredTreeLabelRectNow' | 'measuredTerminalSubtreeRectNow'> {
   activeDerivationFrameIndex: number;
   overlay: DrawingLayer;
-  operatorVariableScopeRankByItem: Map<number, number>;
-  operatorVariableScopeItems: { item: Extract<RelationPlanItem, { kind: "operator-variable-binding"; }>; itemIndex: number; }[];
+  operatorVariableScopes: Map<number, ScopeDomainPaint>;
   activeRelationMoment: { stageIndex: number; relationIndex: number; } | null;
   relationEmphasisForItem: (item: RelationPlanItem) => RelationEmphasis;
   overlayNodeById: Map<string, d3.HierarchyPointNode<SyntaxNode>>;
@@ -102,10 +102,9 @@ const letterOwner = (host: RelationPlanItem, others: readonly RelationPlanItem[]
 };
 
 export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
-  operatorVariableScopeRankByItem,
+  operatorVariableScopes,
   acceptedRootLayerBeforeNodes,
   operatorVariableBindingLayers,
-  operatorVariableScopeItems,
   activeRelationMoment,
   operatorVariableSharedPathLayers,
   relationEmphasisForItem,
@@ -159,9 +158,9 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
   };
 
   const drawOperatorVariableBinding = (primitive: Extract<BoundPrimitive, { type: 'operator-variable-binding' }>, planItem: RelationPlanItem, host: DrawingLayer, _emphasis: RelationEmphasis) => {
-    const rank = operatorVariableScopeRankByItem.get(primitive.itemIndex) || 0;
+    const { rank, count, colourSlot } = operatorVariableScopes.get(primitive.itemIndex) ?? { rank: 0, count: 1, colourSlot: 0 };
     const palette = ['#10b981', '#c98a3d', '#e6efeb'];
-    const color = palette[rank % palette.length];
+    const color = palette[colourSlot % palette.length];
     // The layer only places hosts beneath the tree; each host keeps its claim's emphasis.
     const relationLayer = acceptedRootLayerBeforeNodes(
       operatorVariableBindingLayers,
@@ -180,7 +179,7 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
       .attr('data-operator-variable-witness', primitive.traceWitnessNodeId || '')
       .attr('data-operator-variable-domain', primitive.scopeDomainNodeId || '')
       .attr('data-operator-variable-rank', String(rank))
-      .attr('data-operator-variable-count', String(operatorVariableScopeItems.length || 1))
+      .attr('data-operator-variable-count', String(count || 1))
       .attr('data-operator-variable-color', color);
 
     if (primitive.scopeDomainNodeId) {
@@ -188,11 +187,11 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
         .attr('class', 'babel-operator-variable-domain')
         .attr('data-operator-variable-domain-shape', primitive.scopeDomainNodeId)
         .attr('fill', color)
-        .attr('fill-opacity', rank === 0 ? 0.12 : 0.105)
+        .attr('fill-opacity', colourSlot === 0 ? 0.12 : 0.105)
         .attr('stroke', color)
-        .attr('stroke-opacity', rank % palette.length === 2 ? 0.78 : 0.88)
-        .attr('stroke-width', rank % palette.length === 2 ? 3.2 : 3)
-        .attr('stroke-dasharray', rank % palette.length === 2 ? '12 8' : '10 9')
+        .attr('stroke-opacity', colourSlot % palette.length === 2 ? 0.78 : 0.88)
+        .attr('stroke-width', colourSlot % palette.length === 2 ? 3.2 : 3)
+        .attr('stroke-dasharray', colourSlot % palette.length === 2 ? '12 8' : '10 9')
         .attr('stroke-linejoin', 'round')
         .attr('vector-effect', 'non-scaling-stroke');
     }

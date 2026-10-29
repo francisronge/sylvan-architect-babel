@@ -57,7 +57,8 @@ export type PlaqueRect = ObstacleRect & {
   trajectory?: boolean };
 type CollectionRow = { sourceNodeId: string; y: number; lane?: number; ownerKeys?: string[]; featureKey?: string; edge?: CollectionEdge; portX?: number };
 type Node = HierarchyPointNode<SyntaxNode>;
-const drawnPlaque = (box: PlaqueRect): PlaqueRect =>
+/** The shell a placed plaque paints, which may differ from its allocated box. */
+export const drawnPlaque = (box: PlaqueRect): PlaqueRect =>
   (box.drawnWidth === undefined || box.drawnWidth === box.width) && (box.drawnHeight === undefined || box.drawnHeight === box.height)
     ? box : { ...box, width: box.drawnWidth ?? box.width, height: box.drawnHeight ?? box.height };
 export type PlaquePlacement = PlaqueRect & {

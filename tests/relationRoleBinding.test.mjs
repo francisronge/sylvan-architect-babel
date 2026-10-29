@@ -126,11 +126,16 @@ test('all registered role spellings preserve their exact signature requirements'
   assert.ok(checks > 600);
 });
 
-test('Tier 1 still requires the whole Control drawing and does not salvage its connector', () => {
+// Francis approved on 27 Oct 2026 (relayed by the coordinating agent) that Control
+// without a domain draws its connector and coindex, as obligatory-control does.
+test('Tier 1 Control binds equivalent roles without a domain, but not without a controllee', () => {
   const result = dispatch({ relation: 'Control', anchors: { controlSource: 'a', controlledSubject: 'b' } });
-  assert.equal(result.primaryClaim.tier, 3);
-  assert.ok(result.tier1Dispatch.signatureIssues.some(i => i.kind === 'missing-role' && i.role === 'domain'));
-  assert.equal(result.facets.some(f => f.recipe.id.includes('control')), false);
+  assert.equal(result.primaryClaim.tier, 1);
+  assert.ok(!result.tier1Dispatch.signatureIssues.some(i => i.kind === 'missing-role' && i.role === 'domain'));
+  const incomplete = dispatch({ relation: 'Control', anchors: { controlSource: 'a' } });
+  assert.equal(incomplete.primaryClaim.tier, 3);
+  assert.ok(incomplete.tier1Dispatch.signatureIssues.some(i => i.kind === 'missing-role' && i.role === 'controllee'));
+  assert.equal(incomplete.facets.some(f => f.recipe.id.includes('control')), false);
 });
 
 test('unknown names remain unknown, even with familiar roles', () => {

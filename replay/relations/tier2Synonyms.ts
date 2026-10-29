@@ -42,6 +42,45 @@ const normalizeSynonymText = boundedStringTransform((value: string) => value
 
 export const normalizeTier2Synonym = (value: unknown): string => normalizeSynonymText(String(value ?? ''));
 
+/** One feature label written as notation, such as `+wh`, `−hon` or `[+Q]`: a
+ * sign followed by the feature's name in letters, optionally in brackets. A
+ * bare word such as `yes`, `no` or `Rel`, prose such as `operator binding
+ * (aL)`, digits such as `+3` and punctuation runs such as `+1-555-0100` state
+ * no feature. */
+export const isNotationFeatureLabel = (value: unknown): boolean => typeof value === 'string'
+  && /^(?:\[[+\-−]\p{L}+\]|[+\-−]\p{L}+)$/u.test(value.trim().normalize('NFKC'));
+
+/** A word that denies, withholds or leaves open what it qualifies, such as
+ * `none` or `failed`. Neither a role name nor a feature value. */
+const DENIED_OR_UNSET = /^(?:no|not|none|absent|without|possible|potential|hypothetical|pending|unresolved|unestablished|failed|blocked|unsuccessful|rejected|unlicensed|unassigned)$/u;
+
+/** Whether any word of a claim's relation name or of any authored value is a
+ * denying or withholding word (`DENIED_OR_UNSET`), such as `no theta
+ * assignment` or `status: failed`. The readings added for structural misses
+ * (same-name and listed θ labels, θ-marking, the phi bundle, concord, a lone
+ * feature label, a governed Case recipient and Control without a domain)
+ * leave such a claim neutral: they draw only claims stated positively. */
+export const claimDeniesOrWithholds = (relation: unknown, values: unknown): boolean => {
+  const texts: string[] = [];
+  const collect = (value: unknown, depth: number): void => {
+    if (typeof value === 'string') texts.push(value);
+    else if (depth < 4 && Array.isArray(value)) value.forEach(item => collect(item, depth + 1));
+    else if (depth < 4 && value && typeof value === 'object') Object.values(value).forEach(item => collect(item, depth + 1));
+  };
+  collect(relation, 0);
+  collect(values, 0);
+  return texts.some(text => normalizeTier2Synonym(text).split(/[^\p{L}\p{N}]+/u).some(word => DENIED_OR_UNSET.test(word)));
+};
+
+/** One feature value, such as `3`, `sg` or `masculine`: one token of letters or
+ * digits. Prose such as `default sg`, punctuation such as `n/a` or `-`, a
+ * denying word such as `none` and a serialized JSON literal such as `null`
+ * state no value. */
+const isFeatureValueToken = (value: unknown): boolean => {
+  if (typeof value !== 'string' || !/^[\p{L}\p{N}]+$/u.test(value.trim()) || DENIED_OR_UNSET.test(normalizeTier2Synonym(value))) return false;
+  try { return typeof JSON.parse(value.trim().toLowerCase()) === 'number'; } catch { return true; }
+};
+
 /** An explicitly default feature value does not identify its controller. */
 export const isDefaultAgreementLiteral = (value: unknown): boolean => typeof value === 'string'
   && /^default(?:\s|$)/u.test(normalizeTier2Synonym(value));
@@ -60,7 +99,7 @@ export const thematicRoleLabel = (label: string | undefined):
   if (/^(?:(?:internal|external) )?(?:theta|thematic|θ) role(?: (?:assignment|introduction|licensing))?$/u.test(clauses[0]))
     return { status: 'none' };
   const match = /^([\p{L}\p{N}]+) (?:theta|thematic|θ) role(?: (?:assignment|introduction|licensing))?$/u.exec(clauses[0]);
-  if (!match || /^(?:no|not|none|absent|without|possible|potential|hypothetical|pending|unresolved|unestablished|failed|blocked|unsuccessful|rejected|unlicensed|unassigned)$/u.test(match[1]))
+  if (!match || DENIED_OR_UNSET.test(match[1]))
     return { status: 'unresolved' };
   return { status: 'literal', literal: match[1] };
 };
@@ -71,6 +110,21 @@ export const thematicRoleLabel = (label: string | undefined):
 const licensingSources = ['licensor', 'licenser', 'license source', 'licensing head'];
 const licensingTargets = ['licensee', 'licensed item', 'licensed phrase', 'licensed constituent', 'licensed nominal', 'licensing target'];
 export const FEATURE_DIMENSION_KEYS = new Set(['person', 'number', 'gender']);
+
+/** A role-label list whose every literal names a different field of the same
+ * claim pairs each literal with the field it names: by name, not by position.
+ * Returns each named field's literal index, or nothing when any literal names
+ * no field, several fields, or a field another literal already names. */
+export const fieldNamingLiterals = (fieldKeys: readonly string[], literals: readonly unknown[]): Map<string, number> | undefined => {
+  const named = new Map<string, number>();
+  for (const [index, literal] of literals.entries()) {
+    if (typeof literal !== 'string' || !literal.trim()) return undefined;
+    const fields = fieldKeys.filter(key => [normalizeTier2Synonym(key), namedThematicRole(key)].includes(normalizeTier2Synonym(literal)));
+    if (fields.length !== 1 || named.has(fields[0])) return undefined;
+    named.set(fields[0], index);
+  }
+  return named.size ? named : undefined;
+};
 
 /** A named thematic participant supplies its own label inside a proven inventory. */
 export const namedThematicRole = (key: string): string | undefined => {
@@ -346,6 +400,12 @@ const caseLiteralIdentity = (value: string) => {
   const normalized = normalizeTier2Synonym(value);
   return CASE_NOTATION.get(normalized) ?? normalized;
 };
+/** A same-name nominal value the Case reader accepts as Case: a conventional
+ * Case name or abbreviation, or a literal that names Case itself. */
+const isSameNameCaseLiteral = (value: unknown) => {
+  const literal = caseLiteralIdentity(String(value));
+  return [...CASE_NOTATION.values()].includes(literal) || /\bcase\b/u.test(literal);
+};
 
 // Direction is insufficient: the qualifier must itself identify Case or match
 // an independently authored Case value. A spatial/semantic goal is not a Case goal.
@@ -471,6 +531,7 @@ export const relationRoleConcepts = (
   // A whole-clause judgment may call its exact target "root" or "clause".
   // These broad names carry verdict meaning only in an authored judgment.
   const relationName = normalizeTier2Synonym(context.relation ?? '');
+  const deniedClaim = claimDeniesOrWithholds(context.relation, context.values);
   const soleJudgmentTarget = Object.values(context.anchors ?? {}).flatMap(value => Array.isArray(value) ? value : [value]);
   if (['root', 'clause', 'sentence', 'candidate', 'completed root', 'analysis root', 'completed structure', 'completed clause'].includes(spelling)
     && (isWholeClauseJudgmentRelation(relationName) || spelling !== 'candidate' && hasAuthoredJudgment(context)
@@ -593,8 +654,17 @@ export const relationRoleConcepts = (
     && new Set(namedParticipants.map(([role]) => namedThematicRole(role))).size === namedParticipants.length
     && namedParticipants.every(([, value]) => typeof value === 'string' && value.trim().length > 0);
   const thetaClauses = relationLabelClauses(context.relation).filter(clause => /\b(?:theta|thematic|θ)\b/u.test(clause));
-  const typedThetaAssignment = hasLiteral('role.label') && thetaClauses.length > 0 && thetaClauses.every(clause =>
-    /^(?:(?:matrix|embedded|local|internal|external|subject|object|selected complement) )*(?:theta|thematic|θ)(?: role)? (?:assignment|licensing|introduction)$/u.test(clause));
+  const typedThetaClause = (clause: string) =>
+    /^(?:(?:matrix|embedded|local|internal|external|subject|object|selected complement) )*(?:theta|thematic|θ)(?: role)? (assignment|licensing|introduction|marking)$/u.exec(clause)?.[1];
+  // A role label is a theta role: a Case name in its slot leaves the claim
+  // neutral. A marking clause, read only since this recipe, also needs every
+  // label to be a named thematic role.
+  const roleLabelLiterals = Object.entries(context.values ?? {}).filter(([key]) =>
+    relationValueConcepts(index, key, context).includes('role.label')).flatMap(([, value]) => Array.isArray(value) ? value : [value]);
+  const typedThetaAssignment = hasLiteral('role.label') && thetaClauses.length > 0 && thetaClauses.every(clause => typedThetaClause(clause))
+    && !roleLabelLiterals.some(isSameNameCaseLiteral)
+    && (!thetaClauses.some(clause => typedThetaClause(clause) === 'marking')
+      || !deniedClaim && roleLabelLiterals.every(literal => typeof literal === 'string' && namedThematicRole(literal)));
   const typedThetaSource = (role: string) => {
     if (!typedThetaAssignment || !['governor', 'selector'].includes(normalizeTier2Synonym(role)) || !context.forest) return false;
     const id = Object.entries(context.anchors ?? {}).find(([key]) => normalizeTier2Synonym(key) === normalizeTier2Synonym(role))?.[1];
@@ -620,12 +690,38 @@ export const relationRoleConcepts = (
   const namedThematicValue = (role: string) => Boolean(namedThematicRole(role)) && (thematicParticipant(role) || explicitThematicPredicate)
     && Object.entries(context.values ?? {}).some(([valueKey, literal]) =>
     normalizeTier2Synonym(valueKey) === normalizeTier2Synonym(role) && nonBlankLiteral(literal));
+  // A role list names arguments only: the predicate never takes a role from it,
+  // so a list that names it pairs nothing. Without a field named as the
+  // predicate, an assigning or introducing field is the predicate.
+  const namedPredicateField = (role: string) => typedThetaSource(role)
+    || lookupTier2SynonymCandidates(index, 'role', role).includes('predicate')
+    || qualifiedAssignmentConcepts(role).includes('predicate') || qualifiedPredicateRole(normalizeTier2Synonym(role));
+  const hasNamedPredicateField = Object.keys(context.anchors ?? {}).some(namedPredicateField);
+  const predicateField = (role: string) => {
+    const normalized = singularRole(normalizeTier2Synonym(role));
+    return namedPredicateField(role) || !hasNamedPredicateField && (thematicIntroducer(normalized) || assignmentDirection(normalized) === 'source');
+  };
   const valueNamesThematicParticipant = (role: string) => explicitThematicPredicate
-    && Object.entries(context.values ?? {}).some(([valueKey, literal]) =>
-      /(?:^| )role$/u.test(normalizeTier2Synonym(valueKey))
-      && typeof literal === 'string'
-      && normalizeTier2Synonym(literal) === normalizeTier2Synonym(role));
-  const thetaDomain = typedThetaAssignment || namedInventory && explicitThematicPredicate || Object.keys(context.anchors ?? {}).some(role => namedThematicValue(role) ||
+    && Object.entries(context.values ?? {}).some(([valueKey, literal]) => typeof literal === 'string'
+      ? /(?:^| )role$/u.test(normalizeTier2Synonym(valueKey)) && normalizeTier2Synonym(literal) === normalizeTier2Synonym(role)
+      : !deniedClaim && Array.isArray(literal) && relationValueConcepts(index, valueKey, context).includes('role.label')
+        && [...fieldNamingLiterals(Object.keys(context.anchors ?? {}).filter(field => !predicateField(field)), literal)?.keys() ?? []]
+          .some(field => normalizeTier2Synonym(field) === normalizeTier2Synonym(role)));
+  // A values entry with an argument field's own name and length lists that
+  // field's role labels: the recipe pairs it as role.label (sameNameEntryServes).
+  // It lets a directional assigner act as the predicate only when no explicit
+  // predicate is named; it does not reassign a claim that names one. The same
+  // entry can instead give the argument's Case, so the list must be role labels:
+  // every item names a known thematic role and none is a Case value.
+  const sameNameArgumentLabels = !deniedClaim && !explicitThematicPredicate && currentEntries.some(([role, ids]) => {
+    const count = Array.isArray(ids) ? ids.length : typeof ids === 'string' ? 1 : 0;
+    const literal = context.values?.[role];
+    const items = Array.isArray(literal) ? literal : [literal];
+    return count > 0 && lookupTier2SynonymCandidates(index, 'role', role).includes('theta.arguments')
+      && items.length === count && nonBlankLiteral(literal)
+      && items.every(item => typeof item === 'string' && namedThematicRole(item) && !isSameNameCaseLiteral(item));
+  });
+  const thetaDomain = typedThetaAssignment || sameNameArgumentLabels || namedInventory && explicitThematicPredicate || Object.keys(context.anchors ?? {}).some(role => namedThematicValue(role) ||
     valueNamesThematicParticipant(role) ||
     qualifiedAssignmentConcepts(role).some(concept => concept === 'predicate' || concept === 'theta.arguments'))
     || Object.entries(context.values ?? {}).some(([key, value]) => /^(theta|thematic|θ) /.test(normalizeTier2Synonym(key))
@@ -665,7 +761,8 @@ export const relationRoleConcepts = (
   // Explicit domain evidence supplies meaning; generic roles supply direction.
   // A competing feature interpretation cannot silently become theta assignment.
   const direction = assignmentDirection(spelling);
-  if (direction && thetaDomain !== featureDomain) {
+  // A field that a role label names is a participant, whatever its direction word.
+  if (direction && thetaDomain !== featureDomain && !(thetaDomain && valueNamesThematicParticipant(key))) {
     concepts.add(thetaDomain
       ? direction === 'source' ? 'predicate' : 'theta.arguments'
       : direction === 'source' ? 'feature.source' : 'feature.target');
@@ -678,6 +775,7 @@ export const relationRoleConcepts = (
   // predicate names its lexical context, just as a Case exponent is not a licenser.
   const explicitThetaSource = thetaDomain && !featureDomain && Object.keys(context.anchors ?? {}).some(role => {
     const normalized = singularRole(normalizeTier2Synonym(role));
+    if (valueNamesThematicParticipant(role)) return false;
     return thematicIntroducer(normalized)
       || qualifiedAssignmentConcepts(role).includes('predicate') && !/ (?:head|predicate)$/u.test(normalized)
       || assignmentDirection(normalized) === 'source';
@@ -733,7 +831,7 @@ export const relationRoleConcepts = (
     });
   };
   const pairedNominalValue = pairedNominalValueFor(key) && (assertedNominalCaseFor(key)
-    || nominalCaseValues(key).every(literal => [...CASE_NOTATION.values()].includes(literal) || /\bcase\b/u.test(literal)));
+    || nominalCaseValues(key).every(isSameNameCaseLiteral));
   const assertedNominalCase = Object.keys(context.anchors ?? {}).some(assertedNominalCaseFor);
   const qualifiedCaseValue = ownCount === 1 && Object.entries(context.values ?? {}).some(([valueKey, literal]) =>
     normalizeTier2Synonym(valueKey) === `${normalizeTier2Synonym(key)} case`
@@ -808,7 +906,13 @@ export const relationRoleConcepts = (
     : combinedProbeTarget.length === 1 ? combinedProbeTarget[0]
     : roles.has('target') ? 'target'
     : contextualAgreementAsserted && !hasQualifiedHost && contextualAgreementHosts.length === 1 ? contextualAgreementHosts[0] : undefined;
-  const hasNamedAgreementTarget = /\bagreement\b/u.test(relationName)
+  // A concord claim reads as agreement only when each feature row it states is
+  // one feature value; prose such as `default sg` leaves it neutral. Concord
+  // must head the name: in `concord mismatch` it only modifies what is claimed.
+  const concordRowsAreValues = Object.entries(context.values ?? {}).filter(([key]) =>
+    relationValueConcepts(index, key, context).includes('feature.rows'))
+    .every(([, value]) => (Array.isArray(value) ? value : [value]).every(isFeatureValueToken));
+  const hasNamedAgreementTarget = (/\bagreement\b/u.test(relationName) || /\bconcord$/u.test(relationName) && concordRowsAreValues && !deniedClaim)
     && roles.has('controller') && namedAgreementHost !== undefined;
   const namedAgreementPair = hasNamedAgreementTarget
     && scalarRole('controller') && scalarRole(namedAgreementHost!) && !hasAgreementMediator
@@ -822,6 +926,26 @@ export const relationRoleConcepts = (
   const defaultFeatureRows = Object.entries(context.values ?? {}).some(([key, value]) =>
     lookupTier2SynonymCandidates(index, 'value', key).includes('feature.rows')
       && (Array.isArray(value) ? value : [value]).some(isDefaultAgreementLiteral));
+  const applyHeadSpecifierPair = () => {
+    if (spelling === 'head') concepts.add('feature.source');
+    if (spelling === 'specifier') concepts.add('feature.target');
+  };
+  const applyNamedAgreementPair = () => {
+    if (namedAgreementHost === 'probe' && spelling === 'target') {
+      concepts.delete('feature.source');
+      concepts.delete('feature.target');
+      concepts.delete('probe');
+      concepts.delete('goal');
+      concepts.add('agreement.expression-context');
+    }
+    if (spelling === namedAgreementHost) {
+      concepts.delete('feature.target');
+      concepts.delete('goal');
+      concepts.add('feature.source');
+      concepts.add('probe');
+    }
+    if (spelling === 'controller') { concepts.add('feature.target'); concepts.add('goal'); }
+  };
   if (hasLiteral('feature.rows')) {
     if (relationLabelClauses(context.relation).some(clause =>
       /^(?:(?:finite|matrix|embedded|local|verbal) )*tense agreement$/u.test(clause))
@@ -834,22 +958,7 @@ export const relationRoleConcepts = (
       if (spelling === 'agreement head') concepts.add('feature.source');
       if (spelling === 'lexical verb') concepts.add('feature.target');
     }
-    if (namedAgreementPair) {
-      if (namedAgreementHost === 'probe' && spelling === 'target') {
-        concepts.delete('feature.source');
-        concepts.delete('feature.target');
-        concepts.delete('probe');
-        concepts.delete('goal');
-        concepts.add('agreement.expression-context');
-      }
-      if (spelling === namedAgreementHost) {
-        concepts.delete('feature.target');
-        concepts.delete('goal');
-        concepts.add('feature.source');
-        concepts.add('probe');
-      }
-      if (spelling === 'controller') { concepts.add('feature.target'); concepts.add('goal'); }
-    }
+    if (namedAgreementPair) applyNamedAgreementPair();
     // A named agreement target is the feature host. A separately named finite
     // head is contextual here; it cannot replace the explicit target.
     if (hasQualifiedAgreementPair) {
@@ -900,11 +1009,29 @@ export const relationRoleConcepts = (
       if (inflectionHead(spelling) || participialHost(spelling)) concepts.add('probe');
       if (spelling === 'controller') concepts.add('goal');
     }
-    if (roles.has('head') && roles.has('specifier') && Object.keys(context.values ?? {}).some(key =>
-      ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))) {
-      if (spelling === 'head') concepts.add('feature.source');
-      if (spelling === 'specifier') concepts.add('feature.target');
-    }
+    // Generic head and specifier roles need agreement content: a field named
+    // for agreement, or a phi bundle of at least two dimension fields each
+    // written as a feature value. One dimension alone, such as the number of
+    // an EPP specifier, or a dimension described in prose, is not agreement.
+    // A generic features field may be prose.
+    const phiBundle = Object.entries(context.values ?? {}).filter(([key]) => FEATURE_DIMENSION_KEYS.has(normalizeTier2Synonym(key)));
+    if (roles.has('head') && roles.has('specifier') && (Object.keys(context.values ?? {}).some(key =>
+      ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))
+      || !deniedClaim && new Set(phiBundle.map(([key]) => normalizeTier2Synonym(key))).size >= 2
+        && phiBundle.every(([, value]) => isFeatureValueToken(value)))) applyHeadSpecifierPair();
+  }
+  // Without feature rows, one feature label in notation is the content of a
+  // head-specifier or named agreement pair (approved by Francis, 27 Oct 2026).
+  // Both participants are marked so the dependency check accepts the label only
+  // for these pairs, not for any directed source and target.
+  const featureLabels = Object.entries(context.values ?? {}).filter(([valueKey]) =>
+    relationValueConcepts(index, valueKey, context).includes('feature.label'));
+  // A Case literal makes the claim a Case claim; the label is then not its whole content.
+  if (!hasLiteral('feature.rows') && !hasLiteral('case.literal') && featureLabels.length === 1 && isNotationFeatureLabel(featureLabels[0][1]) && !deniedClaim
+    && (namedAgreementPair || roles.has('head') && roles.has('specifier'))) {
+    if (namedAgreementPair) applyNamedAgreementPair();
+    else applyHeadSpecifierPair();
+    if (concepts.has('feature.source') || concepts.has('feature.target')) concepts.add('feature.label-pair');
   }
   if (hasLiteral('case.literal')) {
     if (['subject', 'object', 'nominal', 'argument'].includes(spelling) && [...roles].some(role => qualifiedLicensor(role))) concepts.add('feature.target');

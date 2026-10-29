@@ -41,53 +41,73 @@ export async function buildCorpusSnapshot(root, records, { width, height, direct
   const measuringDocument = createMeasuringDocument();
   const metrics = { measurePlaqueText, measureCategoryText, measureTreeInk: treeInk.createTreeInkTextMeasure(measuringDocument),
     measureTreeLabel: treeLabel.createTreeLabelMeasure(measuringDocument) };
+  // Records that share an input share one measurement; each still checks its
+  // own expectations. Measuring an input is deterministic, so this changes
+  // only how often the same layout is computed.
+  const measurements = new Map();
+  const measure = input => {
+    const key = objectHash(input);
+    if (!measurements.has(key)) {
+      try { measurements.set(key, { value: measureInput(structuredClone(input)) }); }
+      catch (error) { measurements.set(key, { error: error.stack ?? String(error) }); }
+    }
+    return measurements.get(key);
+  };
+  const measureInput = input => {
+    const authoredBeforeSha256 = objectHash(input.derivationStages);
+    const prepared = preparation.prepareReplay(input), steps = prepared.playbackSteps;
+    if (!steps.length) throw Error('Preparation produced no Replay frames');
+    const measured = { ...metrics, plan: prepared.relationRenderPlan,
+      protectedNodeIds: triangulation.buildMovementProtectedNodeIds(prepared.committedDerivationVisualLinks),
+      treeLabelRuns: labelRuns.prepareTreeLabelRuns(prepared, measureCategoryText, { includeRelationIndices: true }) };
+    const { positions, render, scenes } = layoutReplayFrames({ steps, stages: prepared.replayDerivationFrames, width, height,
+      direction, measured }, { coordinates, camera, layout, display, d3, plaqueJob, notation, canvas });
+    const invalid = [];
+    const span = nodes => nodes.length ? Math.max(...nodes.map(node => node.x)) - Math.min(...nodes.map(node => node.x)) : 0;
+    const frames = scenes.map((scene, index) => {
+      for (const [id, node] of scene.nodes) {
+        if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) invalid.push({ frame: index + 1, id, kind: 'nonfinite' });
+        if (node.parent && scene.nodes.has(display.getNodeId(node.parent)) && node.y <= node.parent.y)
+          invalid.push({ frame: index + 1, id, kind: 'branch-rank' });
+        const children = (node.children ?? []).filter(child => scene.nodes.has(display.getNodeId(child)));
+        if (children.some((child, childIndex) => childIndex && (direction === 'rtl'
+          ? child.x >= children[childIndex - 1].x : child.x <= children[childIndex - 1].x)))
+          invalid.push({ frame: index + 1, id, kind: 'sibling-order' });
+      }
+      const roots = [...scene.nodes.values()].filter(node => !node.parent || !scene.nodes.has(display.getNodeId(node.parent)));
+      return { stage: scene.step.replayFrameIndex, kind: scene.step.replayKind, operation: scene.step.operation,
+        target: scene.step.targetNodeId, relationIndex: scene.step.replayRelationIdentity?.relationIndex,
+        ...motionFrame(scene.step, scene.nodes, display.getNodeId),
+        widths: scene.step.replayKind === 'macro' ? [
+          { root: '@forest', width: span([...scene.nodes.values()]) },
+          ...roots.map(root => ({ root: display.getNodeId(root), width: span(root.descendants()
+            .filter(node => scene.nodes.has(display.getNodeId(node)))) }))
+        ] : [] };
+    });
+    const evidence = {
+      movementMoments: steps.filter(step => step.replayKind === 'relation' && step.replayRelationIdentity
+        && step.replayRelationLinks?.some(link => link.renderFamily === 'trajectory'
+          && link.authoredRelationKey === `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`)).length,
+      merges: steps.filter(step => step.operation === 'ExternalMerge').length,
+      // Judged by this harness, not the measured checkout, so both sides of a comparison share one rule.
+      movements: movementPresentations(prepared, input),
+      realizationGroups: input.derivationStages.reduce((count, stage) => count + (stage.realizations?.length ?? 0), 0),
+      workspaceRoots: Math.max(...input.derivationStages.map(stage => stage.workspaceForest.length)),
+      planStages: prepared.relationRenderPlan?.frames.map(frame => ({ stage: frame.stageIndex,
+        facets: [...new Set(frame.items.map(item => item.tier2FacetId).filter(Boolean))],
+        fallbackRelations: [...new Set(frame.items.filter(item => item.kind === 'fallback')
+          .map(item => item.relationRef.relationIndex))] })) ?? []
+    };
+    return { authoredBeforeSha256, authoredAfterSha256: objectHash(input.derivationStages), replaySha256: objectHash(steps),
+      planSha256: objectHash(prepared.relationRenderPlan), frames, invalid,
+      continuity: continuity.workspaceContinuityReflows(scenes, positions, render, { ownClosings: true }), evidence };
+  };
   const results = [];
   for (const record of records) {
+    const measured = measure(record.input);
+    if (measured.error) { results.push({ id: record.id, error: measured.error }); continue; }
+    const { frames, evidence } = measured.value;
     try {
-      const input = structuredClone(record.input), authoredBeforeSha256 = objectHash(input.derivationStages);
-      const prepared = preparation.prepareReplay(input), steps = prepared.playbackSteps;
-      if (!steps.length) throw Error('Preparation produced no Replay frames');
-      const measured = { ...metrics, plan: prepared.relationRenderPlan,
-        protectedNodeIds: triangulation.buildMovementProtectedNodeIds(prepared.committedDerivationVisualLinks),
-        treeLabelRuns: labelRuns.prepareTreeLabelRuns(prepared, measureCategoryText, { includeRelationIndices: true }) };
-      const { positions, render, scenes } = layoutReplayFrames({ steps, stages: prepared.replayDerivationFrames, width, height,
-        direction, measured }, { coordinates, camera, layout, display, d3, plaqueJob, notation, canvas });
-      const invalid = [];
-      const span = nodes => nodes.length ? Math.max(...nodes.map(node => node.x)) - Math.min(...nodes.map(node => node.x)) : 0;
-      const frames = scenes.map((scene, index) => {
-        for (const [id, node] of scene.nodes) {
-          if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) invalid.push({ frame: index + 1, id, kind: 'nonfinite' });
-          if (node.parent && scene.nodes.has(display.getNodeId(node.parent)) && node.y <= node.parent.y)
-            invalid.push({ frame: index + 1, id, kind: 'branch-rank' });
-          const children = (node.children ?? []).filter(child => scene.nodes.has(display.getNodeId(child)));
-          if (children.some((child, childIndex) => childIndex && (direction === 'rtl'
-            ? child.x >= children[childIndex - 1].x : child.x <= children[childIndex - 1].x)))
-            invalid.push({ frame: index + 1, id, kind: 'sibling-order' });
-        }
-        const roots = [...scene.nodes.values()].filter(node => !node.parent || !scene.nodes.has(display.getNodeId(node.parent)));
-        return { stage: scene.step.replayFrameIndex, kind: scene.step.replayKind, operation: scene.step.operation,
-          target: scene.step.targetNodeId, relationIndex: scene.step.replayRelationIdentity?.relationIndex,
-          ...motionFrame(scene.step, scene.nodes, display.getNodeId),
-          widths: scene.step.replayKind === 'macro' ? [
-            { root: '@forest', width: span([...scene.nodes.values()]) },
-            ...roots.map(root => ({ root: display.getNodeId(root), width: span(root.descendants()
-              .filter(node => scene.nodes.has(display.getNodeId(node)))) }))
-          ] : [] };
-      });
-      const evidence = {
-        movementMoments: steps.filter(step => step.replayKind === 'relation' && step.replayRelationIdentity
-          && step.replayRelationLinks?.some(link => link.renderFamily === 'trajectory'
-            && link.authoredRelationKey === `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`)).length,
-        merges: steps.filter(step => step.operation === 'ExternalMerge').length,
-        // Judged by this harness, not the measured checkout, so both sides of a comparison share one rule.
-        movements: movementPresentations(prepared, input),
-        realizationGroups: input.derivationStages.reduce((count, stage) => count + (stage.realizations?.length ?? 0), 0),
-        workspaceRoots: Math.max(...input.derivationStages.map(stage => stage.workspaceForest.length)),
-        planStages: prepared.relationRenderPlan?.frames.map(frame => ({ stage: frame.stageIndex,
-          facets: [...new Set(frame.items.map(item => item.tier2FacetId).filter(Boolean))],
-          fallbackRelations: [...new Set(frame.items.filter(item => item.kind === 'fallback')
-            .map(item => item.relationRef.relationIndex))] })) ?? []
-      };
       const expectationFailures = [];
       for (const [key, field] of [['minMovementMoments', 'movementMoments'], ['minMerges', 'merges'],
         ['minRealizationGroups', 'realizationGroups'], ['minWorkspaceRoots', 'workspaceRoots']]) {
@@ -112,10 +132,9 @@ export async function buildCorpusSnapshot(root, records, { width, height, direct
           Math.hypot(point.x - points[0].x, point.y - points[0].y) > 1e-6))
           expectationFailures.push(`samePoints ${index}: the exact receiving attachment must keep its x and y`);
       }
-      results.push({ id: record.id, inputSha256: objectHash(record.input), authoredBeforeSha256,
-        authoredAfterSha256: objectHash(input.derivationStages), replaySha256: objectHash(steps),
-        planSha256: objectHash(prepared.relationRenderPlan), frames, invalid,
-        continuity: continuity.workspaceContinuityReflows(scenes, positions, render, { ownClosings: true }), evidence, expectationFailures });
+      const { authoredBeforeSha256, authoredAfterSha256, replaySha256, planSha256, invalid, continuity: reflows } = measured.value;
+      results.push({ id: record.id, inputSha256: objectHash(record.input), authoredBeforeSha256, authoredAfterSha256,
+        replaySha256, planSha256, frames, invalid, continuity: reflows, evidence, expectationFailures });
     } catch (error) { results.push({ id: record.id, error: error.stack ?? String(error) }); }
   }
   const after = await sourceIdentity(root);

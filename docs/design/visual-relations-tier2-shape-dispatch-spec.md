@@ -79,7 +79,17 @@ path; denied, competing and unresolved references remain neutral.
 - In an explicit agreement claim, a unique `controller` and `target` with
   authored features identify one dependency even when a finite head is also
   named. The finite head remains context; a repeated or ambiguous endpoint
-  does not redirect the connector.
+  does not redirect the connector. A concord claim is an agreement claim here
+  (the owner approved this name on 27 Oct 2026) when each feature row is one
+  feature value token and concord heads the name; prose such as `default sg`
+  and a name such as `concord mismatch` leave it neutral.
+- The readings added on 27 Oct 2026 (same-name and listed θ labels, θ-marking,
+  concord, the phi bundle, a lone feature label, a governed Case recipient and
+  Control without a domain) draw only claims stated positively. A word of the
+  relation name or of any authored value that is in the existing denial list
+  (`DENIED_OR_UNSET` in `tier2Synonyms.ts`), as in `no theta assignment`,
+  `failed spec-head agreement` or `status: failed`, leaves the claim to the
+  reading main already has, which is usually neutral.
   A uniquely named modifier or predicate can supply that feature host when no
   target or qualified agreement host is named. Competing hosts, a mediator,
   controllee, missing features or a nonasserted claim do not earn this recovery.
@@ -559,7 +569,11 @@ An asserted theta-assignment clause with a typed role literal can establish that
 domain for generic `assigner` and `recipient` roles. It still needs one exact
 source and recipient, with no competing Case or feature interpretation. The
 literal role is preserved; generic assignment language alone supplies no theta
-meaning.
+meaning. A theta-marking clause is a theta-assignment clause (the owner approved
+this name on 27 Oct 2026) when every role literal is a named thematic role
+(agent, theme, patient, experiencer, beneficiary, instrument, location,
+recipient, goal). In any typed theta clause a Case name such as `accusative` or
+`NOM` in the role slot leaves the claim neutral.
 
 An explicit complement can receive a typed theta role when it is the named
 assigner's actual sister. A named predicate and one separately named lexical
@@ -574,7 +588,22 @@ Missing, competing, denied and provisional evidence stays unresolved.
 
 Agreement-qualified goals also bind the registered Agree signature. A finite
 head and subject with explicit feature values, or a head and specifier with an
-explicit agreement value, can establish a feature dependency. A finite head and
+explicit agreement value or a phi bundle, at least two of person, number and
+gender each written as one feature value token, can establish a feature
+dependency. A value token is letters or digits only; `n/a`, `-`, `3≠1`, an empty
+value, a denying word such as `none` and a serialized JSON literal such as
+`null` state no value. One dimension alone, such as `{head, specifier}` with `number: sg`
+in an EPP claim, a dimension described in prose, or a generic features field
+does not establish it. Without feature rows or Case, one feature label written
+as notation, a sign followed by letters such as `+wh`, `−hon` or `[+Q]`, is the whole
+content of a head-specifier or named agreement pair (the owner approved this on
+27 Oct 2026). Any dependency whose only content is such a label shows it on its
+connector instead of leaving it as a neutral mark. A bare word such as `yes`,
+`no` or `Rel`, digits such as `+3` and punctuation runs such as `+1-555-0100`
+state no feature value and stay neutral; a Case literal beside
+the label makes the claim a Case claim, which the label does not complete.
+Prose labels, competing labels and other directed pairs, such as a licensor and
+licensee, still need feature rows or explicit probe and goal roles. A finite head and
 subject do not establish a controller for explicitly default agreement rows; those
 literal rows remain authored evidence unless a dependency is independently
 anchored. An explicit probe/goal claim keeps its own authority. Governing heads
@@ -621,6 +650,28 @@ Competing predicates, repeated participant IDs, missing endpoints, incompatible
 outcomes and partly supplied role-value lists prevent this recovery. Explicit
 role literals take precedence. The exact key-to-node associations participate in
 drawing identity, so swapping two roles cannot reuse the earlier grid.
+An argument field's same-name, same-length values list supplies its role labels,
+so it also establishes the thematic domain beside a directional assigner:
+`{assigner, argument: [a, b]}` with `argument: [Theme, Location]` is one grid. The
+same entry can instead give the argument's Case, so it establishes the domain
+only when every item names a known thematic role and none is a Case value the
+Case reader accepts; `argument: [Agent, objective]` and `[Theme, Source]` stay
+neutral, `argument: accusative` stays a Case path and
+`argument: partitive` stays neutral. A claim that names its predicate keeps its
+existing reading; the list does not move the grid onto an introducer or assigner.
+A role-label list beside an explicit predicate pairs by name, never by position,
+when each literal names a different participant field of the claim:
+`{predicate, speaker, content}` with `roles: [Speaker, Content]` labels both
+fields, in either list order, and a named field is a participant whatever its
+direction word, so `source` named by the list is not the grid's source. A
+literal that names no field or names a field twice pairs nothing, and without
+an explicit predicate the list establishes no participants. The list names
+arguments only: a literal naming the predicate (or, without a named predicate,
+the assigning or introducing field) pairs nothing, so `roles: [Agent, Content,
+Predicate]` stays neutral, and a list that leaves an argument field unnamed is
+ambiguous and stays neutral. When the list and
+the field's own entry label one field differently, as `roles: [Agent, Theme]`
+beside `theme: Patient`, neither label is chosen and the claim stays neutral.
 
 Matching Case-qualified source and recipient fields can identify an assignment
 without a separate values entry. A nominative assigner and nominative DP form
@@ -976,6 +1027,10 @@ governing position only with a separately typed matching Case and a nominal
 sibling. A named head with the same exact lineage may corroborate the slot's
 category; it does not replace that slot as the Case source. Competing chain
 heads, nonlocal recipients and unestablished outcomes remain neutral.
+When an asserted Case assignment names no recipient role, the one anchor whose
+role has no meaning can be the recipient only as the nominal sister of the leaf
+head that assigns the Case; a phrasal, non-sister or second unnamed anchor
+leaves the claim neutral.
 `valuedCase` shares the Case
 literal vocabulary; explicit agreement and phi-feature values share feature-row
 handling. When both occur in one dependency, recipient-specific Case stays on
@@ -999,7 +1054,12 @@ absent domains. Control and idiom painting does not depend on the enclosure
 existing. Covert Replay timing requires a preceding source, new landing and
 consistent prior-source references; its drawing remains the covert path, not
 an overt movement arrow. Existing exact Tier-1 signatures are unchanged,
-including optional fields already present in those signatures.
+including optional fields already present in those signatures, with one
+exception the owner approved on 27 Oct 2026: the exact Control signature's
+domain is optional. A Control claim with a controller and controllee but no
+domain draws the connector and coindex that the smaller recipe draws; an
+authored domain must still resolve and adds its rectangle. A controller and
+controllee that are the same node draw nothing, with or without a domain.
 
 An asserted Quantifier Raising clause, including one combined with variable
 binding, can establish the covert claim. Open participant names do not require
@@ -1652,6 +1712,17 @@ Numbered badges share one visual component with explicit variants:
 The distinct text prevents two different meanings from becoming visually
 indistinguishable.
 
+An anchor-array badge stands in its node's column, below the node. Where its
+nominal place would cover a painted label of any node (each line of a wrapped
+label and each index run) or a displayed plaque, it moves along that column to
+the nearest clear height, toward its own node first. A badge that already
+clears keeps its place, and a relation's badges on one node never cover each
+other. (Badges of two different anchor arrays on the same node still share a
+place; that is open.)
+Fit places badges for the marker scale it draws them at; like role labels, they
+then keep that size and share the tree's scale during manual zoom, so the
+clearance holds at every zoom. The visual audits judge badges as mark text.
+
 ## Persistence
 
 Every executable facet declares both a persistence policy and a replacement
@@ -1805,7 +1876,13 @@ name must not reject a complete compound shape that the registered reader suppor
 
 Operator binding does not depend on a raw relation count. Every complete
 operator-variable-domain facet earns one scope hull and one binding path. The
-renderer ranks the distinct operator-domain facets that are visible together.
+renderer counts each scope domain node once. Domains that share the screen at
+any Replay step are ranked together by size for hull padding and binding lane,
+the larger outside, and each keeps that rank throughout, so a step never moves
+another domain's hull or lane. Colour follows played appearance: a domain alone
+takes the base colour, a domain appearing beside others takes the first colour
+none of them holds, and a domain keeps its colour while it stays on screen
+(`replay/relations/scopeDomainPaint.ts`).
 
 An asserted relative interpretation, abstraction or restriction can recover that
 same binding path from an explicit operator and a qualified variable role. Both
