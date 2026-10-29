@@ -609,7 +609,7 @@ export const relationRoleConcepts = (
     && namedParticipants.every(([, value]) => typeof value === 'string' && value.trim().length > 0);
   const thetaClauses = relationLabelClauses(context.relation).filter(clause => /\b(?:theta|thematic|θ)\b/u.test(clause));
   const typedThetaAssignment = hasLiteral('role.label') && thetaClauses.length > 0 && thetaClauses.every(clause =>
-    /^(?:(?:matrix|embedded|local|internal|external|subject|object|selected complement) )*(?:theta|thematic|θ)(?: role)? (?:assignment|licensing|introduction)$/u.test(clause));
+    /^(?:(?:matrix|embedded|local|internal|external|subject|object|selected complement) )*(?:theta|thematic|θ)(?: role)? (?:assignment|licensing|introduction|marking)$/u.test(clause));
   const typedThetaSource = (role: string) => {
     if (!typedThetaAssignment || !['governor', 'selector'].includes(normalizeTier2Synonym(role)) || !context.forest) return false;
     const id = Object.entries(context.anchors ?? {}).find(([key]) => normalizeTier2Synonym(key) === normalizeTier2Synonym(role))?.[1];

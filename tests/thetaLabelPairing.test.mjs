@@ -55,3 +55,16 @@ test('same-name labels do not move a grid off an explicitly named predicate', ()
   assert(predicates.length > 0);
   assert(predicates.every(ids => JSON.stringify(ids) === JSON.stringify(['pp'])), JSON.stringify(predicates));
 });
+
+test('a theta-marking claim names its assigner and recipient as a theta grid', () => {
+  // Francis approved theta-marking as a theta relation name on 27 Oct 2026.
+  for (const relation of ['theta-marking', 'external theta-marking', 'internal-theta-marking']) {
+    for (const recipient of ['recipient', 'assignee']) {
+      assert.deepEqual(rows(grid({ relation, anchors: { assigner: 'v', [recipient]: 'object' }, values: { role: 'Theme' } })),
+        [['object', 'Theme']], `${relation} ${recipient}`);
+    }
+  }
+  // The name alone does not supply a role, and other markings stay neutral.
+  assert.equal(grid({ relation: 'theta-marking', anchors: { assigner: 'v', recipient: 'object' } }), undefined);
+  assert.equal(grid({ relation: 'case marking', anchors: { assigner: 'v', recipient: 'object' }, values: { role: 'Theme' } }), undefined);
+});

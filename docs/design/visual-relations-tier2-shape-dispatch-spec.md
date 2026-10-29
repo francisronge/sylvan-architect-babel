@@ -559,7 +559,8 @@ An asserted theta-assignment clause with a typed role literal can establish that
 domain for generic `assigner` and `recipient` roles. It still needs one exact
 source and recipient, with no competing Case or feature interpretation. The
 literal role is preserved; generic assignment language alone supplies no theta
-meaning.
+meaning. A theta-marking clause is a theta-assignment clause (the owner approved
+this name on 27 Oct 2026).
 
 An explicit complement can receive a typed theta role when it is the named
 assigner's actual sister. A named predicate and one separately named lexical

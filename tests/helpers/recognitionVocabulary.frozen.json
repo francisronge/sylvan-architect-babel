@@ -2688,7 +2688,7 @@
       "regex: location": 1,
       "regex: logical form": 2,
       "regex: lower": 3,
-      "regex: marking": 2,
+      "regex: marking": 3,
       "regex: matrix": 7,
       "regex: mediator": 1,
       "regex: member": 1,
