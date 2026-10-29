@@ -491,7 +491,9 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
   if (!trace.off?.has('settle')) settleWaitingPieces(scenes, all, coordinates, firstScene, lastScene, paint, measureCategoryText);
   if (!trace.off?.has('hold')) holdBack(scenes, all, coordinates, firstScene, lastScene, paint, measureCategoryText);
   if (!trace.off?.has('room')) openSourceRoom(scenes, all, coordinates, firstScene, lastScene, paint, measureCategoryText);
-  if (!trace.off?.has('seat')) seatReceivingHeads({ scenes, frames: all, coordinates, firstScene, lastScene, paint, measureCategoryText });
+  const context = { scenes, frames: all, coordinates, firstScene, lastScene, paint, measureCategoryText };
+  if (!trace.off?.has('seat')) seatReceivingHeads(context);
+  if (!trace.off?.has('cross')) holdAcrossCrossings(context);
   const byStage = new Map<number, Map<SyntaxNode, TreeCoordinateReservation>>();
   for (const scene of scenes) {
     const stage = scene.step.replayFrameIndex!;
@@ -1001,6 +1003,114 @@ function seatReceivingHeads(context: Context) {
         debug(k + 1, rootId, Math.round(delta), 'later', Math.round(later), reason || 'seated');
         if (!reason) break;
       }
+    }
+  }
+}
+
+/** Moves each node of `shifts` with everything below it by its amount in every
+ * frame from step `k` on where it is painted, and keeps the change only when
+ * every changed frame stays ordered and clear and the stages keep their size, no
+ * step from `k` on moves anything farther or newly breaks continuity, and no
+ * step after `k` changes its motion. Returns a reason when refused. */
+function tryShiftForward(context: Context, k: number, shifts: ReadonlyMap<string, number>) {
+  const { scenes, frames, coordinates, firstScene, lastScene, paint, measureCategoryText } = context;
+  if (lastScene.get(scenes[k - 1].canvas)! >= k) return 'shared canvas';
+  let end = k;
+  while (end < scenes.length && [...shifts.keys()].some(id => frames[end].has(id))) end++;
+  const canvases = new Set(scenes.slice(k, end).map(scene => scene.canvas));
+  if ([...canvases].some(canvas => lastScene.get(canvas)! >= end)) return 'shared canvas';
+  const saved = new Map([...canvases].map(canvas => [canvas, new Map(coordinates.get(canvas)!)] as const));
+  for (let j = k; j < end; j++) {
+    if (firstScene.get(scenes[j].canvas)! !== j) continue;
+    const points = coordinates.get(scenes[j].canvas)!, root = d3.hierarchy(scenes[j].canvas); applyVizIds(root);
+    const done = new Set<string>();
+    root.each(node => {
+      const by = shifts.get(getNodeId(node));
+      if (by === undefined || !frames[j].has(getNodeId(node))) return;
+      node.each(member => {
+        const id = getNodeId(member), point = points.get(id);
+        if (done.has(id) || !point) return;
+        done.add(id);
+        points.set(id, { x: point.x + by, y: point.y });
+      });
+    });
+  }
+  const repainted = scenes.slice(k, end).map(paint);
+  const view = (index: number) => index >= k && index < end ? repainted[index - k] : frames[index];
+  let reason = '';
+  for (let j = k; !reason && j < end; j++) {
+    const frame = repainted[j - k];
+    const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
+    if (!ordered(frame)) reason = `order at ${j + 1}`;
+    else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText)) reason = `clearance at ${j + 1}`;
+  }
+  if (!reason && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [k + index, frame])))) reason = 'stage size';
+  for (let j = k; !reason && j <= Math.min(end, scenes.length - 1); j++) {
+    const crossing = scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex;
+    if (newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `faults at ${j + 1}`;
+    else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `continuity at ${j + 1}`;
+    else if (j > k && !sameMotion(scenes[j].step, crossing, frames[j - 1], frames[j], view(j - 1), view(j))) reason = `motion at ${j + 1}`;
+  }
+  if (reason) { for (const [canvas, points] of saved) coordinates.set(canvas, points); return reason; }
+  repainted.forEach((frame, index) => { frames[k + index] = frame; });
+  return '';
+}
+
+/** Holds unmoved syntax across a stage crossing.
+ *
+ * Each stage is planned on its own, so a crossing can re-spread syntax that no
+ * step moves: phrases shift by different amounts and, after the camera carry,
+ * appear to jump. Where a phrase that the crossing's step does not carry shifts
+ * rigidly, it keeps, from the crossing on, the place it had before relative to
+ * the carry: its own later frames all stand over by the amount it would have
+ * jumped. Each such phrase is tried alone and then all of them together. */
+function holdAcrossCrossings(context: Context) {
+  const { scenes, frames } = context;
+  const debug = (...parts: unknown[]) => { trace.log?.('CROSS', ...parts); };
+  for (let k = 1; k < scenes.length; k++) {
+    const step = scenes[k].step;
+    if (scenes[k - 1].step.replayFrameIndex === step.replayFrameIndex) continue;
+    const before = frames[k - 1], after = frames[k];
+    const carry = paintedShift(points(before), points(after));
+    const movers = new Set<string>();
+    for (const id of trajectoryParticipants(step)) before.get(id)?.each(member => { movers.add(getNodeId(member)); });
+    const granted = closingAt(scenes[k - 1].step, step, before, after, before, after);
+    const shiftOf = (id: string) => { const node = after.get(id), old = before.get(id); return node && old ? { x: node.x - carry.x - old.x, y: node.y - carry.y - old.y } : undefined; };
+    const isRigid = (node: Node, dx: number): boolean => {
+      const own = shiftOf(getNodeId(node));
+      if (!own || movers.has(getNodeId(node)) || granted.has(getNodeId(node)) || Math.abs(own.y) > 1 || Math.abs(own.x - dx) > 1) return false;
+      if (shownParent(before, node) !== shownParent(after, after.get(getNodeId(node))!)) return false;
+      return (node.children ?? []).filter(child => before.has(getNodeId(child))).every(child => isRigid(child, dx));
+    };
+    const groups: { dx: number; members: string[]; first: string }[] = [];
+    for (const [id, old] of before) {
+      const own = shiftOf(id);
+      if (!own || Math.abs(own.x) < 20 || !isRigid(old, own.x)) continue;
+      const parent = shownParent(before, old);
+      if (parent && shiftOf(parent) && isRigid(before.get(parent)!, own.x)) continue;
+      const members: string[] = [];
+      old.each(member => { if (before.has(getNodeId(member))) members.push(getNodeId(member)); });
+      groups.push({ dx: own.x, members, first: id });
+    }
+    // Or every painted leaf the step does not carry, each at its own place.
+    const leaves = new Map<string, number>();
+    for (const [id, old] of before) {
+      const own = shiftOf(id);
+      if (!own || movers.has(id) || granted.has(id) || old.children?.some(child => before.has(getNodeId(child))) || Math.abs(own.y) > 1 || Math.abs(own.x) <= 1) continue;
+      if (shownParent(before, old) !== shownParent(after, after.get(id)!)) continue;
+      leaves.set(id, -own.x);
+    }
+    if (!groups.length && !leaves.size) continue;
+    groups.sort((a, b) => b.members.length - a.members.length);
+    const attempts = groups.slice(0, 6).map(group => ({ first: group.first, shifts: new Map([[group.first, -group.dx]]) }));
+    if (attempts.length > 1) attempts.unshift({ first: `${attempts.length} phrases`, shifts: new Map(attempts.flatMap(attempt => [...attempt.shifts])) });
+    if (leaves.size) attempts.unshift({ first: `${leaves.size} leaves`, shifts: leaves });
+    const held = new Set<string>();
+    for (const { first, shifts } of attempts) {
+      if ([...shifts.keys()].some(id => held.has(id))) continue;
+      const reason = tryShiftForward(context, k, shifts);
+      debug(k + 1, first, [...shifts.values()].map(Math.round).join('/'), reason || 'held');
+      if (!reason) for (const id of shifts.keys()) held.add(id);
     }
   }
 }
