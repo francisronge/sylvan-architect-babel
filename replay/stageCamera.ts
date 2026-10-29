@@ -90,6 +90,14 @@ type StageGeometry = {
   reservations?: StageCoordinateReservations;
 };
 
+/** Tree label and word ink, as the camera measures it, for the binder's bow side. */
+function treeLabelBoxes(nodes: d3.HierarchyPointNode<SyntaxNode>[],
+  measures: Pick<StageLayoutInput, 'measureCategoryText' | 'measureTreeInk' | 'measureTreeLabel'>,
+  labels?: ReadonlyMap<string, readonly TreeLabelRuns[]>) {
+  return treeInkObstacles(nodes, measures.measureCategoryText, measures.measureTreeInk, false, labels, measures.measureTreeLabel)
+    .filter(rect => rect.connectorAttachment);
+}
+
 /** Shared geometric endpoint estimates for reservation and camera bounds. */
 function stagePositionProvider(byId: Map<string, d3.HierarchyPointNode<SyntaxNode>>): PlanPositionProvider {
   return (id, attachment = 'position') => {
@@ -1439,6 +1447,8 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
       const plan = { ...input.plan, frames: input.plan.frames.map((frame, index) =>
         index === input.stageIndex ? { ...frame, items: trajectories } : frame) };
       const bound = bindRelationPlanFrame(plan, input.stageIndex, stagePositionProvider(byId), {
+        trajectoryLabelBoxes: () => treeLabelBoxes(currentNodes, input,
+          input.treeLabelRuns ? sceneLabelRuns(input, scene.stepIndices) : undefined),
         trajectoryCeilingY: (d3.min([...byId.values()], node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
         trajectoryFloorY: (d3.max([...byId.values()], node => node.y) ?? 0) + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor
       });
@@ -1700,6 +1710,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
     // Bounds reserve all stage marks at nominal scale, never reading the live DOM or camera.
     const bound = bindRelationPlanFrame(plan, stageIndex, positionFor, {
       ...RELATION_BINDING_METRICS, markerScale: 1,
+      trajectoryLabelBoxes: () => treeLabelBoxes(fitNodes, { measureCategoryText, measureTreeInk, measureTreeLabel }, labels),
       trajectoryCeilingY: (d3.min(fitNodes, node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
       trajectoryFloorY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
       connectorBaselineY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,

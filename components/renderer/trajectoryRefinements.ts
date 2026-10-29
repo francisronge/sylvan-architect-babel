@@ -4,7 +4,8 @@ import {
   phaseArcPath
 } from '../../replay/relations/markGeometry.ts';
 import {
-  quadraticTrajectoryBellyY, SHELL_ATTACHMENT_CLEARANCE, TRAJECTORY_ROUTES
+  quadraticTrajectoryControl, quadraticTrajectoryInsets, SHELL_ATTACHMENT_CLEARANCE, steepTrajectoryBowWeight,
+  TRAJECTORY_ROUTES, type TrajectoryBow
 } from '../../replay/rendererMetrics.ts';
 import { type HierNode } from '../../replay/types.ts';
 import type { DrawingLayer, RelationMeasurements } from './drawingContext.ts';
@@ -40,6 +41,16 @@ export function createTrajectoryRefinements({
       : path.attr('data-trajectory-from'));
     return terminal ? measuredTrajectoryTerminalRect(id) : measuredTrajectoryShellRect(id);
   };
+  /** Measured centres set how fully a route bows; the side is the binder's,
+   * which only it can read from the departure's parent, else left. */
+  const measuredBow = (
+    path: d3.Selection<SVGPathElement, unknown, null, undefined>,
+    sourceCenter: { x: number; y: number },
+    targetCenter: { x: number; y: number }
+  ): TrajectoryBow | null => {
+    const weight = steepTrajectoryBowWeight(sourceCenter, targetCenter);
+    return weight > 0 ? { side: path.attr('data-trajectory-bow') === '1' ? 1 : -1, weight } : null;
+  };
   const refineAcrossTheBoardPaths = () => {
     const atbPaths = g.selectAll<SVGPathElement, unknown>('.vr-trajectory-atb').nodes();
     atbPaths.forEach((pathNode, pathIndex) => {
@@ -55,17 +66,15 @@ export function createTrajectoryRefinements({
         x: targetRect.x + targetRect.width / 2,
         y: targetRect.y + targetRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
       };
-      const direction = Math.sign(targetCenter.x - sourceCenter.x) || 1;
-      const start = { x: sourceCenter.x + TRAJECTORY_ROUTES.quadraticEndpointInset * direction, y: sourceCenter.y };
+      const bow = measuredBow(path, sourceCenter, targetCenter);
+      const insets = quadraticTrajectoryInsets(sourceCenter, targetCenter, bow);
+      const start = { x: sourceCenter.x + insets.start, y: sourceCenter.y };
       const groupedOffset = (pathIndex - ((atbPaths.length - 1) / 2)) * 18;
-      const requestedTargetShift = -TRAJECTORY_ROUTES.quadraticEndpointInset * direction + groupedOffset;
+      const requestedTargetShift = insets.end + groupedOffset;
       const targetShiftLimit = Math.max(2, Math.min(18, targetRect.width / 2 - 1));
       const targetShift = Math.max(-targetShiftLimit, Math.min(targetShiftLimit, requestedTargetShift));
       const end = { x: targetCenter.x + targetShift, y: targetCenter.y };
-      const control = {
-        x: (start.x + end.x) / 2,
-        y: quadraticTrajectoryBellyY(start, end)
-      };
+      const control = quadraticTrajectoryControl(start, end, bow);
       const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${control.x.toFixed(1)} ${control.y.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
       path.attr('d', d);
       d3.select(pathNode.parentElement)
@@ -133,16 +142,14 @@ export function createTrajectoryRefinements({
       x: targetRect.x + targetRect.width / 2,
       y: targetRect.y + targetRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
     };
-    const direction = Math.sign(targetCenter.x - sourceCenter.x) || 1;
-    const start = { x: sourceCenter.x + TRAJECTORY_ROUTES.quadraticEndpointInset * direction, y: sourceCenter.y };
-    const requestedTargetShift = -TRAJECTORY_ROUTES.quadraticEndpointInset * direction;
+    const bow = measuredBow(path, sourceCenter, targetCenter);
+    const insets = quadraticTrajectoryInsets(sourceCenter, targetCenter, bow);
+    const start = { x: sourceCenter.x + insets.start, y: sourceCenter.y };
+    const requestedTargetShift = insets.end;
     const targetShiftLimit = Math.max(2, Math.min(18, targetRect.width / 2 - 1));
     const targetShift = Math.max(-targetShiftLimit, Math.min(targetShiftLimit, requestedTargetShift));
     const end = { x: targetCenter.x + targetShift, y: targetCenter.y };
-    const control = {
-      x: (start.x + end.x) / 2,
-      y: quadraticTrajectoryBellyY(start, end)
-    };
+    const control = quadraticTrajectoryControl(start, end, bow);
     const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${control.x.toFixed(1)} ${control.y.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
     path.attr('d', d);
     d3.select(this.parentElement)
@@ -331,16 +338,14 @@ export function createTrajectoryRefinements({
       x: targetRect.x + targetRect.width / 2,
       y: targetRect.y + targetRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
     };
-    const direction = Math.sign(targetCenter.x - sourceCenter.x) || 1;
-    const start = { x: sourceCenter.x + TRAJECTORY_ROUTES.quadraticEndpointInset * direction, y: sourceCenter.y };
-    const requestedTargetShift = -TRAJECTORY_ROUTES.quadraticEndpointInset * direction;
+    const bow = measuredBow(path, sourceCenter, targetCenter);
+    const insets = quadraticTrajectoryInsets(sourceCenter, targetCenter, bow);
+    const start = { x: sourceCenter.x + insets.start, y: sourceCenter.y };
+    const requestedTargetShift = insets.end;
     const targetShiftLimit = Math.max(2, Math.min(18, targetRect.width / 2 - 1));
     const targetShift = Math.max(-targetShiftLimit, Math.min(targetShiftLimit, requestedTargetShift));
     const end = { x: targetCenter.x + targetShift, y: targetCenter.y };
-    const control = {
-      x: (start.x + end.x) / 2,
-      y: quadraticTrajectoryBellyY(start, end)
-    };
+    const control = quadraticTrajectoryControl(start, end, bow);
     const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${control.x.toFixed(1)} ${control.y.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
     path.attr('d', d);
     d3.select(this.parentElement)
@@ -362,13 +367,11 @@ export function createTrajectoryRefinements({
       x: targetRect.x + targetRect.width / 2,
       y: targetRect.y + targetRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
     };
-    const direction = Math.sign(targetCenter.x - sourceCenter.x) || 1;
-    const start = { x: sourceCenter.x + TRAJECTORY_ROUTES.quadraticEndpointInset * direction, y: sourceCenter.y };
-    const end = { x: targetCenter.x - TRAJECTORY_ROUTES.quadraticEndpointInset * direction, y: targetCenter.y };
-    const control = {
-      x: (start.x + end.x) / 2,
-      y: quadraticTrajectoryBellyY(start, end)
-    };
+    const bow = measuredBow(path, sourceCenter, targetCenter);
+    const insets = quadraticTrajectoryInsets(sourceCenter, targetCenter, bow);
+    const start = { x: sourceCenter.x + insets.start, y: sourceCenter.y };
+    const end = { x: targetCenter.x + insets.end, y: targetCenter.y };
+    const control = quadraticTrajectoryControl(start, end, bow);
     const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${control.x.toFixed(1)} ${control.y.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
     path.attr('d', d);
     d3.select(this.parentElement)
@@ -384,6 +387,7 @@ export function createTrajectoryRefinements({
       .attr('data-trajectory-source-attachment', null)
       .attr('data-trajectory-source-anchor', null)
       .attr('data-trajectory-target-attachment', null)
+      .attr('data-trajectory-bow', null)
       .attr('data-trajectory-orthogonal-departures', null);
   };
   return {

@@ -1,6 +1,6 @@
 import type { SyntaxNode } from '../../types.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
-import { isDisplayTerminalNode } from '../replaySurfaceNotation.ts';
+import { isDisplayTerminalNode, shouldExpandPreterminalLeaf } from '../replaySurfaceNotation.ts';
 
 const countDisplayTerminals = (node: SyntaxNode): number => node.children?.length
   ? node.children.reduce((count, child) => Math.min(2, count + countDisplayTerminals(child)), 0)
@@ -20,6 +20,12 @@ export const headTrajectoryAttachment = (node: SyntaxNode, provedHead = false): 
   return count === 0 || compoundHead ? 'shell-bottom' : 'terminal';
 };
 
+/** An endpoint ends just below its node's visible text. A shell endpoint has
+ * no category label to stand under when the node is painted only as a word
+ * (a trace t, a silent copy, a bare word), and its node point lies above that
+ * word; it attaches below the word instead. */
+export const visibleTextTrajectoryAttachment = <A extends string>(node: SyntaxNode, attachment: A): A | 'terminal' =>
+  attachment === 'shell-bottom' && isDisplayTerminalNode(node) && !shouldExpandPreterminalLeaf(node) ? 'terminal' : attachment;
 
 /**
  * The one terminal-attachment law, pure and shared by every provider: a

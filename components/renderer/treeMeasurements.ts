@@ -157,6 +157,12 @@ export function createTreeMeasurements({ g, overlayNodeById, measureGraphicsElem
       .map((rect) => new DOMPoint(rect.left, rect.top).matrixTransform(inverse).y);
     return d3.min(tops) ?? TRAJECTORY_ROUTES.textTopFallbackY;
   };
+  /** Every painted category label and word, each in tree units. */
+  const measuredTreeLabelRects = () => g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
+    .nodes()
+    .map((label) => measureGraphicsElementsInTreeSpace([label]))
+    .filter((rect): rect is { x: number; y: number; width: number; height: number } =>
+      Boolean(rect && (rect.width || rect.height)));
   const measuredTerminalSubtreeRectNow = (nodeId: string) => {
     const anchor = overlayNodeById.get(nodeId);
     if (!anchor) return null;
@@ -229,6 +235,7 @@ export function createTreeMeasurements({ g, overlayNodeById, measureGraphicsElem
     measuredShellTop,
     measuredTerminalBottom,
     measuredTreeTextTopY,
+    measuredTreeLabelRects,
     measuredTerminalSubtreeRectNow,
     measuredTreeLabelRectNow,
     exactScreenTreeLabelRectNow,
