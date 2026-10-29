@@ -308,6 +308,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     containerRef,
     TARGET_EMERALD,
     treeDirection,
+    stageRelations: activeDerivationFrame?.relations,
     stepLabelRuns
   });
   // Initial viewport fit:

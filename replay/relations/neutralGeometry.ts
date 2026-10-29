@@ -1,7 +1,8 @@
 import { spaceAuthoredName } from '../displayText.ts';
 import { ANCHOR_SET_BADGE_CLEARANCE, anchorSetBadgeOuterRadius } from '../rendererMetrics.ts';
 import type { BoundAnchorSetBadge, BoundFallbackMark } from './boundGeometry.ts';
-import { FALLBACK_ROLE_STYLE, fallbackLabelRect, placeFallbackMark, routeFallbackSegments } from './fallbackGeometry.ts';
+import { bracketsFallbackLink, FALLBACK_ROLE_STYLE, fallbackLabelRect, placeFallbackMark, routeFallbackSegments } from './fallbackGeometry.ts';
+import type { FallbackWordSpan } from './fallbackSpans.ts';
 import type { GeometryBinders } from './geometryContext.ts';
 import { fongEdgeOutlineRect } from './markGeometry.ts';
 import type { Point } from './overlayGeometry.ts';
@@ -10,10 +11,14 @@ import { railEntrySequence } from './largeAnchorSets.ts';
 import { fallbackPlaqueTextMeasure } from './plaqueTextLayout.ts';
 import { planItemRelationRefs } from './renderPlan.ts';
 
+/** Brackets closer than this, in tree units, would read as one; the narrower nests instead. */
+const BRACKET_SEPARATION = 28;
+
 export const neutralGeometry = {
   'fallback': (item, itemIndex, context) => {
     const {
       fallbackOccupied,
+      positionFor,
       requirePoint,
       rectFor,
       outlinedLabels,
@@ -28,9 +33,50 @@ export const neutralGeometry = {
       : fallbackOccupied;
     const markCenters = new Map<string, Point>();
     const ownedMarks: BoundFallbackMark[] = [];
+    const subtreeBottom = (id: string): Point | null => {
+      const rect = options.fallbackMeasurements?.subtreeFor(id) ?? rectFor(id);
+      return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height } : null;
+    };
+    // A two-witness link whose stems would cross the tree brackets its words instead.
+    const link = item.drawing.link;
+    const spanFor = options.fallbackMeasurements?.spanFor;
+    const linkBottoms = link?.endpoints.map(subtreeBottom);
+    const spans = link && spanFor && linkBottoms?.every(Boolean)
+      && link.endpoints.every(id => positionFor(id)) && link.endpoints[0] !== link.endpoints[1]
+      && bracketsFallbackLink(linkBottoms[0]!, linkBottoms[1]!, options.fallbackMeasurements?.labels ?? []) ? link.endpoints.map(id => spanFor(id)) : null;
+    const brackets = spans?.every(Boolean) ? spans as FallbackWordSpan[] : null;
+    const measure = options.plaqueTextLayout?.measureText ?? fallbackPlaqueTextMeasure;
+    const measuredHeight = (metrics: ReturnType<typeof measure>) => options.plaqueTextLayout?.measureText
+      && Number.isFinite(metrics.ascent) && metrics.ascent! >= 0
+      && Number.isFinite(metrics.descent) && metrics.descent! >= 0
+      && metrics.ascent! + metrics.descent! > 0 ? metrics.ascent! + metrics.descent! : undefined;
+    const connectorText = (text: string, nodeId: string, role: string, kind: 'end' | 'relation'): BoundFallbackMark => {
+      const metrics = measure(text, FALLBACK_ROLE_STYLE);
+      const textHeight = measuredHeight(metrics);
+      const at = positionFor(nodeId)!;
+      return {
+        type: 'fallback-mark', nodeId, x: at.x, y: at.y, role, text, textWidth: metrics.width,
+        ...(textHeight === undefined ? {} : { textHeight }),
+        labelRect: options.fallbackMeasurements?.labelFor(nodeId) ?? rectFor(nodeId)!,
+        connectorLabel: kind, connectorWitnesses: [link!.endpoints[0], link!.endpoints[1]],
+        backward: false, numeral: null, frame: 'circle', instance: item.drawing.instance,
+        allocationOrder: context.fallbackAllocationOrder++, stackIndex: 0, itemIndex
+      };
+    };
     item.drawing.marks.forEach((mark) => {
       const point = requirePoint(itemIndex, mark.witness);
       if (!point) return;
+      const end = brackets && link ? link.endpoints.indexOf(mark.witness) : -1;
+      if (end >= 0 && brackets) {
+        // Placed under the routed connector once it is routed (geometryBinding.ts).
+        const category = brackets[end].category;
+        const text = `${category ? `${category} · ` : ''}${spaceAuthoredName(mark.role, { snakeCase: true })}`;
+        const bound = connectorText(text, mark.witness, mark.role, 'end');
+        Object.assign(bound, { frame: mark.frame, instance: mark.instance, backward: mark.backward, stackIndex: nextStackIndex(mark.witness) });
+        ownedMarks.push(bound);
+        primitives.push(bound);
+        return;
+      }
       const measuredLabel = options.fallbackMeasurements?.labelFor(mark.witness) ?? rectFor(mark.witness)!;
       // The neutral role belongs outside the existing label's edge outline.
       // Reserve that outline without moving the syntax or enlarging the box.
@@ -55,22 +101,44 @@ export const neutralGeometry = {
       ownedMarks.push(bound);
       primitives.push(bound);
     });
-    // Fans join their own marks. Two-witness links start below their subtrees.
-    if (item.drawing.link) {
-      const subtreeBottom = (id: string): Point | null => {
-        if (!markCenters.has(id)) return null;
-        const rect = options.fallbackMeasurements?.subtreeFor(id) ?? rectFor(id);
-        return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height } : null;
-      };
-      const first = subtreeBottom(item.drawing.link.endpoints[0]);
-      const second = subtreeBottom(item.drawing.link.endpoints[1]);
+    // Fans join their own marks. Two-witness links start below their subtrees,
+    // or bracket the words their participants cover.
+    if (link && brackets) {
+      const ends = link.endpoints.map((nodeId, index) => ({ nodeId, runs: brackets[index].runs, tick: brackets[index].tick }));
+      // A dominated participant's bracket nests inside; so does the narrower of
+      // two whose words overlap in x, as words hung at different rows can.
+      const [a, b] = brackets.map(span => span.leaves);
+      const hulls = ends.map(end => end.tick !== null ? [end.tick, end.tick]
+        : [Math.min(...end.runs.map(run => run.x1)), Math.max(...end.runs.map(run => run.x2))]);
+      const overlap = hulls[0][0] < hulls[1][1] + BRACKET_SEPARATION && hulls[1][0] < hulls[0][1] + BRACKET_SEPARATION;
+      const inner = a[0] <= b[0] && a[1] >= b[1] ? 1 : b[0] <= a[0] && b[1] >= a[1] ? 0
+        : overlap ? (hulls[0][1] - hulls[0][0] <= hulls[1][1] - hulls[1][0] ? 0 : 1) : null;
+      const relation = String(options.relationNameFor?.(item.relationRef) ?? '').trim();
+      if (relation) {
+        const bound = connectorText(spaceAuthoredName(relation, { snakeCase: true }), link.endpoints[0], relation, 'relation');
+        ownedMarks.push(bound);
+        primitives.push(bound);
+      }
+      pendingSegments.push({
+        type: 'segment',
+        route: 'counter-lane',
+        witnessNodeIds: [...link.endpoints],
+        from: linkBottoms![0]!,
+        to: linkBottoms![1]!,
+        brackets: { ends: [ends[0], ends[1]], inner },
+        directed: false,
+        itemIndex
+      });
+    } else if (link) {
+      const first = markCenters.has(link.endpoints[0]) ? linkBottoms![0] : null;
+      const second = markCenters.has(link.endpoints[1]) ? linkBottoms![1] : null;
       if (first && second) {
         const left = first.x <= second.x ? first : second;
         const right = left === first ? second : first;
         pendingSegments.push({
           type: 'segment',
           route: 'counter-lane',
-          witnessNodeIds: [...item.drawing.link.endpoints],
+          witnessNodeIds: [...link.endpoints],
           from: left,
           to: right,
           directed: false,
@@ -152,7 +220,7 @@ export const neutralGeometry = {
     const neutralBadge = (badge: typeof layout.badges[number]): BoundFallbackMark | undefined => {
       if (item.ownNumerals) return undefined;
       const matches = primitives.filter((mark): mark is BoundFallbackMark => {
-        if (mark.type !== 'fallback-mark' || mark.nodeId !== badge.nodeId || mark.role !== badge.role
+        if (mark.type !== 'fallback-mark' || mark.connectorLabel || mark.nodeId !== badge.nodeId || mark.role !== badge.role
           || options.isItemRevealed && !options.isItemRevealed(mark.itemIndex)) return false;
         return planItemRelationRefs(frame.items[mark.itemIndex]).some(owner =>
           owner.stageIndex === item.relationRef.stageIndex && owner.relationIndex === item.relationRef.relationIndex);

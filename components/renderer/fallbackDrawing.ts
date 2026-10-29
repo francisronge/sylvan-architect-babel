@@ -13,6 +13,7 @@ import {
 } from '../../replay/relations/overlayGeometry.ts';
 import type { PlaquePlacement } from '../../replay/relations/plaquePlacement.ts';
 import { boundingRect } from '../../replay/relations/rectGeometry.ts';
+import { coveredWordSpan } from '../../replay/relations/fallbackSpans.ts';
 import type { RelationRenderPlan } from '../../replay/relations/renderPlan.ts';
 import {
   isPlanItemRevealed,
@@ -38,6 +39,7 @@ export function drawFallbackMark(
     .attr('data-vr-witness', primitive.nodeId)
     .attr('transform', `translate(${primitive.x},${primitive.y}) scale(${markerScale})`);
   marker.attr('data-authored-role', primitive.role);
+  if (primitive.connectorLabel) marker.attr('data-vr-connector-label', primitive.connectorLabel);
   marker.append('text').attr('class', 'vr-fallback-role')
     .attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
     .attr('font-size', FALLBACK_ROLE_STYLE.fontSize).text(primitive.text);
@@ -56,6 +58,7 @@ interface FallbackLabelsContext {
   playedRelationIndices: Set<number> | null;
   activeRelationMoment: { stageIndex: number; relationIndex: number; } | null;
   resolveOverlayAnchor: (nodeId: string) => object | null | undefined;
+  direction: 'ltr' | 'rtl';
 }
 export function measureFallbackLabels({
   relationRenderPlan,
@@ -68,7 +71,8 @@ export function measureFallbackLabels({
   replayVisibleNodeIdSet,
   playedRelationIndices,
   activeRelationMoment,
-  resolveOverlayAnchor
+  resolveOverlayAnchor,
+  direction
 }: FallbackLabelsContext) {
   const hasFallback = relationRenderPlan.frames[activeDerivationFrameIndex]?.items.some(item => item.kind === 'fallback');
   // Measure the complete stage, including unrevealed labels, in tree coordinates.
@@ -139,6 +143,13 @@ export function measureFallbackLabels({
     }).map(([, rect]) => rect),
     labelFor: (id: string) => fallbackRectFor(id),
     subtreeFor: (id: string) => fallbackRectFor(id, true),
+    spanFor: (id: string) => {
+      const anchor = frameLayoutById.get(id);
+      return anchor ? coveredWordSpan(anchor, node => {
+        const wordId = getNodeId(node as unknown as HierNode);
+        return !replayVisibleNodeIdSet || replayVisibleNodeIdSet.has(wordId) ? fallbackLabelRects.get(wordId) ?? null : null;
+      }, direction) : null;
+    },
     bottom: Math.max(0, ...[...fallbackLabelRects.values()].map(rect => rect.y + rect.height))
   };
 

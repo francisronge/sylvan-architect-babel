@@ -5,7 +5,9 @@ import type {
   BoundFallbackMark,
   BoundFrame,
   BoundPrimitive,
-  BoundSegment
+  BoundSegment,
+  FallbackBracketEnd,
+  FallbackBrackets
 } from './boundGeometry.ts';
 import type { Point, Rect } from './overlayGeometry.ts';
 import { allocateSpanLanes } from './overlayGeometry.ts';
@@ -131,6 +133,170 @@ export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = 
   return visible.filter(kept).map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');
 }
 
+/** Below this rise between the participants' subtree bottoms, two stems start
+ * below their subtrees; above it, the higher stem would cross the tree. */
+const SAME_ROW = TREE_ROW_HEIGHT / 2;
+
+/** Whether a two-witness connector brackets its participants' words instead
+ * of dropping a stem below each subtree (`from` and `to`, each its subtree's
+ * bottom middle): when the subtrees do not both reach the participants' lowest
+ * row, a stem from the higher one would run down through the tree, and when
+ * tree text lies a row deeper between the stems, their run would cross its
+ * branches. Two words on the lowest row keep their stems. */
+export const bracketsFallbackLink = (from: Point, to: Point, labels: readonly Rect[]): boolean => {
+  const bottom = Math.max(from.y, to.y), left = Math.min(from.x, to.x), right = Math.max(from.x, to.x);
+  return Math.abs(from.y - to.y) > SAME_ROW
+    || labels.some(box => box.x < right && box.x + box.width > left && box.y + box.height > bottom + SAME_ROW);
+};
+
+// Bracket shape in marker units: the end ticks' rise, and the drop from a
+// bracket to the run joining the two brackets below it.
+const BRACKET_TICK = 8;
+const BRACKET_DROP = 16;
+
+const endHull = (end: FallbackBracketEnd): [number, number] => end.tick !== null ? [end.tick, end.tick]
+  : [Math.min(...end.runs.map(run => run.x1)), Math.max(...end.runs.map(run => run.x2))];
+const endJoin = (end: FallbackBracketEnd): number => {
+  const [x1, x2] = endHull(end);
+  return (x1 + x2) / 2;
+};
+const bracketXs = (brackets: FallbackBrackets): number[] => brackets.ends.flatMap(endHull);
+
+const fixed = (value: number) => value.toFixed(1);
+
+/** A bracketed connector. Its run takes the lane a stem connector would run
+ * along. Each participant's bracket runs under the words it covers one drop
+ * above the lane, with a short tick rising at each end of every run; a
+ * participant covering no painted word has one tick. Brackets of two separate
+ * participants join by the run, through stems from each bracket's middle. When
+ * one participant dominates the other, the inner bracket stays above and the
+ * outer one, drawn along the lane and extended to the inner's middle, is
+ * itself the run. */
+function routeBrackets(segment: UnroutedFallbackSegment, lane: number, runY: number, markerScale: number): BoundSegment {
+  const brackets = segment.brackets!;
+  const tick = BRACKET_TICK * markerScale, drop = BRACKET_DROP * markerScale;
+  const joins = brackets.ends.map(endJoin) as [number, number];
+  const laneY = runY - drop;
+  const levels: [number, number] = brackets.inner === null ? [laneY, laneY]
+    : brackets.inner === 0 ? [laneY, runY] : [runY, laneY];
+  const bracketPath = (end: FallbackBracketEnd, y: number, reach: number | null) => {
+    if (end.tick !== null) return [`M ${fixed(end.tick)} ${fixed(y - tick)} L ${fixed(end.tick)} ${fixed(y)}`];
+    const [x1, x2] = endHull(end);
+    const left = reach === null ? x1 : Math.min(x1, reach), right = reach === null ? x2 : Math.max(x2, reach);
+    return [`M ${fixed(left)} ${fixed(y)} L ${fixed(right)} ${fixed(y)}`,
+      ...end.runs.map(run => `M ${fixed(run.x1)} ${fixed(y - tick)} L ${fixed(run.x1)} ${fixed(y)} M ${fixed(run.x2)} ${fixed(y)} L ${fixed(run.x2)} ${fixed(y - tick)}`)];
+  };
+  const pieces: string[] = [];
+  if (brackets.inner === null) {
+    const [left, right] = joins[0] <= joins[1] ? joins : [joins[1], joins[0]];
+    const corner = Math.min(9 * markerScale, (right - left) / 2), rise = Math.min(8 * markerScale, corner);
+    pieces.push(...bracketPath(brackets.ends[0], laneY, null), ...bracketPath(brackets.ends[1], laneY, null),
+      `M ${fixed(left)} ${fixed(laneY)} L ${fixed(left)} ${fixed(runY - rise)}`,
+      `Q ${fixed(left)} ${fixed(runY)} ${fixed(left + corner)} ${fixed(runY)}`,
+      `L ${fixed(right - corner)} ${fixed(runY)}`,
+      `Q ${fixed(right)} ${fixed(runY)} ${fixed(right)} ${fixed(runY - rise)}`,
+      `L ${fixed(right)} ${fixed(laneY)}`);
+  } else {
+    const inner = brackets.inner, outer = inner === 0 ? 1 : 0;
+    pieces.push(...bracketPath(brackets.ends[inner], laneY, null),
+      `M ${fixed(joins[inner])} ${fixed(laneY)} L ${fixed(joins[inner])} ${fixed(runY)}`,
+      ...bracketPath(brackets.ends[outer], runY, joins[inner]));
+  }
+  return { ...segment, lane, laneY: runY, d: pieces.join(' '), brackets: { ...brackets, joins, levels, runY } };
+}
+
+/** The boxes a routed counter-lane connector paints along, for text placement. */
+export function counterLaneRouteBoxes(segment: BoundSegment, markerScale: number): Rect[] {
+  const box = (x1: number, y1: number, x2: number, y2: number): Rect =>
+    ({ x: Math.min(x1, x2), y: Math.min(y1, y2), width: Math.abs(x2 - x1), height: Math.abs(y2 - y1) });
+  const brackets = segment.brackets;
+  if (!brackets?.levels || !brackets.joins || brackets.runY === undefined) {
+    const points = [segment.from, { x: segment.from.x, y: segment.laneY! }, { x: segment.to.x, y: segment.laneY! }, segment.to];
+    return points.slice(1).map((point, i) => box(points[i].x, points[i].y, point.x, point.y));
+  }
+  const tick = BRACKET_TICK * markerScale, [a, b] = brackets.joins, runY = brackets.runY;
+  return [
+    ...brackets.ends.map((end, index) => {
+      const [x1, x2] = endHull(end), y = brackets.levels![index];
+      const reach = brackets.inner !== null && brackets.inner !== index ? brackets.joins![brackets.inner] : x1;
+      return box(Math.min(x1, reach), y - tick, Math.max(x2, reach), y);
+    }),
+    box(a, brackets.levels[0], a, runY), box(b, brackets.levels[1], b, runY),
+    ...brackets.inner === null ? [box(a, runY, b, runY)] : []
+  ];
+}
+
+// Connector text in marker units: the gap below the lowest line, and the rows a
+// label may step down when no spot beside it is free.
+const CONNECTOR_LABEL_GAP = 3;
+const CONNECTOR_LABEL_ROWS = 3;
+
+/** Where a bracketed connector's text may go, best first: under its lowest
+ * line, centred under its own bracket's middle (an `end` label) or under the
+ * middle of the run (the `relation` label); then that row half a label to
+ * either side, the reading direction's first, and once more; for the relation, between the brackets above
+ * the run; then beside its bracket's ends, at the bracket and then at the run,
+ * out to two more label widths (beside the run's ends, at the run and then at
+ * the brackets, for the relation); then one text row lower at a time. */
+export function connectorLabelSpots(mark: Pick<BoundFallbackMark, 'connectorLabel' | 'nodeId' | 'textWidth' | 'textHeight'>,
+  segment: BoundSegment, scale: number, direction: 'ltr' | 'rtl' = 'ltr'): Point[] {
+  // Spots on the reading-direction side come first, so right to left reflects left to right.
+  const reading = direction === 'rtl' ? -1 : 1;
+  const brackets = segment.brackets!;
+  const height = (mark.textHeight === undefined ? 24 : mark.textHeight + 4) * scale;
+  const half = (mark.textWidth / 2 + 4) * scale, gap = CONNECTOR_LABEL_GAP * scale;
+  const joins = brackets.joins!, levels = brackets.levels!, runY = brackets.runY!;
+  const end = Math.max(0, brackets.ends.findIndex(candidate => candidate.nodeId === mark.nodeId));
+  const outer = brackets.inner === null ? null : brackets.inner === 0 ? 1 : 0;
+  const reach = (index: number): [number, number] => {
+    const [x1, x2] = endHull(brackets.ends[index]);
+    return index === outer ? [Math.min(x1, joins[brackets.inner!]), Math.max(x2, joins[brackets.inner!])] : [x1, x2];
+  };
+  const run: [number, number] = outer === null ? [Math.min(...joins), Math.max(...joins)] : reach(outer);
+  const [x1, x2] = mark.connectorLabel === 'end' ? reach(end) : run;
+  const x = mark.connectorLabel === 'end' ? (brackets.inner === end || outer === null ? joins[end] : (x1 + x2) / 2) : (x1 + x2) / 2;
+  const bracketY = Math.min(...levels) - BRACKET_TICK * scale / 2;
+  const besideY = mark.connectorLabel === 'end' ? [levels[end] - BRACKET_TICK * scale / 2, runY] : [runY, bracketY];
+  const y = runY + (FALLBACK_STROKE_WIDTHS['counter-lane'].shadow / 2) * scale + gap + height / 2;
+  return [
+    { x, y }, { x: x + reading * half, y }, { x: x - reading * half, y },
+    { x: x + reading * 2 * half, y }, { x: x - reading * 2 * half, y },
+    ...mark.connectorLabel === 'relation' ? [{ x, y: bracketY }] : [],
+    ...besideY.flatMap(at => [0, 1, 2].flatMap(step => {
+      const after = { x: x2 + gap * 2 + (1 + 2 * step) * half, y: at }, before = { x: x1 - gap * 2 - (1 + 2 * step) * half, y: at };
+      return reading > 0 ? [after, before] : [before, after];
+    })),
+    ...Array.from({ length: CONNECTOR_LABEL_ROWS }, (_, row) => ({ x, y: y + (row + 1) * height }))
+  ];
+}
+
+/** Place one bracketed connector's text at its first free spot inside the
+ * viewport and reserve it. Without one, a participant's text goes beside its
+ * own label as a role does (placeFallbackMark); the relation's takes the free
+ * spot that leaves the viewport least, else where it overlaps least. */
+export function placeConnectorLabel(mark: BoundFallbackMark, segment: BoundSegment, scale: number,
+  occupied: Rect[], viewport?: Rect, direction: 'ltr' | 'rtl' = 'ltr'): Point {
+  const spots = connectorLabelSpots(mark, segment, scale, direction);
+  const boxFor = (point: Point) => fallbackLabelRect({ ...mark, ...point }, scale);
+  const protrusion = (point: Point) => {
+    if (!viewport) return 0;
+    const box = boxFor(point);
+    return Math.max(0, viewport.x - box.x, viewport.y - box.y,
+      box.x + box.width - viewport.x - viewport.width, box.y + box.height - viewport.y - viewport.height);
+  };
+  const overlap = (point: Point) => Math.max(0, ...occupied.map(other => overlapDepth(boxFor(point), other)));
+  const free = spots.filter(point => overlap(point) <= 0.5);
+  // A connector Fit leaves near the viewport's edge keeps its text as far inside as it can.
+  const inside = free.find(point => protrusion(point) === 0);
+  // A participant's text with no room there returns beside its own label.
+  if (!inside && viewport && mark.connectorLabel === 'end') return placeFallbackMark(mark, scale, occupied, viewport, direction);
+  const chosen = inside
+    ?? free.reduce<Point | undefined>((best, point) => !best || protrusion(point) < protrusion(best) ? point : best, undefined)
+    ?? [...spots].sort((a, b) => overlap(a) - overlap(b) || protrusion(a) - protrusion(b))[0];
+  occupied.push(boxFor(chosen));
+  return chosen;
+}
+
 export const routeFallbackSegments = (
   segments: UnroutedFallbackSegment[],
   options: FallbackRoutingOptions
@@ -144,12 +310,22 @@ export const routeFallbackSegments = (
   const spokePlaques = { boxes: plaques, contact: shadowReach, gap: shadowReach + PLAQUE_VISIBLE_GAP * markerScale,
     minimum: FALLBACK_STROKE_WIDTHS.direct.line * markerScale };
   const counterSegments = segments.filter(segment => segment.route === 'counter-lane');
-  const lanes = allocateSpanLanes(counterSegments.map(segment => ({
-    start: Math.min(segment.from.x, segment.to.x),
-    end: Math.max(segment.from.x, segment.to.x)
-  })), laneGap);
+  const extent = (segment: UnroutedFallbackSegment): [number, number] => {
+    const xs = segment.brackets ? bracketXs(segment.brackets) : [segment.from.x, segment.to.x];
+    return [Math.min(...xs), Math.max(...xs)];
+  };
+  const lanes = allocateSpanLanes(counterSegments.map(segment => {
+    const [start, end] = extent(segment);
+    return { start, end };
+  }), laneGap);
+  // Brackets go below all syntax over them, so they never cross its branches.
+  const overBrackets = counterSegments.filter(segment => segment.brackets).flatMap(segment => {
+    const [x1, x2] = extent(segment);
+    return (options.fallbackMeasurements?.labels ?? []).filter(box => box.x < x2 && box.x + box.width > x1)
+      .map(box => box.y + box.height);
+  });
   const participantBottom = counterSegments.length > 0
-    ? Math.max(...counterSegments.flatMap(segment => [segment.from.y, segment.to.y])) : 0;
+    ? Math.max(...counterSegments.flatMap(segment => [segment.from.y, segment.to.y]), ...overBrackets) : 0;
   // Measured endpoints already include their subtree bottoms. Unrelated
   // deeper syntax must not turn a local connection into a tree-height detour.
   const localFloor = options.fallbackMeasurements
@@ -166,18 +342,24 @@ export const routeFallbackSegments = (
   const labelClearance = LABEL_CLEARANCE * markerScale;
   const turn = 8 * markerScale;
   const stroke = FALLBACK_STROKE_WIDTHS['counter-lane'].shadow / 2 * markerScale;
+  // Brackets stand one drop above their lane, so their ticks reach that much higher.
+  const rise = counterSegments.some(segment => segment.brackets) ? (BRACKET_DROP + BRACKET_TICK) * markerScale - turn : 0;
   const deepestLane = Math.max(0, ...lanes) * laneGap;
-  const crosses = (box: Rect, gap: number) => counterSegments.some(segment => box.x - gap < Math.max(segment.from.x, segment.to.x)
-    && box.x + box.width + gap > Math.min(segment.from.x, segment.to.x));
+  const crosses = (box: Rect, gap: number) => counterSegments.some(segment => box.x - gap < extent(segment)[1]
+    && box.x + box.width + gap > extent(segment)[0]);
+  // Only boxes above a bracket need the brackets' extra rise.
+  const bracketHulls = counterSegments.flatMap(segment => segment.brackets?.ends.map(endHull) ?? []);
+  const riseOver = (box: Rect, gap: number) => bracketHulls.some(([x1, x2]) => box.x - gap < x2 && box.x + box.width + gap > x1) ? rise : 0;
   const floorBelow = (labels: readonly Rect[]) => {
     let floor = localFloor;
     for (const { box, label } of [...(options.obstacles ?? []).map(box => ({ box, label: false })),
       ...labels.map(box => ({ box, label: true }))].sort((a, b) => a.box.y - b.box.y)) {
       if (!label && box.y - clearance <= floor + deepestLane && crosses(box, clearance))
-        floor = Math.max(floor, box.y + box.height + clearance);
+        floor = Math.max(floor, box.y + box.height + clearance + riseOver(box, clearance));
+      const above = label ? riseOver(box, labelClearance + stroke) : 0;
       if (label && box.y - labelClearance < floor + deepestLane + stroke
-        && box.y + box.height + labelClearance > floor - turn - stroke && crosses(box, labelClearance + stroke))
-        floor = box.y + box.height + labelClearance + turn + stroke;
+        && box.y + box.height + labelClearance > floor - turn - above - stroke && crosses(box, labelClearance + stroke))
+        floor = box.y + box.height + labelClearance + turn + above + stroke;
     }
     return floor;
   };
@@ -189,9 +371,10 @@ export const routeFallbackSegments = (
     if (segment.route === 'direct') {
       return { ...segment, lane: null, d: clearLabelPath(segment.from, segment.to, options.labelClearances, spokePlaques) };
     }
+    const lane = lanes[counterIndex++];
+    if (segment.brackets) return routeBrackets(segment, lane, measuredBaseline + lane * laneGap, markerScale);
     const from = segment.from.x <= segment.to.x ? segment.from : segment.to;
     const to = from === segment.from ? segment.to : segment.from;
-    const lane = lanes[counterIndex++];
     const laneY = measuredBaseline + lane * laneGap;
     const stem = 6 * markerScale;
     const corner = 9 * markerScale;
@@ -325,6 +508,17 @@ export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 't
   return chosen;
 };
 
+/** Place a connector's text against everything reserved, its own lines by their
+ * painted width rather than the clearance other text keeps from them. */
+export function placeConnectorLabelAmong(mark: BoundFallbackMark, segment: BoundSegment, scale: number, occupied: Rect[],
+  own: ReadonlySet<Rect> | undefined, viewport?: Rect, direction: 'ltr' | 'rtl' = 'ltr'): Point {
+  const lines = counterLaneRouteBoxes(segment, scale).map(box => inflateRect(box, FALLBACK_STROKE_WIDTHS['counter-lane'].shadow / 2 * scale));
+  const others = [...own ? occupied.filter(box => !own.has(box)) : occupied, ...lines];
+  const point = placeConnectorLabel(mark, segment, scale, others, viewport, direction);
+  occupied.push(others.at(-1)!);
+  return point;
+}
+
 /** Refit the same measured allocation, preserving claim ownership and stage-wide reservation. */
 export const fitFallbackGeometry = (
   frame: BoundFrame,
@@ -360,20 +554,23 @@ export const fitFallbackGeometry = (
     ...options, markerScale: scale, obstacles: options.fallbackMeasurements?.obstacles
   });
   // Place text around the complete reserved routes, rather than bending a link
-  // around long text or allowing later role labels to cover its stems.
+  // around long text or allowing later role labels to cover its stems. A
+  // bracketed connector's own text keeps only its painted width from its lines.
+  const ownRoutes = new Map<number, Set<Rect>>();
   for (const segment of routed) {
-    const points = [segment.from, { x: segment.from.x, y: segment.laneY! },
-    { x: segment.to.x, y: segment.laneY! }, segment.to];
-    points.slice(1).forEach((point, i) => occupied.push(inflateRect({
-      x: Math.min(point.x, points[i].x), y: Math.min(point.y, points[i].y),
-      width: Math.abs(point.x - points[i].x), height: Math.abs(point.y - points[i].y)
-    }, ROUTE_CLEARANCE * scale)));
+    const boxes = counterLaneRouteBoxes(segment, scale).map(box => inflateRect(box, ROUTE_CLEARANCE * scale));
+    occupied.push(...boxes);
+    ownRoutes.set(segment.itemIndex, new Set(boxes));
   }
+  const bracketed = new Map(routed.filter(segment => segment.brackets).map(segment => [segment.itemIndex, segment]));
   const updates = new Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail>();
   const centers = new Map<number, Point>();
   frame.primitives.filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
     .sort((a, b) => a.allocationOrder - b.allocationOrder).forEach(mark => {
-      const point = placeFallbackMark(mark, scale, occupied, options.fittedViewport, options.direction);
+      const segment = mark.connectorLabel ? bracketed.get(mark.itemIndex) : undefined;
+      const point = segment ? placeConnectorLabelAmong(mark, segment, scale, occupied, ownRoutes.get(mark.itemIndex),
+        options.fittedViewport, options.direction)
+        : placeFallbackMark(mark, scale, occupied, options.fittedViewport, options.direction);
       updates.set(mark, { ...mark, ...point });
       centers.set(mark.allocationOrder, point);
     });

@@ -528,7 +528,38 @@ locators or backward triangles. List positions appear as `[1]`, `[2]`,
 and so on; equal positions across paired lists retain their correspondence.
 Two scalar witnesses have the accepted connector
 below their subtrees, a scalar plus an array has a fan, and unpaired witnesses
-have no invented links. Fan paths leave measured gaps around syntax and role
+have no invented links.
+
+A connector's participant stands for the words it covers (Francis, 29 October
+2026: "1. works", choosing "Brackets under the words each anchor covers").
+When both participants' subtrees reach the same lowest row (within half a tree
+row) and no tree text lies a row deeper between their stems, each keeps its
+stem below its subtree and its role label beside it, byte for byte as before.
+Otherwise a stem from the higher one would run down through the tree, or the
+run would cross deeper branches, so neither draws a stem: below the lowest
+tree text over them, on the same floor rule and lane, each gets a thin bracket spanning the painted
+words it dominates in the current frame, with short ticks rising at the ends
+of every run of words (a run breaks where a word it does not dominate lies
+between). A participant covering no painted word, such as a silent head or a
+trace, gets one tick at its own x kept a word-font size clear of the words
+before and after it in tree order. Brackets stand one short drop above the
+lane, and the run joining them takes the lane a stem connector would. When
+one participant dominates the other, or their brackets would overlap, the
+inner (narrower) bracket stays above and the outer one is drawn along the
+lane, extended to the inner's middle, so it is itself the run. Nothing rises
+above the brackets' ticks. Labels then name the bracket instead of the node:
+`category · role` (the category without its features, `T[past]` as `T`) under
+each participant's bracket and the relation name under the run, in the
+role-label style. Each takes its first free spot inside the fitted viewport
+among: below the lowest line, half and one label width to either side,
+between the brackets (the relation name), beside the bracket's or the run's
+ends, then lower rows. A participant's label with no such spot returns beside
+its own node, as a role label is placed; the relation name takes the free spot
+that leaves the viewport least. The floor rule is unchanged except that a
+plaque or tree label above a bracket keeps the brackets' ticks clear. Single
+witnesses, fans, arrays and closures keep their marks unchanged.
+`replay/relations/fallbackSpans.ts` measures the words for the painter and the
+offline frames alike; `fallbackGeometry.ts` routes and labels them. Fan paths leave measured gaps around syntax and role
 labels. Scalar connector stems use the same label clearance. A fan spoke whose
 stroke would meet a visible plaque stops short of it on each side, leaving four
 marker units of dark space beyond the spoke's shadow at every automatic Fit.
@@ -666,7 +697,7 @@ Generic gap labels, coindices and complete Tier-3 role labels retain their
 accepted size at automatic Fit, then share the tree's scale during manual zoom.
 Their size and stacked offsets use that same Fit reference when redrawn under a
 retained manual camera. Each role label and its array position stay in one coordinate group. Fan connectors follow the fitted marks;
-two-scalar connectors start below their participating subtrees, as in the Orchard;
+two-scalar connectors start below their participating subtrees, as in the Orchard, or bracket their words;
 their lower turn clears those endpoints and local plaques, not unrelated deeper syntax;
 dependent rails remain below the deepest connector lane. Native Orchard paint
 and the initial fitted appearance are unchanged.

@@ -25,7 +25,8 @@ import {
 import { prepareReplay } from '../../replay/prepareReplay.ts';
 import { TREE_ROW_HEIGHT } from '../../replay/treeSpacing.ts';
 import { prepareTreeLabelRuns } from '../../replay/prepareTreeLabelRuns.ts';
-import { fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
+import { connectorLabelSpots, fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
+import { coveredWordSpan } from '../../replay/relations/fallbackSpans.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { paintedShift } from '../../replay/cameraCarry.ts';
 import { drawnPlaque, projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
@@ -202,6 +203,16 @@ function roleReach(mark, scale) {
     { x: r.x + r.width + gap, y: r.y - 15 * scale }, { x: r.x - gap, y: r.y - 15 * scale }, { x: center.x, y: r.y + r.height + 15 * scale }];
   return { reach: Math.max(...spots.map(spot => Math.hypot(spot.x - center.x, spot.y - center.y))),
     distance: Math.hypot(mark.x - center.x, mark.y - center.y) };
+}
+
+/** A bracketed connector's text against its placer's spots (fallbackGeometry.ts,
+ * connectorLabelSpots), or as a role when it went beside its own label. */
+function connectorReach(mark, segment, scale, direction) {
+  if (!segment) return {};
+  const [first, ...rest] = connectorLabelSpots(mark, segment, scale, direction);
+  if (![first, ...rest].some(spot => Math.abs(spot.x - mark.x) < 1e-6 && Math.abs(spot.y - mark.y) < 1e-6)) return roleReach(mark, scale);
+  return { reach: Math.max(...rest.map(spot => Math.hypot(spot.x - first.x, spot.y - first.y))),
+    distance: Math.hypot(mark.x - first.x, mark.y - first.y) };
 }
 
 /** The browser resolves Replay direction from the sentence's first strong character. */
@@ -383,7 +394,9 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     stage, positionFor, { ...RELATION_BINDING_METRICS, markerScale, ...badgeObstacles,
       hasExistingGapNotation: runText, plaqueTextLayout: { measureText: measurePlaqueText }, isItemRevealed: index => revealed.has(index),
       trajectoryCeilingY: textTop - TRAJECTORY_ROUTES.ceilingAboveTextTop, trajectoryFloorY: maxY + lanes.trajectoryFloor,
-      connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, direction: visual.direction, ...extra });
+      connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, direction: visual.direction,
+      relationNameFor: ref => ref.stageIndex === stage ? visual.prepared.replayDerivationFrames[stage]?.relations?.[ref.relationIndex]?.relation : undefined,
+      ...extra });
   const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
   const shownMarks = bound => bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
   // A binding domain paints its own ellipse over the visible syntax and the plaques inside it (bindingDrawing.ts).
@@ -411,6 +424,10 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   const fallbackMeasurements = { labels: [...labelRects.values()], obstacles: [...placements.values()],
     visibleLabels: [...labelRects].filter(([id]) => visibleIds.has(id)).map(([, value]) => value),
     visibleObstacles: visiblePlacements.map(([, box]) => box), labelFor: id => rectFor(id, false), subtreeFor: id => rectFor(id, true),
+    spanFor: id => { const anchor = laidOut.get(id); return anchor ? coveredWordSpan(anchor, node => {
+      const wordId = display.getNodeId(node);
+      return visibleIds.has(wordId) ? labelRects.get(wordId) ?? null : null;
+    }, visual.direction) : null; },
     bottom: Math.max(0, ...[...labelRects.values()].map(value => value.y + value.height)) };
   const bound = bind({ fallbackMeasurements, separateFallbackMoments: true });
   const scale = fallbackMarkerScale(fitted.k, fallbackMeasurements.labels.map(value => value.height));
@@ -420,12 +437,16 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     badgeGap: RELATION_BINDING_METRICS.badgeGap, laneGap: RELATION_BINDING_METRICS.laneGap, fallbackMeasurements, railBaseY: maxY + lanes.railBase, separateFallbackMoments: true, fittedViewport: fitted.view,
     relationInkObstacles: [...plaques.map(({ rect: shell }) => shell), ...badges.map(badge => badge.boxes[0])]
       .map(box => rect(box.x - 5, box.y - 5, box.width + 10, box.height + 10)) });
+  const connectorOf = itemIndex => {
+    const segment = bound.primitives.find(primitive => primitive.type === 'segment' && primitive.itemIndex === itemIndex && primitive.brackets);
+    return segment && (refit.get(segment) ?? segment);
+  };
   const texts = marks.filter(primitive => primitive.type === 'fallback-mark').map(primitive => {
     const mark = refit.get(primitive) ?? primitive, height = (mark.textHeight ?? 20) * scale, claims = refsOf(items[primitive.itemIndex]);
     // The placement box adds two units per side for the three-unit round outline.
     return { id: `role(${claims.join('/')} ${primitive.text})@${primitive.nodeId}`, kind: 'role', text: primitive.text, nodes: [], claims,
       boxes: [rect(mark.x - mark.textWidth / 2 * scale, mark.y - height / 2, mark.textWidth * scale, height)], halo: 1.5 * scale,
-      ...roleReach(mark, scale) };
+      ...(mark.connectorLabel ? connectorReach(mark, connectorOf(primitive.itemIndex), scale, visual.direction) : roleReach(mark, scale)) };
   });
   const lines = marks.filter(primitive => primitive.type === 'segment').map(primitive => {
     const segment = refit.get(primitive) ?? primitive, claims = refsOf(items[primitive.itemIndex]);
