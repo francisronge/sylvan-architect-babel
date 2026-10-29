@@ -243,6 +243,21 @@ test('an analysis that fails the spelling check keeps its stages but has no word
   assert.deepEqual(payload, original);
 });
 
+test('one analysis with a stray token address does not make its spelled siblings legacy', async () => {
+  const stray = spelledAnalysis();
+  stray.derivationStages[0].workspaceForest[0].children[0].tokenIndex = 0;
+  const payload = { analyses: [spelledAnalysis(), stray] };
+  const original = structuredClone(payload);
+  const result = await inspectFailedOutput(raw(payload), japanese);
+  assert.deepEqual(result.inputTokens, ['花子', 'が', '読んだ']);
+  const [valid, malformed] = result.analyses;
+  assert.equal(valid.replayIssue, undefined);
+  assert.deepEqual(valid.replayStages[0].realizations, [{ nodeIds: ['v', 't'], tokenIndices: [2] }]);
+  assert.equal(malformed.replayStages, null);
+  assert.match(malformed.replayIssue, /tokenIndex/);
+  assert.deepEqual(payload, original);
+});
+
 test('an older output with token addresses keeps the supplied word list', async () => {
   const payload = { derivationStages: [{ ...stage([node('np', [node('one', [], { word: 'book', tokenIndex: 0 })])]),
     realizations: [{ nodeIds: ['one'], tokenIndices: [0] }] }] };

@@ -64,9 +64,13 @@ export const bindRelationPlanFrame = (
       || left.itemIndex - right.itemIndex);
   let badgeCursor = 0;
   entries.forEach((entry) => {
+    if (entry.item.kind === 'anchor-set') return;
     const { item, itemIndex } = usesBoundBadgePosition(entry.item) ? badgeEntries[badgeCursor++] : entry;
     context.bindTransaction(item.kind, () => bindPlanItem(item, itemIndex));
   });
+  // Rails last, once every neutral numeral they may join is bound.
+  anchorSetsInAppearanceOrder(frame.items).forEach(({ item, itemIndex }) =>
+    context.bindTransaction(item.kind, () => bindPlanItem(item, itemIndex)));
   primitives.sort((left, right) => left.itemIndex - right.itemIndex);
 
   /*
@@ -223,6 +227,13 @@ export const bindRelationPlanFrame = (
   return { stageIndex, primitives, failed };
 };
 
+/** A frame's anchor sets in the order Replay first shows their rails
+ * (`railAppearance`), each badge clearing only the badges placed before it. */
+const anchorSetsInAppearanceOrder = (items: readonly RelationPlanItem[]) => items
+  .flatMap((item, itemIndex) => item.kind === 'anchor-set' ? [{ item, itemIndex }] : [])
+  .sort((left, right) => (left.item.railAppearance ?? Infinity) - (right.item.railAppearance ?? Infinity)
+    || left.itemIndex - right.itemIndex);
+
 const primitiveBinders = { ...pathGeometry, ...regionGeometry, ...annotationGeometry, ...neutralGeometry } satisfies GeometryBinders;
 
 /**
@@ -230,7 +241,7 @@ const primitiveBinders = { ...pathGeometry, ...regionGeometry, ...annotationGeom
  * options, every one its binder computes (also those a neutral mark replaces).
  * Badge placement depends on its own item, the frame's badge obstacles and the
  * badges of revealed anchor sets bound before it, all of which this replays in
- * the frame's item order, so Fit re-places the drawn badges for the marker
+ * the same order of first appearance, so Fit re-places the drawn badges for the marker
  * scale it settles (`options.markerScale`), which can differ from the scale
  * the frame was bound at. A badge is identified by its `itemIndex`, `nodeId`
  * and `stackIndex`.
@@ -244,8 +255,8 @@ export const bindAnchorSetBadges = (
   const frame = plan.frames[stageIndex];
   if (!frame) return [];
   const context = createGeometryContext(frame, positionFor, options);
-  frame.items.forEach((item, itemIndex) => {
-    if (item.kind === 'anchor-set') context.bindTransaction(item.kind, () => neutralGeometry['anchor-set'](item, itemIndex, context));
-  });
-  return context.primitives.filter((primitive): primitive is BoundAnchorSetBadge => primitive.type === 'anchor-set-badge');
+  anchorSetsInAppearanceOrder(frame.items).forEach(({ item, itemIndex }) =>
+    context.bindTransaction(item.kind, () => neutralGeometry['anchor-set'](item, itemIndex, context)));
+  return context.primitives.filter((primitive): primitive is BoundAnchorSetBadge => primitive.type === 'anchor-set-badge')
+    .sort((left, right) => left.itemIndex - right.itemIndex);
 };

@@ -145,8 +145,9 @@ export const createParseRoutes = ({
     const finishReason = String(error?.finishReason || 'PROVIDER_ERROR').toUpperCase();
     return {
       rawText,
-      // Without a received generation, the body is the provider's error response.
-      providerErrorBody: Boolean(rawText),
+      // Without a received generation, the body is the provider's error
+      // response, as is a partial body read from an unsuccessful HTTP response.
+      providerErrorBody: Boolean(rawText) || Boolean(partialResponse && error?.responseReceived === false),
       generationRecord: {
         ...createGenerationRecord({
           provider,

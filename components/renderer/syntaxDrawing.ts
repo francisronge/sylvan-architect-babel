@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 import type { ResolvedRelationLink } from '../../relationLinks.ts';
 import {
-  CATEGORY_LABEL, categoryLineBaselineY, quadraticTrajectoryBellyY, TERMINAL_LABEL, TERMINAL_STEM, TRAJECTORY_ROUTES
+  CATEGORY_LABEL, categoryLineBaselineY, quadraticTrajectoryBellyY, TERMINAL_LABEL, TERMINAL_STEM, TRAJECTORY_ROUTES, TRIANGLE_WORDS
 } from '../../replay/rendererMetrics.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import {
@@ -634,12 +634,12 @@ export function paintSyntaxTree({
     .text((d) => d.data.label || '');
 
   triangles.append('text')
-    .attr('y', 155)
+    .attr('y', TRIANGLE_WORDS.baselineY)
     .attr('text-anchor', 'middle')
-    .attr('font-size', '52px') // Reduced for consistency
-    .attr('font-weight', '900')
+    .attr('font-size', `${TRIANGLE_WORDS.fontSize}px`)
+    .attr('font-weight', String(TRIANGLE_WORDS.fontWeight))
     .attr('fill', TARGET_EMERALD)
-    .attr('style', `fill: ${TARGET_EMERALD} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: 8px;`)
+    .attr('style', `fill: ${TARGET_EMERALD} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: ${TRIANGLE_WORDS.strokeWidth}px;`)
     .text((d: TriangulatedNode) => d.triangulatedWords!);
 
   return {

@@ -926,11 +926,12 @@ function recoverAnchoredMovement(
   // Only two exact copies of a complex head settle it, where named parts are
   // carried members: the same labels, words and lineages all the way down,
   // whatever their ids and pronunciation.
-  const copyShape = (node: SyntaxNode): string => JSON.stringify([node.label, node.word ?? null, node.lineageId ?? null,
-    (node.children ?? []).map(copyShape)]);
+  type CopyShape = [string, string | null, string | null, CopyShape[]];
+  const copyShape = (node: SyntaxNode): CopyShape => [node.label, node.word ?? null, node.lineageId ?? null,
+    (node.children ?? []).map(copyShape)];
   const exactCopies = (a: string[], b: string[]) => a.length === 1 && b.length === 1
     && [a[0], b[0]].every(id => readCategoryLabel(current.nodes.get(id)!.label)?.kind === 'head')
-    && copyShape(current.nodes.get(a[0])!) === copyShape(current.nodes.get(b[0])!);
+    && JSON.stringify(copyShape(current.nodes.get(a[0])!)) === JSON.stringify(copyShape(current.nodes.get(b[0])!));
   if ((sources.length > 1 || targets.length > 1) && exactCopies(outermost(sources, targets), outermost(targets, sources))) {
     const named = sources, landed = targets;
     sources = outermost(named, landed);

@@ -304,9 +304,14 @@ export function closingGroups({ kind, links, current, prior, motion, threshold =
   const closes = (direction: number) => Math.max(0, ...[...result].map(id => direction * (motion(id)?.x ?? 0)));
   if (closes(-1) + closes(1) > width + threshold) return new Set<string>();
   // Parents with daughters on both sides of the gap recentre over them: they
-  // move only horizontally, toward the gap, and no farther than their daughters.
+  // move only horizontally, no farther than their daughters, and end no farther
+  // off the midpoint of their outermost daughters than they stood before.
   const children = new Map();
   for (const point of current.values()) if (point.parent) children.set(point.parent, [...(children.get(point.parent) ?? []), point.id]);
+  const offCentre = (frame, daughters: string[], x: number) => {
+    const xs = daughters.map(id => frame.get(id).x);
+    return Math.abs(x - (Math.min(...xs) + Math.max(...xs)) / 2);
+  };
   for (let grown = true; grown;) {
     grown = false;
     for (const point of current.values()) {
@@ -315,6 +320,7 @@ export function closingGroups({ kind, links, current, prior, motion, threshold =
       if (!daughters.some(id => result.has(id))) continue;
       const shift = motion(point.id), most = Math.max(...daughters.map(id => Math.abs(motion(id)?.x ?? 0)));
       if (!shift || Math.abs(shift.y) > threshold || Math.abs(shift.x) > most + threshold) continue;
+      if (offCentre(current, daughters, point.x) > offCentre(prior, priorChildren.get(point.id) ?? daughters, prior.get(point.id).x) + threshold) continue;
       result.add(point.id); grown = true;
     }
   }

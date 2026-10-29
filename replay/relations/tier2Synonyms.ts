@@ -81,6 +81,10 @@ const isFeatureValueToken = (value: unknown): boolean => {
   try { return typeof JSON.parse(value.trim().toLowerCase()) === 'number'; } catch { return true; }
 };
 
+/** The one literal of a values entry: the string itself or the only item of a
+ * one-item array. The contract lets either form state the same literal. */
+const soleLiteral = (value: unknown): unknown => Array.isArray(value) ? value.length === 1 ? value[0] : undefined : value;
+
 /** An explicitly default feature value does not identify its controller. */
 export const isDefaultAgreementLiteral = (value: unknown): boolean => typeof value === 'string'
   && /^default(?:\s|$)/u.test(normalizeTier2Synonym(value));
@@ -503,10 +507,14 @@ export const isCovertMovementDescription = (name: string): boolean => {
     && !isUnestablishedCovertMovementDescription(name);
 };
 
+/** `directedConcord` marks a claim that `directedNominalConcordMembers`
+ * already reads as a controller-to-target concord; it is then not also read as
+ * agreement, whose probe and goal run the other way. */
 export const relationRoleConcepts = (
   index: Tier2SynonymIndex,
   key: string,
-  context: { relation?: string; anchors?: Record<string, unknown>; values?: Record<string, unknown>; forest?: readonly SyntaxNode[] } = {}
+  context: { relation?: string; anchors?: Record<string, unknown>; values?: Record<string, unknown>; forest?: readonly SyntaxNode[];
+    directedConcord?: boolean } = {}
 ): string[] => {
   // An explicit controller owns the endpoint; additional descriptions of its
   // chain/thematic occurrences stay contextual. Qualified roles fill an absent slot.
@@ -912,7 +920,7 @@ export const relationRoleConcepts = (
   const concordRowsAreValues = Object.entries(context.values ?? {}).filter(([key]) =>
     relationValueConcepts(index, key, context).includes('feature.rows'))
     .every(([, value]) => (Array.isArray(value) ? value : [value]).every(isFeatureValueToken));
-  const hasNamedAgreementTarget = (/\bagreement\b/u.test(relationName) || /\bconcord$/u.test(relationName) && concordRowsAreValues && !deniedClaim)
+  const hasNamedAgreementTarget = (/\bagreement\b/u.test(relationName) || /\bconcord$/u.test(relationName) && concordRowsAreValues && !deniedClaim && !context.directedConcord)
     && roles.has('controller') && namedAgreementHost !== undefined;
   const namedAgreementPair = hasNamedAgreementTarget
     && scalarRole('controller') && scalarRole(namedAgreementHost!) && !hasAgreementMediator
@@ -1018,7 +1026,7 @@ export const relationRoleConcepts = (
     if (roles.has('head') && roles.has('specifier') && (Object.keys(context.values ?? {}).some(key =>
       ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))
       || !deniedClaim && new Set(phiBundle.map(([key]) => normalizeTier2Synonym(key))).size >= 2
-        && phiBundle.every(([, value]) => isFeatureValueToken(value)))) applyHeadSpecifierPair();
+        && phiBundle.every(([, value]) => isFeatureValueToken(soleLiteral(value))))) applyHeadSpecifierPair();
   }
   // Without feature rows, one feature label in notation is the content of a
   // head-specifier or named agreement pair (approved by Francis, 27 Oct 2026).
@@ -1027,7 +1035,7 @@ export const relationRoleConcepts = (
   const featureLabels = Object.entries(context.values ?? {}).filter(([valueKey]) =>
     relationValueConcepts(index, valueKey, context).includes('feature.label'));
   // A Case literal makes the claim a Case claim; the label is then not its whole content.
-  if (!hasLiteral('feature.rows') && !hasLiteral('case.literal') && featureLabels.length === 1 && isNotationFeatureLabel(featureLabels[0][1]) && !deniedClaim
+  if (!hasLiteral('feature.rows') && !hasLiteral('case.literal') && featureLabels.length === 1 && isNotationFeatureLabel(soleLiteral(featureLabels[0][1])) && !deniedClaim
     && (namedAgreementPair || roles.has('head') && roles.has('specifier'))) {
     if (namedAgreementPair) applyNamedAgreementPair();
     else applyHeadSpecifierPair();
