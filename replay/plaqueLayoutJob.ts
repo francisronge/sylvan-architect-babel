@@ -222,7 +222,8 @@ export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress:
   for (const stageIndex of layoutStageIndices(input)) {
     const size = sizeForStage(stageIndex);
     stages.set(stageIndex, size ? buildStageCoordinateReservations(input.steps, stageIndex, size, sizeForStage,
-      input.direction, input.measureCategoryText, input.measureTreeInk, input.treeLabelRuns, input.measureTreeLabel) : new Map());
+      input.direction, input.measureCategoryText, input.measureTreeInk, input.treeLabelRuns, input.measureTreeLabel,
+      { plan: input.plan, measurePlaqueText: input.measurePlaqueText }) : new Map());
   }
   const ordinals = new Map(canvases(job.input).map((canvas, index) => [canvas, index]));
   const coordinates = new Map([...stages].map(([stageIndex, reservations]) => [stageIndex,

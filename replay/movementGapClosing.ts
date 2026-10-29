@@ -5,6 +5,7 @@ import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { motionFrame, replayMotionFaults, stepOwnership } from './motionRule.ts';
 import { closingAt, workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { keepsPlaqueRoom, type PlaqueRoom } from './plaqueRoom.ts';
 import { plaqueTreeObstacles } from './relations/plaquePlacement.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
 import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from './treeSpacing.ts';
@@ -202,11 +203,13 @@ function newContinuityFaults(previous: Scene, step: Scene, oldBefore: Painted, o
  * is the most every later frame allows while each row keeps a node unit between
  * centres and the label and word boxes stay clear. A closing is not made when a
  * later step would carry syntax it does not own from one part to another. */
-export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }: {
+export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques = { anchors: new Map() } }: {
   steps: readonly PlaybackStep[];
   sizes: ReadonlyMap<number, [number, number]>;
   planned: ReadonlyMap<number, Reservations>;
   measureCategoryText?: CategoryTextMeasure;
+  /** The proximity plaques whose room beside their anchors a closing keeps. */
+  plaques?: PlaqueRoom;
 }): Map<number, Map<SyntaxNode, TreeCoordinateReservation>> {
   const ordered = steps.filter(step => step.replayCanvasData && step.replayFrameIndex !== undefined && sizes.has(step.replayFrameIndex))
     .sort((a, b) => a.replayFrameIndex! - b.replayFrameIndex! || stageOrder(a) - stageOrder(b));
@@ -242,6 +245,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
     scene.stage = stages.get(scene.step.replayFrameIndex!);
   });
   const again = new Map<number, number>();
+  const sceneSteps = scenes.map(scene => scene.step);
   for (let m = 1; m < scenes.length; m++) {
     const participants = trajectoryParticipants(scenes[m].step);
     if (!participants.length || firstScene.get(scenes[m].canvas) !== m || lastScene.get(scenes[m - 1].canvas)! >= m) continue;
@@ -531,7 +535,8 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
         frames[index], frames[index + 1], index ? closed[index - 1] : frames[0], frame).length);
       if (continuous && closed.slice(1).every((frame, index) =>
         sameMotion(scenes[m + index + 1].step, scenes[m + index].step.replayFrameIndex !== scenes[m + index + 1].step.replayFrameIndex,
-          frames[index + 1], frames[index + 2], closed[index], frame))) {
+          frames[index + 1], frames[index + 2], closed[index], frame))
+        && keepsPlaqueRoom(sceneSteps, all, [...all.slice(0, m), ...closed], m, plaques, measureCategoryText)) {
         closed.forEach((frame, index) => { all[m + index] = frame; });
         // The other side may then close what room is left.
         if ((again.get(m) ?? 0) < 3) { again.set(m, (again.get(m) ?? 0) + 1); m--; }

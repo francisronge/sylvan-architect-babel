@@ -9,7 +9,13 @@ import { retainCurrentSiblingRanks, retainCurrentDaughterRanks } from './current
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { retainedSubtreeMaterial } from './displayWordMaterial.ts';
 import { closeMovementGaps } from './movementGapClosing.ts';
+import type { PlaqueAnchor, PlaqueRoom } from './plaqueRoom.ts';
 import { reserveMovementSlotClearance } from './movementSlotClearance.ts';
+import { fallbackPlaqueTextMeasure, type PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
+import { proximityPlaqueRequests } from './relations/plaquePlacement.ts';
+import { trajectoryPlaqueObstacles } from './relations/trajectoryObstacles.ts';
+import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlan.ts';
+import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import { retainMovementSourceSlots } from './movementSourceContinuity.ts';
 import { siblingContoursOrdered } from './siblingContours.ts';
 import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
@@ -511,10 +517,63 @@ function slotsReduceMotion(before: ReturnType<typeof planMotion>, after: ReturnT
 export function buildStageCoordinateReservations(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
-  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
-  const planned = closedStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel)
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, plaques?: StagePlaques): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
+  const planned = closedStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, plaques)
     ?? planStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
   return direction === 'rtl' ? reflectedReservations(steps, planned, size, sizeForStage) : planned;
+}
+
+/** The relation plan whose plaques Replay draws beside these steps' syntax, and
+ * their text measure, so that closing a movement's room keeps their pockets. */
+export type StagePlaques = { plan?: RelationRenderPlan | null; measurePlaqueText?: PlaqueTextMeasure };
+
+/** Each stage's plaques that stand by proximity in a nearby pocket, at the size
+ * the stage's last canvas gives them (the measured size when the measure knows
+ * the text: the layout job probes each canvas, but not a triangulated one). */
+const plaqueRooms = new WeakMap<readonly PlaybackStep[], WeakMap<RelationRenderPlan, Map<PlaqueTextMeasure | undefined, PlaqueRoom>>>();
+function stagePlaqueRoom(steps: readonly PlaybackStep[], plaques?: StagePlaques): PlaqueRoom {
+  const plan = plaques?.plan;
+  if (!plan) return { anchors: new Map() };
+  let byPlan = plaqueRooms.get(steps);
+  if (!byPlan) plaqueRooms.set(steps, byPlan = new WeakMap());
+  let byMeasure = byPlan.get(plan);
+  if (!byMeasure) byPlan.set(plan, byMeasure = new Map());
+  let room = byMeasure.get(plaques.measurePlaqueText);
+  if (!room) byMeasure.set(plaques.measurePlaqueText, room = measuredPlaqueRoom(steps, plan, plaques.measurePlaqueText));
+  return room;
+}
+function measuredPlaqueRoom(steps: readonly PlaybackStep[], plan: RelationRenderPlan, measure?: PlaqueTextMeasure): PlaqueRoom {
+  const anchors = new Map<number, PlaqueAnchor[]>();
+  const measureText: PlaqueTextMeasure | undefined = measure && ((text, style) => {
+    try { return measure(text, style); } catch { return fallbackPlaqueTextMeasure(text, style); }
+  });
+  const last = new Map<number, SyntaxNode>();
+  for (const step of steps) if (step.replayCanvasData && step.replayFrameIndex !== undefined) last.set(step.replayFrameIndex, step.replayCanvasData);
+  for (const [stageIndex, canvas] of last) {
+    const items = plan.frames[stageIndex]?.items;
+    if (!items?.length) continue;
+    const root = d3.hierarchy(canvas); applyVizIds(root);
+    const nodes = root.descendants().filter(node => !isSyntheticWorkspaceRootNode(node));
+    const byId = indexHierarchyNodesByIdAndAliases(nodes);
+    const resolved = items.map(item => resolveDisplayedTrajectoryAttachments(item, id => byId.get(id)?.data,
+      { stageIndex, playedRelationIndices: null }));
+    const found = proximityPlaqueRequests(resolved, nodes as d3.HierarchyPointNode<SyntaxNode>[], measureText);
+    if (found.length) anchors.set(stageIndex, found);
+  }
+  // A step's trajectories, as the plaque layout reserves them in its scene.
+  const marks = (step: PlaybackStep, frame: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>) => {
+    const stageIndex = step.replayFrameIndex!, items = plan.frames[stageIndex]?.items ?? [];
+    const trajectories = items.filter(item => item.kind === 'trajectory');
+    if (!trajectories.length) return [];
+    const byId = indexHierarchyNodesByIdAndAliases([...frame.values()]);
+    const played = new Set((step.replayRelationLinks ?? []).flatMap(link => {
+      const [stage, relation] = String('authoredRelationKey' in link ? link.authoredRelationKey : '').split(':').map(Number);
+      return stage === stageIndex && Number.isInteger(relation) ? [relation] : [];
+    }));
+    return trajectoryPlaqueObstacles(plan, stageIndex, trajectories.map(item => resolveDisplayedTrajectoryAttachments(item,
+      id => byId.get(id)?.data, { stageIndex, playedRelationIndices: played })), byId);
+  };
+  return { anchors, marks };
 }
 
 const closedPlans = new WeakMap<readonly PlaybackStep[], Map<string, Map<number, Map<SyntaxNode, TreeCoordinateReservation>>>>();
@@ -525,7 +584,7 @@ const closedPlans = new WeakMap<readonly PlaybackStep[], Map<string, Map<number,
 function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
-  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> | null {
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, plaques?: StagePlaques): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> | null {
   const own = sizeForStage && steps.some(step => step.replayFrameIndex === stageIndex) ? sizeForStage(stageIndex) : null;
   if (!own || own[0] !== size[0] || own[1] !== size[1]) return null;
   const sizes = new Map<number, [number, number]>();
@@ -534,15 +593,17 @@ function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: numb
     const stageSize = sizeForStage!(step.replayFrameIndex);
     if (stageSize) sizes.set(step.replayFrameIndex, stageSize);
   }
+  const room = stagePlaqueRoom(steps, plaques);
   const key = JSON.stringify([[...sizes].sort(([a], [b]) => a - b), categoryMetricKey(steps, measureCategoryText),
-    treeInkMetricKey(steps, measureCategoryText, measureTreeInk), treeLabelMetricKey(steps, treeLabelRuns, measureTreeLabel)]);
+    treeInkMetricKey(steps, measureCategoryText, measureTreeInk), treeLabelMetricKey(steps, treeLabelRuns, measureTreeLabel),
+    [...room.anchors]]);
   let byKey = closedPlans.get(steps);
   if (!byKey) closedPlans.set(steps, byKey = new Map());
   let closed = byKey.get(key);
   if (!closed) {
     const planned = new Map([...sizes].map(([stage, stageSize]) => [stage, planStageCoordinates(steps, stage, stageSize, sizeForStage,
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel)] as const));
-    byKey.set(key, closed = closeMovementGaps({ steps, sizes, planned, measureCategoryText }));
+    byKey.set(key, closed = closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques: room }));
   }
   return closed.get(stageIndex) ?? null;
 }

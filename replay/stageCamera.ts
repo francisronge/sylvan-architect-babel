@@ -10,10 +10,8 @@ import {
   bindingEllipseBounds
 } from './relations/bindingDomainGeometry.ts';
 import { bindRelationPlanFrame } from './relations/geometryBinding.ts';
+import { stagePositionProvider, trajectoryPlaqueObstacles } from './relations/trajectoryObstacles.ts';
 import { boundOverlayBounds, type OverlayBounds } from './relations/geometryBounds.ts';
-import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.ts';
-import { type PlanPositionProvider } from './relations/boundGeometry.ts';
-import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
 import { controlPlaqueObstacles } from './relations/controlPlaqueSpace.ts';
 import { predicationPlaqueObstacles } from './relations/predicationPlaqueSpace.ts';
 import { nativePlaqueFootprints, nativePlaqueObstacles } from './relations/nativePlaqueSpace.ts';
@@ -58,10 +56,9 @@ import {
 import { cloneSyntaxTree } from './syntaxForest.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import { isUnderTriangulation, markTriangulatedNodes } from './triangulation.ts';
-import { isDisplayTerminalNode, resolveLeafSurface } from './replaySurfaceNotation.ts';
+import { resolveLeafSurface } from './replaySurfaceNotation.ts';
 import {
-  LEAF_INK_EXTENT_Y, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE,
-  SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TRAJECTORY_ROUTES
+  LEAF_INK_EXTENT_Y, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
 } from './rendererMetrics.ts';
 import { buildStageCoordinateReservations, leftToRightReservations, rightToLeftAxis } from './stageCoordinates.ts';
 import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
@@ -89,22 +86,6 @@ export type MeasuredStageCoordinates = ReadonlyMap<number, StageCoordinateReserv
 type StageGeometry = {
   reservations?: StageCoordinateReservations;
 };
-
-/** Shared geometric endpoint estimates for reservation and camera bounds. */
-function stagePositionProvider(byId: Map<string, d3.HierarchyPointNode<SyntaxNode>>): PlanPositionProvider {
-  return (id, attachment = 'position') => {
-    const node = byId.get(id);
-    if (!node) return null;
-    if (attachment === 'parent') return node.parent ? { x: node.parent.x, y: node.parent.y } : null;
-    if (attachment === 'terminal') {
-      const { terminal } = resolveUniqueDisplayTerminal(node, n => n.children || [],
-        n => isDisplayTerminalNode(n.data));
-      return terminal ? { x: terminal.x, y: terminal.y + TERMINAL_ATTACHMENT_Y } : null;
-    }
-    return { x: node.x, y: node.y + (attachment === 'shell-bottom' ? SHELL_ATTACHMENT_CLEARANCE.bottom
-      : attachment === 'shell-top' ? -SHELL_ATTACHMENT_CLEARANCE.top : 0) };
-  };
-}
 
 /** Share dimensions only across unchanged authored syntax with compatible ordinary layouts. */
 export function buildStageLayoutGroups(steps: PlaybackStep[], stages: { workspaceForest: SyntaxNode[] }[]) {
@@ -183,10 +164,11 @@ function changedPlaqueAttachments(before: d3.HierarchyPointNode<SyntaxNode>[], a
 }
 
 function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
-  abstractionMode = false, protectedNodeIds = new Set<string>(), measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel }: StageLayoutInput, geometry?: StageGeometry) {
+  abstractionMode = false, protectedNodeIds = new Set<string>(), measureCategoryText, measurePlaqueText, measureTreeInk, treeLabelRuns, measureTreeLabel }: StageLayoutInput, geometry?: StageGeometry) {
   const stageSize = stageTreeLayoutSize(steps, stageIndex, width, height, layoutGroups);
   const reservations = geometry?.reservations ?? (stageSize ? buildStageCoordinateReservations(steps, stageIndex, stageSize,
-    index => stageTreeLayoutSize(steps, index, width, height, layoutGroups), direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel) : null);
+    index => stageTreeLayoutSize(steps, index, width, height, layoutGroups), direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel,
+    { plan, measurePlaqueText }) : null);
   const hierarchy = (canvas: SyntaxNode) => {
     const root = d3.hierarchy(cloneSyntaxTree(canvas)!);
     applyVizIds(root);
@@ -1065,26 +1047,8 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
           measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk
         })];
       // Use the trajectory binder's actual geometry in each frame's coordinates.
-      const trajectories = marks.filter(item => item.kind === 'trajectory');
-      if (!input.plan || !trajectories.length) return obstacles;
-      const plan = { ...input.plan, frames: input.plan.frames.map((frame, index) =>
-        index === input.stageIndex ? { ...frame, items: trajectories } : frame) };
-      const bound = bindRelationPlanFrame(plan, input.stageIndex, stagePositionProvider(byId), {
-        trajectoryCeilingY: (d3.min([...byId.values()], node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
-        trajectoryFloorY: (d3.max([...byId.values()], node => node.y) ?? 0) + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor
-      });
-      for (const path of bound.primitives) {
-        if (path.type !== 'trajectory-path') continue;
-        const points = path.route === 'cubic' && path.control2
-          ? sampleCubic(path.start, path.control, path.control2, path.end, 32)
-          : path.route === 'orthogonal' ? [path.start, { x: path.start.x, y: path.control.y },
-            { x: path.end.x, y: path.control.y }, path.end]
-            : sampleQuadratic(path.start, path.control, path.end, 32);
-        points.slice(1).forEach((point, i) => obstacles.push({
-          x: Math.min(points[i].x, point.x) - 5, y: Math.min(points[i].y, point.y) - 5,
-          width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10, trajectory: true
-        }));
-      }
+      if (input.plan) obstacles.push(...trajectoryPlaqueObstacles(input.plan, input.stageIndex,
+        marks.filter(item => item.kind === 'trajectory'), byId));
       return obstacles;
     };
     // Every stage mark and every node the scene shows at any of its steps reserves its

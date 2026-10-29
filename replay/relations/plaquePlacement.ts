@@ -156,6 +156,17 @@ export function nearbyPlaqueReach({ width, height, thetaGrid }: Pick<PlaqueRect,
   if (!fitsLocalPocket({ width, height }) && !(thetaGrid && height <= localPlaqueSize)) return Infinity;
   return Math.hypot(nearbyPocketGap + width / 2, Math.max(...nearbyPocketTops(height).map(top => Math.abs(top + height / 2))));
 }
+/** The plaques that show their owner only by standing beside it, in a nearby
+ * pocket of the local search: no Case arrow or collector joins them, and they
+ * fit a local pocket. `anchor` is the node the search places each beside; they
+ * come in the order placeStagePlaques gives them their pockets. */
+export function proximityPlaqueRequests(items: RelationPlanItem[], nodes: Node[], measureText?: PlaqueTextMeasure) {
+  return prepareStagePlaqueRequests(items, nodes, measureText)
+    .filter(request => !request.caseAssignment && !request.collectionRows?.length && !request.realizedForm
+      && (fitsLocalPocket(request) || request.thetaGrid && request.height <= localPlaqueSize))
+    .sort((a, b) => Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || a.index - b.index)
+    .map(request => ({ anchor: request.ids[0], width: request.width, height: request.height, thetaGrid: Boolean(request.thetaGrid) }));
+}
 /** The farthest nearby pocket itself is nearby; the margin absorbs rounding. */
 export const beyondNearbyReach = (distance: number, box: Parameters<typeof nearbyPlaqueReach>[0]) =>
   distance > nearbyPlaqueReach(box) + 1e-6;
