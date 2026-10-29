@@ -453,10 +453,19 @@ async function auditReplay(context, record, entry, result, anchorsFor) {
         });
         return { samples, done };
       };
-      const { samples, done } = await run(), transition = `rapid:${start}>${start + done}`;
+      let { samples, done } = await run();
+      const transition = `rapid:${start}>${start + done}`;
       const judge = list => judgeRapidStepping(list, { label: `Next ×${done} from frame ${start} every ${intervals.join('/')} ms`,
         place: { ...place, frame: transition }, thresholds: motionThresholds });
-      const findings = judge(samples);
+      let findings = judge(samples);
+      // Rapid stepping is timed by the browser, so one clean run does not prove
+      // a motion fault gone: a clean run is repeated once, and a fault either
+      // run shows counts. This only adds findings; a flagged run is re-run for
+      // its filmstrip below as before.
+      if (!findings.length) {
+        const again = await run();
+        if (again.done === done) { const repeated = judge(again.samples); if (repeated.length) ({ samples } = again), findings = repeated; }
+      }
       result.coverage.push(coverageKey(record.id, viewport.name, 'rapid', transition));
       if (findings.length) {
         const key = coverageKey(record.id, viewport.name, 'rapid', transition);
