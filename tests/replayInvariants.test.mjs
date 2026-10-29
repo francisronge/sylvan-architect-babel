@@ -277,6 +277,13 @@ test('control: existing-not-remerged reports a kept-ID landing merged by constru
   const adjoined = prepare(record);
   assert(adjoined.playbackSteps.some(step => step.replayKind === 'micro' && step.targetNodeId === 'nadj' && step.sourceNodeIds.includes('nb')));
   assert.deepEqual(checkExistingNotRemerged(adjoined, record), []);
+  // An ancestor whose id the stage repeats cannot be compared: not reported.
+  const repeated = structuredClone(record);
+  const has = (node, id) => node?.id === id || (node?.children ?? []).some(child => has(child, id));
+  for (const stage of repeated.derivationStages) {
+    if (stage.workspaceForest?.some(root => has(root, 'nadj'))) stage.workspaceForest.push({ id: 'nadj', label: 'X' });
+  }
+  assert.deepEqual(checkExistingNotRemerged(adjoined, repeated), []);
 });
 
 test('control: visible-in-canvas reports a visible id with no canvas node', () => {
@@ -433,7 +440,7 @@ for (const rule of RULES) test(`sweep: ${rule} holds on every frame of every com
 
 // A step-semantics finding at the frame and subject where a construction rule
 // reports is that rule's defect, not a second one.
-const CONSTRUCTION = new Set(['no-early-reveal', 'stable-construction', 'attach-at-merge']);
+const CONSTRUCTION = new Set(['no-early-reveal', 'stable-construction', 'attach-at-merge', 'existing-not-remerged']);
 test('sweep: step semantics, mark persistence and contract warnings hold on every committed analysis, apart from listed exceptions', () => {
   const findings = sweep.flatMap(entry => (entry.findings ?? []).filter(found => found.rule !== 'step-semantics'
     || !(entry.violations ?? []).some(other => CONSTRUCTION.has(other.rule) && other.frame === found.frame && subjectOf(other) === found.subject))

@@ -802,7 +802,8 @@ export function checkExistingNotRemerged(replay, record) {
       const was = before.get(id), now = after.get(id);
       if (!was?.parentId || !now || now.parentId === was.parentId || !after.get(was.parentId)) continue;
       let above = now.parentId;
-      while (above && above !== was.parentId) above = after.get(above)?.parentId;
+      const seen = new Set();
+      while (above && above !== was.parentId && after.get(above) && !seen.has(above)) above = (seen.add(above), after.get(above).parentId);
       if (above) continue;
       out.push(violation('existing-not-remerged', index + 1, `${id} leaves ${was.parentId} for ${now.parentId ?? 'a root'} `
         + `at micro ${step.operation} (target ${step.targetNodeId ?? ''}): an existing constituent is merged again`));
