@@ -1111,7 +1111,7 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
         : planItemOwnsRelationMoment(item, identity.stageIndex, identity.relationIndex) ? 2 : 0 });
       const layer = () => g.append('g');
       const drawing = createBindingDrawing({ activeDerivationFrameIndex: stage, overlay: g, frameItems: items, g,
-        operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], activeRelationMoment: identity,
+        operatorVariableScopes: new Map(), activeRelationMoment: identity,
         operatorVariableBindingLayers: new Map(), operatorVariableSharedPathLayers: new Map(), bindingRelationLayers: new Map(),
         coindexRelationLayers: new Map(), parasiticGapCoindexLayers: new Map(), acceptedRootLayerBeforeNodes: layer,
         acceptedRootLayerAfterNodes: layer, acceptedLayerInHost: layer, ensureControlRelationLayer: layer, appendMarker: layer,
