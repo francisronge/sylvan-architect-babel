@@ -30,7 +30,7 @@ const WIDTH_GROWTH = 0.02;
  * reserve more, SEAT_GROWTH, for the landing that arrives beside it. */
 const STAGE_GROWTH = 0.08, SEAT_GROWTH = 0.25;
 /** A closing narrower than this is not worth a step's motion. */
-const MIN_CLOSING = 40;
+const MIN_CLOSING = TREE_SIBLING_GAP;
 
 const painted = (node: Node) => !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace';
 const stageOrder = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
@@ -217,7 +217,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
     scene.stage = stages.get(scene.step.replayFrameIndex!);
   });
   const again = new Map<number, number>();
-  for (let m = 1; m < scenes.length; m++) {
+  for (let m = 1; m < scenes.length && !trace.off?.has('close'); m++) {
     const participants = trajectoryParticipants(scenes[m].step);
     if (!participants.length || firstScene.get(scenes[m].canvas) !== m || lastScene.get(scenes[m - 1].canvas)! >= m) continue;
     const frames = all.slice(m - 1);
@@ -853,7 +853,7 @@ function openSourceRoom(scenes: readonly Scene[], frames: Painted[], coordinates
           if (!ordered(frame)) { ok = false; reason = `order at ${j + 1}`; }
           else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, view(k))) { ok = false; reason = `clearance at ${j + 1}`; }
         }
-        if (ok && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])))) { ok = false; reason = 'stage size'; }
+        if (ok && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])), later ? SEAT_GROWTH : STAGE_GROWTH)) { ok = false; reason = 'stage size'; }
         for (let j = Math.max(1, start); ok && j <= k; j++) {
           const crossingJ = scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex;
           if (newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], view(j - 1), view(j)).length) { ok = false; reason = `faults at ${j + 1}`; }
