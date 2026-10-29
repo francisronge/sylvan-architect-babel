@@ -185,14 +185,9 @@ function layoutStageIndices(input: Pick<PlaqueLayoutInput, 'plan' | 'steps'>) {
  * keys prepare identical coordinates and plaque placements, so a resize between
  * them needs a new camera fit but no new layout. */
 export function plaqueLayoutViewportKey(input: Pick<PlaqueLayoutInput, 'steps' | 'plan' | 'layoutGroups' | 'width' | 'height'>) {
-  const widths: number[] = [];
-  for (const stageIndex of layoutStageIndices(input)) {
-    const size = stageTreeLayoutSize(input.steps, stageIndex, input.width, input.height, input.layoutGroups);
-    // A stage without its own size falls back to a size derived from the viewport width.
-    if (!size) return JSON.stringify({ width: input.width });
-    widths.push(size[0]);
-  }
-  return JSON.stringify(widths);
+  // A stage without a Replay canvas has no size (`null`) and reserves no coordinates.
+  return JSON.stringify(layoutStageIndices(input).map(stageIndex =>
+    stageTreeLayoutSize(input.steps, stageIndex, input.width, input.height, input.layoutGroups)?.[0] ?? null));
 }
 
 /** Planning and allocation both run here, with strict native-metric lookups. An

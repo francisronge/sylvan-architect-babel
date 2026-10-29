@@ -103,3 +103,16 @@ test('native organization projection keeps an independent visible owner when its
     'the hidden companion still reserves geometry and keeps its original allocation index');
   assert.deepEqual(plan, original);
 });
+
+test('organization pieces of one relation merge when it is not first in its stage', () => {
+  const members = ['a', 'b', 'c', 'd', 'e'];
+  const chorus = { relation: 'OpenChorus', anchors: { members, occurrences: members, annotation: 'note' } };
+  const roleSets = relations => {
+    const stage = { statement: 'Test', stageRecord: 'Test', workspaceForest: [...members, 'note'].map(id => ({ id, label: 'XP' })), relations };
+    const items = projectVisibleAnchorSetOrganization(compileRelationRenderPlan([stage]).frames[0].items, () => true);
+    return items.filter(item => item.kind === 'anchor-set').map(item => item.set.roles.map(role => role.role).sort());
+  };
+  const alone = roleSets([chorus]);
+  assert.deepEqual(alone[0], ['members', 'occurrences'], 'both pieces share one rail set');
+  assert.deepEqual(roleSets([{ relation: 'Note', anchors: { target: 'note' } }, chorus]), alone);
+});

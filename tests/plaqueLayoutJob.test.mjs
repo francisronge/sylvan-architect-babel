@@ -147,6 +147,11 @@ test('viewports with the same layout key prepare identical coordinates and plaqu
   const key = width => plaqueLayoutViewportKey({ steps: small.playbackSteps, plan: small.relationRenderPlan,
     layoutGroups: buildStageLayoutGroups(small.playbackSteps, small.replayDerivationFrames), width, height: 750 });
   assert.equal(key(1600), key(1200), 'a small analysis whose stages used to follow the width shares one layout');
+  // A stage with no Replay canvas lays out at its own fixed size, so it does not follow the width either.
+  const extraPlan = { ...small.relationRenderPlan, frames: [...small.relationRenderPlan.frames, { items: [] }] };
+  const keyWithEmptyStage = width => plaqueLayoutViewportKey({ steps: small.playbackSteps, plan: extraPlan,
+    layoutGroups: buildStageLayoutGroups(small.playbackSteps, small.replayDerivationFrames), width, height: 750 });
+  assert.equal(keyWithEmptyStage(1600), keyWithEmptyStage(1200), 'a stage without a canvas shares one layout');
 });
 
 // Catalog #22: layout reads no window size, so an analysis draws the same tree at

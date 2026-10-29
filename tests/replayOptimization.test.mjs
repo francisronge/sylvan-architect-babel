@@ -103,7 +103,8 @@ test('an explicitly wh-marked nominal loses sentence casing in its lower positio
 test('a bare D pronoun or expletive loses sentence casing where it is not first, while names and I keep theirs', () => {
   const verb = { id: 'verb', label: 'V', children: [leaf('v', 'seem')] };
   for (const [word, expected] of [['There', 'there'], ['It', 'it'], ['They', 'they'], ['Nobody', 'nobody'],
-    ['Which', 'which'], ['John', 'John'], ['Mia', 'Mia'], ['I', 'I']]) {
+    ['Which', 'which'], ['One', 'one'], ['Some', 'some'], ['Neither', 'neither'], ['Mine', 'mine'],
+    ['John', 'John'], ['Mia', 'Mia'], ['I', 'I']]) {
     for (const label of ['D', 'D[person:3]']) {
       const nominal = { id: 'nominal', label, children: [leaf('word', word)] };
       const input = freeze([

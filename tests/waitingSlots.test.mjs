@@ -3,7 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import * as d3 from '../node_modules/d3/src/index.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { alignmentImprovesMotion, buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
+import { alignmentImprovesMotion, buildStageCoordinateReservations, slotsReduceMotion } from '../replay/stageCoordinates.ts';
 import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCamera.ts';
 import { applyVizIds } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
@@ -35,6 +35,16 @@ test('the aligned plan may not let a surviving jump grow, even when another disa
   const before = motion(new Map([['5:x', 10], ['7:y', 300]]));
   assert.equal(alignmentImprovesMotion(before, motion(new Map([['5:x', 500]]))), false);
   assert.equal(alignmentImprovesMotion(before, motion(new Map([['5:x', 10]]))), true, 'a surviving jump that keeps its distance is fine');
+});
+
+test('slots may not trade one jump for another that the camera carry exposes', () => {
+  // Raw moves are measured before the stage-crossing carry; unowned jumps after it.
+  const motion = (unowned, moves) => ({ unowned, joins: new Map(), count: unowned.size, final: [['a', 0, 0]], moves: new Map(moves) });
+  const before = motion(new Map([['5:x', 300], ['7:y', 200]]), [['5:x', 300], ['7:y', 200], ['9:z', 40]]);
+  assert.equal(slotsReduceMotion(before, motion(new Map([['9:z', 120]]), [['5:x', 0], ['7:y', 0], ['9:z', 40]])), false,
+    'a new jump after the carry is not paid for by removed ones');
+  assert.equal(slotsReduceMotion(before, motion(new Map([['7:y', 200]]), [['5:x', 0], ['7:y', 200], ['9:z', 40]])), true,
+    'a surviving jump that keeps its distance is fine');
 });
 
 test('the aligned plan may translate the whole final tree, which the camera absorbs, but not reshape it', () => {

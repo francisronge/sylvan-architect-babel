@@ -70,3 +70,16 @@ for (const item of items) test(`${item.linkStyle || item.pathStyle}: native plaq
   assert(reserved.maxY > bare.maxY, 'native plaque height must contribute to the full stage fit');
   assert.deepEqual(buildStageCameraBounds({ ...input, includePlaques: true, steps: [...steps].reverse() }), reserved);
 });
+
+test('native plaques grow to contain lines that hanging punctuation extends', async () => {
+  const { prepareCasePlaqueRows } = await import('../replay/relations/plaqueTextLayout.ts');
+  for (const label of ['[phi: third-person-singular]', 'phi: third-person-singular']) {
+    const layout = prepareSharedFeatureTextLayout(label);
+    for (const line of layout.row.lines) assert(line.x + line.width <= layout.width - 18, `${label}: ${line.text}`);
+    assert.deepEqual(featureSharingPlaqueRect([probe, goal], label).width, layout.width);
+  }
+  const caseWidth = value => [...value].reduce((width, char) => width
+    + (/[^\u0000-ɏ̀-ͯ]/u.test(char) ? 30 : 18) + 0.6, 0);
+  const rows = prepareCasePlaqueRows([{ label: 'case', value: 'nominative-accusative-ergative-absolutive.,;:!?' }]);
+  for (const line of rows.rows[0].lines) assert(22 + caseWidth(line) <= rows.width - 22, line);
+});

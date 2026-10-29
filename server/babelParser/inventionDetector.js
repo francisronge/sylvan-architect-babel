@@ -1,4 +1,5 @@
-import { dispatchRelationClaims } from '../../replay/relations/tier2RelationDispatch.ts';
+import { projectRelationStages } from '../../replay/relationStages.ts';
+import { dispatchRelationStagesForPlan } from '../../replay/relations/renderPlanCompiler.ts';
 import { recoverMovementEvidence } from '../../replay/relations/movementEvidence.ts';
 import { PRODUCTION_RENDER_FAMILIES } from '../../replay/relations/renderFamilies.ts';
 
@@ -139,6 +140,10 @@ export const detectDeterministicLinguisticInvention = ({
     );
   });
 
+  // Claims as the render plan dispatches them, including structurally proven movement.
+  let planDispatches;
+  const planDispatch = (stageIndex, relationIndex) => (planDispatches ??= dispatchRelationStagesForPlan(
+    projectRelationStages(asArray(analysis?.derivationStages))).dispatches)[stageIndex]?.[relationIndex];
   const expectedRenderableRelations = new Map();
   asArray(replayPlan?.steps).forEach((step, stepIndex) => {
     const operation = asText(step?.operation);
@@ -178,15 +183,15 @@ export const detectDeterministicLinguisticInvention = ({
         const current = analysis?.derivationStages?.[stageIndex];
         const previous = analysis?.derivationStages?.[stageIndex - 1];
         const relation = current?.relations?.[authoredRelationIndex];
-        const dispatch = relation ? dispatchRelationClaims({ relation, stageIndex, relationIndex: authoredRelationIndex,
-          currentForest: current.workspaceForest || [], priorForest: previous?.workspaceForest || [] }) : null;
+        const dispatch = relation ? planDispatch(stageIndex, authoredRelationIndex) : null;
         const boundAnchors = resolvedAnchors.map(anchor => {
           const binding = dispatch?.primaryClaim?.tier === 1 && dispatch.tier1Dispatch.roleBindings.find(binding =>
             binding.field === 'anchors' && binding.authoredRole === anchor.role);
           return binding && binding.role !== anchor.role
             ? { ...anchor, role: binding.role, authoredRole: anchor.role } : anchor;
         });
-        const movement = relation ? recoverMovementEvidence(relation, current.workspaceForest || [], previous?.workspaceForest || []).movement : null;
+        const movement = relation ? dispatch?.structuralMovement
+          ?? recoverMovementEvidence(relation, current.workspaceForest || [], previous?.workspaceForest || []).movement : null;
         const movementLicensed = movement && (dispatch?.facets.some(facet => facet.recipe.id === 'movement.path')
           || (dispatch?.primaryClaim?.tier === 1 && PRODUCTION_RENDER_FAMILIES[dispatch.primaryClaim.registryEntryId]?.trajectoryKind === movement.trajectoryKind));
         expectedRenderableRelations.set(
