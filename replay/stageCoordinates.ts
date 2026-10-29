@@ -8,6 +8,7 @@ import { retainCurrentRootFork } from './currentRootFork.ts';
 import { retainCurrentSiblingRanks, retainCurrentDaughterRanks } from './currentSiblingRanks.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { retainedSubtreeMaterial } from './displayWordMaterial.ts';
+import { closeMovementGaps } from './movementGapClosing.ts';
 import { reserveMovementSlotClearance } from './movementSlotClearance.ts';
 import { retainMovementSourceSlots } from './movementSourceContinuity.ts';
 import { siblingContoursOrdered } from './siblingContours.ts';
@@ -511,8 +512,40 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
   treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
-  const planned = planStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+  const planned = closedStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel)
+    ?? planStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
   return direction === 'rtl' ? reflectedReservations(steps, planned, size, sizeForStage) : planned;
+}
+
+const closedPlans = new WeakMap<readonly PlaybackStep[], Map<string, Map<number, Map<SyntaxNode, TreeCoordinateReservation>>>>();
+
+/** Every stage's plan with the room movements leave closed at those movements
+ * (closeMovementGaps), or null when this stage's size is not the planned one.
+ * One closing pass serves every stage of these steps. */
+function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
+  sizeForStage?: (stageIndex: number) => [number, number] | null,
+  measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> | null {
+  if (process.env.BABEL_NO_GAP_CLOSING) return null;
+  const own = sizeForStage && steps.some(step => step.replayFrameIndex === stageIndex) ? sizeForStage(stageIndex) : null;
+  if (!own || own[0] !== size[0] || own[1] !== size[1]) return null;
+  const sizes = new Map<number, [number, number]>();
+  for (const step of steps) {
+    if (step.replayFrameIndex === undefined || sizes.has(step.replayFrameIndex)) continue;
+    const stageSize = sizeForStage!(step.replayFrameIndex);
+    if (stageSize) sizes.set(step.replayFrameIndex, stageSize);
+  }
+  const key = JSON.stringify([[...sizes].sort(([a], [b]) => a - b), categoryMetricKey(steps, measureCategoryText),
+    treeInkMetricKey(steps, measureCategoryText, measureTreeInk), treeLabelMetricKey(steps, treeLabelRuns, measureTreeLabel)]);
+  let byKey = closedPlans.get(steps);
+  if (!byKey) closedPlans.set(steps, byKey = new Map());
+  let closed = byKey.get(key);
+  if (!closed) {
+    const planned = new Map([...sizes].map(([stage, stageSize]) => [stage, planStageCoordinates(steps, stage, stageSize, sizeForStage,
+      measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel)] as const));
+    byKey.set(key, closed = closeMovementGaps({ steps, sizes, planned, measureCategoryText }));
+  }
+  return closed.get(stageIndex) ?? null;
 }
 
 // Each plan's right-to-left reservations, per translation, so a reused layout

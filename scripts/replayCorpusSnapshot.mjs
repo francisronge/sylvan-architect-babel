@@ -115,7 +115,7 @@ export async function buildCorpusSnapshot(root, records, { width, height, direct
       results.push({ id: record.id, inputSha256: objectHash(record.input), authoredBeforeSha256,
         authoredAfterSha256: objectHash(input.derivationStages), replaySha256: objectHash(steps),
         planSha256: objectHash(prepared.relationRenderPlan), frames, invalid,
-        continuity: continuity.workspaceContinuityReflows(scenes, positions, render), evidence, expectationFailures });
+        continuity: continuity.workspaceContinuityReflows(scenes, positions, render, { ownClosings: true }), evidence, expectationFailures });
     } catch (error) { results.push({ id: record.id, error: error.stack ?? String(error) }); }
   }
   const after = await sourceIdentity(root);
