@@ -26,8 +26,9 @@ const BOX_CLEARANCE = 0;
 /** How much wider than its plan painted it a completed stage may become. */
 const WIDTH_GROWTH = 0.02;
 /** How much wider or deeper the box a stage's frames span together (the stage
- * camera's fit) may become. */
-const STAGE_GROWTH = 0.08;
+ * camera's fit) may become; a head seated clear of a movement's source may
+ * reserve more, SEAT_GROWTH, for the landing that arrives beside it. */
+const STAGE_GROWTH = 0.08, SEAT_GROWTH = 0.25;
 /** A closing narrower than this is not worth a step's motion. */
 const MIN_CLOSING = 40;
 
@@ -131,14 +132,14 @@ const union = (a: Box, b: Box): Box => ({ minX: Math.min(a.minX, b.minX), maxX: 
  * stage's frames span together, which may move but grow no more than
  * STAGE_GROWTH wider or deeper than planned, and a completed stage grows no more
  * than WIDTH_GROWTH wider than its plan painted it. */
-function keepsStageSize(scenes: readonly Scene[], frames: readonly Painted[], changed: ReadonlyMap<number, Painted>) {
+function keepsStageSize(scenes: readonly Scene[], frames: readonly Painted[], changed: ReadonlyMap<number, Painted>, growth = STAGE_GROWTH) {
   const stages = new Set([...changed.keys()].map(index => scenes[index].stage!));
   for (const stage of stages) {
     let box: Box | undefined;
     for (const index of stage.members) { const part = boxOf(changed.get(index) ?? frames[index]); box = box ? union(box, part) : part; }
     const planned = stage.box;
-    if (box!.maxX - box!.minX > (planned.maxX - planned.minX) * (1 + STAGE_GROWTH) + 1
-      || box!.maxY - box!.minY > (planned.maxY - planned.minY) * (1 + STAGE_GROWTH) + 1) return false;
+    if (box!.maxX - box!.minX > (planned.maxX - planned.minX) * (1 + growth) + 1
+      || box!.maxY - box!.minY > (planned.maxY - planned.minY) * (1 + growth) + 1) return false;
   }
   for (const [index, frame] of changed) if (scenes[index].step.replayKind === 'macro' && spanOf(frame) > scenes[index].width! * (1 + WIDTH_GROWTH) + 1) return false;
   return true;
@@ -490,6 +491,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
   if (!trace.off?.has('settle')) settleWaitingPieces(scenes, all, coordinates, firstScene, lastScene, paint, measureCategoryText);
   if (!trace.off?.has('hold')) holdBack(scenes, all, coordinates, firstScene, lastScene, paint, measureCategoryText);
   if (!trace.off?.has('room')) openSourceRoom(scenes, all, coordinates, firstScene, lastScene, paint, measureCategoryText);
+  if (!trace.off?.has('seat')) seatReceivingHeads({ scenes, frames: all, coordinates, firstScene, lastScene, paint, measureCategoryText });
   const byStage = new Map<number, Map<SyntaxNode, TreeCoordinateReservation>>();
   for (const scene of scenes) {
     const stage = scene.step.replayFrameIndex!;
@@ -871,6 +873,133 @@ function openSourceRoom(scenes: readonly Scene[], frames: Painted[], coordinates
         repainted.forEach((frame, index) => { frames[start + index] = frame; });
         break;
         }
+      }
+    }
+  }
+}
+
+type Context = { scenes: readonly Scene[]; frames: Painted[]; coordinates: Map<SyntaxNode, Map<string, { x: number; y: number }>>;
+  firstScene: ReadonlyMap<SyntaxNode, number>; lastScene: ReadonlyMap<SyntaxNode, number>; paint: (scene: Scene) => Painted;
+  measureCategoryText?: CategoryTextMeasure };
+
+/** Moves `members` by `amount(id)` over their lives before step `k` (with their
+ * hidden material) and every frame from `k` on by `later`, and keeps the change
+ * only when every changed frame stays ordered and clear and the stages keep their
+ * size, no step before `k` moves anything farther or newly breaks continuity, and
+ * at `k` only the step's closing, carried phrases and owned syntax move farther.
+ * Returns a reason when the change is refused. */
+function tryShift(context: Context, k: number, members: readonly string[], amount: (id: string) => number, later: number, growth = STAGE_GROWTH) {
+  const { scenes, frames, coordinates, firstScene, lastScene, paint, measureCategoryText } = context;
+  const step = scenes[k].step, participants = trajectoryParticipants(step), after = frames[k];
+  const births = members.map(id => { let start = k; while (start > 0 && frames[start - 1].has(id)) start--; return start; });
+  const start = Math.min(...births), end = later ? scenes.length : k;
+  const canvases = new Set(scenes.slice(start, end).map(scene => scene.canvas));
+  if ([...canvases].some(canvas => lastScene.get(canvas)! >= k && firstScene.get(canvas)! < k)) return 'shared canvas';
+  const saved = new Map([...canvases].map(canvas => [canvas, new Map(coordinates.get(canvas)!)] as const));
+  for (let j = start; j < k; j++) {
+    if (firstScene.get(scenes[j].canvas)! !== j) continue;
+    const points = coordinates.get(scenes[j].canvas)!, done = new Set<string>();
+    members.forEach((id, at) => {
+      if (j < births[at]) return;
+      const by = amount(id);
+      frames[j].get(id)?.each(member => {
+        const memberId = getNodeId(member);
+        if (done.has(memberId) || (memberId !== id && frames[j].has(memberId) && !members.includes(memberId))) return;
+        done.add(memberId);
+        const point = points.get(memberId);
+        if (point) points.set(memberId, { x: point.x + by, y: point.y });
+      });
+    });
+  }
+  if (later) for (const canvas of canvases) if (firstScene.get(canvas)! >= k)
+    for (const [id, point] of coordinates.get(canvas)!) coordinates.get(canvas)!.set(id, { x: point.x + later, y: point.y });
+  const repainted = scenes.slice(start, end).map(paint);
+  const view = (index: number) => index >= start && index < end ? repainted[index - start] : frames[index];
+  let reason = '';
+  for (let j = start; !reason && j < k; j++) {
+    const frame = repainted[j - start];
+    const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
+    if (!ordered(frame)) reason = `order at ${j + 1}`;
+    else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, view(k))) reason = `clearance at ${j + 1}`;
+  }
+  if (!reason && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])), growth)) reason = 'stage size';
+  for (let j = Math.max(1, start); !reason && j <= k; j++) {
+    const crossing = scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex;
+    if (newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `faults at ${j + 1}`;
+    else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `continuity at ${j + 1}`;
+    else if (j === k) {
+      const now = view(k), prior = view(k - 1), granted = closingAt(scenes[k - 1].step, step, prior, now, prior, now);
+      const movers = new Set<string>(); for (const id of participants) now.get(id)?.each(member => { movers.add(getNodeId(member)); });
+      const carryNow = crossing ? paintedShift(points(prior), points(now)) : { x: 0, y: 0 };
+      const carryWas = crossing ? paintedShift(points(frames[k - 1]), points(after)) : { x: 0, y: 0 };
+      for (const [id, node] of now) {
+        const was = frames[k - 1].get(id), before = prior.get(id), old = after.get(id);
+        if (!was || !before || !old || granted.has(id) || movers.has(id)) continue;
+        if (Math.hypot(node.x - carryNow.x - before.x, node.y - carryNow.y - before.y) > Math.hypot(old.x - carryWas.x - was.x, old.y - carryWas.y - was.y) + 1) { reason = `ungranted ${id}`; break; }
+      }
+    }
+    else if (j < k && !sameMotion(scenes[j].step, crossing, frames[j - 1], frames[j], view(j - 1), view(j))) reason = `motion at ${j + 1}`;
+  }
+  if (reason) { for (const [canvas, points] of saved) coordinates.set(canvas, points); return reason; }
+  repainted.forEach((frame, index) => { frames[start + index] = frame; });
+  return '';
+}
+
+/** Seats a head that joins a movement's landing where it can wait clear.
+ *
+ * A head selected apart (a C waiting for the verb to move into it) is often
+ * planned beside the movement's source, tight against syntax that is about to
+ * leave, and then repositions when the landing arrives beside it. Where such a
+ * head moves at the movement as one rigid piece, every frame from the movement
+ * on stands over so far that the head's place there is a place where it waits
+ * clear of its row before, and it waits there from its selection: it then
+ * appears where it stays and the rest of the movement's side closes instead,
+ * which the movement owns. The nearest such place is kept that every check
+ * accepts; failing that, the head keeps its place and only the later frames
+ * stand over. */
+function seatReceivingHeads(context: Context) {
+  const { scenes, frames } = context;
+  const debug = (...parts: unknown[]) => { trace.log?.('SEAT', ...parts); };
+  for (let k = scenes.length - 1; k >= 1; k--) {
+    const step = scenes[k].step, participants = trajectoryParticipants(step);
+    if (!participants.length || scenes[k - 1].step.replayFrameIndex !== step.replayFrameIndex) continue;
+    const before = frames[k - 1], after = frames[k];
+    const movers = new Set<string>(); for (const id of participants) after.get(id)?.each(member => { movers.add(getNodeId(member)); });
+    for (const [rootId, root] of before) {
+      const now = after.get(rootId);
+      if (shownParent(before, root) || !now || movers.has(rootId)) continue;
+      const parent = shownParent(after, now);
+      if (!parent || before.has(parent)) continue;
+      const members: string[] = [];
+      root.each(member => { if (before.has(getNodeId(member))) members.push(getNodeId(member)); });
+      if (members.some(id => movers.has(id) || !after.has(id))) continue;
+      const delta = after.get(rootId)!.x - root.x;
+      if (Math.abs(delta) < 20 || members.some(id => Math.abs(after.get(id)!.x - before.get(id)!.x - delta) > 1 || Math.abs(after.get(id)!.y - before.get(id)!.y) > 1)) continue;
+      // How far the head's place at the movement stands from the nearest syntax
+      // on its rows over its wait, for a shift `later` of the frames from k on.
+      const births = members.map(id => { let start = k; while (start > 0 && frames[start - 1].has(id)) start--; return start; });
+      const start = Math.min(...births);
+      const clearance = (later: number) => {
+        let least = Infinity;
+        for (let j = start; j < k; j++) for (const id of members) {
+          const node = frames[j].get(id);
+          if (!node) continue;
+          const x = after.get(id)!.x + later;
+          for (const other of frames[j].values()) if (!members.includes(getNodeId(other)) && Math.abs(other.y - node.y) < 1) least = Math.min(least, Math.abs(other.x - x));
+        }
+        return least;
+      };
+      const candidates: number[] = [];
+      for (let step = 1; step <= 8; step++) for (const sign of [-1, 1]) {
+        const later = -delta + sign * step * TREE_SIBLING_GAP / 4;
+        if (clearance(later) >= TREE_SIBLING_GAP - 1) candidates.push(later);
+      }
+      candidates.sort((a, b) => Math.abs(a + delta) - Math.abs(b + delta));
+      candidates.push(-delta);
+      for (const later of candidates.slice(0, 5)) {
+        const reason = tryShift(context, k, members, id => after.get(id)!.x + later - before.get(id)!.x, later, SEAT_GROWTH);
+        debug(k + 1, rootId, Math.round(delta), 'later', Math.round(later), reason || 'seated');
+        if (!reason) break;
       }
     }
   }
