@@ -262,6 +262,8 @@ test('the actual CLI retains evidence and exits nonzero when a required control 
     assert.equal(good.ok, true); assert.equal(good.summary.analyses, 1);
     assert.equal(good.baseline.sha256, good.candidate.sha256);
     assert(good.harness.sources.some(source => source.filename.endsWith('components/treeViewport.ts')), 'the camera rule is fingerprinted');
+    for (const rule of ['replay/motionRule.ts', 'replay/cameraCarry.ts'])
+      assert(good.harness.sources.some(source => source.filename.endsWith(rule)), `${rule} is fingerprinted`);
     assert.equal(good.records[0].rawSha256, records[1].rawSha256);
     record.expect.facets[1].present = false;
     await writeFile(manifest, JSON.stringify({ records: [record] }));
