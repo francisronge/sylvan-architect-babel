@@ -64,6 +64,10 @@ export type CompilePlanOptions = {
   registry?: typeof productionRelationRegistry;
   families?: Record<string, ProductionRenderFamily>;
   activeLens?: boolean;
+  /** Each stage's relation indexes in the order Replay plays their moments
+   * (`relationMomentOrders`); a stage without an entry plays in authored order.
+   * Rails take their bands from this order (anchorRailBands.ts). */
+  relationMomentOrders?: ReadonlyMap<number, readonly number[]>;
 };
 
 const conventionalIndex = (ordinal: number): string => 'ijklmnopqrstuvwxyz'[ordinal] ?? `i${ordinal + 1}`;
@@ -663,8 +667,9 @@ export const compileDispatchedRelationRenderPlan = (
         // neutral role beside a recognized one still lends no lifetime.
         // Its identity, like a recognized claim's replacement thread, is its
         // participants: the exact entries it numbers, whatever the relation or
-        // role is called. A later rail over the same list, restated, grown or
-        // narrowed, replaces it at that moment (planPersistence.ts).
+        // role is called. A later rail over exactly the same entries replaces
+        // it at that moment; a subset or superset is another claim and stands
+        // beside it (planPersistence.ts).
         const ownLifetime = owner.kind === 'fallback' && relationItems.every(item => item.kind === 'fallback');
         const companion: AnchorSetPlanItem = {
           kind: 'anchor-set',
@@ -814,7 +819,7 @@ export const compileDispatchedRelationRenderPlan = (
   });
   const frames = materializePlanFrames(items, stageList, stageDispatches, stageNodeMaps, organizationCompanions, diagnostics);
   coalesceFrames(frames);
-  assignAnchorRailBands(frames, stageList);
+  assignAnchorRailBands(frames, stageList, options.relationMomentOrders);
 
   return {
     planVersion: 1,

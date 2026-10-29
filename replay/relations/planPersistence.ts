@@ -34,14 +34,14 @@ const standaloneRailEntries = (item: RelationPlanItem): Set<string> | undefined 
   item.kind === 'anchor-set' && item.ownNumerals && item.replacementGroup
     ? new Set(JSON.parse(item.replacementGroup).participants as string[]) : undefined;
 
-/** A later standalone rail over the same list, restated, grown or narrowed,
- * replaces the earlier one at its moment, so no two rails number one entry
- * for the same list. Rails that only overlap stay independent claims. */
+/** A later standalone rail over exactly the same entries restates the claim
+ * and replaces the earlier rail at its moment. A rail over a subset, superset
+ * or overlap of those entries is a different claim, so both stay, each on its
+ * own band (anchorRailBands.ts). */
 const restatesRail = (later: RelationPlanItem, earlier: RelationPlanItem): boolean => {
   const laterEntries = standaloneRailEntries(later), earlierEntries = standaloneRailEntries(earlier);
-  if (!laterEntries || !earlierEntries) return false;
-  const within = (inner: Set<string>, outer: Set<string>) => [...inner].every(id => outer.has(id));
-  return within(earlierEntries, laterEntries) || within(laterEntries, earlierEntries);
+  return Boolean(laterEntries && earlierEntries && laterEntries.size === earlierEntries.size
+    && [...laterEntries].every(id => earlierEntries.has(id)));
 };
 
 export function materializePlanFrames(

@@ -1,6 +1,7 @@
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import type { DerivationStage } from '../types.ts';
 import { compileDispatchedRelationRenderPlan, dispatchRelationStagesForPlan } from './relations/renderPlanCompiler.ts';
+import { relationMomentOrders } from './relations/anchorRailBands.ts';
 import { adaptDerivationStagesForReplay } from './authoredFrames.ts';
 import { applyPreFrontingSentenceInitialCasing } from './replayCasing.ts';
 import { buildAuthoredRelationLinksForFrames, buildMovementChainIndexCatalogueForFrames, createFrameRelationResolver } from './frameRelations.ts';
@@ -29,7 +30,6 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
     ? buildDerivationReplayPlan({ derivationStages }) as DerivationReplayPlan : null;
   // The plan's drawings and Replay's relation moments share one dispatch of every claim.
   const relationClaims = dispatchRelationStagesForPlan(relationStagesFromFrames(replayDerivationFrames, derivationReplayPlan));
-  const relationPlan = hasStages ? compileDispatchedRelationRenderPlan(relationClaims) : null;
   const finalIndex = replayDerivationFrames.length - 1;
   const finalFrame = replayDerivationFrames[finalIndex];
   const frameRelations = createFrameRelationResolver(replayDerivationFrames, derivationReplayPlan, relationClaims);
@@ -62,6 +62,9 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
       decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId), sentence, inputTokens
     );
   }
+  // The plan follows the order in which Replay plays each stage's moments.
+  const relationPlan = hasStages ? compileDispatchedRelationRenderPlan(relationClaims,
+    includePlayback ? { relationMomentOrders: relationMomentOrders(playbackSteps, replayDerivationFrames.length) } : {}) : null;
   // Realized forms join the plan once Replay has decided when each association is active.
   const relationRenderPlan = relationPlan && withRealizationDisplays(relationPlan, replayDerivationFrames,
     { sentence, inputTokens, ...(includePlayback ? { steps: playbackSteps } : {}) });

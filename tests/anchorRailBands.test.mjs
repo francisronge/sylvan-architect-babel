@@ -3,6 +3,7 @@ import test from 'node:test';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { prepareReplay } from '../replay/prepareReplay.ts';
 
 // Rails shown together over shared terminals take distinct lanes and badge
 // slots, and each keeps them while it stays on screen (anchorRailBands.ts).
@@ -87,25 +88,83 @@ test('recognized rails restated over shared entries in a later stage never meet'
   assert.deepEqual(timeline.at(-1).rails.map(rail => rail.lane), [0, 1]);
 });
 
-test('a neutral list grown or restated in a later stage replaces its rail at the new moment', () => {
-  for (const [label, later] of [['grown', span('a', 'g')], ['restated', span('a', 'f')], ['narrowed', span('b', 'f')]]) {
+test('only an exact restatement in a later stage replaces a neutral rail; a grown or narrowed list stands beside it', () => {
+  // Coordinator decision A: the same entries, in any order, restate the claim;
+  // a subset or superset is a different claim, and both rails stay.
+  for (const [label, later, replaces] of [['restated', span('a', 'f'), true], ['reordered', span('a', 'f').reverse(), true],
+    ['grown', span('a', 'g'), false], ['narrowed', span('b', 'f'), false]]) {
     const stages = [stage([open(span('a', 'f'))]), stage([open(later)]), stage([])];
     const { timeline } = play(stages);
     const at = text => timeline.find(step => step.label === text);
     assert.deepEqual(at('stage 2 moment entry').rails.map(rail => rail.rail), ['0:0'], `${label}: the earlier rail stands until then`);
     for (const text of ['stage 2 moment 0', 'stage 3 complete']) {
-      assert.deepEqual(at(text).rails.map(rail => [rail.rail, rail.lane]), [['1:0', 0]], `${label} at ${text}: one rail over the list`);
-      assert.deepEqual(at(text).badges.map(badge => badge.numeral), later.map((_id, index) => index + 1));
+      assert.deepEqual(at(text).rails.map(rail => [rail.rail, rail.lane]), replaces ? [['1:0', 0]] : [['0:0', 0], ['1:0', 1]],
+        `${label} at ${text}`);
+      assert.deepEqual(at(text).badges.filter(badge => badge.rail === '1:0').map(badge => badge.numeral), later.map((_id, index) => index + 1));
     }
   }
 });
 
+test('one claim\'s moment never removes another claim\'s rail over a subset or superset of its entries', () => {
+  const ten = span('a', 'j'), scope = span('c', 'g');
+  for (const [first, second] of [[open(ten), open(scope, 'Scope set')], [open(scope, 'Scope set'), open(ten)]]) {
+    const { timeline } = play([stage([first]), stage([second]), stage([])]);
+    assert.deepEqual(timeline.at(-1).rails.map(rail => [rail.rail, rail.lane]), [['0:0', 0], ['1:0', 1]],
+      `${first.relation} then ${second.relation}: both rails stay on separate bands`);
+    assert.equal(timeline.at(-1).badges.length, ten.length + scope.length, 'each keeps every numeral');
+  }
+  // A restatement in stage 2 retires only the rail it restates.
+  const { timeline } = play([stage([open(span('a', 'e')), open(span('c', 'g'), 'Scope set')]), stage([open(span('a', 'e'))]), stage([])]);
+  assert.deepEqual(timeline.at(-1).rails.map(rail => [rail.rail, rail.lane]), [['0:1', 1], ['1:0', 0]]);
+});
+
+test('a list grown within one stage keeps both rails, on separate bands with separate numerals', () => {
+  // Coordinator decision B: two claims, each numbered faithfully, never colliding.
+  const { timeline } = play([stage([open(span('a', 'e')), open(span('a', 'f'))]), stage([])]);
+  const last = timeline.at(-1);
+  assert.deepEqual(last.rails.map(rail => [rail.rail, rail.lane]), [['0:0', 0], ['0:1', 1]]);
+  assert.equal(last.badges.length, 11);
+});
+
 test('a rail keeps its lane while another leaves, and a new rail takes the lowest free lane', () => {
-  // The list grown in stage 2 replaces its stage-1 rail; the scope rail beside
-  // it keeps its second lane, the replacement takes the first lane the old list
-  // left, and a rail over other terminals starts on the first lane too.
+  // The restated list in stage 2 replaces its stage-1 rail; the scope rail
+  // beside it keeps its second lane, the restatement takes the first lane the
+  // old list left, and a rail over other terminals starts on the first lane too.
   const stages = [stage([open(span('a', 'e')), open(span('c', 'g'), 'Scope set')]),
-    stage([open(span('a', 'f')), open(span('h', 'l'), 'Other list')]), stage([])];
+    stage([open(span('a', 'e')), open(span('h', 'l'), 'Other list')]), stage([])];
   const { timeline } = play(stages);
   assert.deepEqual(timeline.at(-1).rails.map(rail => [rail.rail, rail.lane]), [['0:1', 1], ['1:0', 0], ['1:1', 0]]);
+});
+
+test('bands follow the order Replay plays a stage\'s moments, not authored order', () => {
+  // The open list names b's landing, so Replay plays it right after the
+  // movement (orderRelationMoments): the scope set comes first and stands
+  // alone on the first lane; the list joins it on the next.
+  const ps = ['p1', 'p2', 'p3', 'p4', 'p5'];
+  const phrase = (id, silent = false) => ({ id, label: 'DP', lineageId: id.replace(/_hi$/, '').toUpperCase(),
+    word: id.replace(/_hi$/, ''), ...(silent ? { silent: true } : {}) });
+  const record = { sentence: 'b p1 p2 p3 p4 p5', derivationStages: [
+    { statement: 'Phrases.', stageRecord: 'Six phrases are built.', relations: [], workspaceForest: [phrase('b'), ...ps.map(id => phrase(id))] },
+    { statement: 'Movement.', stageRecord: 'b moves.', relations: [
+      open(['b_hi', ...ps.slice(0, 4)]), open(ps, 'Scope set'),
+      { relation: 'Internal Merge', anchors: { lowerCopy: 'b', higherCopy: 'b_hi' }, priorAnchors: { source: 'b' } }],
+    workspaceForest: [{ id: 'root', label: 'XP', children: [{ id: 'host_b', label: 'XP', children: [phrase('b_hi'), phrase('b', true)] },
+      ...ps.map(id => phrase(id))] }] }] };
+  const { playbackSteps: replaySteps, relationRenderPlan: plan } = prepareReplay({ ...record, includePlayback: true });
+  const moments = replaySteps.filter(step => step.replayKind === 'relation' && step.replayFrameIndex === 1);
+  assert.deepEqual(moments.map(step => step.replayRelationIdentity.relationIndex), [1, 2, 0], 'the stage is reordered');
+  const order = ['b_hi', 'b', ...ps];
+  const lanes = replaySteps.map((step, index) => {
+    const played = new Set(replaySteps.slice(0, index + 1).filter(other => other.replayKind === 'relation'
+      && other.replayFrameIndex === step.replayFrameIndex).map(other => other.replayRelationIdentity.relationIndex));
+    const items = visiblePlanFrameItems(plan, step.replayFrameIndex, played, step.replayKind === 'relation'
+      ? step.replayRelationIdentity.relationIndex : null);
+    const geometry = bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, i) => i === step.replayFrameIndex ? { ...frame, items } : frame) },
+      step.replayFrameIndex, id => order.includes(id) ? { x: order.indexOf(id) * 180, y: 0 } : null);
+    const rails = geometry.primitives.filter(mark => mark.type === 'anchor-set-rail');
+    const badges = geometry.primitives.filter(mark => mark.type === 'anchor-set-badge').map(badge => `${badge.x},${badge.y}`);
+    assert.equal(new Set(badges).size, badges.length, `step ${index + 1}: two numerals at one point`);
+    return rails.map(rail => `${items[rail.itemIndex].set.relationIndex}:${rail.lane}`).sort().join(' ');
+  }).filter(Boolean);
+  assert.deepEqual([...new Set(lanes)], ['1:0', '0:1 1:0'], 'the scope set keeps the first lane from its own moment on');
 });

@@ -1,5 +1,6 @@
 import type { SyntaxNode } from '../../types.ts';
 import type { RelationStage } from '../relationStages.ts';
+import type { PlaybackStep } from '../types.ts';
 import { isPlanItemRevealed, type AnchorSetPlanItem, type RelationRenderPlan } from './renderPlan.ts';
 
 /** One large-array organization, however many owners materialize it: the
@@ -46,8 +47,9 @@ const bandWidth = (items: readonly AnchorSetPlanItem[]): number => {
  * alike, and gives each rail a band of lanes and badge stack slots
  * (`railBand`) that it keeps for its whole life.
  *
- * Each stage is played as its stage entry, then each relation moment in
- * authored order, then the completed stage. Two rails conflict when some such
+ * Each stage is played as its stage entry, then each relation moment in the
+ * order Replay plays them (`momentOrders`, authored order for a stage it does
+ * not list), then the completed stage. Two rails conflict when some such
  * step shows both and their entries' terminal spans overlap. In order of first
  * appearance, a rail takes the lowest band that no conflicting rail already
  * holds, so a lone rail keeps band 0 and paints as before, a later rail never
@@ -57,7 +59,8 @@ const bandWidth = (items: readonly AnchorSetPlanItem[]): number => {
  */
 export const assignAnchorRailBands = (
   frames: RelationRenderPlan['frames'],
-  stages: readonly RelationStage[]
+  stages: readonly RelationStage[],
+  momentOrders?: ReadonlyMap<number, readonly number[]>
 ): void => {
   const itemsByRail = new Map<string, AnchorSetPlanItem[]>();
   const order = new Set<string>();
@@ -74,12 +77,11 @@ export const assignAnchorRailBands = (
       itemsByRail.set(key, [...itemsByRail.get(key) ?? [], item]);
     });
     const spans = terminalSpans(stages[frameIndex]?.workspaceForest ?? []);
-    const relationCount = stages[frameIndex]?.relations.length ?? 0;
-    const steps: Array<[ReadonlySet<number> | null, number | null]> = [[new Set(), null]];
-    for (let relationIndex = 0; relationIndex < relationCount; relationIndex++) {
-      steps.push([new Set(Array.from({ length: relationIndex + 1 }, (_unused, index) => index)), relationIndex]);
-    }
-    steps.push([null, null]);
+    const moments = momentOrders?.get(frameIndex)
+      ?? Array.from({ length: stages[frameIndex]?.relations.length ?? 0 }, (_unused, index) => index);
+    const steps: Array<[ReadonlySet<number> | null, number | null]> = [[new Set(), null],
+      ...moments.map((relationIndex, position): [ReadonlySet<number>, number] => [new Set(moments.slice(0, position + 1)), relationIndex]),
+      [null, null]];
     for (const [played, active] of steps) {
       const shown = new Map<string, [number, number]>();
       rails.forEach(item => {
@@ -116,4 +118,20 @@ export const assignAnchorRailBands = (
     bands.set(key, [start, width]);
     if (start > 0) itemsByRail.get(key)!.forEach(item => { item.railBand = start; });
   }
+};
+
+/** Each of `stageCount` stages' relation indexes in the order the Replay steps
+ * play their moments, which `orderRelationMoments` decides (stageScheduling.ts);
+ * a stage whose relations get no moment plays none. */
+export const relationMomentOrders = (steps: readonly PlaybackStep[], stageCount: number): Map<number, number[]> => {
+  const orders = new Map<number, number[]>(Array.from({ length: stageCount }, (_unused, index) => [index, []]));
+  for (const step of steps) {
+    if (step.replayKind !== 'relation' || !step.replayRelationIdentity) continue;
+    const { stageIndex, relationIndex } = step.replayRelationIdentity;
+    if (!Number.isInteger(stageIndex) || !Number.isInteger(relationIndex)) continue;
+    const order = orders.get(stageIndex) ?? [];
+    if (!order.includes(relationIndex)) order.push(relationIndex);
+    orders.set(stageIndex, order);
+  }
+  return orders;
 };
