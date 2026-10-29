@@ -28,6 +28,22 @@ import { recoveredClaimMovements } from './tier2RelationDispatch.ts';
 const distinctTransitions = <T extends { relationIndex: number }>(candidates: T[], key: (candidate: T) => string): T[] =>
   candidates.filter((candidate, index) => candidates.findIndex(other => key(other) === key(candidate)) === index);
 
+/** The entries a standalone rail numbers, which are its identity
+ * (renderPlanCompiler.ts); undefined for every other item. */
+const standaloneRailEntries = (item: RelationPlanItem): Set<string> | undefined =>
+  item.kind === 'anchor-set' && item.ownNumerals && item.replacementGroup
+    ? new Set(JSON.parse(item.replacementGroup).participants as string[]) : undefined;
+
+/** A later standalone rail over the same list, restated, grown or narrowed,
+ * replaces the earlier one at its moment, so no two rails number one entry
+ * for the same list. Rails that only overlap stay independent claims. */
+const restatesRail = (later: RelationPlanItem, earlier: RelationPlanItem): boolean => {
+  const laterEntries = standaloneRailEntries(later), earlierEntries = standaloneRailEntries(earlier);
+  if (!laterEntries || !earlierEntries) return false;
+  const within = (inner: Set<string>, outer: Set<string>) => [...inner].every(id => outer.has(id));
+  return within(earlierEntries, laterEntries) || within(laterEntries, earlierEntries);
+};
+
 export function materializePlanFrames(
   items: RelationPlanItem[],
   stageList: RelationStage[],
@@ -137,11 +153,12 @@ export function materializePlanFrames(
     : left.stageIndex !== right.stageIndex ? (left.stageIndex < right.stageIndex ? left : right)
       : left.relationIndex <= right.relationIndex ? left : right;
   const reportedVanished = new Set<string>();
+  /** Returns whether the item is drawn in this frame. */
   const materializeIntoFrame = (
     item: RelationPlanItem,
     frameIndex: number,
     supersededAt?: PlanRelationRef
-  ) => {
+  ): boolean => {
     const projected = transferOccurrences(item, frameIndex);
     const missing = vanishedAnchorIds(projected, frameIndex);
     const removal = missing.length ? removingMovement(missing, frameIndex) : undefined;
@@ -165,7 +182,7 @@ export function materializePlanFrames(
             + (removal ? `, and stays until relation ${removal.relationIndex + 1} (${removal.relation}) moves them` : '')
         });
       }
-      if (!removal) return;
+      if (!removal) return false;
       supersededAt = earlierMoment(supersededAt, removal);
     }
     /*
@@ -220,6 +237,7 @@ export function materializePlanFrames(
         ...(companionYield ? { supersededAt: companionYield } : {})
       });
     }
+    return true;
   };
   items.forEach((item) => {
     if (item.appearsAtStage >= stageCount) return;
@@ -265,12 +283,15 @@ export function materializePlanFrames(
             || continuesReplacementGroup(candidate.replacementPredecessorGroup, item.replacementGroup)
             || (collectionSupersession?.stageIndex === candidate.relationRef.stageIndex
               && collectionSupersession?.relationIndex === candidate.relationRef.relationIndex)
-            || sameMovementAfterAttachment(candidate)));
+            || sameMovementAfterAttachment(candidate)
+            || restatesRail(candidate, item)));
         if (replacement) {
           materializeIntoFrame(item, frameIndex, replacement.relationRef);
           break;
         }
-        materializeIntoFrame(item, frameIndex);
+        // A standalone rail that loses an entry ends there; it never skips a
+        // stage and returns, so its loss is reported once.
+        if (!materializeIntoFrame(item, frameIndex) && standaloneRailEntries(item)) break;
       }
       return;
     }

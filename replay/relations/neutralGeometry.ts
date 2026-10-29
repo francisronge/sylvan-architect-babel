@@ -101,7 +101,7 @@ export const neutralGeometry = {
         roles: item.set.roles
       }],
       rectFor,
-      { badgeOffsetY: badgeGap * markerScale, railGap: laneGap }
+      { badgeOffsetY: badgeGap * markerScale, railGap: laneGap, band: item.railBand }
     );
     const unresolvedAtAuthoring = new Set(
       item.set.roles.flatMap((roleGroup) =>

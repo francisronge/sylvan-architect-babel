@@ -578,10 +578,19 @@ Tree Bank previews capture the visible portion at its correct bounds, with all
 rows preserved in the saved analysis. A static thumbnail does not promise a full
 print layout for extreme content.
 
-The organizational Anchor rail includes its Orchard joining lines. A rail whose claim draws nothing but neutral marks keeps the recognized rail's lifetime instead of expiring with them (Francis, 27 Oct 2026). Like a recognized rail it numbers its own entries from its moment, so it does not change when the neutral role labels expire. Its identity is the entries it numbers: a later rail over them replaces it at that moment, a restatement in the same stage shares it, and a rail over other entries stands beside it. This holds for a malformed registered claim too: the rail organizes its authored array and asserts nothing about the claim, whose own ink stays neutral and expires. A neutral role beside a recognized one still lends that role no lifetime. Bound geometry
+The organizational Anchor rail includes its Orchard joining lines. A rail whose claim draws nothing but neutral marks keeps the recognized rail's lifetime instead of expiring with them (Francis, 27 Oct 2026). Like a recognized rail it numbers its own entries from its moment, so it does not change when the neutral role labels expire. Its identity is the entries it numbers: a later rail over the same list, restated, grown or narrowed, replaces it at that moment, a restatement in the same stage shares it, and a rail over other entries stands beside it. This holds for a malformed registered claim too: the rail organizes its authored array and asserts nothing about the claim, whose own ink stays neutral and expires. A neutral role beside a recognized one still lends that role no lifetime. A wholly neutral rail that loses an entry stops there and does not return with the entry. Bound geometry
 retains the exact marks belonging to its authored relation, including existing
 neutral badges, and carries their joins through Fit and zoom. It does not select
 another claim's mark because the two claims share a node.
+
+Rails shown together over shared terminals, recognized or neutral, never meet.
+Babel plays every rail through the Replay once (`replay/relations/anchorRailBands.ts`):
+two rails conflict when a step shows both and their entries' terminal spans
+overlap. In order of first appearance, each takes the lowest band of lanes and
+badge stack slots no conflicting rail holds and keeps it while it lives. A lone
+rail keeps the first lane and paints as before; a later rail never moves an
+earlier one; a replacement takes the band its predecessor leaves at its own
+moment.
 
 ## Camera input ownership
 

@@ -3,6 +3,7 @@ import { dispatchRelationStages, projectRelationStages, type DispatchedRelationS
 import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
 import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
 import { isWordlessCategoryLeaf } from '../replaySurfaceNotation.ts';
+import { assignAnchorRailBands } from './anchorRailBands.ts';
 import { domainPlan } from './domainPlan.ts';
 import { fallbackDrawing } from './fallbackTopology.ts';
 import { featurePlan } from './featurePlan.ts';
@@ -662,7 +663,8 @@ export const compileDispatchedRelationRenderPlan = (
         // neutral role beside a recognized one still lends no lifetime.
         // Its identity, like a recognized claim's replacement thread, is its
         // participants: the exact entries it numbers, whatever the relation or
-        // role is called. A later rail over them replaces it at that moment.
+        // role is called. A later rail over the same list, restated, grown or
+        // narrowed, replaces it at that moment (planPersistence.ts).
         const ownLifetime = owner.kind === 'fallback' && relationItems.every(item => item.kind === 'fallback');
         const companion: AnchorSetPlanItem = {
           kind: 'anchor-set',
@@ -812,6 +814,7 @@ export const compileDispatchedRelationRenderPlan = (
   });
   const frames = materializePlanFrames(items, stageList, stageDispatches, stageNodeMaps, organizationCompanions, diagnostics);
   coalesceFrames(frames);
+  assignAnchorRailBands(frames, stageList);
 
   return {
     planVersion: 1,

@@ -554,6 +554,10 @@ export type AnchorSetPlanItem = PlanItemBase & {
   /** The rail joins only its own badges, never a neutral numeral, so a rail
    * outliving its neutral marks keeps its geometry from its own moment on. */
   ownNumerals?: boolean;
+  /** First lane and badge stack slot of this rail, kept for its whole life so
+   * rails shown together over shared terminals never meet (anchorRailBands.ts).
+   * Absent for band 0. */
+  railBand?: number;
   badgeSize: 'standard' | 'compact';
   /** Exact claims whose already-materialized entries this organization follows. */
   organizationOwners?: string[];

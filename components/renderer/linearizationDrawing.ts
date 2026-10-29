@@ -89,7 +89,8 @@ export function createLinearizationDrawing({
             || exactScreenTreeLabelRectNow(nodeId, true),
           {
             badgeOffsetY: localPx(16),
-            railGap: localPx(14)
+            railGap: localPx(14),
+            band: anchorSetItem.railBand
           }
         ) : { badges: [], rails: [] };
         if (anchorSetItem?.kind === 'anchor-set' && anchorPlan.badges.length > 0) {

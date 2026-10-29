@@ -592,6 +592,18 @@ test('a vanished rendered large-role member stops the rail with one diagnostic',
     'the carried rail stops where its member vanishes');
   assert.equal(plan.diagnostics.filter((d) => d.kind === 'anchor-vanished').length, 1,
     'the vanished member is reported once');
+  // A mark is never retargeted and cannot skip a stage: the member's return
+  // does not bring the stopped rail back, and its loss is still reported once.
+  const returning = compileRelationRenderPlan([
+    stage([{ relation: 'OpenChorus', anchors: { members } }], memberForest(members)),
+    stage([], memberForest(members.slice(0, 4))),
+    stage([], memberForest(members.slice(0, 4))),
+    stage([], memberForest(members))
+  ]);
+  assert.deepEqual(returning.frames.map((frame) => frame.items.filter((item) => item.kind === 'anchor-set').length),
+    [1, 0, 0, 0], 'the rail stays stopped after its member returns');
+  assert.equal(returning.diagnostics.filter((d) => d.kind === 'anchor-vanished').length, 1,
+    'the vanished member is reported once');
 });
 
 test('a member unresolved at authoring keeps only its original diagnostic; the partial rail draws at its stage', () => {
