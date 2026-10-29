@@ -624,6 +624,13 @@ drawing identity, so swapping two roles cannot reuse the earlier grid.
 An argument field's same-name, same-length values list supplies its role labels,
 so it also establishes the thematic domain beside a directional assigner:
 `{assigner, argument: [a, b]}` with `argument: [Theme, Source]` is one grid.
+A role-label list beside an explicit predicate pairs by name, never by position,
+when each literal names a different participant field of the claim:
+`{predicate, speaker, content}` with `roles: [Speaker, Content]` labels both
+fields, in either list order, and a named field is a participant whatever its
+direction word, so `source` named by the list is not the grid's source. A
+literal that names no field or names a field twice pairs nothing, and without
+an explicit predicate the list establishes no participants.
 
 Matching Case-qualified source and recipient fields can identify an assignment
 without a separate values entry. A nominative assigner and nominative DP form

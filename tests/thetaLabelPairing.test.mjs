@@ -22,3 +22,26 @@ test('an assigner with role labels listed under its argument field draws that gr
   assert.equal(grid({ relation: 'UnregisteredAnalysis', anchors: { assigner: 'v', argument: ['object', 'pp'] },
     values: { argument: ['Theme'] } }), undefined);
 });
+
+test('a role-label list that names each argument field pairs each label with its field', () => {
+  // The literals name the fields, so the pairing is by name rather than by position.
+  for (const relation of ['UnregisteredAnalysis', 'theta assignment']) {
+    assert.deepEqual(rows(grid({ relation, anchors: { predicate: 'v', agent: 'subject', theme: 'object' },
+      values: { roles: ['Agent', 'Theme'] } })), [['subject', 'Agent'], ['object', 'Theme']]);
+    assert.deepEqual(rows(grid({ relation, anchors: { predicate: 'v', agent: 'subject', theme: 'object' },
+      values: { roles: ['Theme', 'Agent'] } })), [['subject', 'Agent'], ['object', 'Theme']]);
+    // Open field names earn the same pairing when the list names them.
+    assert.deepEqual(rows(grid({ relation, anchors: { predicate: 'v', speaker: 'subject', content: 'object' },
+      values: { roles: ['Speaker', 'Content'] } })), [['subject', 'Speaker'], ['object', 'Content']]);
+    assert.deepEqual(rows(grid({ relation, anchors: { predicate: 'v', theme: 'object', source: 'pp' },
+      values: { roles: ['Theme', 'Source'] } })), [['object', 'Theme'], ['pp', 'Source']]);
+  }
+  // A list that names no field, or one field twice, pairs nothing.
+  for (const roles of [['Agent', 'Patient'], ['Agent', 'Agent'], ['Agent']]) {
+    assert.equal(grid({ relation: 'UnregisteredAnalysis', anchors: { predicate: 'v', agent: 'subject', theme: 'object' },
+      values: { roles } }), undefined, roles.join());
+  }
+  // Without an explicit predicate the list names participants of nothing.
+  assert.equal(grid({ relation: 'UnregisteredAnalysis', anchors: { head: 'v', speaker: 'subject', content: 'object' },
+    values: { roles: ['Speaker', 'Content'] } }), undefined);
+});

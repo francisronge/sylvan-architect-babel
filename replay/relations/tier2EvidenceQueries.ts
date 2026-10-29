@@ -10,6 +10,7 @@ import { TIER2_FACET_RECIPES } from './tier2FacetRecipes.ts';
 import type { Tier2AnchorSource, Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import {
   FEATURE_DIMENSION_KEYS,
+  fieldNamingLiterals,
   namedThematicRole,
   normalizeTier2Synonym,
   thematicRoleLabel,
@@ -196,7 +197,7 @@ export const pairedLiterals = (
 };
 
 export const sameNameValueEntries = (
-  evidence: Pick<Tier2FacetEvidence, 'authoredValues'>,
+  evidence: Pick<Tier2FacetEvidence, 'authoredValues'> & Partial<Pick<Tier2FacetEvidence, 'authoredCurrentAnchors'>>,
   anchorEntry: Tier2AuthoredEvidenceEntry,
   role?: string
 ): (Tier2AuthoredEvidenceEntry & { anchorLength: number })[] => {
@@ -215,7 +216,16 @@ export const sameNameValueEntries = (
     ? entries.filter(candidate => candidate.items.length === 1
       && /(?:^| )role$/u.test(normalizeTier2Synonym(candidate.key))
       && [normalizeTier2Synonym(anchorEntry.key), namedThematicRole(anchorEntry.key)].includes(normalizeTier2Synonym(candidate.items[0]))) : [];
-  return (matches.length ? matches : qualified.length ? qualified : named)
+  // A role-label list that names each argument field gives this field the literal naming it.
+  const listed = !matches.length && !qualified.length && !named.length && (!role || role === 'theta.arguments')
+    && anchorEntry.concepts.includes('theta.arguments') && anchorEntry.items.length === 1
+    ? entries.flatMap(candidate => {
+      const index = candidate.concepts.includes('role.label') && candidate.items.length > 1
+        ? fieldNamingLiterals((evidence.authoredCurrentAnchors ?? []).map(entry => entry.key), candidate.items)?.get(anchorEntry.key)
+        : undefined;
+      return index === undefined ? [] : [{ key: candidate.key, concepts: candidate.concepts, items: [candidate.items[index]] }];
+    }) : [];
+  return (matches.length ? matches : qualified.length ? qualified : named.length ? named : listed)
     .map(entry => ({ ...entry, anchorLength: anchorEntry.items.length }));
 };
 

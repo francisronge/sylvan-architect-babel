@@ -72,6 +72,21 @@ const licensingSources = ['licensor', 'licenser', 'license source', 'licensing h
 const licensingTargets = ['licensee', 'licensed item', 'licensed phrase', 'licensed constituent', 'licensed nominal', 'licensing target'];
 export const FEATURE_DIMENSION_KEYS = new Set(['person', 'number', 'gender']);
 
+/** A role-label list whose every literal names a different field of the same
+ * claim pairs each literal with the field it names: by name, not by position.
+ * Returns each named field's literal index, or nothing when any literal names
+ * no field, several fields, or a field another literal already names. */
+export const fieldNamingLiterals = (fieldKeys: readonly string[], literals: readonly unknown[]): Map<string, number> | undefined => {
+  const named = new Map<string, number>();
+  for (const [index, literal] of literals.entries()) {
+    if (typeof literal !== 'string' || !literal.trim()) return undefined;
+    const fields = fieldKeys.filter(key => [normalizeTier2Synonym(key), namedThematicRole(key)].includes(normalizeTier2Synonym(literal)));
+    if (fields.length !== 1 || named.has(fields[0])) return undefined;
+    named.set(fields[0], index);
+  }
+  return named.size ? named : undefined;
+};
+
 /** A named thematic participant supplies its own label inside a proven inventory. */
 export const namedThematicRole = (key: string): string | undefined => {
   if (normalizeTier2Synonym(key) === 'propositional argument') return 'proposition';
@@ -621,10 +636,11 @@ export const relationRoleConcepts = (
     && Object.entries(context.values ?? {}).some(([valueKey, literal]) =>
     normalizeTier2Synonym(valueKey) === normalizeTier2Synonym(role) && nonBlankLiteral(literal));
   const valueNamesThematicParticipant = (role: string) => explicitThematicPredicate
-    && Object.entries(context.values ?? {}).some(([valueKey, literal]) =>
-      /(?:^| )role$/u.test(normalizeTier2Synonym(valueKey))
-      && typeof literal === 'string'
-      && normalizeTier2Synonym(literal) === normalizeTier2Synonym(role));
+    && Object.entries(context.values ?? {}).some(([valueKey, literal]) => typeof literal === 'string'
+      ? /(?:^| )role$/u.test(normalizeTier2Synonym(valueKey)) && normalizeTier2Synonym(literal) === normalizeTier2Synonym(role)
+      : Array.isArray(literal) && relationValueConcepts(index, valueKey, context).includes('role.label')
+        && [...fieldNamingLiterals(Object.keys(context.anchors ?? {}), literal)?.keys() ?? []]
+          .some(field => normalizeTier2Synonym(field) === normalizeTier2Synonym(role)));
   // A values entry with an argument field's own name and length lists that
   // field's role labels: the recipe pairs it as role.label (sameNameEntryServes).
   const sameNameArgumentLabels = currentEntries.some(([role, ids]) => {
@@ -674,7 +690,8 @@ export const relationRoleConcepts = (
   // Explicit domain evidence supplies meaning; generic roles supply direction.
   // A competing feature interpretation cannot silently become theta assignment.
   const direction = assignmentDirection(spelling);
-  if (direction && thetaDomain !== featureDomain) {
+  // A field that a role label names is a participant, whatever its direction word.
+  if (direction && thetaDomain !== featureDomain && !(thetaDomain && valueNamesThematicParticipant(key))) {
     concepts.add(thetaDomain
       ? direction === 'source' ? 'predicate' : 'theta.arguments'
       : direction === 'source' ? 'feature.source' : 'feature.target');
@@ -687,6 +704,7 @@ export const relationRoleConcepts = (
   // predicate names its lexical context, just as a Case exponent is not a licenser.
   const explicitThetaSource = thetaDomain && !featureDomain && Object.keys(context.anchors ?? {}).some(role => {
     const normalized = singularRole(normalizeTier2Synonym(role));
+    if (valueNamesThematicParticipant(role)) return false;
     return thematicIntroducer(normalized)
       || qualifiedAssignmentConcepts(role).includes('predicate') && !/ (?:head|predicate)$/u.test(normalized)
       || assignmentDirection(normalized) === 'source';
