@@ -5,7 +5,7 @@ import { applyVizIds } from './displayIdentity.ts';
 import { paintedShift, type PaintedNodes } from './cameraCarry.ts';
 import { bindingEllipseBounds, sceneBindingDomainEllipse } from './relations/bindingDomainGeometry.ts';
 import { bindRelationPlanFrame } from './relations/geometryBinding.ts';
-import { stagePositionProvider, trajectoryPlaqueObstacles } from './relations/trajectoryObstacles.ts';
+import { stagePositionProvider, trajectoryPlaqueObstacles, treeLabelBoxes } from './relations/trajectoryObstacles.ts';
 import { boundOverlayBounds, type OverlayBounds } from './relations/geometryBounds.ts';
 import { controlPlaqueObstacles } from './relations/controlPlaqueSpace.ts';
 import { predicationPlaqueObstacles } from './relations/predicationPlaqueSpace.ts';
@@ -1418,7 +1418,8 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
         || isPlanItemRevealed(item, input.stageIndex, scene.playedRelations)), items, byId, currentNodes, input.measureCategoryText));
       // Use the trajectory binder's actual geometry in each frame's coordinates.
       if (input.plan) obstacles.push(...trajectoryPlaqueObstacles(input.plan, input.stageIndex,
-        marks.filter(item => item.kind === 'trajectory'), byId));
+        marks.filter(item => item.kind === 'trajectory'), byId, () => treeLabelBoxes(currentNodes, input,
+          input.treeLabelRuns ? sceneLabelRuns(input, scene.stepIndices) : undefined)));
       return obstacles;
     };
     // Every stage mark and every node the scene shows at any of its steps reserves its
@@ -1667,6 +1668,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
     // Bounds reserve all stage marks at nominal scale, never reading the live DOM or camera.
     const bound = bindRelationPlanFrame(plan, stageIndex, positionFor, {
       ...RELATION_BINDING_METRICS, markerScale: 1,
+      trajectoryLabelBoxes: () => treeLabelBoxes(fitNodes, { measureCategoryText, measureTreeInk, measureTreeLabel }, labels),
       trajectoryCeilingY: (d3.min(fitNodes, node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
       trajectoryFloorY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
       connectorBaselineY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,

@@ -107,13 +107,122 @@ export const TRAJECTORY_ROUTES = {
   rollUpLaneStep: 12,
   quadraticEndpointInset: 8,
   quadraticMinimumBelly: 42,
-  quadraticBellyPerSpan: 0.2
+  quadraticBellyPerSpan: 0.2,
+  verticalColumnTolerance: 4,
+  steepBowFullSlope: 0.3,
+  steepBowEndSlope: 0.4,
+  verticalBowPerRise: 0.25
 } as const;
 
+type RoutePoint = { x: number; y: number };
+
 /** Control-point depth of a quadratic trajectory: it deepens with horizontal span. */
-export const quadraticTrajectoryBellyY = (start: { x: number; y: number }, end: { x: number; y: number }) =>
+export const quadraticTrajectoryBellyY = (start: RoutePoint, end: RoutePoint) =>
   Math.max(start.y, end.y) + Math.max(TRAJECTORY_ROUTES.quadraticMinimumBelly,
     Math.abs(end.x - start.x) * TRAJECTORY_ROUTES.quadraticBellyPerSpan);
+
+/**
+ * A steep quadratic trajectory reads as a straight line with a hook below its
+ * departure: its belly hangs only `quadraticMinimumBelly` below the lower end
+ * of a long rise. It bows sideways instead, to `side` (`-1` left, `1` right).
+ *
+ * `weight` is 1 while the ends' horizontal offset is at most `steepBowFullSlope`
+ * of the rise and falls smoothly to 0 at `steepBowEndSlope`; from there on the
+ * belly law applies unchanged. In the fixtures and saved batches, slopes
+ * run continuously up to 0.40 and then cluster at 0.415–0.43, where the
+ * reviewed head hops of the human catalogue lie (187.5 across, 440 up), so
+ * every arrow from 0.40 on keeps its exact path. A route that hardly rises
+ * (`verticalColumnTolerance`) never bows.
+ */
+export type TrajectoryBowSide = -1 | 1;
+export type TrajectoryBow = { side: TrajectoryBowSide; weight: number };
+
+/** How fully a route between these centres bows: 0 keeps the belly law. */
+export const steepTrajectoryBowWeight = (sourceCentre: RoutePoint, targetCentre: RoutePoint) => {
+  const rise = Math.abs(targetCentre.y - sourceCentre.y);
+  if (rise <= TRAJECTORY_ROUTES.verticalColumnTolerance) return 0;
+  const slope = Math.abs(targetCentre.x - sourceCentre.x) / rise;
+  const { steepBowFullSlope: full, steepBowEndSlope: end } = TRAJECTORY_ROUTES;
+  if (slope >= end) return 0;
+  if (slope <= full) return 1;
+  const t = (end - slope) / (end - full);
+  return t * t * (3 - 2 * t);
+};
+
+/** A route prefers to bow away from the branch its departure hangs from, so
+ * it does not cross it; under a parent in the same column, or no parent, it
+ * prefers left. `clearTrajectoryBowSide` may take the other side. */
+export const trajectoryBowSide = (departure: RoutePoint, departureParent: RoutePoint | null): TrajectoryBowSide =>
+  departureParent && Math.abs(departure.x - departureParent.x) > TRAJECTORY_ROUTES.verticalColumnTolerance
+    ? (departure.x > departureParent.x ? 1 : -1)
+    : -1;
+
+const mix = (from: number, to: number, weight: number) => weight === 1 ? to : from + (to - from) * weight;
+
+/**
+ * Signed horizontal endpoint insets of a quadratic trajectory. The belly law
+ * insets both ends toward each other; a full bow shifts both toward its side,
+ * so the arc leaves beside the departure and arrives from the side it comes from.
+ */
+export const quadraticTrajectoryInsets = (sourceCentre: RoutePoint, targetCentre: RoutePoint,
+  bow: TrajectoryBow | null) => {
+  const inset = TRAJECTORY_ROUTES.quadraticEndpointInset;
+  const direction = Math.sign(targetCentre.x - sourceCentre.x) || 1;
+  if (!bow) return { start: inset * direction, end: -inset * direction };
+  return { start: mix(inset * direction, inset * bow.side, bow.weight),
+    end: mix(-inset * direction, inset * bow.side, bow.weight) };
+};
+
+/**
+ * Control point of a quadratic trajectory between its inset ends. The belly
+ * law hangs it below the lower end (plus `bellyOffset`); a full bow sets it
+ * beside the vertical midpoint, `verticalBowPerRise` of the rise away, so the
+ * arc stays between its ends' heights.
+ */
+export const quadraticTrajectoryControl = (start: RoutePoint, end: RoutePoint,
+  bow: TrajectoryBow | null, bellyOffset = 0): RoutePoint => {
+  const belly = { x: (start.x + end.x) / 2, y: quadraticTrajectoryBellyY(start, end) + bellyOffset };
+  if (!bow) return belly;
+  const bowed = { x: (start.x + end.x) / 2 + bow.side * Math.abs(end.y - start.y) * TRAJECTORY_ROUTES.verticalBowPerRise,
+    y: (start.y + end.y) / 2 };
+  return { x: mix(belly.x, bowed.x, bow.weight), y: mix(belly.y, bowed.y, bow.weight) };
+};
+
+/** The quadratic route between two attachment points, as the binder draws it. */
+export const quadraticTrajectoryRoute = (from: RoutePoint, to: RoutePoint, bow: TrajectoryBow | null, fanOffset = 0) => {
+  const insets = quadraticTrajectoryInsets(from, to, bow);
+  const start = { x: from.x + insets.start, y: from.y + fanOffset };
+  const end = { x: to.x + insets.end, y: to.y + fanOffset };
+  return { start, end, control: quadraticTrajectoryControl(start, end, bow, fanOffset) };
+};
+
+type RouteRect = { x: number; y: number; width: number; height: number };
+
+/** A label an endpoint attaches to: the endpoint hangs just below it. */
+const attachesTo = (rect: RouteRect, point: RoutePoint) => point.x >= rect.x && point.x <= rect.x + rect.width
+  && point.y >= rect.y && point.y <= rect.y + rect.height + 24;
+
+const routeCrosses = ({ start, control, end }: ReturnType<typeof quadraticTrajectoryRoute>, rects: RouteRect[]) => {
+  for (let index = 0; index <= 64; index += 1) {
+    const t = index / 64, a = (1 - t) ** 2, b = 2 * t * (1 - t), c = t * t;
+    const x = a * start.x + b * control.x + c * end.x, y = a * start.y + b * control.y + c * end.y;
+    if (rects.some(rect => x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height)) return true;
+  }
+  return false;
+};
+
+/**
+ * The side a bowed route takes among tree labels. It keeps `bow.side` unless
+ * that arc passes through a label the opposite arc clears; when both cross
+ * labels, it keeps `bow.side`. Labels an endpoint attaches to do not count.
+ */
+export const clearTrajectoryBowSide = (from: RoutePoint, to: RoutePoint, bow: TrajectoryBow, fanOffset: number,
+  labels: readonly RouteRect[]): TrajectoryBowSide => {
+  const others = labels.filter(rect => !attachesTo(rect, from) && !attachesTo(rect, to));
+  if (!others.length || !routeCrosses(quadraticTrajectoryRoute(from, to, bow, fanOffset), others)) return bow.side;
+  const opposite = { side: (bow.side === 1 ? -1 : 1) as TrajectoryBowSide, weight: bow.weight };
+  return routeCrosses(quadraticTrajectoryRoute(from, to, opposite, fanOffset), others) ? bow.side : opposite.side;
+};
 
 /** Margin a camera fit keeps around a plaque. */
 export const PLAQUE_FIT_MARGIN = 24;
