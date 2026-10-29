@@ -15,10 +15,12 @@ import { archivedExampleArchetypes, rawCases, type LabCase } from './visual-rela
 
 export { archivedExampleArchetypes, rawCases };
 
-/** Replay auto-advance budgets. Clicks walk frames; waits poll for the control. */
-const MAX_REPLAY_CLICKS = 400;
-const MAX_REPLAY_WAITS = 150;
-const DISABLED_GRACE_POLLS = 6;
+/**
+ * Each card opens on its last Replay frame the way Babel restores a saved
+ * position: TreeVisualizer clamps the step to the Replay's length and fits that
+ * frame directly, without playing the earlier ones.
+ */
+const FINAL_REPLAY_STEP = Number.MAX_SAFE_INTEGER;
 
 /**
  * Derived once at module scope. These must keep a stable identity: handing
@@ -111,7 +113,6 @@ function RendererCard({ item }: { item: LabCaseView }) {
   const source = orchardSourceCitations[archetypeCode(item)];
   const hasAuthoredRelation = item.derivationStages.some((stage) => stage.relations.length > 0);
   const [lensActive, setLensActive] = useState(hasAuthoredRelation);
-  const [layoutPass, setLayoutPass] = useState(0);
   /** Reported only when something is wrong; a passing check stays silent. */
   const contractNotes = [
     ...item.contract.issues.map((issue) =>
@@ -121,72 +122,37 @@ function RendererCard({ item }: { item: LabCaseView }) {
       : [])
   ];
 
-  /*
-   * The new source plates use wide cards. Give their TreeVisualizer one
-   * post-font render pass so an off-screen initial mount cannot freeze at the
-   * minimum zoom. This changes only the camera fit; the authored tree and every
-   * relation anchor stay untouched.
-   */
-  useEffect(() => {
-    if (!/^(?:D(?:3|4|5|6|7)|E(?:4|5|6|7))/.test(item.archetype)) return;
-    let cancelled = false;
-    const settle = () => {
-      if (!cancelled) setLayoutPass(1);
-    };
-    const timer = window.setTimeout(settle, 900);
-    document.fonts?.ready.then(settle);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [item.archetype]);
-
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
-
-    let cancelled = false;
-    let clicks = 0;
-    let waits = 0;
 
     const fixStandaloneLogoPath = () => {
       card.querySelectorAll<HTMLImageElement>('img[src="/babellogo.png"]').forEach((image) => {
         image.src = '../../public/babellogo.png';
       });
     };
-
-    const advanceToFinalReplayStep = () => {
-      if (cancelled) return;
-      fixStandaloneLogoPath();
-      const nextButton = Array.from<HTMLButtonElement>(card.querySelectorAll('button'))
-        .find((button) => button.textContent?.trim() === 'Next');
-
-      if (nextButton && !nextButton.disabled) {
-        if (clicks >= MAX_REPLAY_CLICKS) return;
-        clicks += 1;
-        waits = 0;
-        nextButton.click();
-        window.setTimeout(advanceToFinalReplayStep, 45);
-        return;
-      }
-
-      if (nextButton && (clicks > 0 || waits >= DISABLED_GRACE_POLLS)) return;
-      waits += 1;
-      if (waits < MAX_REPLAY_WAITS) {
-        window.setTimeout(advanceToFinalReplayStep, 80);
-      }
-    };
-
     const observer = new MutationObserver(fixStandaloneLogoPath);
     observer.observe(card, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] });
     fixStandaloneLogoPath();
-    const timer = window.setTimeout(advanceToFinalReplayStep, 220);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-      observer.disconnect();
+
+    /*
+     * In Babel the tree canvas fills the window, so a wheel zooms it. A card
+     * sits in a scrolling page: a plain wheel or two-finger scroll over it must
+     * scroll the page instead of silently zooming the tree, because a zoomed
+     * pose is kept as the reader's own camera on every later frame. A pinch
+     * (a wheel with ctrlKey) and dragging still zoom and pan, and Fit restores
+     * Babel's camera.
+     */
+    const mount = card.querySelector<HTMLElement>('.babel-render-mount');
+    const keepPageScroll = (event: WheelEvent) => {
+      if (!event.ctrlKey) event.stopPropagation();
     };
-  }, [item.archetype]);
+    mount?.addEventListener('wheel', keepPageScroll, { capture: true, passive: true });
+    return () => {
+      observer.disconnect();
+      mount?.removeEventListener('wheel', keepPageScroll, { capture: true });
+    };
+  }, []);
 
   return (
     <article
@@ -194,7 +160,6 @@ function RendererCard({ item }: { item: LabCaseView }) {
       className={`babel-render-card${item.wide ? ' babel-render-card--wide' : ''}`}
       data-lab-case={item.archetype}
       data-lens-active={lensActive ? 'true' : 'false'}
-      data-layout-pass={layoutPass}
       ref={cardRef}
       key={`${item.archetype}-${item.title}`}
     >
@@ -233,6 +198,8 @@ function RendererCard({ item }: { item: LabCaseView }) {
         <TreeVisualizer
           data={item.data}
           animated
+          autoPlay={false}
+          initialReplayStep={FINAL_REPLAY_STEP}
           derivationStages={item.rendererStages}
           sentence={item.sentence}
         />
