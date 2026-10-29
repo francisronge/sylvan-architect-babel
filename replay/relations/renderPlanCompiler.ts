@@ -635,9 +635,10 @@ export const compileDispatchedRelationRenderPlan = (
     existingOrganization.forEach(item => {
       item.organizationOwners = [item.tier2ClaimIdentity!];
       // A scoped organization recipe may omit other authored roles. Keep its
-      // role ordinals from the complete instance when composing their rails.
+      // instance and role ordinals from the complete instance, so it composes
+      // with the relation's other rails.
       item.set = {
-        ...item.set, roles: item.set.roles.map(role => ({
+        ...item.set, instanceIndex: set.instanceIndex, roles: item.set.roles.map(role => ({
           ...role,
           roleIndex: set.roles.find(authoredRole => authoredRole.role === role.role)!.roleIndex
         }))
