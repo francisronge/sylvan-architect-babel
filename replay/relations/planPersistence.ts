@@ -28,6 +28,11 @@ import { recoveredClaimMovements } from './tier2RelationDispatch.ts';
 const distinctTransitions = <T extends { relationIndex: number }>(candidates: T[], key: (candidate: T) => string): T[] =>
   candidates.filter((candidate, index) => candidates.findIndex(other => key(other) === key(candidate)) === index);
 
+/** A rail that keeps its own lifetime: its `replacementGroup` is the ordered
+ * entry sequence it numbers (renderPlanCompiler.ts), so only a later rail with
+ * exactly that sequence replaces it. */
+const isStandaloneRail = (item: RelationPlanItem): boolean => item.kind === 'anchor-set' && Boolean(item.ownNumerals);
+
 export function materializePlanFrames(
   items: RelationPlanItem[],
   stageList: RelationStage[],
@@ -137,11 +142,12 @@ export function materializePlanFrames(
     : left.stageIndex !== right.stageIndex ? (left.stageIndex < right.stageIndex ? left : right)
       : left.relationIndex <= right.relationIndex ? left : right;
   const reportedVanished = new Set<string>();
+  /** Returns whether the item is drawn in this frame. */
   const materializeIntoFrame = (
     item: RelationPlanItem,
     frameIndex: number,
     supersededAt?: PlanRelationRef
-  ) => {
+  ): boolean => {
     const projected = transferOccurrences(item, frameIndex);
     const missing = vanishedAnchorIds(projected, frameIndex);
     const removal = missing.length ? removingMovement(missing, frameIndex) : undefined;
@@ -165,7 +171,7 @@ export function materializePlanFrames(
             + (removal ? `, and stays until relation ${removal.relationIndex + 1} (${removal.relation}) moves them` : '')
         });
       }
-      if (!removal) return;
+      if (!removal) return false;
       supersededAt = earlierMoment(supersededAt, removal);
     }
     /*
@@ -220,6 +226,7 @@ export function materializePlanFrames(
         ...(companionYield ? { supersededAt: companionYield } : {})
       });
     }
+    return true;
   };
   items.forEach((item) => {
     if (item.appearsAtStage >= stageCount) return;
@@ -270,7 +277,9 @@ export function materializePlanFrames(
           materializeIntoFrame(item, frameIndex, replacement.relationRef);
           break;
         }
-        materializeIntoFrame(item, frameIndex);
+        // A standalone rail that loses an entry ends there; it never skips a
+        // stage and returns, so its loss is reported once.
+        if (!materializeIntoFrame(item, frameIndex) && isStandaloneRail(item)) break;
       }
       return;
     }

@@ -216,10 +216,12 @@ const primitiveBinders = { ...pathGeometry, ...regionGeometry, ...annotationGeom
 /**
  * The anchor-set badges `bindRelationPlanFrame` places for the same frame and
  * options, every one its binder computes (also those a neutral mark replaces).
- * Badge placement depends only on its own item, so Fit re-places the drawn
- * badges for the marker scale it settles (`options.markerScale`), which can
- * differ from the scale the frame was bound at. A badge is identified by its
- * `itemIndex`, `nodeId` and `stackIndex`.
+ * Badge placement depends on its own item, the frame's badge obstacles and the
+ * badges of revealed anchor sets bound before it, all of which this replays in
+ * the frame's item order, so Fit re-places the drawn badges for the marker
+ * scale it settles (`options.markerScale`), which can differ from the scale
+ * the frame was bound at. A badge is identified by its `itemIndex`, `nodeId`
+ * and `stackIndex`.
  */
 export const bindAnchorSetBadges = (
   plan: RelationRenderPlan,

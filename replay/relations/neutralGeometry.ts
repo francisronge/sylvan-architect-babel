@@ -6,6 +6,7 @@ import type { GeometryBinders } from './geometryContext.ts';
 import { fongEdgeOutlineRect } from './markGeometry.ts';
 import type { Point } from './overlayGeometry.ts';
 import { planAnchorSetLayout } from './overlayGeometry.ts';
+import { railEntrySequence } from './largeAnchorSets.ts';
 import { fallbackPlaqueTextMeasure } from './plaqueTextLayout.ts';
 import { planItemRelationRefs } from './renderPlan.ts';
 
@@ -94,10 +95,12 @@ export const neutralGeometry = {
     return;
   },
   'anchor-set': (item, itemIndex, context) => {
-    const { rectFor, badgeGap, markerScale, laneGap, policyFailed, failed, primitives, frame, options } = context;
+    const { rectFor, badgeGap, markerScale, laneGap, policyFailed, failed, primitives, frame, options, anchorSetBadgeBoxes } = context;
     const badgeSizeFor = (role: string, arrayIndex: number) => item.badgeEntries?.find(entry =>
       entry.roleIndex === item.set.roles.find(group => group.role === role)?.roleIndex
       && entry.arrayIndex === arrayIndex)?.badgeSize ?? item.badgeSize;
+    const badgeRadius = (role: string, arrayIndex: number) => anchorSetBadgeOuterRadius(badgeSizeFor(role, arrayIndex)) * markerScale;
+    const railEntries = railEntrySequence(item.set.roles);
     const layout = planAnchorSetLayout(
       [{
         relation: item.set.relation,
@@ -108,8 +111,9 @@ export const neutralGeometry = {
       {
         badgeOffsetY: badgeGap * markerScale,
         railGap: laneGap,
-        ...(options.badgeObstacles ? { clearance: { obstacles: options.badgeObstacles,
-          radiusFor: (role: string, arrayIndex: number) => anchorSetBadgeOuterRadius(badgeSizeFor(role, arrayIndex)) * markerScale,
+        band: item.railBand,
+        ...(options.badgeObstacles ? { clearance: { obstacles: [...options.badgeObstacles, ...anchorSetBadgeBoxes.filter(box => box.railEntries !== railEntries)],
+          radiusFor: badgeRadius,
           gap: ANCHOR_SET_BADGE_CLEARANCE * markerScale } } : {})
       }
     );
@@ -125,6 +129,12 @@ export const neutralGeometry = {
         : failed;
       channel.push({ itemIndex, nodeId: failure.nodeId, reason: failure.reason });
     });
+    // Only a revealed rail's badges are on screen: a hidden item, such as a
+    // predecessor its restatement supersedes, must not push later badges off.
+    if (options.badgeObstacles && (!options.isItemRevealed || options.isItemRevealed(itemIndex))) anchorSetBadgeBoxes.push(...layout.badges.map(badge => {
+      const radius = badgeRadius(badge.role, badge.arrayIndex);
+      return { x: badge.x - radius, y: badge.y - radius, width: 2 * radius, height: 2 * radius, railEntries };
+    }));
     const badges: BoundAnchorSetBadge[] = layout.badges.map((badge) => ({
       type: 'anchor-set-badge',
       nodeId: badge.nodeId,
@@ -140,6 +150,7 @@ export const neutralGeometry = {
         && entry.arrayIndex === badge.arrayIndex)
       : item.showBadges;
     const neutralBadge = (badge: typeof layout.badges[number]): BoundFallbackMark | undefined => {
+      if (item.ownNumerals) return undefined;
       const matches = primitives.filter((mark): mark is BoundFallbackMark => {
         if (mark.type !== 'fallback-mark' || mark.nodeId !== badge.nodeId || mark.role !== badge.role
           || options.isItemRevealed && !options.isItemRevealed(mark.itemIndex)) return false;

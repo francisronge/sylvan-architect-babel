@@ -50,6 +50,16 @@ export type LargeAnchorSet = {
   }>;
 };
 
+/** The entries a rail numbers, in the order it numbers them: each large
+ * role's anchors as [array index, node id], roles in authored order. Badge
+ * numerals follow this sequence, so it identifies the rail whatever its
+ * relation or roles are called: equal sequences draw the same rail, and the
+ * same entries in another order or grouping are a different one. */
+export const railEntrySequence = (roles: LargeAnchorSet['roles']): string => JSON.stringify(
+  roles.filter(role => role.large).sort((left, right) => left.roleIndex - right.roleIndex)
+    .map(role => [...role.anchors].sort((left, right) => left.arrayIndex - right.arrayIndex)
+      .map(anchor => [anchor.arrayIndex, anchor.nodeId])));
+
 const exactRelationName = (value: string): string => String(value ?? '').trim();
 
 const flattenAnchorIds = (value: string | string[] | undefined): string[] =>

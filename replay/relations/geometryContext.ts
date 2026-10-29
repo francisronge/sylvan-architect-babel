@@ -109,6 +109,12 @@ export const createGeometryContext = (frame: RelationRenderPlan['frames'][number
   };
   /** World-space plate rectangles, including the marker counter-scale. */
   const plaqueRects: Rect[] = [];
+  /** Boxes of the revealed anchor-set badges placed so far, whether drawn or
+   * replaced by a neutral numeral, each with its rail's `railEntrySequence`,
+   * so a later set's badge that clearance moves never lands on an earlier
+   * set's badge. A restatement of the same sequence draws the same rail and
+   * coincides with it. */
+  const anchorSetBadgeBoxes: Array<Rect & { railEntries: string }> = [];
 
   const pendingSegments: UnroutedFallbackSegment[] = [];
   const fallbackAllocationOrder = 0;
@@ -138,6 +144,7 @@ export const createGeometryContext = (frame: RelationRenderPlan['frames'][number
       routable: routableCurves.length,
       pending: pendingSegments.length,
       plaques: plaqueRects.length,
+      badgeBoxes: anchorSetBadgeBoxes.length,
       stacks: new Map(stackCounts),
       ordinals: new Map(styleOrdinals)
     };
@@ -147,6 +154,7 @@ export const createGeometryContext = (frame: RelationRenderPlan['frames'][number
       routableCurves.length = txn.routable;
       pendingSegments.length = txn.pending;
       plaqueRects.length = txn.plaques;
+      anchorSetBadgeBoxes.length = txn.badgeBoxes;
       restoreMap(stackCounts, txn.stacks);
       restoreMap(styleOrdinals, txn.ordinals);
     }
@@ -172,6 +180,7 @@ export const createGeometryContext = (frame: RelationRenderPlan['frames'][number
     routableCurves,
     registerRoutedCurve,
     plaqueRects,
+    anchorSetBadgeBoxes,
     intersects: rectsIntersect,
     pendingSegments,
     fallbackAllocationOrder,
