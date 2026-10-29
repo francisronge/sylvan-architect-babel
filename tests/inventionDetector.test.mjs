@@ -403,3 +403,26 @@ test('detector uses exact authored IDs and display provenance instead of suffix 
   step.replayVisibleNodeIds.push(' a ::__lex_forged');
   assert(detectDeterministicLinguisticInvention(input).some(issue => issue.kind === 'replay-node-id-not-authored-or-declared-preterminal' && issue.nodeId === ' a ::__lex_forged'));
 });
+
+test('a movement proven only by structure licenses its displayed trajectory', () => {
+  const cat = (id, extra = {}) => ({ id, label: 'DP', lineageId: 'cat', ...extra, children: [
+    { id: `${id}-d`, label: 'D', word: 'the' }, { id: `${id}-n`, label: 'N', word: 'cat' }] });
+  const before = [{ id: 'tp', label: 'TP', children: [{ id: 't', label: 'T', silent: true },
+    { id: 'vp', label: 'VP', children: [cat('dp'), { id: 'v', label: 'V', word: 'slept' }] }] }];
+  const after = [{ id: 'tp2', label: 'TP', children: [cat('dp'), { id: 'tbar', label: 'T′', children: [
+    { id: 't', label: 'T', silent: true },
+    { id: 'vp', label: 'VP', children: [{ id: 'trace', label: 'DP', lineageId: 'cat', silent: true }, { id: 'v', label: 'V', word: 'slept' }] }] }] }];
+  // Open wording no recognizer knows: only the structure proves the movement.
+  const relation = { relation: '论元移位', anchors: { 着陆点: 'dp', 起点: 'trace' } };
+  const derivationStages = [before, after].map((workspaceForest, index) => ({
+    statement: 'State', stageRecord: 'Record', relations: index ? [relation] : [], workspaceForest }));
+  const analysis = { derivationStages };
+  const replayPlan = buildDerivationReplayPlan({ derivationStages });
+  const renderedRelationLinks = buildRenderedRelationLinks(analysis, replayPlan);
+  assert.deepEqual(renderedRelationLinks.map(link => [link.endpointOrderProvenance, link.renderFamily, link.sourceNodeId, link.targetNodeId]),
+    [['recovered-movement', 'trajectory', 'trace', 'dp']]);
+  const input = { authoredDerivationStages: derivationStages, analysis, replayPlan, renderedRelationLinks };
+  assert.deepEqual(detectDeterministicLinguisticInvention(input), []);
+  renderedRelationLinks[0].targetNodeId = 'trace';
+  assert.ok(detectDeterministicLinguisticInvention(input).some(issue => issue.kind === 'displayed-relation-endpoint-order-mismatch'));
+});
