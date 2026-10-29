@@ -22,7 +22,7 @@ type Painted = Map<string, Node>;
 /** Clearance kept between a closing side's label and word boxes and the syntax it closes toward. */
 const BOX_CLEARANCE = 0;
 /** How much wider than its plan painted it a completed stage may become. */
-const WIDTH_GROWTH = 0.02;
+const WIDTH_GROWTH = 0.01;
 /** How much wider or deeper the box a stage's frames span together (the stage
  * camera's fit) may become; a head seated clear of a movement's source may
  * reserve more, SEAT_GROWTH, for the landing that arrives beside it. */
