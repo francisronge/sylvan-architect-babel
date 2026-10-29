@@ -33,9 +33,9 @@ export function recoverMovementGroups(evidence: Tier2FacetEvidence) {
   // as landing and target. Each source tries every item of each listed role,
   // and the proof alone picks the item that belongs to it.
   const listedTargets = targets.filter(target => target.items.length > 1);
+  if (listedTargets.reduce((product, target) => product * target.items.length, 1) > 64) return [];
   const choices = listedTargets.reduce<number[][]>((combos, target) =>
     combos.flatMap(combo => target.items.map((_, index) => [...combo, index])), [[]]);
-  if (choices.length > 64) return [];
   if (source.items.length < 2 || targets.some(target => !target.items.length || new Set(target.items).size !== target.items.length) || previous.items.length !== source.items.length
     || new Set(source.items).size !== source.items.length || new Set(previous.items).size !== previous.items.length
     || targets.some(target => target.items.some(id => source.items.includes(id)))) return [];
