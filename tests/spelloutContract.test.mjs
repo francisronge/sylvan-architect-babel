@@ -175,6 +175,11 @@ test('letter case is ignored for letters whose case forms differ in length or po
   const spells = [
     [['istanbul', 'güzel'], 'İstanbul güzel.', ['İstanbul', 'güzel']],
     [['İSTANBUL'], 'istanbul', ['istanbul']],
+    // İ lowers by default to i and a combining dot above (i̇), which matches İ and i.
+    [['i\u0307stanbul'], 'İstanbul', ['İstanbul']],
+    [['İSTANBUL'], 'i\u0307stanbul', ['i\u0307stanbul']],
+    [['istanbul'], 'i\u0307stanbul', ['i\u0307stanbul']],
+    [['kedİ', 'güzel'], 'kedi\u0307 güzel', ['kedi\u0307', 'güzel']],
     [['οδός'], 'ΟΔΌΣ', ['ΟΔΌΣ']],
     [['ΟΔΌΣ'], 'οδός', ['οδός']],
     [['STRASSE'], 'Straße', ['Straße']],
@@ -264,6 +269,17 @@ test('an earlier group may name part of a word that grows in a later stage', () 
   const elsewhere = structuredClone(payload);
   elsewhere.derivationStages[0].realizations[0].text = '杯';
   assert.equal(convertOne(elsewhere, sentence).diagnostics[0].rule, 'SPELLOUT_GROUP_UNRESOLVED');
+  // A whole word with the same text that the group's nodes do not pronounce is not the group's.
+  const unrelatedSentence = '打破他打破了杯子';
+  const unrelated = { derivationStages: [
+    stage('Verb.', [leaf('v', '打破')], [{ nodeIds: ['v'], text: '打破' }]),
+    stage('Clause.', [node('s', 'S', leaf('x', '打破'), leaf('he', '他'), leaf('v', '打破了'), leaf('cup', '杯子'))], [])
+  ] };
+  const owned = convertOne(unrelated, unrelatedSentence);
+  assert.ok(owned.ok, JSON.stringify(owned.diagnostics));
+  assert.deepEqual(owned.inputTokens, ['打破', '他', '打破', '了', '杯子']);
+  assert.deepEqual(owned.analysis.derivationStages[0].realizations, [{ nodeIds: ['v'], tokenIndices: [2] }]);
+  assert.equal(normalize(owned.analysis, unrelatedSentence, owned.inputTokens).analyses.length, 1);
 });
 
 test('a group may claim stretches of the sentence that are not adjacent', () => {

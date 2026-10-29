@@ -106,8 +106,12 @@ export const inspectFailedPayload = (payload: unknown, rawText: string, sentence
   const authors = Array.isArray(payload.analyses) ? payload.analyses : [payload];
   // A current output spells its words. Analyses that pass the spelling check
   // are inspected in their converted form over the derived word list; one
-  // that fails is inspected without a word list or diagnostic Replay.
-  const spellout = sentence.trim() && !addressesTokens(payload) ? convertSpelloutPayload(payload, sentence) : null;
+  // that fails is inspected without a word list or diagnostic Replay. An older
+  // output addressed the token list its request supplied; without that list,
+  // one analysis's stray address fails only that analysis's spelling check.
+  const legacy = authors.map(addressesTokens);
+  const spellout = sentence.trim() && legacy.some(item => !item) && !(inputTokens && legacy.some(Boolean))
+    ? convertSpelloutPayload(payload, sentence) : null;
   const words: string[] | undefined = spellout ? spellout.find((result: any) => result.ok)?.inputTokens : inputTokens;
   // refId can multiply a small response into a huge forest. Limits cover the
   // expanded output across every analysis, not only the raw JSON container.

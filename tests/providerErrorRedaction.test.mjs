@@ -100,6 +100,20 @@ test('production keeps model output and partial provider responses', async (t) =
   assert.equal(interruptedBody.failure.offendingValue, null);
 });
 
+test('production withholds a partial body of an unsuccessful provider response', async (t) => {
+  withProviderKey(t);
+  const partialError = providerBody.slice(0, -4);
+  const error = await failWith(providerError('socket hang up', {
+    code: 'ECONNRESET', status: 503, responseReceived: false, partialProviderResponse: createRawOutputArtifact(partialError)
+  }));
+  const publicBody = production(error);
+  const serialized = JSON.stringify(publicBody.body);
+  assert.equal(serialized.includes(secret), false);
+  assert.equal(publicBody.body.error.generationRecord?.rawProviderResponse, undefined);
+  // Development keeps the partial body for diagnosis.
+  assert.equal(decode(development(error).body.error.generationRecord.rawProviderResponse), partialError);
+});
+
 test('provider log text masks credential-shaped runs', () => {
   assert.equal(redactProviderLogText('Bad key sk-proj-abcdEFGH1234 and Bearer abc.def\n  retry'),
     'Bad key [redacted] and [redacted] retry');
