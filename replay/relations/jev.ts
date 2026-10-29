@@ -63,6 +63,11 @@ export type JevFamily = {
   values: string[];
   /** Role slots the recipe fills with one participant; two keys cannot share one. */
   singleRoles: string[];
+  /** Slots the recipe cannot draw without. */
+  requiredRoles: string[];
+  requiredValues: string[];
+  /** Value slots the recipe reads one value for. */
+  singleValues: string[];
 };
 
 // Movement is recognised from the tree (`structuralMovement.ts`); its
@@ -79,7 +84,10 @@ export const JEV_FAMILIES: readonly JevFamily[] = TIER2_FACET_RECIPES
     draws: [...new Set(recipe.outputs.map(output => output.piece))],
     roles: [...new Set(recipe.anchors.map(anchor => anchor.role))],
     values: [...new Set(recipe.values.map(value => value.value))],
-    singleRoles: recipe.anchors.filter(anchor => anchor.max === 1).map(anchor => anchor.role)
+    singleRoles: recipe.anchors.filter(anchor => anchor.max === 1).map(anchor => anchor.role),
+    requiredRoles: [...new Set(recipe.anchors.filter(anchor => !anchor.optional).map(anchor => anchor.role))],
+    requiredValues: [...new Set(recipe.values.filter(value => !value.optional).map(value => value.value))],
+    singleValues: recipe.values.filter(value => value.max === 1).map(value => value.value)
   }));
 
 const textItems = (value: unknown): string[] => (Array.isArray(value) ? value : [value]).map(item => String(item ?? ''));

@@ -18,11 +18,11 @@ import { parseArgs } from 'node:util';
 
 import {
   DEFAULT_JEV_MODEL, DEFAULT_TYPESAFE_KEYCHAIN_SERVICE, JEV_PROMPT_VERSION, TYPESAFE_SYSTEMONE_URL,
-  anchorIdsReachRequest, buildFamilyRequest, buildSlotRequest, estimateJevCost, jevClaimResult, jevRecordFrom,
+  anchorIdsReachRequest, askableFamilies, buildFamilyRequest, buildReadingRequest, estimateJevCost, jevClaimResult, jevRecordFrom,
   readSystemOneResponse, readTypeSafeApiKey, requestJev
 } from '../contractQualification/jev.js';
 import { neutralJevClaims } from '../replay/jevClaims.ts';
-import { JEV_CONFIDENCE_THRESHOLD, JEV_NONE, jevFamilies } from '../replay/relations/jev.ts';
+import { JEV_CONFIDENCE_THRESHOLD, JEV_NONE } from '../replay/relations/jev.ts';
 
 const { values: args } = parseArgs({ options: {
   cases: { type: 'string' }, out: { type: 'string' }, run: { type: 'boolean', default: false },
@@ -42,14 +42,14 @@ fs.mkdirSync(args.out, { recursive: true, mode: 0o700 });
 const writePrivate = (file, data) => fs.writeFileSync(file, typeof data === 'string' ? data : JSON.stringify(data, null, 1),
   { mode: 0o600, flag: 'wx' });
 const sha256 = text => createHash('sha256').update(text).digest('hex');
-// No tokenizer is published. The quickstart request (https://docs.typesafe.ai/introduction/quickstart.md)
-// is 682 characters of JSON billed as 428 input tokens, so a dry run sizes requests at 1.5 characters a token.
-const CHARACTERS_PER_TOKEN = 1.5;
+// No tokenizer is published. The first live benchmark (1,005 requests) was billed one input token
+// per 2.06 characters of request JSON; a dry run sizes requests at 2 characters a token.
+const CHARACTERS_PER_TOKEN = 2;
 const estimateTokens = text => Math.ceil(text.length / CHARACTERS_PER_TOKEN);
 
 
-const totals = { analyses: 0, claims: 0, withheld: 0, requests: { family: 0, slots: 0 }, failed: 0,
-  inputTokens: 0, outputTokens: 0, estimatedInputTokens: { family: 0, slotsUpperBound: 0 }, statuses: {} };
+const totals = { analyses: 0, claims: 0, withheld: 0, requests: { family: 0, reading: 0 }, failed: 0,
+  inputTokens: 0, outputTokens: 0, estimatedInputTokens: { family: 0, readingUpperBound: 0 }, statuses: {} };
 const count = status => { totals.statuses[status] = (totals.statuses[status] ?? 0) + 1; };
 
 const send = async (dir, name, requestBody) => {
@@ -68,15 +68,18 @@ const send = async (dir, name, requestBody) => {
 };
 
 const askClaim = async (dir, { relation }) => {
+  const families = askableFamilies(relation);
+  // With no family able to read the whole claim, the only answer is none: nothing is asked.
+  if (!families.length) return { result: { status: 'no-family-can-read' }, receipts: [] };
   const family = buildFamilyRequest({ relation, model: args.model });
   const familyText = JSON.stringify(family);
   // An anchor id in a request would carry the tree to Jev; such a claim is withheld.
   if (anchorIdsReachRequest(relation, candidate => buildFamilyRequest({ relation: candidate, model: args.model })))
     return { result: { status: 'withheld' }, receipts: [] };
   totals.estimatedInputTokens.family += estimateTokens(familyText);
-  // The second request asks one family's slots; size the largest so the dry run bounds it.
-  totals.estimatedInputTokens.slotsUpperBound += Math.max(...jevFamilies(relation).map(candidate =>
-    estimateTokens(JSON.stringify(buildSlotRequest({ relation, family: candidate.id, model: args.model }).body))));
+  // The second request reads one family; size the largest so the dry run bounds it.
+  totals.estimatedInputTokens.readingUpperBound += Math.max(...families.map(candidate =>
+    estimateTokens(JSON.stringify(buildReadingRequest({ relation, family: candidate.id, model: args.model }).body))));
   if (args['dry-run']) {
     writePrivate(path.join(dir, 'family.request.json'), familyText);
     totals.requests.family += 1;
@@ -87,14 +90,14 @@ const askClaim = async (dir, { relation }) => {
   const familyRead = readSystemOneResponse(first.sent.json, family.questions);
   const chosen = familyRead.ok ? familyRead.answers.family.choice : JEV_NONE;
   if (chosen === JEV_NONE) return { result: jevClaimResult(relation, familyRead), familyRead, receipts: [first.receipt] };
-  const slots = buildSlotRequest({ relation, family: chosen, model: args.model });
-  if (anchorIdsReachRequest(relation, candidate => buildSlotRequest({ relation: candidate, family: chosen, model: args.model }).body))
+  const reading = buildReadingRequest({ relation, family: chosen, model: args.model });
+  if (anchorIdsReachRequest(relation, candidate => buildReadingRequest({ relation: candidate, family: chosen, model: args.model }).body))
     return { result: { status: 'withheld' }, receipts: [first.receipt] };
-  const second = await send(dir, 'slots', slots.body);
+  const second = await send(dir, 'reading', reading.body);
   if (second.sent.status !== 'completed') return { result: { status: 'transport-failed' }, receipts: [first.receipt, second.receipt] };
-  const slotsRead = readSystemOneResponse(second.sent.json, slots.body.questions);
-  return { result: jevClaimResult(relation, familyRead, { read: slotsRead, keys: slots.keys }),
-    familyRead, slotsRead, receipts: [first.receipt, second.receipt] };
+  const readingRead = readSystemOneResponse(second.sent.json, reading.body.questions);
+  return { result: jevClaimResult(relation, familyRead, { read: readingRead, options: reading.options }),
+    familyRead, readingRead, receipts: [first.receipt, second.receipt] };
 };
 
 const cases = JSON.parse(fs.readFileSync(args.cases, 'utf8'));
@@ -137,7 +140,7 @@ await Promise.all(Array.from({ length: concurrency }, async () => {
 }));
 
 const priced = estimateJevCost(args.model, { inputTokens: args.run ? totals.inputTokens
-  : totals.estimatedInputTokens.family + totals.estimatedInputTokens.slotsUpperBound });
+  : totals.estimatedInputTokens.family + totals.estimatedInputTokens.readingUpperBound });
 const summary = { mode: args.run ? 'run' : 'dry-run', model: args.model, promptVersion: JEV_PROMPT_VERSION, ...totals,
   cost: { ...priced, basis: args.run ? 'reported input tokens' : `estimated tokens (${CHARACTERS_PER_TOKEN} characters each), every claim given its largest second request` } };
 writePrivate(path.join(args.out, 'summary.json'), summary);
