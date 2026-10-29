@@ -578,7 +578,13 @@ Agreement-qualified goals also bind the registered Agree signature. A finite
 head and subject with explicit feature values, or a head and specifier with an
 explicit agreement value or a person, number or gender value, can establish a
 feature dependency. A generic features field beside a head and specifier may be
-prose and does not establish it. A finite head and
+prose and does not establish it. Without feature rows or Case, one feature label
+written as notation, a single whitespace-free token such as `+wh` or `+hon`, is
+the whole content of a head-specifier or named agreement pair (the owner
+approved this on 27 Oct 2026). Any dependency whose only content is such a label
+shows it on its connector instead of leaving it as a neutral mark. Prose labels,
+competing labels and other directed pairs, such as a licensor and licensee,
+still need feature rows or explicit probe and goal roles. A finite head and
 subject do not establish a controller for explicitly default agreement rows; those
 literal rows remain authored evidence unless a dependency is independently
 anchored. An explicit probe/goal claim keeps its own authority. Governing heads

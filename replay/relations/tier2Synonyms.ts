@@ -42,6 +42,11 @@ const normalizeSynonymText = boundedStringTransform((value: string) => value
 
 export const normalizeTier2Synonym = (value: unknown): string => normalizeSynonymText(String(value ?? ''));
 
+/** One feature label written as notation, such as `+wh` or `+hon`: a single
+ * whitespace-free token. Prose such as `operator binding (aL)` is not notation. */
+export const isNotationFeatureLabel = (value: unknown): boolean => typeof value === 'string'
+  && /^\S+$/u.test(value.trim()) && /[\p{L}\p{N}]/u.test(value);
+
 /** An explicitly default feature value does not identify its controller. */
 export const isDefaultAgreementLiteral = (value: unknown): boolean => typeof value === 'string'
   && /^default(?:\s|$)/u.test(normalizeTier2Synonym(value));
@@ -851,6 +856,26 @@ export const relationRoleConcepts = (
   const defaultFeatureRows = Object.entries(context.values ?? {}).some(([key, value]) =>
     lookupTier2SynonymCandidates(index, 'value', key).includes('feature.rows')
       && (Array.isArray(value) ? value : [value]).some(isDefaultAgreementLiteral));
+  const applyHeadSpecifierPair = () => {
+    if (spelling === 'head') concepts.add('feature.source');
+    if (spelling === 'specifier') concepts.add('feature.target');
+  };
+  const applyNamedAgreementPair = () => {
+    if (namedAgreementHost === 'probe' && spelling === 'target') {
+      concepts.delete('feature.source');
+      concepts.delete('feature.target');
+      concepts.delete('probe');
+      concepts.delete('goal');
+      concepts.add('agreement.expression-context');
+    }
+    if (spelling === namedAgreementHost) {
+      concepts.delete('feature.target');
+      concepts.delete('goal');
+      concepts.add('feature.source');
+      concepts.add('probe');
+    }
+    if (spelling === 'controller') { concepts.add('feature.target'); concepts.add('goal'); }
+  };
   if (hasLiteral('feature.rows')) {
     if (relationLabelClauses(context.relation).some(clause =>
       /^(?:(?:finite|matrix|embedded|local|verbal) )*tense agreement$/u.test(clause))
@@ -863,22 +888,7 @@ export const relationRoleConcepts = (
       if (spelling === 'agreement head') concepts.add('feature.source');
       if (spelling === 'lexical verb') concepts.add('feature.target');
     }
-    if (namedAgreementPair) {
-      if (namedAgreementHost === 'probe' && spelling === 'target') {
-        concepts.delete('feature.source');
-        concepts.delete('feature.target');
-        concepts.delete('probe');
-        concepts.delete('goal');
-        concepts.add('agreement.expression-context');
-      }
-      if (spelling === namedAgreementHost) {
-        concepts.delete('feature.target');
-        concepts.delete('goal');
-        concepts.add('feature.source');
-        concepts.add('probe');
-      }
-      if (spelling === 'controller') { concepts.add('feature.target'); concepts.add('goal'); }
-    }
+    if (namedAgreementPair) applyNamedAgreementPair();
     // A named agreement target is the feature host. A separately named finite
     // head is contextual here; it cannot replace the explicit target.
     if (hasQualifiedAgreementPair) {
@@ -933,10 +943,19 @@ export const relationRoleConcepts = (
     // for agreement or for one phi dimension. A generic features field may be prose.
     if (roles.has('head') && roles.has('specifier') && Object.keys(context.values ?? {}).some(key =>
       FEATURE_DIMENSION_KEYS.has(normalizeTier2Synonym(key))
-        || ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))) {
-      if (spelling === 'head') concepts.add('feature.source');
-      if (spelling === 'specifier') concepts.add('feature.target');
-    }
+        || ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))) applyHeadSpecifierPair();
+  }
+  // Without feature rows, one feature label in notation is the content of a
+  // head-specifier or named agreement pair (approved by Francis, 27 Oct 2026).
+  // Both participants are marked so the dependency check accepts the label only
+  // for these pairs, not for any directed source and target.
+  const featureLabels = Object.entries(context.values ?? {}).filter(([valueKey]) =>
+    relationValueConcepts(index, valueKey, context).includes('feature.label'));
+  if (!hasLiteral('feature.rows') && featureLabels.length === 1 && isNotationFeatureLabel(featureLabels[0][1])
+    && (namedAgreementPair || roles.has('head') && roles.has('specifier'))) {
+    if (namedAgreementPair) applyNamedAgreementPair();
+    else applyHeadSpecifierPair();
+    if (concepts.has('feature.source') || concepts.has('feature.target')) concepts.add('feature.label-pair');
   }
   if (hasLiteral('case.literal')) {
     if (['subject', 'object', 'nominal', 'argument'].includes(spelling) && [...roles].some(role => qualifiedLicensor(role))) concepts.add('feature.target');

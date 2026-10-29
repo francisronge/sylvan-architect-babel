@@ -11,6 +11,7 @@ import type { Tier2AnchorSource, Tier2AuthoredEvidenceEntry, Tier2FacetEvidence 
 import {
   FEATURE_DIMENSION_KEYS,
   fieldNamingLiterals,
+  isNotationFeatureLabel,
   namedThematicRole,
   normalizeTier2Synonym,
   thematicRoleLabel,
@@ -98,6 +99,21 @@ export const anchorIds = (
 
 export const valueLiterals = (evidence: Tier2FacetEvidence, valueName: string): string[] =>
   [...(evidence.values[valueName] ?? [])].map(String);
+
+/** The one feature label in notation, such as `+wh`, when no feature rows or
+ * Case are authored and no other label competes. The connector shows it. */
+export const notationFeatureLabel = (evidence: Tier2FacetEvidence): string | undefined => {
+  const labels = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('feature.label'));
+  if (valueLiterals(evidence, 'feature.rows').length || valueLiterals(evidence, 'case.literal').length
+    || labels.length !== 1 || labels[0].items.length !== 1 || !isNotationFeatureLabel(labels[0].items[0])) return undefined;
+  return labels[0].items[0].trim();
+};
+
+/** That label is a dependency's whole content only between a head-specifier or
+ * named agreement pair, whose participants the concept reader marks. */
+export const notationFeatureLabelPair = (evidence: Tier2FacetEvidence): boolean =>
+  notationFeatureLabel(evidence) !== undefined && ['feature.source', 'feature.target'].every(concept =>
+    (evidence.authoredCurrentAnchors ?? []).some(entry => entry.concepts.includes(concept) && entry.concepts.includes('feature.label-pair')));
 
 // Feature heads have known meanings; their values stay literal. Explanatory
 // prose is context, not evidence for or against a specialized assertion.
