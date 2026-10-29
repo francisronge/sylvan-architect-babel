@@ -324,14 +324,20 @@ that gives way to a nearer one clear through the stretch. When no pocket that ne
 stays clear, it takes the nearest pocket clear through the stretch however far it
 stands. On 27 October 2026 Francis was asked "Plaques that would jump take the
 farther stretch-clear pocket?" and answered "Yes": the trade is a farther pocket
-instead of a jump, so a plaque that leaves its pocket early keeps the pocket it
-took for the rest of its stage while its anchor stays still, and it does not
-return within reach in that stage. Should it still leave that pocket, the schedule
-enters the stage again with that plaque keeping its pocket until it must move, as
-it would without looking ahead. The offline audit reports a jump within a stage
-that only such syntax or a mark caused, accepts a plaque leaving early only where
-a stage begins, and reports a plaque that left early there and moves again beside
-its still anchor in that stage. One exception lets a plaque that shows its owner
+instead of a jump. So a plaque that takes a pocket early keeps it, across stage
+boundaries too, until its anchor moves or it is no longer shown, and does not
+return within reach meanwhile. The schedule keeps the early pocket only where it
+is that trade: the plaque does not leave the pocket beside its still anchor, no
+nearer pocket stays clear through that whole hold (where one does, the plaque takes
+it instead, once), and, against the same stages entered without its early pocket,
+it moves beside its still anchor no more often and at most a twentieth farther in
+all. Otherwise the schedule enters those stages again with the early pocket
+barred, and the plaque waits and moves as it would without looking ahead. Stages
+entered while a hold is open are published only once it ends. The offline audit
+reports a jump within a stage that only such syntax or a mark caused, accepts a
+plaque leaving early only where a stage begins, and reports a plaque that left
+early there and moves again beside its still anchor before its anchor moves or it
+leaves. One exception lets a plaque that shows its owner
 only by proximity, left beyond its nearby reach, return within it: it takes
 its nearer scheduled pocket at the step where what the previous step painted there
 has gone. A claim a later movement transfers to a lower occurrence keeps one plaque
@@ -463,8 +469,9 @@ Ports fit the narrowest shell in the claim's lifetime. Clearance
 uses each stage's painted dimensions and row positions, including other plaques'
 connector obstacles; the largest box still reserves space. When rows leave a
 plaque, because a later relation supersedes every claim that owns them, its shell
-fits the rows that remain at that same step, in its pocket; allocation still
-reserves the stage's largest shell. Francis asked for this on 27 October 2026
+fits the rows that remain at that same step, in its pocket, and its Case arrow
+and collectors meet those rows where they now stand, in the schedule's pockets as
+on screen; allocation still reserves the stage's largest shell. Francis asked for this on 27 October 2026
 after a Case plaque kept an empty two-row shell for two steps: "Why does the plaque
 content disappear then shrink size? if that should be happening, then why do it in
 2 steps, just make them disappear and shrink at one step?" The offline audit reports

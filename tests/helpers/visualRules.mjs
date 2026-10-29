@@ -434,9 +434,11 @@ const firstPoint = item => item.boxes?.[0] ?? item.rect ?? item.paths?.[0]?.[0];
  *   - it shows its owner only by proximity and returns from beyond its nearby reach
  *     to within it, into a pocket that what the earlier frame had there has left.
  * A plaque that left its pocket where its stage began only because a later frame of
- * the stage takes it keeps the pocket it took through the stage while its anchor stays
- * still: none of these lets it move again. `early` carries the ids of such plaques
- * from one call to the next; pass a fresh Set per viewport and the frames in order.
+ * the stage takes it keeps the pocket it took, through later stage boundaries too, while
+ * its anchor stays still and it stays shown: none of these lets it move again (Francis
+ * accepted a farther pocket instead of a jump on 27 October 2026, not a farther pocket
+ * and another move). `early` carries the ids of such plaques from one call to the next;
+ * pass a fresh Set per viewport and the frames in order.
  * The frames' `reserves` say what each paints, as the schedule saw it. Subtype
  * plaque-teleport; the frame is the transition and the measure the shift in tree
  * units. */
@@ -459,7 +461,6 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
   const unpaired = before.plaques.filter(plaque => plaque.anchor);
   const earlier = before.reserves ?? [], later = after.reserves ?? [];
   const out = [], kept = new Set();
-  if (crossing) early.clear();
   for (const plaque of after.plaques) {
     if (!plaque.anchor) continue;
     const candidates = unpaired.filter(prior => prior.id === plaque.id);
@@ -472,7 +473,7 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
     if (shift <= thresholds.motionUnits) { if (early.has(plaque.id)) kept.add(plaque.id); continue; }
     if (early.has(plaque.id)) {
       out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id,
-        `${describe(plaque)} jumps ${Math.round(shift)} units beside its still anchor after leaving its pocket early where its stage began`, shift));
+        `${describe(plaque)} jumps ${Math.round(shift)} units beside its still anchor after leaving its pocket early where a stage began`, shift));
       continue;
     }
     const owner = plaque.key ?? plaque.id;

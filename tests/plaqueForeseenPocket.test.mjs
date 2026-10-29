@@ -51,6 +51,23 @@ for (const [id, subject, steps] of [
   assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject} ${found.measure}`), []);
 });
 
+// PR #285 review, 29 October 2026: at 9ef8615 this θ-grid took a farther pocket where
+// stage 1 began (frame 16), held it through stage 2 and moved again where stage 3 began
+// (frame 26), where main moves it once (frame 19). A plaque keeps an early pocket until
+// its anchor moves (here at frame 43) or it leaves, across stage boundaries, and takes
+// one only where that costs no more moves beside its still anchor than main, nor more
+// than a twentieth farther in all; otherwise it does what main does.
+test('a plaque that takes a pocket early moves no more often beside its still anchor than without it', () => {
+  const id = 'replay-regressions/reviewed-construction.json#/cases/2', subject = 'plaque(0:0 theta agent)@vRestored';
+  const visual = prepareVisualRecord(corpus.records.find(entry => entry.id === id).record);
+  for (const viewport of [VIEWPORTS[0], VIEWPORTS.find(entry => entry.name === 'mobile')]) {
+    const frames = layoutVisualFrames(visual, [viewport], { steps: Array.from({ length: 30 }, (_, at) => 13 + at) });
+    const offsets = frames.map(frame => `${frame.frame} ${offset(frame.plaques.find(plaque => plaque.id === subject))}`);
+    const pockets = offsets.map(entry => entry.split(' ')[1]).filter((pocket, at, all) => at === 0 || pocket !== all[at - 1]);
+    assert(pockets.length <= 2, `${viewport.name}: one move from frame 13 to 42: ${offsets.join(', ')}`);
+  }
+});
+
 // A step's hold reads the later steps of its stage, so the schedule enters none of a
 // stage's steps while a phase of it can still change: one not yet allocated, or one a
 // remote run still open may move nearer (bringNear). Phases here belong to stages
