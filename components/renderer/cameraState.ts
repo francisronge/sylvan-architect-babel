@@ -16,6 +16,8 @@ export function liveViewportSize(svg: SVGSVGElement | null, fallback: { width: n
 /** The last automatic pose, with the stage and painted syntax it framed. */
 export type AutoCameraState = TreeCameraState & {
   stepIndex: number; fitRevision: number; stageIndex: number; paintedNodes: PaintedNodes;
+  /** The stage plan closed a movement's room at the crossing into the framed stage. */
+  closesOnEntry?: boolean;
   /** Framed the completed last Stage Record, whose fit is its own. */
   completed: boolean;
 };

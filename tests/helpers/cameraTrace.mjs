@@ -16,6 +16,8 @@ import { fitTreeCamera } from '../../components/renderer/frameCamera.ts';
 import { availableTreeViewport } from '../../components/treeViewport.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import { STAGE_CAMERA_PADDING } from '../../replay/stageCamera.ts';
+import { paintedShift } from '../../replay/cameraCarry.ts';
+import { closingAt } from '../../replay/workspaceShapeReflows.ts';
 import { createCameraHarness } from './cameraHarness.mjs';
 import { CAMERA_THRESHOLDS, checkCameraTrace, checkCanopyPlacement } from './cameraInvariants.mjs';
 import { createSvgDom } from './svgDom.mjs';
@@ -34,11 +36,24 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
   if (!steps.length || !visual.prepared.replayDerivationFrames.length) return null;
   const layout = layoutMeasuredScenes(visual, viewport), uiBounds = viewportObstacles(viewport);
   const pad = STAGE_CAMERA_PADDING;
-  const scenes = layout.scenes.map(({ step, nodes }, index) => {
+  // The syntax each step's closing moves (closingAt, as the corpus gate grants it,
+  // and moving there after the camera carry), over the painted nodes of it and
+  // the step before.
+  const painted = nodes => new Map([...nodes].filter(([, node]) => !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace'));
+  const points = nodes => new Map([...nodes].map(([id, node]) => [id, { x: node.x, y: node.y,
+    parentId: node.parent && nodes.has(getNodeId(node.parent)) ? getNodeId(node.parent) : null }]));
+  const closings = layout.scenes.map(({ step, nodes, closing }, index) => {
+    if (!index) return new Set();
+    const previous = layout.scenes[index - 1], before = painted(previous.nodes), after = painted(nodes);
+    const carry = previous.step.replayFrameIndex !== step.replayFrameIndex ? paintedShift(points(before), points(after), { closing }) : { x: 0, y: 0 };
+    return new Set([...closingAt(previous.step, step, before, after, before, after, { closing })].filter(id =>
+      Math.hypot(after.get(id).x - carry.x - before.get(id).x, after.get(id).y - carry.y - before.get(id).y) > 1));
+  });
+  const scenes = layout.scenes.map(({ step, nodes, closing: closesOnEntry }, index) => {
     const completedStep = index === steps.length - 1 && step.replayKind === 'macro' ? index : undefined;
     const { bounds, containment } = layout.stageCamera(step.replayFrameIndex, completedStep);
     const visibleNodes = [...nodes.values()];
-    return { stage: step.replayFrameIndex, completedStep, bounds, containment, visibleNodes,
+    return { stage: step.replayFrameIndex, completedStep, bounds, containment, visibleNodes, closing: closings[index], closesOnEntry,
       // fitTreeCamera's stageFitContainmentBounds.
       envelope: bounds && {
         minX: Math.min(containment?.minX ?? Infinity, bounds.minX - pad.x), maxX: Math.max(containment?.maxX ?? -Infinity, bounds.maxX + pad.x),
@@ -58,7 +73,7 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
     camera.run(() => fitTreeCamera({ session: camera.session, layout: { relationRenderPlan: plan, activeDerivationFrameIndex: scene.stage,
       uiBounds, stageCameraBounds: scene.bounds, stagePlaqueContainmentBounds: scene.containment, completedReplayStep: scene.completedStep,
       g: camera.group, fitFallbackOverlays: undefined, derivationFrameFitNodes: scene.visibleNodes, overlayFitBounds: null,
-      visibleNodes: scene.visibleNodes } }));
+      visibleNodes: scene.visibleNodes, closesOnEntry: scene.closesOnEntry } }));
     const first = camera.paints[0];
     camera.advance(SETTLE_MS);
     const settled = camera.paints.at(-1);
@@ -94,7 +109,7 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
     return { canvas: { width: viewport.width, height: viewport.height },
       view: availableTreeViewport(viewport.width, viewport.height, uiBounds),
       frames: scenes.map(scene => ({ stage: scene.stage, final: scene.completedStep !== undefined, bounds: scene.bounds,
-        envelope: scene.envelope, nodes: scene.nodes })),
+        envelope: scene.envelope, nodes: scene.nodes, closing: scene.closing })),
       direct, passes };
   } finally { restore(); }
 }

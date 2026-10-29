@@ -28,6 +28,9 @@ interface FrameCameraLayout {
   derivationFrameFitNodes: d3.HierarchyPointNode<SyntaxNode>[] | null;
   overlayFitBounds: OverlayBounds | null;
   visibleNodes: d3.HierarchyPointNode<SyntaxNode>[];
+  /** The stage plan closed a movement's room at the crossing into this frame's
+   * stage (stageCoordinates.closesOnEntry), so the camera carry there breaks a tie. */
+  closesOnEntry?: boolean;
 }
 export function fitTreeCamera({ session, layout }: { session: CameraSession; layout: FrameCameraLayout }) {
   const { containerWidth, containerHeight } = session;
@@ -42,7 +45,8 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
     fitFallbackOverlays,
     derivationFrameFitNodes,
     overlayFitBounds,
-    visibleNodes
+    visibleNodes,
+    closesOnEntry = false
   } = layout;
   const cyclicLinearizationPlateItem = (
     relationRenderPlan?.frames[activeDerivationFrameIndex]?.items ?? []
@@ -81,6 +85,7 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
       g,
       fitFallbackOverlays,
       stageIndex: activeDerivationFrameIndex,
+      closesOnEntry,
       paintedNodes: new Map(visibleNodes.map(node => [getNodeId(node),
         { x: node.x, y: node.y, parentId: node.parent ? getNodeId(node.parent) : null }]))
     }

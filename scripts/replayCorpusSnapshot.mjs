@@ -77,7 +77,7 @@ export async function buildCorpusSnapshot(root, records, { width, height, direct
       const roots = [...scene.nodes.values()].filter(node => !node.parent || !scene.nodes.has(display.getNodeId(node.parent)));
       return { stage: scene.step.replayFrameIndex, kind: scene.step.replayKind, operation: scene.step.operation,
         target: scene.step.targetNodeId, relationIndex: scene.step.replayRelationIdentity?.relationIndex,
-        ...motionFrame(scene.step, scene.nodes, display.getNodeId),
+        ...motionFrame(scene.step, scene.nodes, display.getNodeId, scene.closing),
         widths: scene.step.replayKind === 'macro' ? [
           { root: '@forest', width: span([...scene.nodes.values()]) },
           ...roots.map(root => ({ root: display.getNodeId(root), width: span(root.descendants()
@@ -100,7 +100,7 @@ export async function buildCorpusSnapshot(root, records, { width, height, direct
     };
     return { authoredBeforeSha256, authoredAfterSha256: objectHash(input.derivationStages), replaySha256: objectHash(steps),
       planSha256: objectHash(prepared.relationRenderPlan), frames, invalid,
-      continuity: continuity.workspaceContinuityReflows(scenes, positions, render), evidence };
+      continuity: continuity.workspaceContinuityReflows(scenes, positions, render, { ownClosings: true }), evidence };
   };
   const results = [];
   for (const record of records) {

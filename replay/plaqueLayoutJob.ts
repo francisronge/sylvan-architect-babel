@@ -5,7 +5,7 @@ import { cloneSyntaxTree } from './syntaxForest.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import { isUnderTriangulation, markTriangulatedNodes } from './triangulation.ts';
 import { categoryTextLayout } from './categoryTextLayout.ts';
-import { buildStageCoordinateReservations } from './stageCoordinates.ts';
+import { buildStageCoordinateReservations, closesOnEntry, recordClosingEntry } from './stageCoordinates.ts';
 import { buildReplayPlaqueSchedule, stageTreeLayoutSize, type StageLayoutInput, type MeasuredStageCoordinates, type ReplayPlaqueSchedule } from './stageCamera.ts';
 import type { TreeCoordinateReservation } from './treeLayout.ts';
 import { nativeRelationPlaqueRects, prepareStagePlaqueRequests } from './relations/plaquePlacement.ts';
@@ -33,6 +33,8 @@ export type PlaqueLayoutResult = {
   measurementKey: string;
   schedule: ReplayPlaqueSchedule;
   coordinates: Map<number, Map<number, TreeCoordinateReservation>>;
+  /** The stages whose plan closed a movement's room at their crossing (stageCoordinates.closesOnEntry). */
+  closings: number[];
 };
 export type PlaqueLayoutProgress = PlaqueLayoutResult & { preparedStages: number[] };
 export type PreparedPlaqueLayout = { schedule: ReplayPlaqueSchedule; coordinates: MeasuredStageCoordinates };
@@ -222,7 +224,8 @@ export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress:
   for (const stageIndex of layoutStageIndices(input)) {
     const size = sizeForStage(stageIndex);
     stages.set(stageIndex, size ? buildStageCoordinateReservations(input.steps, stageIndex, size, sizeForStage,
-      input.direction, input.measureCategoryText, input.measureTreeInk, input.treeLabelRuns, input.measureTreeLabel) : new Map());
+      input.direction, input.measureCategoryText, input.measureTreeInk, input.treeLabelRuns, input.measureTreeLabel,
+      { plan: input.plan, measurePlaqueText: input.measurePlaqueText }) : new Map());
   }
   const ordinals = new Map(canvases(job.input).map((canvas, index) => [canvas, index]));
   const coordinates = new Map([...stages].map(([stageIndex, reservations]) => [stageIndex,
@@ -231,6 +234,7 @@ export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress:
       if (ordinal === undefined) throw new Error('Unknown prepared Replay canvas.');
       return [ordinal, points] as const;
     }))]));
+  const closings = [...stages].flatMap(([stageIndex, reservations]) => closesOnEntry(reservations) ? [stageIndex] : []);
   const measurementKey = measuredKey(job);
   const target = job.progressStage;
   const targetGroup = target === undefined ? [] : input.layoutGroups?.find(group => group.includes(target)) ?? [target];
@@ -238,7 +242,7 @@ export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress:
   const publish = (schedule: ReplayPlaqueSchedule, preparedStages: number[]) => {
     if (!onProgress || delivered || !targetGroup.length || !targetGroup.every(stage => preparedStages.includes(stage))) return;
     delivered = true;
-    onProgress({ requestKey: job.requestKey, measurementKey, coordinates,
+    onProgress({ requestKey: job.requestKey, measurementKey, coordinates, closings,
       schedule: { stages: [...schedule.stages], steps: new Map(schedule.steps) }, preparedStages });
   };
   // A stage with no relation items cannot acquire a plaque from another stage.
@@ -256,7 +260,7 @@ export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress:
   const schedule = buildReplayPlaqueSchedule(input, stages, (schedule, stage) => {
     preparedStages.push(stage); publish(schedule, [...preparedStages]);
   }, { pocketOccupants });
-  return { requestKey: job.requestKey, measurementKey, schedule, coordinates };
+  return { requestKey: job.requestKey, measurementKey, schedule, coordinates, closings };
 }
 
 /** Accept only this still-current request; never seed a global geometry cache
@@ -268,7 +272,8 @@ export function bindPlaqueLayoutResult(input: StageLayoutInput, job: PlaqueLayou
     || binding.functions.some((fn, index) => fn !== measurementFunctions(input)[index])
     || currentCanvases.length !== binding.canvases.length || currentCanvases.some((canvas, index) => canvas !== binding.canvases[index]))
     throw new Error('Replay layout result no longer matches its input.');
-  if (!(result.coordinates instanceof Map) || !result.schedule || !Array.isArray(result.schedule.stages) || !(result.schedule.steps instanceof Map))
+  if (!(result.coordinates instanceof Map) || !result.schedule || !Array.isArray(result.schedule.stages) || !(result.schedule.steps instanceof Map)
+    || !Array.isArray(result.closings) || result.closings.some(stage => !result.coordinates.has(stage)))
     throw new Error('Invalid prepared Replay layout.');
   const coordinates = new Map<number, Map<SyntaxNode, TreeCoordinateReservation>>();
   for (const [stageIndex, reservations] of result.coordinates) {
@@ -286,7 +291,7 @@ export function bindPlaqueLayoutResult(input: StageLayoutInput, job: PlaqueLayou
         throw new Error('Incomplete prepared Replay coordinates.');
       stage.set(canvas, points);
     }
-    coordinates.set(stageIndex, stage);
+    coordinates.set(stageIndex, recordClosingEntry(stage, result.closings.includes(stageIndex)));
   }
   for (const step of input.steps) if (step.replayCanvasData && Number.isInteger(step.replayFrameIndex)
     && !coordinates.get(step.replayFrameIndex!)?.has(step.replayCanvasData))
@@ -311,7 +316,7 @@ export function completePlaqueLayoutResult(input: StageLayoutInput, job: PlaqueL
   early?: { progress: PlaqueLayoutProgress; layout: PreparedPlaqueLayout }): PreparedPlaqueLayout {
   const layout = bindPlaqueLayoutResult(input, job, result);
   if (!early) return layout;
-  if (valueKey(result.coordinates) !== valueKey(early.progress.coordinates)
+  if (valueKey(result.coordinates) !== valueKey(early.progress.coordinates) || valueKey(result.closings) !== valueKey(early.progress.closings)
     || early.progress.preparedStages.some(stage => valueKey(result.schedule.stages[stage]) !== valueKey(early.progress.schedule.stages[stage]))
     || [...early.progress.schedule.steps].some(([index, placements]) => valueKey(result.schedule.steps.get(index)) !== valueKey(placements)))
     throw new Error('Completed Replay layout changed a prepared stage.');
