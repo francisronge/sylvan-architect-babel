@@ -180,7 +180,7 @@ export function replayMotionFaults({ frames }: { frames: readonly any[] }, { thr
  * that room, and parents spanning the gap recentre over their daughters.
  * Syntax joining a new parent at this step is judged as attachment instead.
  * Returns the ids so closing. */
-export function closingGroups({ kind, links, current, prior, motion, threshold = MOTION_FAULT_THRESHOLD }: any): Set<string> {
+export function closingGroups({ kind, links, current, prior, motion, threshold = MOTION_FAULT_THRESHOLD, throughInsertions = false }: any): Set<string> {
   const result = new Set<string>();
   if (kind !== 'relation' || !links.length) return result;
   const priorChildren = new Map();
@@ -216,14 +216,18 @@ export function closingGroups({ kind, links, current, prior, motion, threshold =
   };
   // Syntax that joins a new parent here, and what rides along with it, moves
   // because the step attaches it, not to close a gap.
+  // With `throughInsertions`, a parent the step inserts above a phrase that
+  // keeps its place (a new segment over an adjunction host) does not count.
   const joining = id => {
-    for (let top = id; top; top = current.get(top)?.parent) {
+    for (let top = id; top;) {
       const old = prior.get(top), now = current.get(top);
       if (!old) return true;
       if (old.parent !== now.parent) {
+        if (throughInsertions && now.parent && !prior.has(now.parent) && current.get(now.parent)?.parent === old.parent) { top = old.parent; continue; }
         const a = motion(id), b = motion(top);
         return Boolean(a && b) && Math.abs(a.x - b.x) <= threshold && Math.abs(a.y - b.y) <= threshold;
       }
+      top = now.parent;
     }
     return false;
   };

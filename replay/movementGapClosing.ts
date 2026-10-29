@@ -127,6 +127,20 @@ const boxOf = (frame: Painted): Box => {
 };
 const union = (a: Box, b: Box): Box => ({ minX: Math.min(a.minX, b.minX), maxX: Math.max(a.maxX, b.maxX), minY: Math.min(a.minY, b.minY), maxY: Math.max(a.maxY, b.maxY) });
 
+/** The median travel, after `carry`, of the syntax a step leaves attached as it
+ * was (painted in both frames under the same shared ancestors), as the camera
+ * audit's first-paint continuity reads it on screen: syntax the step's own
+ * closing moves (`granted`) may count as moved, where that lowers the median. */
+function attachedTravel(before: Painted, after: Painted, carry: { x: number; y: number }, granted: ReadonlySet<string>) {
+  const shared = new Set([...after.keys()].filter(id => before.has(id)));
+  const lineage = (frame: Painted, id: string) => frame.get(id)!.ancestors().map(getNodeId).filter(other => other !== id && shared.has(other)).join(' ');
+  const travel = (id: string) => Math.hypot(after.get(id)!.x - carry.x - before.get(id)!.x, after.get(id)!.y - carry.y - before.get(id)!.y);
+  const median = (values: number[]) => { values.sort((a, b) => a - b); return values.length ? (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2 : 0; };
+  const all = [...shared], attached = all.filter(id => lineage(before, id) === lineage(after, id));
+  const rest = attached.filter(id => !(granted.has(id) && travel(id) > 1));
+  return Math.min(median((attached.length ? attached : all).map(travel)), median((rest.length ? rest : all).map(travel)));
+}
+
 /** Whether frames `changed` (by scene index; the others as `frames` paints them)
  * keep the camera's view of their stages: the stage camera fits the box a
  * stage's frames span together, which may move but grow no more than
@@ -514,6 +528,12 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
         const now = Math.hypot(node.x - shiftNow.x - old.x, node.y - shiftNow.y - old.y), before = Math.hypot(was.x - shiftWas.x - old.x, was.y - shiftWas.y - old.y);
         if (now > before + 1) { added.push({ kind: 'ungranted-motion', node: id, distance: now }); break; }
       }
+      // What the step leaves attached, beyond what its closing moves, keeps its
+      // place on screen.
+      const seen = (after: Painted) => closingAt(scenes[m - 1].step, scenes[m].step, prior, after, prior, after, { throughInsertions: true });
+      const bulk = attachedTravel(prior, closed[0], shiftNow, seen(closed[0]));
+      if (bulk > Math.max(attachedTravel(prior, current, shiftWas, seen(current)), 1) + 1e-6)
+        added.push({ kind: 'attached-motion', node: '', distance: bulk });
       if (added.length) debug('rule faults', added.slice(0, 4).map(fault => `${fault.kind} ${fault.node} ${Math.round(fault.distance)}`).join('; '), 'carry', Math.round(shiftWas.x), '->', Math.round(shiftNow.x));
       // Nor any continuity fault the corpus gate would newly find.
       const continuous = !added.length && keepsStageSize(scenes, all, new Map(closed.map((frame, index) => [m + index, frame]))) && closed.every((frame, index) => !newContinuityFaults(scenes[m + index - 1], scenes[m + index],

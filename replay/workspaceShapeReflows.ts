@@ -151,7 +151,7 @@ function detectWorkspaceReflows<S extends Scene>(
 /** The syntax a step's approved closing moves, as the motion rule finds it over
  * the painted nodes `before` and `current` at their laid-out positions. */
 export function closingAt(previous: PlaybackStep, step: PlaybackStep, before: ReadonlyMap<string, Node>, current: ReadonlyMap<string, Node>,
-  oldPositions: ReadonlyMap<string, Node>, newPositions: ReadonlyMap<string, Node>) {
+  oldPositions: ReadonlyMap<string, Node>, newPositions: ReadonlyMap<string, Node>, { throughInsertions = false } = {}) {
   const points = (nodes: ReadonlyMap<string, Node>, at: ReadonlyMap<string, Node>) => new Map([...nodes].flatMap(([id, node]) => {
     const point = at.get(id);
     const parent = node.parent && nodes.has(getNodeId(node.parent)) ? getNodeId(node.parent) : null;
@@ -166,5 +166,5 @@ export function closingAt(previous: PlaybackStep, step: PlaybackStep, before: Re
   };
   const links = stepTrajectoryParticipants(step);
   const owned = stepOwnership({ target: step.targetNodeId, links, points: [...now.values()], prior });
-  return closingGroups({ kind: step.replayKind, links, current: now, prior, motion, owned });
+  return closingGroups({ kind: step.replayKind, links, current: now, prior, motion, owned, throughInsertions });
 }

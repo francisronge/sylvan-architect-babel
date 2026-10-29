@@ -75,8 +75,9 @@ export function carryReference(before: PaintedNodes, after: PaintedNodes) {
 /** The median shift, after minus before, of the camera's carry reference.
  * With an even count whose middle shifts differ, every shift between them moves
  * the reference as little in total; the carry then takes the end that more of
- * the reference shares (within CARRY_TOLERANCE), so syntax that holds together
- * stays still, and their midpoint only when both ends are shared alike. */
+ * the reference shares (within CARRY_TOLERANCE), if at least a quarter of it
+ * does, so a block of syntax that holds together stays still, and otherwise
+ * their midpoint. */
 const CARRY_TOLERANCE = 1;
 export function paintedShift(before: PaintedNodes, after: PaintedNodes) {
   const reference = carryReference(before, after);
@@ -86,8 +87,8 @@ export function paintedShift(before: PaintedNodes, after: PaintedNodes) {
     const low = values[(values.length - 1) >> 1], high = values[values.length >> 1];
     if (high - low <= CARRY_TOLERANCE) return (low + high) / 2;
     const near = (value: number) => values.filter(other => Math.abs(other - value) <= CARRY_TOLERANCE).length;
-    const lows = near(low), highs = near(high);
-    return lows > highs ? low : highs > lows ? high : (low + high) / 2;
+    const lows = near(low), highs = near(high), block = values.length / 4;
+    return lows > highs && lows >= block ? low : highs > lows && highs >= block ? high : (low + high) / 2;
   };
   return { x: median(reference.map(id => after.get(id)!.x - before.get(id)!.x)), y: median(reference.map(id => after.get(id)!.y - before.get(id)!.y)) };
 }
