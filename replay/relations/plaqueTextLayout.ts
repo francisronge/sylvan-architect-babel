@@ -216,7 +216,7 @@ export const prepareSharedFeatureTextLayout = (label = '', measureText?: PlaqueT
   const width = Math.max(248, Math.min(460, Math.ceil(measure(text, style).width) + 36));
   const row = prepareTextBlock(text, style,
     { x: 18, top: 42, width: width - 36, baseline: 27, lineHeight: 36 }, measure);
-  return { width, height: Math.max(92, row.bottom + 14), row: row.block };
+  return { width: Math.max(width, Math.ceil(row.right + 18)), height: Math.max(92, row.bottom + 14), row: row.block };
 };
 
 export const preparePlaqueTextLayout = (
@@ -279,16 +279,17 @@ export function prepareCasePlaqueRows(rows: readonly { label: string; value: str
     + (/[^\u0000-\u024f\u0300-\u036f]/u.test(char) ? 30 : 18) + 0.6, 0) });
   const width = Math.max(310, Math.min(480, Math.ceil(Math.max(0,
     ...rows.map(row => measure(`[${row.label}: ${row.value}]`).width)) + 44)));
-  let top = 62;
+  let top = 62, right = 0;
   const laidOut = rows.map(row => {
     const text = `[${row.label}: ${row.value}]`;
     const lines = wrapPlaqueText(text, width - 44, measure);
+    lines.forEach(line => { right = Math.max(right, measure(line).width); });
     const height = 62 + (lines.length - 1) * 38;
     const result = { ...row, lines, y: top + height / 2, firstLineY: top + 31 };
     top += height;
     return result;
   });
-  return { width, height: top + 14, rows: laidOut };
+  return { width: Math.max(width, Math.ceil(right + 44)), height: top + 14, rows: laidOut };
 }
 
 /** Native grid columns share one content-sized layout for reservation and drawing. */
