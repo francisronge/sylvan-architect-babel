@@ -56,6 +56,11 @@ syntactic rules. Desktop remains the primary experience.
      Run the same geometry-first experiment for movement and the other
      relations: measure the wrong-picture rate where Babel already draws, and
      decide whether each further measured rule can claim its whole envelope.
+   - Measured over 26,587 relations in about 2,100 saved model analyses
+     (29 Oct 2026, grouped by keywords in the names, so rough): relations Babel
+     can already draw are often left neutral. Binding and coreference 64%,
+     scope and negation 74%, relative clauses 76%, adjunction and modification
+     48%. Close these recognition gaps from structure first.
    - Later, Jev as the fallback for relations structure cannot settle (mostly
      non-movement relations): run it once after generation, only for claims
      recognition leaves neutral, to map the model's role names to drawing
@@ -176,6 +181,11 @@ growing the current monolith and do not build two Babel implementations.
    transport retry; a retry on the public site may come later). Add route error
    boundaries with the application split. Decide separately whether
    user-triggered parse cancellation or additional retry UI is useful.
+   A parse takes minutes: in the 29 Oct held-out batch the median wait was
+   2.4 min on GPT-6.1 Sol and 1.5 min on Claude Opus 5.5 (90th percentile 3.5
+   and 2.5 min), about 60% of it model reasoning before any output. Design the
+   progress experience for waits of minutes, not seconds, as part of building
+   the product UI. Neither model is in `GENERATION_MODEL_IDS` yet.
 2. Make desktop and mobile layouts explicit. Verify all key flows with
    screenshots and interaction tests, not only component snapshots.
 3. Preserve local-first operation. Hosted accounts or synchronization remain a
@@ -387,6 +397,14 @@ review authority, and correction path.
 - Deployment target and public product timing.
 
 ## Explicitly Not Active
+
+- New relation pictures before shipping. Selection (13% of all neutral
+  relations) and coordination (always neutral) are the largest kinds Babel has
+  no drawing for; government, clause typing, and tense and auxiliaries follow.
+  The planned work: research how textbooks and papers draw each, bring mockups
+  for Francis to choose from, as for Tier 3, then build the chosen ones as
+  Tier 2 families with Orchard cards. This follows the original relation-design
+  workflow. Francis (29 Oct 2026): probably not before shipping.
 
 - Bringing far plaques nearer by moving other marks. On 2026-10-24, 256
   plaques in 179 of 1,274 saved and committed analyses sat beyond their
