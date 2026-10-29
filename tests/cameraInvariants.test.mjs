@@ -198,3 +198,22 @@ test('catalog #7: since PR #81, Prev inside the forward-retained stage keeps its
   assert.deepEqual(catalog.filter(finding => finding.subtype === 'prev-refit'), []);
   assert.deepEqual(catalog.filter(finding => finding.record === WHOSE), []);
 });
+
+test('a stage that paints a cyclic-linearization plate is judged against the view its tree is fitted into', () => {
+  const ids = ['one', 'two', 'three', 'four', 'five'];
+  const forest = [{ id: 'root', label: 'TP', children: ids.map(id => ({ id, label: 'D', word: id, children: [] })) }];
+  const relation = { relation: 'CyclicLinearization', anchors: { order: ids }, priorAnchors: { order: ids }, values: { outcome: 'conflict' } };
+  const stage = relations => ({ statement: 'Test', stageRecord: 'Test', relations, workspaceForest: structuredClone(forest) });
+  const trace = traceCamera(prepareVisualRecord({ sentence: 'one two three four five', derivationStages: [stage([]), stage([relation])] }), viewport('desktop'));
+  const last = trace.frames.length - 1, fit = trace.frames[last].view;
+  assert(fit.right < trace.view.right, 'the plate takes a column beside the tree');
+  assert.deepEqual(checkContentPlacement(trace), []);
+  // A pose that paints the whole tree into the plate's column, inside the whole view.
+  const points = [...trace.frames[last].nodes.values()], xs = points.map(point => point.x), ys = points.map(point => point.y);
+  const k = (trace.view.right - fit.right - 20) / (Math.max(...xs) - Math.min(...xs));
+  const intruding = { ...copy(trace), passes: [] };
+  intruding.direct[last] = { k, x: fit.right + 10 - Math.min(...xs) * k, y: (fit.top + fit.bottom) / 2 - (Math.min(...ys) + Math.max(...ys)) / 2 * k };
+  assert.deepEqual(checkContentPlacement({ ...intruding, frames: intruding.frames.map(({ view: _view, ...frame }) => frame) })
+    .filter(found => found.subtype === 'syntax-clipped'), [], 'the pose is inside the whole view');
+  assert(checkContentPlacement(intruding).some(found => found.subtype === 'syntax-clipped' && found.frame === last + 1));
+});

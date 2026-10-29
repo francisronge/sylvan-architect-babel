@@ -37,6 +37,12 @@ const snapshotOf = (extra = {}) => ({ camera: CAMERA, origin: ORIGIN, canvas: { 
   nodes: [], edges: [], texts: [], plaques: [], connectors: [], branches: [], panel: null, header: null, ...extra });
 const modelOf = (snapshot, anchorsFor) => toFrameModel(snapshot, { frame: 12, viewport: 'desktop', anchorsFor }).model;
 
+test('a frame the page probe could not fully measure is an audit error, not a judged frame', () => {
+  assert.deepEqual(modelOf(snapshotOf({ errors: [] })).texts, []);
+  assert.throws(() => modelOf(snapshotOf({ errors: ['plaque: TypeError: box is null'] })),
+    /could not measure 1 element\(s\) at frame 12: plaque: TypeError: box is null/);
+});
+
 test('probe helpers classify renderer classes and parse the page', () => {
   assert.equal(classifyText({ tag: 'text', classes: ['category-label'] }), 'category');
   assert.equal(classifyText({ tag: 'tspan', classes: ['babel-theta-terminal-index', 'babel-relation-index'] }), 'index');

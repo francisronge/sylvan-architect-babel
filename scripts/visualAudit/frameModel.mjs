@@ -53,8 +53,13 @@ function hierarchy(snapshot) {
  * One painted frame in the shared rules' model. `anchorsFor(claims)` returns the
  * authored anchor node ids of those relations. Returns `{ model, screen }`:
  * `screen` maps each model id to its CSS-pixel boxes for contact sheets.
+ * Throws when the page probe could not measure an element (`snapshot.errors`):
+ * the frame would be judged without it.
  */
 export function toFrameModel(snapshot, { frame, viewport, anchorsFor = () => [] }) {
+  if (snapshot.errors?.length) {
+    throw new Error(`The page probe could not measure ${snapshot.errors.length} element(s) at frame ${frame}: ${snapshot.errors.slice(0, 3).join('; ')}`);
+  }
   const space = treeSpace(snapshot), tree = hierarchy(snapshot);
   const nodes = new Map((snapshot.nodes || []).map(node => [node.id, node]));
   const counts = new Map(), screen = new Map();

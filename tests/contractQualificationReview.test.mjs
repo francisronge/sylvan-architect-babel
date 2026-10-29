@@ -149,11 +149,15 @@ test('review manifests cannot read files outside the run or write captures outsi
       ['absolute path', { ...entry, receipt: path.join(outside, 'private.json') }, /relative to the run/u],
       ['traversing analysis', { ...entry, analyses: [{ analysisIndex: 0, replay: '../../outside/private.json',
         evidence: 'evidence.json' }] }, /leaves the run/u],
-      ['traversing attempt ID', { ...entry, attemptId: '../../outside' }, /one path segment/u]
+      ['traversing attempt ID', { ...entry, attemptId: '../../outside' }, /one path segment/u],
+      ['symlinked artifact', { ...entry, receipt: 'linked-receipt.json' }, /leaves the run/u],
+      ['traversing analysis index', { ...entry, analyses: [{ analysisIndex: '../../../outside', replay: 'raw-output.txt',
+        evidence: 'raw-output.txt' }] }, /analysis index must be a nonnegative integer/u]
     ];
     for (const [name, manifestEntry, message] of cases) {
       const runRoot = path.join(root, name.replaceAll(' ', '-'));
       fs.mkdirSync(runRoot);
+      fs.symlinkSync(path.join(outside, 'private.json'), path.join(runRoot, 'linked-receipt.json'));
       fs.writeFileSync(path.join(runRoot, 'run-receipt.json'), '{}');
       fs.writeFileSync(path.join(runRoot, 'attempt-receipt.json'), JSON.stringify({ rawOutput: { sha256: 'run' } }));
       fs.writeFileSync(path.join(runRoot, 'raw-output.txt'), 'raw');
