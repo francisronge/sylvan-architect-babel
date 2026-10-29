@@ -17,21 +17,15 @@ function summarizeTimes(values, expectedSamples, allowZero = false) {
   const sorted = [...values].sort((a, b) => a - b);
   const medianMs = sorted[Math.floor(sorted.length / 2)];
   const minMs = sorted[0], maxMs = sorted.at(-1);
-  const ratio = (low, high) => medianMs === 0 ? high === low ? 0 : null : (high - low) / medianMs;
-  // The spread that judges stability leaves out the one sample farthest from
-  // the median. One sample moves the median by at most one rank, so the median
-  // stays inside the remaining samples' range, which must still be within
-  // maxSpreadRatio; two or more stray samples still make the run unstable.
-  const nearest = medianMs - sorted[0] > sorted.at(-1) - medianMs ? sorted.slice(1) : sorted.slice(0, -1);
   return { samplesMs: values, medianMs, minMs, maxMs, rangeMs: maxMs - minMs,
-    spreadRatio: ratio(minMs, maxMs), stabilitySpreadRatio: ratio(nearest[0], nearest.at(-1)) };
+    spreadRatio: medianMs === 0 ? maxMs === 0 ? 0 : null : (maxMs - minMs) / medianMs };
 }
 
 export function assessRendererPerformance(base, candidate, policy = rendererPerformancePolicy) {
   const before = summarizeTimes(base, policy.samples), after = summarizeTimes(candidate, policy.samples);
   const allowedIncreaseMs = Math.max(policy.absoluteToleranceMs, before.medianMs * policy.relativeTolerance);
   const increaseMs = after.medianMs - before.medianMs;
-  const noisy = [before, after].some(sample => sample.stabilitySpreadRatio > policy.maxSpreadRatio);
+  const noisy = [before, after].some(sample => sample.spreadRatio > policy.maxSpreadRatio);
   return {
     status: noisy ? 'unstable' : increaseMs > allowedIncreaseMs ? 'regression' : 'passed',
     base: before, candidate: after, increaseMs, allowedIncreaseMs,
@@ -46,7 +40,7 @@ export function describeRendererPreparation(base, candidate, policy = rendererPe
     const after = summarizeTimes(valuesAfter, policy.samples, allowZero);
     const pairedDeltasMs = valuesAfter.map((value, index) => value - valuesBefore[index]);
     return { base: before, candidate: after, medianIncreaseMs: after.medianMs - before.medianMs, pairedDeltasMs,
-      stable: [before, after].every(value => value.stabilitySpreadRatio !== null && value.stabilitySpreadRatio <= policy.maxSpreadRatio) };
+      stable: [before, after].every(value => value.spreadRatio !== null && value.spreadRatio <= policy.maxSpreadRatio) };
   };
   return { measurementOnly: true, blockingBudget: null,
     complete: compare(base.map(sample => sample.completeMs), candidate.map(sample => sample.completeMs)),
