@@ -1,4 +1,7 @@
-import { quadraticTrajectoryBellyY, TRAJECTORY_ROUTES } from '../rendererMetrics.ts';
+import {
+  clearTrajectoryBowSide, quadraticTrajectoryRoute, steepTrajectoryBowWeight, TRAJECTORY_ROUTES,
+  trajectoryBowSide
+} from '../rendererMetrics.ts';
 import type { BoundShapePath } from './boundGeometry.ts';
 import type { GeometryBinders } from './geometryContext.ts';
 import {
@@ -39,7 +42,8 @@ export const pathGeometry = {
     /*
      * The complete production movement path is pure binder geometry:
      * coincident routes fan by ordinal, endpoints inset toward each
-     * other, and the belly deepens with horizontal span. The renderer
+     * other, and the belly deepens with horizontal span; steep routes
+     * bow sideways instead (rendererMetrics.ts). The renderer
      * draws this path verbatim, and overlay bounds use its exact
      * extrema — no duplicated or guessed curve math anywhere else.
      */
@@ -93,11 +97,16 @@ export const pathGeometry = {
       });
       return;
     }
-    const direction = Math.sign(to.x - from.x) || 1;
-    const inset = TRAJECTORY_ROUTES.quadraticEndpointInset;
-    const start = { x: from.x + inset * direction, y: from.y + fanOffset };
-    const end = { x: to.x - inset * direction, y: to.y + fanOffset };
-    const control = { x: (start.x + end.x) / 2, y: quadraticTrajectoryBellyY(start, end) + fanOffset };
+    // Only the binder sees the departure's parent and the tree labels; the
+    // painter reads the side from `bowSide`.
+    const bowWeight = steepTrajectoryBowWeight(from, to);
+    const preferred = bowWeight > 0 ? trajectoryBowSide(from, context.positionFor(departureNodeId, 'parent')) : null;
+    const labels = preferred ? context.trajectoryLabelBoxes() : undefined;
+    const bowSide = preferred && labels?.length
+      ? clearTrajectoryBowSide(from, to, { side: preferred, weight: bowWeight }, fanOffset, labels)
+      : preferred;
+    const bow = bowSide ? { side: bowSide, weight: bowWeight } : null;
+    const { start, end, control } = quadraticTrajectoryRoute(from, to, bow, fanOffset);
     primitives.push({
       type: 'trajectory-path',
       trajectoryKind: item.trajectoryKind,
@@ -106,6 +115,7 @@ export const pathGeometry = {
       from,
       to,
       ordinal,
+      ...(bowSide ? { bowSide } : {}),
       d: `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${control.x.toFixed(1)} ${control.y.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`,
       control,
       start,

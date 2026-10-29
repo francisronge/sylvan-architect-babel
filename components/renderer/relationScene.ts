@@ -150,6 +150,7 @@ export function paintRelationScene({
       measuredShellTop,
       measuredTerminalBottom,
       measuredTreeTextTopY,
+      measuredTreeLabelRects,
       measuredTerminalSubtreeRectNow,
       measuredTreeLabelRectNow,
       exactScreenTreeLabelRectNow,
@@ -252,6 +253,7 @@ export function paintRelationScene({
       separateFallbackMoments: animated && usesDerivationFrames,
       isItemRevealed: itemIndex => revealedItemIndices.has(itemIndex),
       trajectoryCeilingY: measuredTreeTextTopY() - TRAJECTORY_ROUTES.ceilingAboveTextTop,
+      trajectoryLabelBoxes: measuredTreeLabelRects,
       trajectoryFloorY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
       // Frame-stable measured baselines: connector lanes just below the
       // complete frame's terminal row; rails placed by the binder's one

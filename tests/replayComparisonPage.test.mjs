@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { assertCandidateContainsBaseline, indexHtml, resolveCase } from '../scripts/buildReplayComparison.mjs';
+import { assertCandidateContainsBaseline, checkCaseList, indexHtml, resolveCase } from '../scripts/buildReplayComparison.mjs';
 
 const run = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
 
@@ -47,4 +47,14 @@ test('every case says what to watch and which steps to open', () => {
     records: [resolveCase(spec, { root })] });
   assert.match(html, /BEFORE · aaaaaaaaa</);
   assert.match(html, /AFTER · bbbbbbbbb \+ uncommitted changes</);
+});
+
+test('a review page shows a few cases, each with one short line', () => {
+  const ok = { title: 'n3-24', watch: 'The arrow now ends just below the upper t.', steps: [35] };
+  assert.equal(checkCaseList([ok]).length, 1);
+  assert.throws(() => checkCaseList(Array(5).fill(ok)), /at most 4/);
+  assert.throws(() => checkCaseList([{ ...ok, steps: [34, 35, 36, 37] }]), /at most 3/);
+  // The note of 29 Oct that Francis could not parse.
+  const essay = 'Step 35: the head-movement arrow from the lower t up to the upper t (the place V moved to, which V has since left). Before: the arrowhead passes the upper t and ends above it.';
+  assert.throws(() => checkCaseList([{ ...ok, watch: essay }]), /one line of at most 120/);
 });

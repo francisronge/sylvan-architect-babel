@@ -89,7 +89,11 @@ path; denied, competing and unresolved references remain neutral.
   relation name or of any authored value that is in the existing denial list
   (`DENIED_OR_UNSET` in `tier2Synonyms.ts`), as in `no theta assignment`,
   `failed spec-head agreement` or `status: failed`, leaves the claim to the
-  reading main already has, which is usually neutral.
+  reading main already has, which is usually neutral. The owner approved on
+  29 Oct 2026 that `mismatch`, `violation`, `never`, `lack` and `unchecked`
+  (with `mismatches`, `mismatched`, `violations`, `violated`, `violates`,
+  `lacks` and `lacking`) are denial words too, as in `spec-head agreement
+  mismatch` or `lack of feature checking`.
   A uniquely named modifier or predicate can supply that feature host when no
   target or qualified agreement host is named. Competing hosts, a mediator,
   controllee, missing features or a nonasserted claim do not earn this recovery.

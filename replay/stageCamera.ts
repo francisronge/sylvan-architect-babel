@@ -5,10 +5,8 @@ import { applyVizIds } from './displayIdentity.ts';
 import { paintedShift, type PaintedNodes } from './cameraCarry.ts';
 import { bindingEllipseBounds, sceneBindingDomainEllipse } from './relations/bindingDomainGeometry.ts';
 import { bindRelationPlanFrame } from './relations/geometryBinding.ts';
+import { stagePositionProvider, trajectoryPlaqueObstacles, treeLabelBoxes } from './relations/trajectoryObstacles.ts';
 import { boundOverlayBounds, type OverlayBounds } from './relations/geometryBounds.ts';
-import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.ts';
-import { type PlanPositionProvider } from './relations/boundGeometry.ts';
-import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
 import { controlPlaqueObstacles } from './relations/controlPlaqueSpace.ts';
 import { predicationPlaqueObstacles } from './relations/predicationPlaqueSpace.ts';
 import { nativePlaqueFootprints, nativePlaqueObstacles } from './relations/nativePlaqueSpace.ts';
@@ -58,12 +56,11 @@ import {
 import { cloneSyntaxTree } from './syntaxForest.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import { isUnderTriangulation, markTriangulatedNodes } from './triangulation.ts';
-import { isDisplayTerminalNode, resolveLeafSurface } from './replaySurfaceNotation.ts';
+import { resolveLeafSurface } from './replaySurfaceNotation.ts';
 import {
-  LEAF_INK_EXTENT_Y, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE,
-  SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TRAJECTORY_ROUTES
+  LEAF_INK_EXTENT_Y, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
 } from './rendererMetrics.ts';
-import { buildStageCoordinateReservations, leftToRightReservations, rightToLeftAxis } from './stageCoordinates.ts';
+import { buildStageCoordinateReservations, closesOnEntry, leftToRightReservations, rightToLeftAxis } from './stageCoordinates.ts';
 import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
@@ -89,22 +86,6 @@ export type MeasuredStageCoordinates = ReadonlyMap<number, StageCoordinateReserv
 type StageGeometry = {
   reservations?: StageCoordinateReservations;
 };
-
-/** Shared geometric endpoint estimates for reservation and camera bounds. */
-function stagePositionProvider(byId: Map<string, d3.HierarchyPointNode<SyntaxNode>>): PlanPositionProvider {
-  return (id, attachment = 'position') => {
-    const node = byId.get(id);
-    if (!node) return null;
-    if (attachment === 'parent') return node.parent ? { x: node.parent.x, y: node.parent.y } : null;
-    if (attachment === 'terminal') {
-      const { terminal } = resolveUniqueDisplayTerminal(node, n => n.children || [],
-        n => isDisplayTerminalNode(n.data));
-      return terminal ? { x: terminal.x, y: terminal.y + TERMINAL_ATTACHMENT_Y } : null;
-    }
-    return { x: node.x, y: node.y + (attachment === 'shell-bottom' ? SHELL_ATTACHMENT_CLEARANCE.bottom
-      : attachment === 'shell-top' ? -SHELL_ATTACHMENT_CLEARANCE.top : 0) };
-  };
-}
 
 /** Share dimensions only across unchanged authored syntax with compatible ordinary layouts. */
 export function buildStageLayoutGroups(steps: PlaybackStep[], stages: { workspaceForest: SyntaxNode[] }[]) {
@@ -183,10 +164,11 @@ function changedPlaqueAttachments(before: d3.HierarchyPointNode<SyntaxNode>[], a
 }
 
 function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
-  abstractionMode = false, protectedNodeIds = new Set<string>(), measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel }: StageLayoutInput, geometry?: StageGeometry) {
+  abstractionMode = false, protectedNodeIds = new Set<string>(), measureCategoryText, measurePlaqueText, measureTreeInk, treeLabelRuns, measureTreeLabel }: StageLayoutInput, geometry?: StageGeometry) {
   const stageSize = stageTreeLayoutSize(steps, stageIndex, width, height, layoutGroups);
   const reservations = geometry?.reservations ?? (stageSize ? buildStageCoordinateReservations(steps, stageIndex, stageSize,
-    index => stageTreeLayoutSize(steps, index, width, height, layoutGroups), direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel) : null);
+    index => stageTreeLayoutSize(steps, index, width, height, layoutGroups), direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel,
+    { plan, measurePlaqueText }) : null);
   const hierarchy = (canvas: SyntaxNode) => {
     const root = d3.hierarchy(cloneSyntaxTree(canvas)!);
     applyVizIds(root);
@@ -258,7 +240,8 @@ function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
   const completedTree = layoutSyntaxTree(root,
     stageSize ?? treeLayoutSize(root.descendants().length, root.height), direction,
     reservations?.get(completedCanvas));
-  return { scenes, completedTree };
+  // The crossing into this stage takes the carry's tie rule only where its plan closed there.
+  return { scenes, completedTree, closing: closesOnEntry(reservations) };
 }
 
 export type ReplayPlaqueSchedule = {
@@ -320,7 +303,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       const last = scenes.at(-1)!, byId = indexHierarchyNodesByIdAndAliases(last.nodes);
       const items = frames[stageIndex].items.map(item => resolveDisplayedTrajectoryAttachments(item,
         id => byId.get(id)?.data, { stageIndex, playedRelationIndices: last.playedRelations }));
-      return { stageIndex, scenes, items,
+      return { stageIndex, scenes, items, closing: space.closing,
         nodes: last.nodes, obstacles: scenes.flatMap(scene => scene.obstacles),
         movedNodeIds: new Set(scenes.flatMap(scene => [...scene.movedNodeIds])) };
     });
@@ -1003,7 +986,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       // One camera fit serves a stage; across a stage boundary the camera carries
       // the syntax the crossing leaves in place (carryCamera).
       const crossing = before.stageIndex !== phase.stageIndex;
-      const shift = !crossing ? { x: 0, y: 0 } : paintedShift(before.painted(), painted());
+      const shift = !crossing ? { x: 0, y: 0 } : paintedShift(before.painted(), painted(), { closing: phase.closing });
       const shownThen = before.shown(), candidates = new Map<number, { pocket: PlaquePlacement; move: { x: number; y: number } }>();
       left.clear();
       let later: PocketOccupant[] | undefined;
@@ -1139,7 +1122,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     // breaks the hold (`jumped`), and release enters the span again without that early
     // pocket. Each plaque's moves beside a still anchor are counted for that comparison.
     if (before) {
-      const carry = crossing ? paintedShift(before.painted(), painted()) : { x: 0, y: 0 }, shownThen = before.shown();
+      const carry = crossing ? paintedShift(before.painted(), painted(), { closing: phase.closing }) : { x: 0, y: 0 }, shownThen = before.shown();
       const stillAt = (index: number) => {
         const placement = layout.get(index)!, key = identityOf(items[index]), prior = before.placements.get(key);
         const anchor = byId.get(placement.attachmentNodeId), old = before.byId.get(placement.attachmentNodeId);
@@ -1389,7 +1372,7 @@ function sceneLabelRuns({ steps, completedCanvas, treeLabelRuns }: Pick<StageLay
 
 /** Shared reservation for placement and verification, including unrevealed stage trajectories. */
 export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: StageGeometry) {
-  const { scenes, completedTree } = stageLayouts(input, geometry);
+  const { scenes, completedTree, closing } = stageLayouts(input, geometry);
   const visibleNodes = (tree: typeof completedTree, ids: Set<string> | null = null) => tree.descendants().filter(node =>
     !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
     && (!ids || ids.has(String((node as any).__vizId ?? node.data.id ?? ''))));
@@ -1434,26 +1417,9 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
       obstacles.push(...regionPlaqueObstacles(input.plan, input.stageIndex, marks.filter(item => item.kind !== 'binding-domain'
         || isPlanItemRevealed(item, input.stageIndex, scene.playedRelations)), items, byId, currentNodes, input.measureCategoryText));
       // Use the trajectory binder's actual geometry in each frame's coordinates.
-      const trajectories = marks.filter(item => item.kind === 'trajectory');
-      if (!input.plan || !trajectories.length) return obstacles;
-      const plan = { ...input.plan, frames: input.plan.frames.map((frame, index) =>
-        index === input.stageIndex ? { ...frame, items: trajectories } : frame) };
-      const bound = bindRelationPlanFrame(plan, input.stageIndex, stagePositionProvider(byId), {
-        trajectoryCeilingY: (d3.min([...byId.values()], node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
-        trajectoryFloorY: (d3.max([...byId.values()], node => node.y) ?? 0) + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor
-      });
-      for (const path of bound.primitives) {
-        if (path.type !== 'trajectory-path') continue;
-        const points = path.route === 'cubic' && path.control2
-          ? sampleCubic(path.start, path.control, path.control2, path.end, 32)
-          : path.route === 'orthogonal' ? [path.start, { x: path.start.x, y: path.control.y },
-            { x: path.end.x, y: path.control.y }, path.end]
-            : sampleQuadratic(path.start, path.control, path.end, 32);
-        points.slice(1).forEach((point, i) => obstacles.push({
-          x: Math.min(points[i].x, point.x) - 5, y: Math.min(points[i].y, point.y) - 5,
-          width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10, trajectory: true
-        }));
-      }
+      if (input.plan) obstacles.push(...trajectoryPlaqueObstacles(input.plan, input.stageIndex,
+        marks.filter(item => item.kind === 'trajectory'), byId, () => treeLabelBoxes(currentNodes, input,
+          input.treeLabelRuns ? sceneLabelRuns(input, scene.stepIndices) : undefined)));
       return obstacles;
     };
     // Every stage mark and every node the scene shows at any of its steps reserves its
@@ -1473,7 +1439,7 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
         nodes: typeof currentNodes; obstacles: PlaqueRect[]; labels: typeof labels; playedRelations: typeof scene.playedRelations;
         paintedSpace: typeof paintedSpace } & typeof timing;
   });
-  return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured };
+  return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured, closing };
 }
 
 /** The boxes plaques keep clear of a stage's region marks: an enclosure's whole shaded
@@ -1640,7 +1606,9 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
   const fallbackPlacements = includePlaques ? plaqueLayout ?? schedule?.stages[stageIndex] ?? new Map() : new Map();
   if (coordinates && !coordinates.has(stageIndex) && steps.some(step => step.replayFrameIndex === stageIndex && step.replayCanvasData))
     throw new Error('Missing prepared Replay coordinates.');
-  for (const { currentTree, visibleIds, stepIndices } of stageLayouts(input,
+  // Without prepared coordinates the stage is planned here, with the plaque
+  // measure the closing pass keeps proximity plaques' room by (StagePlaques).
+  for (const { currentTree, visibleIds, stepIndices } of stageLayouts({ ...input, measurePlaqueText },
     coordinates ? { reservations: coordinates.get(stageIndex) ?? new Map() } : undefined).scenes) {
     if (stepIndex !== undefined && !stepIndices.includes(stepIndex)) continue;
     const placements = includePlaques && schedule ? selectReplayPlaqueLayout(schedule, stageIndex, stepIndices[0]) : fallbackPlacements;
@@ -1700,6 +1668,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
     // Bounds reserve all stage marks at nominal scale, never reading the live DOM or camera.
     const bound = bindRelationPlanFrame(plan, stageIndex, positionFor, {
       ...RELATION_BINDING_METRICS, markerScale: 1,
+      trajectoryLabelBoxes: () => treeLabelBoxes(fitNodes, { measureCategoryText, measureTreeInk, measureTreeLabel }, labels),
       trajectoryCeilingY: (d3.min(fitNodes, node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
       trajectoryFloorY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
       connectorBaselineY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,

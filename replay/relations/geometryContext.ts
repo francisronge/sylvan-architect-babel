@@ -159,10 +159,14 @@ export const createGeometryContext = (frame: RelationRenderPlan['frames'][number
       restoreMap(styleOrdinals, txn.ordinals);
     }
   };
+  /** Tree label boxes, read at most once per frame and only if a route bows. */
+  let labelBoxes: readonly Rect[] | undefined;
+  const trajectoryLabelBoxes = () => (labelBoxes ??= options.trajectoryLabelBoxes?.() ?? []);
   return {
     frame,
     positionFor,
     options,
+    trajectoryLabelBoxes,
     labelWidth,
     labelHeight,
     badgeGap,
