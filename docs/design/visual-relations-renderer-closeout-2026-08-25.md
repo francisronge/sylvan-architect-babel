@@ -538,7 +538,9 @@ the words it brackets. Below the lowest tree text and branches over them, on
 the same floor rule and lane, each participant gets a thin bracket spanning the painted
 words it dominates in the current frame, with short ticks rising at the ends
 of every run of words (a run breaks where a word it does not dominate lies
-between). A participant covering no painted word, such as a silent head or a
+between). A pronounced leaf is a word whatever it spells (`copy`, `t`), and
+under Constituent Glyphing a triangulated phrase's words are the word string
+painted on its triangle. A participant covering no painted word, such as a silent head or a
 trace, gets one tick at its own x kept a word-font size clear of the words
 before and after it in tree order; two such participants in one gap keep two
 ticks, in tree order. Brackets stand one short drop above the

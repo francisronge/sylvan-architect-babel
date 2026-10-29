@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 import {
   ANCHOR_SET_BADGE, anchorSetBadgeRadius, CATEGORY_LABEL, categoryLineBaselineY, markerScaleAtZoom, RELATION_BINDING_METRICS,
-  RELATION_LANES_BELOW_DEEPEST_NODE, TERMINAL_LABEL
+  RELATION_LANES_BELOW_DEEPEST_NODE, TERMINAL_LABEL, TRIANGLE_WORDS
 } from '../../replay/rendererMetrics.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import type { BoundFallbackMark, BoundFrame, FallbackMeasurements } from '../../replay/relations/boundGeometry.ts';
@@ -77,6 +77,8 @@ export function measureFallbackLabels({
   // Measure the complete stage, including unrevealed labels, in tree coordinates.
   // These invisible measurement texts never enter the syntax or camera bounds.
   const fallbackLabelRects = new Map<string, { x: number; y: number; width: number; height: number }>();
+  // The word string Constituent Glyphing paints on a triangle, by the triangle's node.
+  const triangleWordRects = new Map<string, Rect>();
   const fallbackMeasure = g.append('g').attr('visibility', 'hidden').attr('aria-hidden', 'true');
   const fallbackTextMetrics = new Map<string, DOMRect>();
   const categorySample = g.select<SVGTextElement>('.category-label').node();
@@ -118,21 +120,40 @@ export function measureFallbackLabels({
     if (rect.width || rect.height) fallbackLabelRects.set(getNodeId(node as unknown as HierNode), {
       x: node.x + rect.x, y: node.y + rect.y, width: rect.width, height: rect.height
     });
+    const triangleWords = (node as { isTriangulated?: boolean; triangulatedWords?: string }).isTriangulated
+      ? (node as { triangulatedWords?: string }).triangulatedWords : undefined;
+    if (triangleWords) {
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('y', String(TRIANGLE_WORDS.baselineY));
+      text.setAttribute('font-size', String(TRIANGLE_WORDS.fontSize));
+      text.setAttribute('font-weight', String(TRIANGLE_WORDS.fontWeight));
+      text.style.fontFamily = 'Quicksand, sans-serif';
+      text.style.fontStyle = 'italic';
+      text.textContent = triangleWords;
+      fallbackMeasure.node()?.appendChild(text);
+      const box = text.getBBox();
+      text.remove();
+      if (box.width || box.height) triangleWordRects.set(getNodeId(node as unknown as HierNode), {
+        x: node.x + box.x, y: node.y + box.y, width: box.width, height: box.height
+      });
+    }
   });
   fallbackMeasure.remove();
   const fallbackRectFor = (nodeId: string, subtree = false) => {
     const anchor = frameLayoutById.get(nodeId);
     if (!anchor) return null;
     const rects = (subtree ? anchor.descendants() : [anchor]).flatMap(node => {
-      const rect = fallbackLabelRects.get(getNodeId(node as unknown as HierNode));
-      return rect ? [rect] : [];
+      const id = getNodeId(node as unknown as HierNode);
+      return [fallbackLabelRects.get(id), subtree ? triangleWordRects.get(id) : undefined].filter((rect): rect is Rect => Boolean(rect));
     });
     return rects.length ? boundingRect(rects) : null;
   };
+  const paintedTextRects = [...fallbackLabelRects, ...triangleWordRects];
   const fallbackMeasurements = {
-    labels: [...fallbackLabelRects.values()],
+    labels: paintedTextRects.map(([, rect]) => rect),
     obstacles: [...replayPlaqueLayout.values()],
-    visibleLabels: [...fallbackLabelRects].filter(([id]) =>
+    visibleLabels: paintedTextRects.filter(([id]) =>
       !replayVisibleNodeIdSet || replayVisibleNodeIdSet.has(id)).map(([, rect]) => rect),
     visibleObstacles: [...replayPlaqueLayout].filter(([index]) => {
       const item = relationRenderPlan.frames[activeDerivationFrameIndex]?.items[index];
@@ -148,10 +169,11 @@ export function measureFallbackLabels({
       const anchor = frameLayoutById.get(id);
       return anchor ? coveredWordSpan(anchor, node => {
         const wordId = getNodeId(node as unknown as HierNode);
-        return !replayVisibleNodeIdSet || replayVisibleNodeIdSet.has(wordId) ? fallbackLabelRects.get(wordId) ?? null : null;
+        if (replayVisibleNodeIdSet && !replayVisibleNodeIdSet.has(wordId)) return null;
+        return ((node as { isTriangulated?: boolean }).isTriangulated ? triangleWordRects : fallbackLabelRects).get(wordId) ?? null;
       }, direction, getReplayRenderedCategoryLines(anchor as unknown as HierNode).join(' ')) : null;
     },
-    bottom: Math.max(0, ...[...fallbackLabelRects.values()].map(rect => rect.y + rect.height))
+    bottom: Math.max(0, ...paintedTextRects.map(([, rect]) => rect.y + rect.height))
   };
 
   return { fallbackMeasurements };

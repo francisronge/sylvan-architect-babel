@@ -27,6 +27,8 @@ export const categoryLineBaselineY = (index: number, count: number) =>
 /** A terminal word or notation glyph below its leaf. */
 export const TERMINAL_LABEL = { baselineY: 115, fontSize: 56, fontWeight: 900, strokeWidth: 8 } as const;
 export const TERMINAL_FONT = `italic ${TERMINAL_LABEL.fontWeight} ${TERMINAL_LABEL.fontSize}px ${TREE_FONT_FAMILY}`;
+/** The italic word string Constituent Glyphing paints below a triangulated phrase. */
+export const TRIANGLE_WORDS = { baselineY: 155, fontSize: 52, fontWeight: 900, strokeWidth: 8 } as const;
 
 /** Chain and theta indices painted after a label. A theta index is lowered by
  * `thetaDy`; an identity index uses the font's subscript baseline instead. */
