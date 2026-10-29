@@ -389,7 +389,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
     const roomFree = [...current].every(([id]) => partsAt[0].get(id) !== 1 || ownedHere.has(id) || !prior.has(id));
     // Pairs of neighbours in different parts, in every frame from the movement
     // on: how much nearer each may come (`room`), left one's part first.
-    type Pair = { left: readonly number[]; right: readonly number[]; room: number; at?: string };
+    type Pair = { left: readonly number[]; right: readonly number[]; room: number };
     const pairs: Pair[] = [];
     for (let k = 1; k < frames.length; k++) {
       const nodes = [...frames[k].values()], partOf = partsAt[k - 1];
@@ -417,14 +417,14 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
         members.sort((u, v) => u.x - v.x);
         for (let i = 1; i < members.length; i++) {
           const u = weightOf(members[i - 1]), v = weightOf(members[i]);
-          if (u.some((value, index) => Math.abs(value - v[index]) > 1e-9)) pairs.push({ left: u, right: v, room: Math.max(0, members[i].x - members[i - 1].x - TREE_SIBLING_GAP), at: `${m + k} ${getNodeId(members[i - 1])}|${getNodeId(members[i])}` });
+          if (u.some((value, index) => Math.abs(value - v[index]) > 1e-9)) pairs.push({ left: u, right: v, room: Math.max(0, members[i].x - members[i - 1].x - TREE_SIBLING_GAP) });
         }
       }
-      const bands = new Map<number, { left: number; right: number; top: number; bottom: number; part: number[]; id: string }[]>();
-      for (const node of nodes) for (const box of plaqueTreeObstacles([node], measureCategoryText)) {
-        if (box.terminalStemNodeId !== undefined) continue;
+      const bands = new Map<number, { left: number; right: number; top: number; bottom: number; part: number[] }[]>();
+      for (const { id, box } of labelBoxes(frames[k], measureCategoryText)) {
+        const node = frames[k].get(id)!;
         for (let band = Math.floor(box.y / 55); band <= Math.floor((box.y + box.height) / 55); band++)
-          bands.set(band, [...(bands.get(band) ?? []), { left: box.x, right: box.x + box.width, top: box.y, bottom: box.y + box.height, part: weightOf(node), id: getNodeId(node) }]);
+          bands.set(band, [...(bands.get(band) ?? []), { left: box.x, right: box.x + box.width, top: box.y, bottom: box.y + box.height, part: weightOf(node) }]);
       }
       for (const boxes of bands.values()) {
         boxes.sort((u, v) => u.left - v.left);
@@ -435,7 +435,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
             if (Math.min(boxes[i].bottom, boxes[j].bottom) <= Math.max(boxes[i].top, boxes[j].top)) continue;
             if (seen.some(part => part.every((value, index) => Math.abs(value - boxes[j].part[index]) <= 1e-9))) continue;
             seen.push(boxes[j].part);
-            pairs.push({ left: boxes[i].part, right: boxes[j].part, room: Math.max(0, boxes[j].left - boxes[i].right - BOX_CLEARANCE), at: `${m + k} box ${boxes[i].id}|${boxes[j].id}` });
+            pairs.push({ left: boxes[i].part, right: boxes[j].part, room: Math.max(0, boxes[j].left - boxes[i].right - BOX_CLEARANCE) });
           }
         }
       }
@@ -557,6 +557,19 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
   return byStage;
 }
 
+type LabelBox = { id: string; box: { x: number; y: number; width: number; height: number } };
+const labelBoxCache = new WeakMap<Painted, LabelBox[]>();
+/** Each painted node's label and word boxes in a frame (frames are never changed in place). */
+function labelBoxes(frame: Painted, measureCategoryText?: CategoryTextMeasure) {
+  let result = labelBoxCache.get(frame);
+  if (!result) {
+    result = [...frame.values()].flatMap(node => plaqueTreeObstacles([node], measureCategoryText)
+      .filter(box => box.terminalStemNodeId === undefined).map(box => ({ id: getNodeId(node), box })));
+    labelBoxCache.set(frame, result);
+  }
+  return result;
+}
+
 /** Whether syntax `moved` keeps its distance from the rest of a frame: on each
  * row a node unit between centres, unless already nearer, and no label or word
  * box newly meeting another. `before` is the frame before the change. */
@@ -577,8 +590,7 @@ function keepsClear(moved: ReadonlySet<string>, before: Painted, after: Painted,
       if (now < Math.min(TREE_SIBLING_GAP, was, there) - 1e-6) return false;
     }
   }
-  const boxes = (frame: Painted, inside: boolean) => [...frame.values()].filter(node => moved.has(getNodeId(node)) === inside)
-    .flatMap(node => plaqueTreeObstacles([node], measureCategoryText).filter(box => box.terminalStemNodeId === undefined).map(box => ({ id: getNodeId(node), box })));
+  const boxes = (frame: Painted, inside: boolean) => labelBoxes(frame, measureCategoryText).filter(entry => moved.has(entry.id) === inside);
   const meets = (a: { x: number; y: number; width: number; height: number }, b: typeof a) =>
     Math.min(a.x + a.width, b.x + b.width) > Math.max(a.x, b.x) && Math.min(a.y + a.height, b.y + b.height) > Math.max(a.y, b.y);
   const others = boxes(after, false), earlier = new Map(boxes(before, true).map(entry => [entry.id, entry.box]));
