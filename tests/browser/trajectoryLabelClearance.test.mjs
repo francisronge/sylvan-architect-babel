@@ -28,9 +28,11 @@ test('movement passes behind the letters of visible labels, continuous across a 
       ] }] }
   ] };
   const stages = [{ statement: 'A movement chain.', stageRecord: 'The chain has two occurrences.', workspaceForest: [tree],
-    relations: [{ relation: 'subject movement chain', anchors: { source: 'low', landing: 'high', traceWitness: 'trace' } }] }];
+    // The identity coindex gives "left" an index letter before the movement plays.
+    relations: [{ relation: 'Identity', anchors: { occurrences: ['name', 'v'] }, values: { index: 'k' } },
+      { relation: 'subject movement chain', anchors: { source: 'low', landing: 'high', traceWitness: 'trace' } }] }];
   const steps = prepareReplay({ sentence: 'Mia left', derivationStages: stages, includePlayback: true }).playbackSteps;
-  const moment = steps.findIndex(step => step.replayRelationIdentity);
+  const moment = steps.findLastIndex(step => step.replayRelationIdentity);
   const runtime = await buildQualificationReviewRuntime();
   const compiled = await build({
     plugins: [inlineWorkerPlugin()], absWorkingDir: new URL('../../', import.meta.url).pathname,
@@ -65,8 +67,10 @@ test('movement passes behind the letters of visible labels, continuous across a 
         placed: shown.every(label => copies.some(copy => copy.textContent === label.textContent
           && copy.parentNode.getAttribute('transform') === label.closest('.node-group').getAttribute('transform')
           && copy.getAttribute('x') === label.getAttribute('x') && copy.getAttribute('y') === label.getAttribute('y'))),
-        lettersOnly: copies.every(copy => getComputedStyle(copy).fill === 'rgb(0, 0, 0)'
-          && getComputedStyle(copy).stroke === 'none' && !copy.hasAttribute('class')),
+        // Every piece of a copy, index letters included, masks in black.
+        lettersOnly: copies.flatMap(copy => [copy, ...copy.querySelectorAll('*')]).every(piece => getComputedStyle(piece).fill === 'rgb(0, 0, 0)'
+          && getComputedStyle(piece).stroke === 'none' && !piece.hasAttribute('class')),
+        indexed: copies.some(copy => copy.querySelector('tspan')),
         rects: [...mask.querySelectorAll('rect')].map(rect => rect.getAttribute('fill')),
         // The curve paints after the labels, so it lies over their dark outline.
         overLabels: shown.every(label => Boolean(label.compareDocumentPosition(layer) & Node.DOCUMENT_POSITION_FOLLOWING))
@@ -78,6 +82,7 @@ test('movement passes behind the letters of visible labels, continuous across a 
       assert.equal(state.copies, state.labels, 'each visible label, and only those, masks the curve');
       assert.ok(state.placed, 'each mask copy sits exactly on its label');
       assert.ok(state.lettersOnly, 'mask copies hide the curve under the letters only, not under their dark outline');
+      assert.ok(state.indexed, 'a word with an index letter is masked with its index');
       assert.ok(state.overLabels, 'the curve is painted after the labels');
     };
     const before = await inspect();
@@ -98,7 +103,7 @@ test('movement passes behind the letters of visible labels, continuous across a 
     // zoom does. Glow is shared emphasis, not the curve: switch it off so the
     // pixels compare the curve itself.
     const word = await page.evaluate(() => {
-      const label = [...document.querySelectorAll('.terminal-label')].find(candidate => candidate.textContent === 'left');
+      const label = [...document.querySelectorAll('.terminal-label')].find(candidate => candidate.textContent.startsWith('left'));
       const into = document.querySelector('.babel-trajectory-path').getCTM().inverse().multiply(label.getCTM());
       const box = label.getBBox();
       const a = new DOMPoint(box.x - 80, box.y + box.height / 2).matrixTransform(into);
@@ -118,7 +123,7 @@ test('movement passes behind the letters of visible labels, continuous across a 
     await page.mouse.move(2, 2);
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const place = await page.evaluate(() => {
-      const label = [...document.querySelectorAll('.terminal-label')].find(candidate => candidate.textContent === 'left');
+      const label = [...document.querySelectorAll('.terminal-label')].find(candidate => candidate.textContent.startsWith('left'));
       const rect = label.getBoundingClientRect();
       const path = document.querySelector('.babel-trajectory-path');
       const point = path.getPointAtLength(path.getTotalLength() / 2).matrixTransform(path.getScreenCTM());

@@ -411,12 +411,24 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
         .each(function () {
           const holder = this.closest('.node-group');
           const glyphs = this.cloneNode(true) as SVGTextElement;
-          // A mask copy is not a label: label queries must never find it.
-          glyphs.removeAttribute('id');
-          glyphs.removeAttribute('class');
-          glyphs.style.setProperty('fill', 'black', 'important');
-          glyphs.style.setProperty('stroke', outline ? 'black' : 'none', 'important');
-          glyphs.style.setProperty('opacity', '1');
+          // A mask copy is not a label: label queries must never find it, and
+          // no class may repaint a piece of it (an index tspan keeps its
+          // relation colour otherwise and lets the curve show through). Each
+          // piece keeps the font it is painted with and is masked in black.
+          const painted = [this, ...this.querySelectorAll('*')] as SVGElement[];
+          [glyphs, ...glyphs.querySelectorAll('*')].forEach((piece, index) => {
+            const source = painted[index], font = source && getComputedStyle(source);
+            const element = piece as SVGElement;
+            if (font) ['font-family', 'font-size', 'font-style', 'font-weight', 'letter-spacing', 'baseline-shift']
+              .forEach(property => element.style.setProperty(property, font.getPropertyValue(property)));
+            element.removeAttribute('id');
+            element.removeAttribute('class');
+            [...element.attributes].filter(attribute => attribute.name.startsWith('data-'))
+              .forEach(attribute => element.removeAttribute(attribute.name));
+            element.style.setProperty('fill', 'black', 'important');
+            element.style.setProperty('stroke', outline ? 'black' : 'none', 'important');
+            element.style.setProperty('opacity', '1', 'important');
+          });
           const group = mask.append('g').attr('transform', holder?.getAttribute('transform') ?? null);
           group.node()!.appendChild(glyphs);
         });
