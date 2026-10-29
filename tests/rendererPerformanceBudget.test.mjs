@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import vm from 'node:vm';
-import { assessRendererPerformance, describeRendererPreparation } from '../scripts/rendererPerformanceBudget.mjs';
+import { assessRendererPerformance, describeRendererPreparation, shouldRemeasure } from '../scripts/rendererPerformanceBudget.mjs';
 import { observeRendererOpening } from '../scripts/rendererPerformanceObservation.mjs';
 
 test('renderer budget fails a sustained slowdown and accepts improvements', () => {
@@ -69,4 +69,16 @@ test('missing, zero, infinite and NaN samples fail closed', () => {
   for (const invalid of [[], [1000], [0, ...valid.slice(1)], [NaN, ...valid.slice(1)], [Infinity, ...valid.slice(1)]]) {
     assert.throws(() => assessRendererPerformance(valid, invalid));
   }
+});
+
+test('only an unstable verdict is measured again, and only once', () => {
+  const base = [1800, 1810, 1790, 1820, 1805, 1795, 1815];
+  const unstable = assessRendererPerformance([900, 1800, 1810, 1850, 2300, 1820, 1830], base);
+  const regression = assessRendererPerformance(base, [2040, 2050, 2045, 2055, 2048, 2052, 2043]);
+  const passed = assessRendererPerformance(base, base);
+  assert.equal(unstable.status, 'unstable');
+  assert.equal(shouldRemeasure(unstable, 1), true);
+  assert.equal(shouldRemeasure(unstable, 2), false);
+  assert.equal(shouldRemeasure(regression, 1), false);
+  assert.equal(shouldRemeasure(passed, 1), false);
 });

@@ -36,6 +36,22 @@ export function assertCandidateContainsBaseline(baselineRoot, candidateRoot) {
   return { baseline, candidate };
 }
 
+/** Francis reviews a change by looking at it, not by reading it (29 Oct: a
+ * 17-case page with paragraph notes, when he needed one arrow). A page shows
+ * only the cases that prove the change, each with one short line. */
+export const REVIEW_LIMITS = Object.freeze({ cases: 4, watchChars: 120, steps: 3 });
+
+export function checkCaseList(specs) {
+  if (!Array.isArray(specs) || !specs.length) throw new Error('cases.json must list at least one case.');
+  if (specs.length > REVIEW_LIMITS.cases) throw new Error(`${specs.length} cases: show at most ${REVIEW_LIMITS.cases}, only the ones that prove the change.`);
+  for (const spec of specs) {
+    const watch = String(spec?.watch ?? '').trim();
+    if (watch.length > REVIEW_LIMITS.watchChars) throw new Error(`Case "${spec.title}": "watch" is ${watch.length} characters; say what changed in one line of at most ${REVIEW_LIMITS.watchChars}.`);
+    if (Array.isArray(spec.steps) && spec.steps.length > REVIEW_LIMITS.steps) throw new Error(`Case "${spec.title}": ${spec.steps.length} steps; open at most ${REVIEW_LIMITS.steps}, the ones where the change shows.`);
+  }
+  return specs;
+}
+
 const pointerParts = pointer => (pointer ?? '').split('/').filter(Boolean).map(part => part.replace(/~1/g, '/').replace(/~0/g, '~'));
 
 /** Resolve one case into a record the review app plays. */
@@ -100,7 +116,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   for (const option of ['baseline-root', 'candidate-root', 'cases', 'out']) if (!values[option]) throw new Error(`--${option} is required`);
   const baselineRoot = path.resolve(values['baseline-root']), candidateRoot = path.resolve(values['candidate-root']);
   const { baseline, candidate } = assertCandidateContainsBaseline(baselineRoot, candidateRoot);
-  const records = JSON.parse(fs.readFileSync(values.cases, 'utf8')).map(spec => resolveCase(spec, { root: candidateRoot }));
+  const records = checkCaseList(JSON.parse(fs.readFileSync(values.cases, 'utf8'))).map(spec => resolveCase(spec, { root: candidateRoot }));
   fs.mkdirSync(values.out, { recursive: true });
   fs.writeFileSync(path.join(values.out, 'before.html'), await paneHtml(baselineRoot, records));
   fs.writeFileSync(path.join(values.out, 'after.html'), await paneHtml(candidateRoot, records));

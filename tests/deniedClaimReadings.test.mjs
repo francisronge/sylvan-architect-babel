@@ -21,7 +21,8 @@ const drawn = (forest, relation) => compileRelationRenderPlan([{ statement: '', 
 // Each reading this branch adds drew these negated claims on 0cef8c7, which main
 // leaves neutral. A word of the name or of a value from the existing denial list
 // (`DENIED_OR_UNSET`) keeps them neutral; `concord mismatch` stays neutral because
-// concord does not head its name.
+// concord does not head its name, and since 29 Oct 2026 also because mismatch is
+// a denial word.
 const negated = [
   ['theta', { relation: 'no theta assignment', anchors: { assigner: 'v', argument: ['object'] }, values: { argument: ['Theme'] } }],
   ['theta', { relation: 'no theta assignment', anchors: { predicate: 'v', agent: 'subject', theme: 'object' }, values: { roles: ['Agent', 'Theme'] } }],
@@ -59,4 +60,44 @@ test('the same claims stated positively still draw', () => {
     ['caseGovernment', { relation: 'government and Case licensing', anchors: { governor: 'verb', governee: 'object' }, values: { case: 'accusative' } }],
     ['control', { relation: 'control', anchors: { controller: 'mia', controllee: 'pro' } }]
   ]) assert.notDeepEqual(drawn(forest, relation), [], relation.relation);
+});
+
+// Each word added to the denial list on 29 Oct 2026 drew its claim on main.
+const agreement = { head: 'infl', specifier: 'subject' }, whChecking = { head: 'c', specifier: 'who' };
+const deniedByAddedWord = [
+  ['mismatch', ['feature', { relation: 'spec-head agreement mismatch', anchors: agreement, values: { person: '3', number: 'sg' } }]],
+  ['mismatches', ['feature', { relation: 'spec-head agreement', anchors: agreement, values: { person: '3', number: 'sg', note: 'person mismatches' } }]],
+  ['mismatched', ['feature', { relation: 'mismatched spec-head agreement', anchors: whChecking, values: { feature: '+wh' } }]],
+  ['violation', ['theta', { relation: 'theta assignment violation', anchors: { predicate: 'v', agent: 'subject', theme: 'object' }, values: { roles: ['Agent', 'Theme'] } }]],
+  ['violations', ['theta', { relation: 'theta-marking', anchors: { assigner: 'v', recipient: 'object' }, values: { role: 'Theme', note: 'theta criterion violations' } }]],
+  ['violated', ['feature', { relation: 'spec-head agreement', anchors: agreement, values: { person: '3', number: 'sg', status: 'violated' } }]],
+  ['violates', ['feature', { relation: 'feature checking', anchors: whChecking, values: { feature: '+wh', note: 'violates the wh-criterion' } }]],
+  ['never', ['theta', { relation: 'theta assignment never established', anchors: { assigner: 'v', argument: ['object'] }, values: { argument: ['Theme'] } }]],
+  ['lack', ['feature', { relation: 'lack of feature checking', anchors: whChecking, values: { feature: '+wh' } }]],
+  ['lacks', ['control', { relation: 'control', anchors: { controller: 'mia', controllee: 'pro' }, values: { status: 'PRO lacks a controller' } }]],
+  ['lacking', ['caseGovernment', { relation: 'lacking government and Case licensing', anchors: { governor: 'verb', governee: 'object' }, values: { case: 'accusative' } }]],
+  ['unchecked', ['feature', { relation: 'feature checking', anchors: whChecking, values: { feature: '+wh', note: 'the feature remains unchecked' } }]]
+];
+// The same claim without its denying wording: the name loses the word and the
+// value stating it is dropped.
+const withoutDenial = ([forest, relation]) => [forest, {
+  ...relation,
+  relation: relation.relation.replace(/^(?:mismatched |lack of |lacking )|(?: mismatch| violation| never established)$/u, ''),
+  values: Object.fromEntries(Object.entries(relation.values).filter(([key]) => key !== 'status' && key !== 'note'))
+}];
+const describe = ([forest, relation]) => `${forest}: ${relation.relation} ${JSON.stringify(relation.values)}`;
+
+test('each added denial word keeps its claim neutral', () => {
+  assert.deepEqual(deniedByAddedWord.filter(([, claim]) => drawn(...claim).length).map(([word]) => word), []);
+});
+
+test('the same claims without the added word draw, as do claims with near positive words', () => {
+  const positive = [
+    ...deniedByAddedWord.map(([, claim]) => withoutDenial(claim)),
+    ['feature', { relation: 'spec-head agreement', anchors: agreement, values: { person: '3', number: 'sg', note: 'person checked' } }],
+    ['feature', { relation: 'feature checking', anchors: whChecking, values: { feature: '+wh', note: 'the feature is checked' } }],
+    ['feature', { relation: 'matching spec-head agreement', anchors: agreement, values: { person: '3', number: 'sg' } }],
+    ['feature', { relation: 'spec-head agreement matched', anchors: agreement, values: { person: '3', number: 'sg' } }]
+  ];
+  assert.deepEqual(positive.filter(claim => !drawn(...claim).length).map(describe), []);
 });

@@ -52,7 +52,7 @@ export const isNotationFeatureLabel = (value: unknown): boolean => typeof value 
 
 /** A word that denies, withholds or leaves open what it qualifies, such as
  * `none` or `failed`. Neither a role name nor a feature value. */
-const DENIED_OR_UNSET = /^(?:no|not|none|absent|without|possible|potential|hypothetical|pending|unresolved|unestablished|failed|blocked|unsuccessful|rejected|unlicensed|unassigned)$/u;
+const DENIED_OR_UNSET = /^(?:no|not|none|absent|without|possible|potential|hypothetical|pending|unresolved|unestablished|failed|blocked|unsuccessful|rejected|unlicensed|unassigned|mismatch|mismatches|mismatched|violation|violations|violated|violates|never|lack|lacks|lacking|unchecked)$/u;
 
 /** Whether any word of a claim's relation name or of any authored value is a
  * denying or withholding word (`DENIED_OR_UNSET`), such as `no theta
