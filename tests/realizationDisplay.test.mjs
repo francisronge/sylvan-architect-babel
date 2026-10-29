@@ -127,3 +127,34 @@ test('a realized-form plate takes a nearby pocket beside its pronounced word', a
     assert(distance <= nearbyPlaqueReach(plate.size), `${plate.id} sits ${Math.round(distance)} from its word`);
   }
 });
+
+// Stage 2 activates the group realizing "went" (go + silent past); stage 3 retains it.
+const retained = (relations, verb = 'go') => {
+  const groups = [{ nodeIds: ['vt'], tokenIndices: [1] }, { nodeIds: ['mia'], tokenIndices: [0] }];
+  const restated = structuredClone(forest);
+  restated[0].children[1].children[0].children[0].word = verb;
+  return { ...record([]), derivationStages: [stage([]), stage([association('Tense realization', ['vt'])], groups),
+    { ...stage(relations, groups), workspaceForest: restated }] };
+};
+const stagePlates = (prepared, stageIndex) => platesPerStep(prepared).filter(({ step }) => step.replayFrameIndex === stageIndex);
+
+test('a retained group plate stays until a plate the stage introduces shows the same form at its own moment', () => {
+  const suppletive = { relation: 'Suppletive past-tense realization', anchors: { tense: 'past', verb: 'go', verbalComplex: 'vt' },
+    values: { lexicalBase: 'go', realization: 'went', tense: 'past' } };
+  const steps = stagePlates(prepareReplay(retained([association('Clause typing', ['tp']), suppletive])), 2);
+  assert.deepEqual(steps.map(({ step }) => step.replayRelationIdentity?.relationIndex ?? step.operation), [0, 1, 'StageRecord']);
+  assert.deepEqual(steps[0].plates.map(text), ['go → went'], 'the realized form stays before the relation plate appears');
+  for (const { plates } of steps.slice(1))
+    assert.deepEqual(plates.map(text), ['realization → went / tense → past'], 'one plate, not two, once the relation plate shows');
+});
+
+test('a retained group keeps its preceding display until the moment Replay paints its restated word', () => {
+  const prepared = prepareReplay(retained([association('Clause typing', ['tp']),
+    { relation: 'Past spell-out', anchors: { verb: 'go' } }], 'went'));
+  const steps = stagePlates(prepared, 2);
+  assert.deepEqual(steps.map(({ step }) => step.replayRelationIdentity?.relationIndex ?? step.operation), [0, 1, 'StageRecord']);
+  assert.deepEqual(steps[0].plates.map(text), ['go → went'], 'the tree still shows go');
+  assert.deepEqual(steps[1].plates.map(text), [], 'went now stands in the tree');
+  assert.deepEqual(steps[2].plates.map(text), []);
+  assert.deepEqual(canopyPlates(prepared.relationRenderPlan).map(text), []);
+});

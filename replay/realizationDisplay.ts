@@ -99,12 +99,12 @@ const strings = (value: unknown): string[] => typeof value === 'string' ? [value
   : Array.isArray(value) ? value.flatMap(strings)
     : value && typeof value === 'object' ? Object.values(value).flatMap(strings) : [];
 
-/** A relation's form plate (or spell-out or correspondence plate) on the same syntax already
- * shows this text: in one value, or spelled across the rows of one label, piece by piece. */
-const shownByRelation = (items: readonly RelationPlanItem[], group: SurfaceRealization,
+/** The relation form plates (or spell-out or correspondence plates) on the same syntax that
+ * already show this text: in one value, or spelled across the rows of one label, piece by piece. */
+const relationPlatesShowing = (items: readonly RelationPlanItem[], group: SurfaceRealization,
   forest: readonly SyntaxNode[], text: string) => {
   const domain = subtreeIds(forest, group.nodeIds), wanted = caselessSpelling(text);
-  return items.some(item => {
+  return items.filter(item => {
     if (item.kind !== 'node-plaque' || item.realization
       || !['realization', 'spellout-label', 'correspondence'].includes(item.plaqueStyle)
       || ![...subtreeIds(forest, item.anchorNodeIds)].some(id => domain.has(id))) return false;
@@ -175,28 +175,81 @@ export const withRealizationDisplays = (
       return entry ? [[groupKey(group), entry] as const] : [];
     }));
     const relationItems = plan.frames[stageIndex]?.items ?? [];
+    const stageSteps = steps?.filter(step => step.replayFrameIndex === stageIndex) ?? [];
     return shown.flatMap(({ entry, retiredAt, forest }): NodePlaquePlanItem[] => {
-      const display = realizationDisplay(entry.group, forest, sentence, tokens);
-      if (!display || shownByRelation(relationItems, entry.group, forest, display.text)) return [];
-      return [{
-        relationRef: entry.relationRef,
-        familyId: 'pf.realization',
-        appearsAtStage: entry.activatedAt.stageIndex,
-        persistence: 'replace-previous-instance',
-        backward: false,
-        priorWitnessNodeIds: [],
-        kind: 'node-plaque',
-        anchorNodeIds: display.contributorNodeIds.length ? display.contributorNodeIds : [...entry.group.nodeIds],
-        plaqueStyle: 'realization',
-        rows: [{ label: '', value: display.contributors.length
-          ? `${display.contributors.join(' ')} \u2192 ${display.text}` : display.text }],
-        realizationRowKinds: ['literal'],
-        realization: { nodeIds: [...entry.group.nodeIds], tokenIndices: [...entry.group.tokenIndices],
-          activatedAt: entry.activatedAt, ...(retiredAt ? { retiredAt } : {}) }
-      }];
+      const completed = { display: realizationDisplay(entry.group, forest, sentence, tokens), activatedAt: entry.activatedAt, retiredAt };
+      // A retained group whose contributors the stage restates keeps its preceding
+      // display until the relation moment at which Replay paints the restated words.
+      const restated = entry.activatedAt.stageIndex < stageIndex && !retiredAt
+        ? restatementMoment(entry.group, previousForest, forest, stageSteps, stageIndex) : undefined;
+      const displays = restated ? [
+        { display: realizationDisplay(entry.group, previousForest, sentence, tokens), activatedAt: entry.activatedAt, retiredAt: restated },
+        { ...completed, activatedAt: restated }
+      ] : [completed];
+      return displays.flatMap(({ display, activatedAt, retiredAt }) => {
+        if (!display) return [];
+        const showing = relationPlatesShowing(relationItems, entry.group, forest, display.text);
+        // A relation plate this stage introduces replaces a group plate shown
+        // since an earlier stage at the plate's own moment, not from the stage's start.
+        const replacedAt = showing.length && activatedAt.stageIndex < stageIndex
+          && showing.every(item => item.appearsAtStage === stageIndex && item.relationRef.stageIndex === stageIndex)
+          ? { stageIndex, relationIndex: showing[0].relationRef.relationIndex } : undefined;
+        if (showing.length && !replacedAt) return [];
+        return [realizationPlate(entry, display, activatedAt, replacedAt ?? retiredAt)];
+      });
     });
   });
   if (!frameItems.some(items => items.length)) return plan;
   return { ...plan, frames: plan.frames.map((frame, stageIndex) => frameItems[stageIndex]?.length
     ? { ...frame, items: [...frame.items, ...frameItems[stageIndex]] } : frame) };
+};
+
+const realizationPlate = (entry: { group: SurfaceRealization; activatedAt: PlanStageMoment; relationRef: PlanRelationRef }, display: RealizationDisplay,
+  activatedAt: PlanStageMoment, retiredAt: PlanStageMoment | undefined): NodePlaquePlanItem => ({
+  relationRef: entry.relationRef,
+  familyId: 'pf.realization',
+  appearsAtStage: entry.activatedAt.stageIndex,
+  persistence: 'replace-previous-instance',
+  backward: false,
+  priorWitnessNodeIds: [],
+  kind: 'node-plaque',
+  anchorNodeIds: display.contributorNodeIds.length ? display.contributorNodeIds : [...entry.group.nodeIds],
+  plaqueStyle: 'realization',
+  rows: [{ label: '', value: display.contributors.length
+    ? `${display.contributors.join(' ')} \u2192 ${display.text}` : display.text }],
+  realizationRowKinds: ['literal'],
+  realization: { nodeIds: [...entry.group.nodeIds], tokenIndices: [...entry.group.tokenIndices],
+    activatedAt, ...(retiredAt ? { retiredAt } : {}) }
+});
+
+/** The relation moment of this stage at which Replay first paints the group's
+ * restated words as the completed stage states them. Undefined when the stage
+ * restates none of them, or when no later relation moment of the stage shows
+ * the change (it then holds from the stage's first step). */
+const restatementMoment = (group: SurfaceRealization, previousForest: readonly SyntaxNode[],
+  forest: readonly SyntaxNode[], stageSteps: readonly PlaybackStep[], stageIndex: number): PlanStageMoment | undefined => {
+  const members = new Set(group.nodeIds);
+  const form = (node: SyntaxNode) => JSON.stringify([node.word ?? null, node.silent === true]);
+  const leaves = (source: readonly SyntaxNode[]) => {
+    const out = new Map<string, string>();
+    const visit = (node: SyntaxNode, inside: boolean) => {
+      const within = inside || members.has(node.id);
+      if (node.children?.length) node.children.forEach(child => visit(child, within));
+      else if (within) out.set(node.id, form(node));
+    };
+    source.forEach(root => visit(root, false));
+    return out;
+  };
+  const before = leaves(previousForest);
+  const restated = [...leaves(forest)].filter(([id, current]) => before.has(id) && before.get(id) !== current);
+  if (!restated.length) return undefined;
+  const paints = (step: PlaybackStep) => {
+    const nodes = new Map<string, SyntaxNode>();
+    const visit = (node: SyntaxNode) => { if (node.replayOrigin?.kind !== 'word') nodes.set(node.id, node); node.children?.forEach(visit); };
+    if (step.replayCanvasData) visit(step.replayCanvasData);
+    return restated.every(([id, current]) => nodes.has(id) && form(nodes.get(id)!) === current);
+  };
+  const first = stageSteps.findIndex(paints), identity = stageSteps[first]?.replayRelationIdentity;
+  return first > 0 && stageSteps[first].replayKind === 'relation' && identity?.stageIndex === stageIndex
+    ? { stageIndex, relationIndex: identity.relationIndex } : undefined;
 };
