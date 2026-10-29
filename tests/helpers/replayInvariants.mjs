@@ -1,5 +1,5 @@
 /** Pure checks of the general Replay rules in AGENTS.md "Replay and renderer
- * safety". Each checker takes a prepared Replay (`prepareReplay` with
+ * contract". Each checker takes a prepared Replay (`prepareReplay` with
  * `includePlayback: true`) and returns `{ rule, frame, detail }` violations,
  * where `frame` is the 1-based Replay step or null for a whole-record fact.
  * Checkers never assert; callers decide which violations are expected. */
