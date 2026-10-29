@@ -4,7 +4,7 @@ import test from 'node:test';
 import { buildJevRequest, readJevReply } from '../contractQualification/jev.js';
 import { neutralJevClaims } from '../replay/jevClaims.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { JEV_TIER2_FAMILIES, jevFamilies, jevTerms, validateJevAnswer } from '../replay/relations/jev.ts';
+import { JEV_FAMILIES, jevFamilies, jevReadingGap, jevTerms, validateJevAnswer } from '../replay/relations/jev.ts';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
 const { records } = loadFixtureAnalyses();
@@ -44,13 +44,28 @@ test('the closed-set validator rejects every answer outside the claim\'s sets', 
   };
   for (const [what, answer] of Object.entries(outside))
     assert.equal(validateJevAnswer(relation, answer).ok, false, what);
+  // An exactly registered name is never offered a family: re-reading a malformed registered claim would repair it.
   const registered = { relation: 'Agree', anchors: { probe: 'T', target: 'DP' } };
-  assert.deepEqual(jevFamilies(registered).map(family => family.id), ['agree.plaque']);
-  assert.equal(validateJevAnswer(registered, { family: 'agree.plaque', roles: { target: 'goal' }, values: {} }).ok, true);
-  assert.equal(validateJevAnswer(registered, { family: 'feature.dependency', roles: { target: 'feature.target' }, values: {} }).ok, false,
-    'Tier 2 never stands in for a registered name');
+  assert.deepEqual(jevFamilies(registered), []);
+  assert.equal(validateJevAnswer(registered, { family: 'feature.dependency', roles: { target: 'feature.target' }, values: {} }).ok, false);
+  assert.equal(validateJevAnswer(registered, { family: 'agree.plaque', roles: { target: 'goal' }, values: {} }).ok, false);
+  assert.equal(neutralJevClaims([{ statement: 's', stageRecord: 'r', workspaceForest: [{ id: 'T', label: 'T', children: [{ id: 'DP', label: 'DP', word: 'it' }] }],
+    relations: [{ relation: 'Agree', anchors: { probe: 'T', target: 'DP' } }] }]).length, 0, 'not asked about');
   assert.equal(validateJevAnswer({ relation: 'x', anchors: { headA: 'a', 'head-a': 'b' } },
     { family: 'pair-merge', roles: { headA: 'host', 'head-a': 'pair.member' }, values: {} }).ok, false, 'one spelling, two slots');
+});
+
+test('a reading must read every anchor key, and one-participant slots take one key', () => {
+  const { relation } = claimOf(THETA);
+  assert.equal(jevReadingGap(relation, THETA_READING), undefined);
+  assert.match(jevReadingGap(relation, { ...THETA_READING, roles: { selector: 'predicate' } }), /left unread: argument/);
+  assert.match(jevReadingGap(relation, { ...THETA_READING, roles: { selector: 'predicate', argument: 'predicate' } }), /one-participant slot: predicate/);
+  // Several keys may share a slot that holds several participants.
+  const split = { relation: 'split reference', anchors: { firstAntecedent: 'a', secondAntecedent: 'b', pronoun: 'c' } };
+  assert.equal(jevReadingGap(split, { family: 'coreference.coindex', roles: { firstAntecedent: 'coreference.participants',
+    secondAntecedent: 'coreference.participants', pronoun: 'coreference.participants' }, values: {} }), undefined);
+  assert.match(jevReadingGap(split, { family: 'coreference.coindex', roles: { firstAntecedent: 'coreference.participants',
+    secondAntecedent: 'coreference.participants' }, values: {} }), /left unread: pronoun/);
 });
 
 test('a reply is read only into checked answers', () => {
@@ -73,7 +88,7 @@ test('the request carries the claim\'s words and Babel\'s closed sets, never the
   for (const id of Object.values(claim.relation.anchors).flat()) assert.equal(text.includes(JSON.stringify(id)), false, id);
   assert.deepEqual(question.claims, [{ id: 's2r1', relation: claim.relation.relation,
     roleKeys: Object.keys(claim.relation.anchors), values: jevTerms(claim.relation).values }]);
-  assert.deepEqual(question.families.map(family => family.id), JEV_TIER2_FAMILIES.map(family => family.id));
+  assert.deepEqual(question.families.map(family => family.id), JEV_FAMILIES.map(family => family.id));
   assert.equal(body.store, false);
   assert.equal(body.text, undefined, 'no provider response schema');
 });
@@ -96,8 +111,14 @@ test('a reading the structure does not support stays neutral', () => {
   const identity = { family: 'identity.occurrences', roles: { selector: 'occurrences', argument: 'occurrences' }, values: {} };
   assert.equal(validateJevAnswer(claim.relation, identity).ok, true);
   assert.equal(JSON.stringify(plan(record, recordFor(claim, identity))), baseline);
-  // A reading whose checks would draw a different family than the one named does not stand either.
-  const misnamed = { ...THETA_READING, family: 'predication.dependency', roles: { selector: 'predicate' }, values: {} };
+  // A reading that leaves an anchor key unread is not applied.
+  const partial = { ...THETA_READING, roles: { selector: 'predicate' } };
+  assert.equal(validateJevAnswer(claim.relation, partial).ok, true);
+  assert.equal(JSON.stringify(plan(record, recordFor(claim, partial))), baseline);
+  // A complete reading whose checks draw a different family than the one named does not stand either:
+  // read this way the claim would draw a theta grid, not a predication connector.
+  const misnamed = { family: 'predication.dependency', roles: { selector: 'predicate', argument: 'predicand' }, values: {} };
+  assert.equal(jevReadingGap(claim.relation, misnamed), undefined);
   assert.equal(JSON.stringify(plan(record, recordFor(claim, misnamed))), baseline);
 });
 

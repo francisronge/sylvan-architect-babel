@@ -26,10 +26,7 @@ const headContextSlot = (currentForest, priorForest, landingId, nodeId) =>
 
 // Binding changes lookup keys only. Authored text, item order, cardinality and
 // references stay intact; ambiguous meanings never select the first candidate.
-// `vocabulary` is the claim's synonym index, which a saved Jev reading
-// (`replay/relations/jev.ts`) may extend for the claim's own keys.
-export const bindRelationRoles = (relation, entry, currentForest, priorForest, structuralMovement = undefined,
-  vocabulary = roleVocabulary) => {
+export const bindRelationRoles = (relation, entry, currentForest, priorForest, structuralMovement = undefined) => {
   const bindings = [];
   const issues = [];
   const bound = { ...relation };
@@ -72,7 +69,7 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
       && groups.some(group => group.includes(a) && group.includes(b)));
     const candidatesFor = key => {
       const spelling = normalizeTier2Synonym(key);
-      const concepts = field === 'values' ? [] : relationRoleConcepts(vocabulary, key,
+      const concepts = field === 'values' ? [] : relationRoleConcepts(roleVocabulary, key,
         { anchors: relation[field], values: relation.values, forest: field === 'priorAnchors' ? priorForest : currentForest });
       const spelled = Object.keys(rules).filter(role => role === key
         || (rules[role].aliases && normalizeTier2Synonym(role) === spelling));

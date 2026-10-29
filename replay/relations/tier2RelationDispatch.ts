@@ -374,7 +374,6 @@ export const dispatchRelationClaims = (
     relationIndex,
     currentForest,
     priorForest,
-    synonymIndex,
     ...(structuralMovement ? { structuralMovement } : {})
   });
   const registryEntry = findRelationRegistryEntry(registry, relation.relation);

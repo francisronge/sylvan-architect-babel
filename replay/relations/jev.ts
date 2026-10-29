@@ -9,9 +9,13 @@
  * it chooses only from the closed sets this module builds for that claim.
  *
  * A saved answer is a per-claim alias layer over the synonym index
- * (`jevSynonymIndex`). The claim is then dispatched exactly like any other, so
- * Babel's existing signature and structure checks alone decide whether it
- * draws. A claim with no saved answer is dispatched as before.
+ * (`jevSynonymIndex`). It applies only when it reads every anchor key of the
+ * claim (`jevReadingGap`). The claim is then dispatched exactly like any
+ * other, so Babel's existing structure checks alone decide whether it draws.
+ * A claim with no saved answer is dispatched as before.
+ *
+ * Exactly registered (Tier-1) names are never offered: re-reading the keys of
+ * a malformed registered claim would repair it.
  */
 import type { DerivationStageRelation } from '../../types.ts';
 import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
@@ -43,15 +47,16 @@ export type JevMapping = { stageIndex: number; relationIndex: number; terms: Jev
 /** Saved beside an analysis. `provenance` records the request that produced the answers. */
 export type JevRecord = { version: typeof JEV_RECORD_VERSION; mappings: JevMapping[]; provenance?: Record<string, unknown> };
 
-/** One drawing family a claim may be read as. Slot names are Babel's words;
- * each names the concept the synonym index reads it as. */
+/** One Tier-2 drawing family a claim may be read as. Slot names are the
+ * recipe's own concept ids, which the synonym index reads as themselves. */
 export type JevFamily = {
   id: string;
-  tier: 1 | 2;
   /** Pieces the family draws, shown to Jev so slot names carry their purpose. */
   draws: string[];
-  roles: Record<string, string>;
-  values: Record<string, string>;
+  roles: string[];
+  values: string[];
+  /** Role slots the recipe fills with one participant; two keys cannot share one. */
+  singleRoles: string[];
 };
 
 // Movement is recognised from the tree (`structuralMovement.ts`); its
@@ -60,29 +65,16 @@ export type JevFamily = {
 const isMovementConcept = (concept: string) => concept.startsWith('movement.') || concept.startsWith('scope.source')
   || concept.startsWith('scope.landing');
 
-/** The Tier-2 families every unregistered claim is offered. */
-export const JEV_TIER2_FAMILIES: readonly JevFamily[] = TIER2_FACET_RECIPES
+/** The families every unregistered claim is offered. */
+export const JEV_FAMILIES: readonly JevFamily[] = TIER2_FACET_RECIPES
   .filter(recipe => recipe.kind === 'claim' && !recipe.anchors.some(anchor => isMovementConcept(anchor.role)))
   .map(recipe => ({
     id: recipe.id,
-    tier: 2,
     draws: [...new Set(recipe.outputs.map(output => output.piece))],
-    roles: Object.fromEntries(recipe.anchors.map(anchor => [anchor.role, anchor.role])),
-    values: Object.fromEntries(recipe.values.map(value => [value.value, value.value]))
+    roles: [...new Set(recipe.anchors.map(anchor => anchor.role))],
+    values: [...new Set(recipe.values.map(value => value.value))],
+    singleRoles: recipe.anchors.filter(anchor => anchor.max === 1).map(anchor => anchor.role)
   }));
-
-type RegistryRule = { concept?: string };
-type RegistryEntry = { id: string; signature: { anchors: { required: Record<string, RegistryRule>; optional: Record<string, RegistryRule> } } };
-
-/** An exactly named registered relation is read only as its own Tier-1 family:
- * Tier 2 never stands in for a registered claim. */
-const tier1Family = (entry: RegistryEntry): JevFamily | undefined => {
-  const rules = { ...entry.signature.anchors.required, ...entry.signature.anchors.optional };
-  const roles = Object.fromEntries(Object.entries(rules).flatMap(([role, rule]) => rule.concept ? [[role, rule.concept]] : []));
-  if (!Object.keys(roles).length || Object.values(roles).some(isMovementConcept)) return undefined;
-  // Registered value slots bind by their exact spelling only, so no alias can reach them.
-  return { id: entry.id, tier: 1, draws: [], roles, values: {} };
-};
 
 const textItems = (value: unknown): string[] => (Array.isArray(value) ? value : [value]).map(item => String(item ?? ''));
 
@@ -92,13 +84,9 @@ export const jevTerms = (relation: DerivationStageRelation): JevTerms => ({
   values: Object.fromEntries(Object.entries(relation.values ?? {}).map(([key, value]) => [key, textItems(value)]))
 });
 
-/** The families one claim may be read as. */
-export const jevFamilies = (relation: DerivationStageRelation, registry = productionRelationRegistry): readonly JevFamily[] => {
-  const entry = findRelationRegistryEntry(registry, relation.relation) as RegistryEntry | null;
-  if (!entry) return JEV_TIER2_FAMILIES;
-  const family = tier1Family(entry);
-  return family ? [family] : [];
-};
+/** The families one claim may be read as: none for an exactly registered name. */
+export const jevFamilies = (relation: DerivationStageRelation, registry = productionRelationRegistry): readonly JevFamily[] =>
+  findRelationRegistryEntry(registry, relation.relation) ? [] : JEV_FAMILIES;
 
 const ANSWER_FIELDS: Record<keyof JevAnswer, true> = { family: true, roles: true, values: true };
 /** Each answer block and the synonym scope its slots are read in. */
@@ -130,12 +118,12 @@ export const validateJevAnswer = (relation: DerivationStageRelation, raw: unknow
   for (const field of BLOCKS) {
     const block = raw[field] ?? {};
     if (!isRecord(block)) { errors.push(`${field} is not an object`); continue; }
-    const slots = family?.[field] ?? {};
+    const slots = family?.[field] ?? [];
     const bySpelling = new Map<string, unknown>();
     for (const [key, slot] of Object.entries(block)) {
       const spelling = normalizeTier2Synonym(key);
       if (!authored[field].includes(key)) errors.push(`${field} key not authored: ${JSON.stringify(key)}`);
-      else if (slot !== JEV_NONE && !(typeof slot === 'string' && Object.hasOwn(slots, slot)))
+      else if (slot !== JEV_NONE && !(typeof slot === 'string' && slots.includes(slot)))
         errors.push(`${field}.${key}: slot not in family: ${JSON.stringify(slot)}`);
       else if (bySpelling.has(spelling) && bySpelling.get(spelling) !== slot)
         errors.push(`${field}.${key}: one spelling read as two slots`);
@@ -148,17 +136,31 @@ export const validateJevAnswer = (relation: DerivationStageRelation, raw: unknow
   return errors.length ? { ok: false, errors } : { ok: true, answer };
 };
 
-/** The saved answer for this exact claim: same position and the same words Jev read. */
+/** Why a closed-set answer still cannot be a reading of the whole claim, if it
+ * cannot: a reading names a slot for every anchor key, since a key left out
+ * would keep its old meaning beside the new ones, and no two keys share a slot
+ * the recipe fills with one participant. */
+export const jevReadingGap = (relation: DerivationStageRelation, answer: JevAnswer): string | undefined => {
+  const family = jevFamilies(relation).find(candidate => candidate.id === answer.family);
+  if (!family) return 'no family';
+  const unread = jevTerms(relation).roles.filter(key => !Object.hasOwn(answer.roles, key));
+  if (unread.length) return `anchor keys left unread: ${unread.join(', ')}`;
+  const shared = family.singleRoles.filter(slot => Object.values(answer.roles).filter(mapped => mapped === slot).length > 1);
+  return shared.length ? `keys share a one-participant slot: ${shared.join(', ')}` : undefined;
+};
+
+/** The saved answer for this exact claim: same position and the same words Jev
+ * read, still inside the closed sets and reading every anchor key. */
 export const jevAnswerFor = (record: JevRecord | undefined, stageIndex: number, relationIndex: number,
   relation: DerivationStageRelation): JevAnswer | undefined => {
   if (record?.version !== JEV_RECORD_VERSION) return undefined;
   const terms = JSON.stringify(jevTerms(relation));
   const mapping = record.mappings.find(candidate => candidate.stageIndex === stageIndex
     && candidate.relationIndex === relationIndex && JSON.stringify(candidate.terms) === terms);
-  if (!mapping || mapping.answer.family === JEV_NONE) return undefined;
+  if (!mapping) return undefined;
   // A saved record is re-validated, so a hand-edited or stale answer cannot widen the closed sets.
   const checked = validateJevAnswer(relation, mapping.answer);
-  return checked.ok && checked.answer.family !== JEV_NONE ? checked.answer : undefined;
+  return checked.ok && !jevReadingGap(relation, checked.answer) ? checked.answer : undefined;
 };
 
 /** The synonym index this claim is read with: each mapped authored key reads
@@ -172,18 +174,14 @@ export const jevSynonymIndex = (base: Tier2SynonymIndex, relation: DerivationSta
     for (const [key, slot] of Object.entries(answer[field])) {
       const spelling = normalizeTier2Synonym(key);
       index.set(spelling, [...(index.get(spelling) ?? []).filter(candidate => candidate.scope !== scope),
-        { scope, concept: family[field][slot] }]);
+        { scope, concept: slot }]);
     }
   }
   return index;
 };
 
-/** The family a drawn claim belongs to. */
-const claimFamily = (claim: RelationClaimDispatch['claims'][number]) => claim.tier === 1 ? claim.registryEntryId
-  : claim.tier === 2 ? claim.facet.recipe.id : undefined;
-
 /** Whether the aliased reading stands: it draws, and only the family Jev named. */
 export const jevReadingDraws = (dispatch: RelationClaimDispatch, answer: JevAnswer): boolean => {
   const drawn = dispatch.claims.filter(claim => claim.tier !== 3);
-  return drawn.length > 0 && drawn.every(claim => claimFamily(claim) === answer.family);
+  return drawn.length > 0 && drawn.every(claim => claim.tier === 2 && claim.facet.recipe.id === answer.family);
 };

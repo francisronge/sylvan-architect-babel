@@ -1,5 +1,5 @@
 import { resolveResearchModelSelection } from '../server/babelParser/researchModelCatalog.js';
-import { JEV_NONE, JEV_RECORD_VERSION, JEV_TIER2_FAMILIES, jevFamilies, jevTerms, validateJevAnswer } from '../replay/relations/jev.ts';
+import { JEV_FAMILIES, JEV_NONE, JEV_RECORD_VERSION, jevTerms, validateJevAnswer } from '../replay/relations/jev.ts';
 import { DEFAULT_CODEX_QUALIFICATION_MODEL } from './codexOAuth.js';
 
 /**
@@ -7,31 +7,29 @@ import { DEFAULT_CODEX_QUALIFICATION_MODEL } from './codexOAuth.js';
  * sets they may be read into. It carries no tree, node, word or sentence.
  * Sent only through the Codex subscription transport (`codexOAuth.js`).
  */
-export const JEV_PROMPT_VERSION = 'jev-2';
+export const JEV_PROMPT_VERSION = 'jev-3';
 
 export const JEV_INSTRUCTIONS = [
   'You are Jev, a terminology reader inside Babel. Another model wrote syntactic claims; Babel did not recognise their words.',
   'For each claim, translate its words into Babel\'s words:',
-  '- Pick the one family offered for that claim (its own "families" if it has them, otherwise the shared "families"), whose slot names mean what the claim\'s role and value keys say. If no family fits, the family is "none".',
-  '- Map each role key to one role slot of that family, or "none". Map each value key to one value slot of that family, or "none". Several keys may share a slot.',
+  '- Pick the one family whose slot names mean what the claim\'s role and value keys say. If no family fits, the family is "none".',
+  '- Map each role key to one role slot of that family, or "none". Map each value key to one value slot of that family, or "none". Several keys may share a slot, except a slot listed in that family\'s oneParticipantSlots.',
   '- Map a key only when its own words say what the slot says. A key that names only a position or a category, such as head, specifier or complement, says nothing about which role it plays: map it to "none".',
+  '- A key whose name qualifies its participant (potential, possible, candidate, failed, blocked, excluded, denied, would-be, intended, non-) is not that participant: map it to "none".',
+  '- Babel uses a family only when every role key has a slot in it. If any role key has none, the family is "none".',
   '- Translate names only. Do not judge whether the claim is right and do not add anything it does not say. Babel checks the structure itself.',
   'Reply with JSON only: {"claims":[{"id":"...","family":"...","roles":{"<role key>":"<slot>"},"values":{"<value key>":"<slot>"}}]}, one entry per claim, keys exactly as given.'
 ].join('\n');
 
-const familyEntry = family => ({ id: family.id, ...(family.draws.length ? { draws: family.draws } : {}),
-  roleSlots: Object.keys(family.roles), valueSlots: Object.keys(family.values) });
+const familyEntry = family => ({ id: family.id, draws: family.draws, roleSlots: family.roles,
+  oneParticipantSlots: family.singleRoles, valueSlots: family.values });
 
-/** claims: [{ id, relation }] with relations as Replay dispatches them. A
- * claim with an exactly registered name lists its own one family inline; every
- * other claim is offered the shared Tier-2 families. */
+/** claims: [{ id, relation }] with relations as Replay dispatches them. */
 export const buildJevQuestion = claims => ({
-  families: JEV_TIER2_FAMILIES.map(familyEntry),
+  families: JEV_FAMILIES.map(familyEntry),
   claims: claims.map(({ id, relation }) => {
     const terms = jevTerms(relation);
-    const own = jevFamilies(relation);
-    return { id, relation: terms.relation, roleKeys: terms.roles, values: terms.values,
-      ...(own === JEV_TIER2_FAMILIES ? {} : { families: own.map(familyEntry) }) };
+    return { id, relation: terms.relation, roleKeys: terms.roles, values: terms.values };
   })
 });
 

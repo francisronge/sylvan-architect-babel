@@ -289,8 +289,7 @@ export const dispatchRelation = ({
   relationIndex,
   currentForest = undefined,
   priorForest = undefined,
-  structuralMovement = undefined,
-  synonymIndex = undefined
+  structuralMovement = undefined
 }) => {
   if (!Number.isInteger(stageIndex) || stageIndex < 0) {
     throw new TypeError('stageIndex must be a non-negative integer.');
@@ -324,7 +323,7 @@ export const dispatchRelation = ({
     };
   }
 
-  const binding = bindRelationRoles(relation, entry, currentForest, priorForest, structuralMovement, synonymIndex);
+  const binding = bindRelationRoles(relation, entry, currentForest, priorForest, structuralMovement);
   const bindingBase = { ...base, boundRelation: binding.relation, roleBindings: binding.bindings };
   const signatureIssues = [...binding.issues, ...STRUCTURED_FIELDS.flatMap((field) => (
     validateStructuredBlock(binding.relation, field, entry.signature[field])
