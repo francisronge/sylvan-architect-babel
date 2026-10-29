@@ -988,6 +988,10 @@ governing position only with a separately typed matching Case and a nominal
 sibling. A named head with the same exact lineage may corroborate the slot's
 category; it does not replace that slot as the Case source. Competing chain
 heads, nonlocal recipients and unestablished outcomes remain neutral.
+When an asserted Case assignment names no recipient role, the one anchor whose
+role has no meaning can be the recipient only as the nominal sister of the leaf
+head that assigns the Case; a phrasal, non-sister or second unnamed anchor
+leaves the claim neutral.
 `valuedCase` shares the Case
 literal vocabulary; explicit agreement and phi-feature values share feature-row
 handling. When both occur in one dependency, recipient-specific Case stays on
