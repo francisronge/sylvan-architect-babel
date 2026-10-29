@@ -676,8 +676,23 @@ function settleWaitingPieces(scenes: readonly Scene[], frames: Painted[], coordi
   }
 }
 
-/** Whether every painted parent of a frame keeps its daughters in order and above them. */
-function ordered(frame: Painted) {
+/** Branches that do not span one row below their parent, or daughters of one
+ * parent on different rows (the visual audit's branch-geometry); words hang by
+ * stems and are not branches. */
+function branchFaults(frame: Painted) {
+  const faults = new Set<string>();
+  for (const [id, node] of frame) {
+    const daughters = (node.children ?? []).filter(child => frame.has(getNodeId(child)) && !getNodeId(child).endsWith('::__leaf'));
+    for (const daughter of daughters) if (Math.abs(daughter.y - node.y - TREE_ROW_HEIGHT) > 1) faults.add(`${id}>${getNodeId(daughter)}`);
+    if (daughters.length && Math.max(...daughters.map(daughter => daughter.y)) - Math.min(...daughters.map(daughter => daughter.y)) > 1) faults.add(`${id} daughters`);
+  }
+  return faults;
+}
+
+/** Whether every painted parent of a frame keeps its daughters in order and above
+ * them, and no branch leaves its row where it kept it in `old`, the frame before
+ * the change. */
+function ordered(frame: Painted, old: Painted) {
   for (const node of frame.values()) {
     const daughters = (node.children ?? []).filter(child => frame.has(getNodeId(child)));
     for (let index = 0; index < daughters.length; index++) {
@@ -685,6 +700,8 @@ function ordered(frame: Painted) {
       if (index && daughters[index].x <= daughters[index - 1].x + 1e-6) { trace.log?.('   order: x', getNodeId(node), getNodeId(daughters[index - 1]), getNodeId(daughters[index])); return false; }
     }
   }
+  const before = branchFaults(old);
+  for (const fault of branchFaults(frame)) if (!before.has(fault)) { trace.log?.('   order: row', fault); return false; }
   return true;
 }
 
@@ -808,7 +825,7 @@ function holdBack(scenes: readonly Scene[], frames: Painted[], coordinates: Map<
       for (let j = start; ok && j < k; j++) {
         const frame = repainted[j - start];
         const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
-        if (!ordered(frame)) { ok = false; reason = `order at ${j + 1}`; }
+        if (!ordered(frame, frames[j])) { ok = false; reason = `order at ${j + 1}`; }
 
         else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, frames[k])) { ok = false; reason = `clearance at ${j + 1}`; }
       }
@@ -914,7 +931,7 @@ function openSourceRoom(scenes: readonly Scene[], frames: Painted[], coordinates
         for (let j = start; ok && j < k; j++) {
           const frame = repainted[j - start];
           const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
-          if (!ordered(frame)) { ok = false; reason = `order at ${j + 1}`; }
+          if (!ordered(frame, frames[j])) { ok = false; reason = `order at ${j + 1}`; }
           else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, view(k))) { ok = false; reason = `clearance at ${j + 1}`; }
         }
         if (ok && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])), later ? SEAT_GROWTH : STAGE_GROWTH)) { ok = false; reason = 'stage size'; }
@@ -985,7 +1002,7 @@ function tryShift(context: Context, k: number, members: readonly string[], amoun
   for (let j = start; !reason && j < k; j++) {
     const frame = repainted[j - start];
     const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
-    if (!ordered(frame)) reason = `order at ${j + 1}`;
+    if (!ordered(frame, frames[j])) reason = `order at ${j + 1}`;
     else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, view(k))) reason = `clearance at ${j + 1}`;
   }
   if (!reason && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])), growth)) reason = 'stage size';
@@ -1105,7 +1122,7 @@ function tryShiftForward(context: Context, k: number, shifts: ReadonlyMap<string
   for (let j = k; !reason && j < end; j++) {
     const frame = repainted[j - k];
     const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
-    if (!ordered(frame)) reason = `order at ${j + 1}`;
+    if (!ordered(frame, frames[j])) reason = `order at ${j + 1}`;
     else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText)) reason = `clearance at ${j + 1}`;
   }
   if (!reason && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [k + index, frame])))) reason = 'stage size';
