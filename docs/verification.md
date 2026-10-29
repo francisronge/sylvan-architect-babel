@@ -16,11 +16,11 @@ prerequisites, not rendered correctness, and starts no server or provider reques
 | Command | What it proves |
 |---|---|
 | `npm run verify:all` | Typechecking, exception growth and every provider-free test, including the parse contract (which reuses the parser's rules; a malformed individual relation stays an explicit warning, not proof of a correct relation) and the Replay invariant sweep over every committed fixture analysis (`tests/replayInvariants.test.mjs`), whose `movement-shown-as-movement` rule fails when an authored chain or recognized movement gets its landing from construction or another relation's moment instead of its own claim's moment. `node scripts/auditReplayInvariants.mjs --out /tmp/invariants.json` runs the same invariants over fixtures and saved qualification batches. |
-| `npm run verify:exceptions` | Part of `verify:all` and CI. Fails when a change adds an entry to `tests/helpers/*Exceptions.mjs`, lists a fault at more places or raises a bound without Francis's approval on that entry (`approval: { by, on, note, accepts }`, `accepts` being the entry's `at` as he accepted it), or when an entry grows beyond what its approval accepts. Approvals do not expire; renumbered frames are not growth, and unrelated later commits do not invalidate an approval. |
+| `npm run verify:exceptions` | Part of `verify:all` and CI. Fails when a change adds an entry to `tests/helpers/*Exceptions.mjs`, lists a fault at more places or raises a bound without Francis's approval on that entry (`approval: { by, on, note, accepts }`, `accepts` being the entry's `at` as he accepted it), or when an entry grows beyond what its approval accepts. Approvals do not expire; renumbered frames are not growth, and unrelated later commits do not invalidate an approval. An existing approval is never edited or removed: while its entry stays within what it accepts, its by, on and note stay exactly as written (its accepts may narrow with the entry); only a new approval for a value it does not accept may replace it, never dated earlier. |
 | `npm run verify:replay-offline` | Runs `verify:visual-offline` and `verify:camera-offline` in one pass, with the layout fingerprint, preparing each analysis once. CI runs it. |
 | `npm run verify:visual-offline` | Lays out every committed fixture frame and Canopy offline at 1440×900 and 2560×1440 and checks overlapping text, lines through plaques or text, distant plaques and role labels, broken label wraps, clipping, branches off the one-row grid, sisters on different rows, parents more than a pixel off the midpoint of their outermost visible daughters, and plaques that jump while their anchor holds and nothing new takes the pocket they leave. Fails on findings not in `tests/helpers/visualExceptions.mjs`, beyond their bound, or stale. Also checks the layout fingerprint (below). |
 | `npm run verify:camera-offline` | Runs the real camera fit on the same frames at 1440×900 and 390×844 through every adjacent step, a reversal after each arrival and direct selection. Checks settled path independence (justified forward retention only), content placement, first-paint continuity, within-stage stability, that the Canopy paints the last Replay frame's syntax unchanged (`canopy-final-frame`) and shows the whole tree centred (`canopy-placement`). Exceptions: `tests/helpers/cameraExceptions.mjs`. It does not see browser timing or painted motion between poses. |
-| `npm run verify:corpus -- --baseline-root /base --candidate-root /candidate --output /tmp/comparison.json` | Compares the same records in two checkouts on the measured layout the browser paints. Fails when a movement the baseline shows as movement loses its moment or trajectory, or on a noticeable new or farther motion fault (see Motion rule). CI runs it over every committed fixture against the PR base. |
+| `npm run verify:corpus -- --baseline-root /base --candidate-root /candidate --output /tmp/comparison.json` | Compares the same records in two checkouts on the measured layout the browser paints. Fails when a movement the baseline shows as movement loses its moment or trajectory, or on a noticeable new or farther motion fault (see Motion rule). CI runs it over every committed fixture against the PR base. `--jobs N` (default up to four) sets the worker processes both checkouts share; it changes only the wall time. |
 | `npm run verify:renderer-browser` | Relation drawing in Chromium: native endpoint attachment, persistence, zoom/Fit and narrow views. |
 | `npm run verify:browser` | Every required browser spec, including real app failure recovery and Tree Bank save/reopen. Missing, unowned or skipped required specs fail. |
 | `npm run verify:browser-webkit` | The bounded Chromium/WebKit renderer and comparison-visibility matrix. Not a substitute for reviewing UI changes in the macOS in-app browser. |
@@ -110,6 +110,19 @@ after a merge: a pull request must be up to date with main, so it has already
 verified the merged tree. Browser verification skips a pull request that changes
 only Markdown. The required check is the aggregating `Provider-free verification`
 job.
+
+CI splits the heavy gates across runners without changing what they judge.
+`verify:replay-offline` and `verify:corpus` each run as two shards
+(`--shard I/2`, writing raw results with `--results-out` or `--snapshots-out`)
+and a job that judges them together (`--merge FILE`, once per shard). The merge
+selects the same analyses and options itself, refuses unless the shards hold
+each analysis exactly once, and then reports, fails and checks exceptions and
+fingerprints as one run does. Offline tests run as six shards balanced by the
+measured file weights in `scripts/ciTestShard.mjs`, and browser specs as three
+shards balanced by `ciSeconds` in `scripts/browserSuites.mjs`; both checks
+fail unless every file runs exactly once. GitHub's runners differ in CPU (an
+older AMD EPYC 7763 audits the same shard about 1.5 times slower than a 9V45),
+so wall times vary between runs.
 
 `verify:browser-visual` is not a CI job: Linux Chromium paints slightly
 differently from macOS, where its bounds were measured. Before merging a pull

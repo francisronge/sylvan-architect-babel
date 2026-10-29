@@ -1,5 +1,5 @@
 /** The committed analyses whose right-to-left Replay layout is not the
- * reflection of their left-to-right layout, as replayCorpusLayout.test.mjs
+ * reflection of their left-to-right layout, as tests/replayCorpusLayoutPart*.test.mjs
  * finds them (`id kind[ frame n]`). Right-to-left Replay reuses the
  * left-to-right plan (stageCoordinates.ts, `reflectedReservations`), so none
  * departs today. Everywhere the reflection holds, right-to-left continuity
