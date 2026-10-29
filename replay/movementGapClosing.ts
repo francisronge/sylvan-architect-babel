@@ -298,6 +298,10 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
     // where it first appears, hidden scaffolding by its reserved place. A phrase
     // carried elsewhere later keeps the shape the closing gave it.
     const line = (k: number, x: number) => x < lines[k - 1][0] ? 0 : x <= lines[k - 1][1] ? 1 : 2;
+    // The workspace the movement's own syntax stands in, at the movement.
+    const topOf = (frame: Painted, node: Node) => { let top = node; for (let id = shownParent(frame, top); id; id = shownParent(frame, top)) top = frame.get(id)!; return getNodeId(top); };
+    const homeNode = participants.map(id => current.get(id)).find(Boolean);
+    const home = homeNode ? topOf(current, homeNode) : undefined;
     // partsAt[k]: each node's part in frame k.
     const partsAt: Map<string, number>[] = [];
     for (let k = 1; k < frames.length; k++) {
@@ -321,7 +325,9 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
           if (frames[k - 1].has(getNodeId(parent))) break;
           top = parent;
         }
-        if (k === 1) { partOf.set(id, line(k, node.x)); continue; }
+        // Other workspaces wait where they will attach: they keep their place
+        // (part 3, which no closing moves).
+        if (k === 1) { partOf.set(id, topOf(frames[1], node) === home ? line(k, node.x) : 3); continue; }
         // New syntax takes the part of its place.
         const at = line(k, top.x);
         // Only the new syntax under it: older syntax below keeps its own part.
