@@ -99,3 +99,19 @@ test('a motion exception needs the owner\'s approval, and the committed list has
     assert.equal(approvalProblem(entry), null, `${entry.record} ${entry.subject}`);
   }
 });
+
+test('an existing approval is a record of the owner\'s words: #285 rewrote one\'s date and note while narrowing its entry', () => {
+  const plaque = at => ({ reason: 'Open: the plaque leaves its pocket when new syntax arrives.', record: CATALOG_6,
+    rule: 'plaque-teleport', subtype: 'jump', subject: 'theta 2:1', at });
+  const given = { by: 'Francis Ronge', on: '2026-10-23', note: 'Review page: "Plaques: Ok."', accepts: { desktop: { '33-38': 410 } } };
+  const base = { ...plaque({ desktop: { '33-38': 410 } }), approval: given };
+  const narrowed = plaque({ desktop: { '36-38': 410 } });
+  assert.deepEqual(growth([base], [{ ...narrowed, approval: given }]), [], 'narrowing under the same approval needs nothing');
+  const rewritten = { ...narrowed, approval: { ...given, on: '2026-10-27', note: 'takes this pocket a step early instead of jumping' } };
+  assert.match(growth([base], [rewritten])[0]?.problem ?? '', /existing approval was edited/);
+  const grown = plaque({ desktop: { '33-39': 410 } });
+  assert.deepEqual(growth([base], [{ ...grown, approval: { ...given, on: '2026-10-29', note: `${given.note} Chat, 29 Oct: frame 39 too.`,
+    accepts: grown.at } }]), [], 'keeping the old note');
+  assert.match(growth([base], [{ ...grown, approval: { ...given, on: '2026-10-29', note: 'Chat: accepted frame 39 too', accepts: grown.at } }])[0]
+    ?.problem ?? '', /existing approval was edited/, 'but not by erasing the old record');
+});

@@ -157,6 +157,17 @@ export function approvalProblem(entry) {
   return null;
 }
 
+/** An approval is a record of the owner's words. It may be replaced only by a
+ * new approval for a value the old one does not accept; otherwise its owner,
+ * date, note and accepted value stay exactly as written. */
+function approvalRewritten(previous, entry) {
+  const before = previous?.approval, after = entry.approval;
+  if (!before || !after || JSON.stringify(before) === JSON.stringify(after)) return false;
+  if (!growthOf({ at: before.accepts }, entry).length) return true;
+  // A new approval keeps the record of the old one: its note and no earlier date.
+  return typeof before.note === 'string' && !String(after.note).includes(before.note) || String(after.on) < String(before.on);
+}
+
 /** Compares exception lists (`{ name: entries }`, keyed by file and export)
  * between a change's base and head. Every head entry needs a reason; an entry
  * the change adds or lets grow needs a valid owner approval; any approval
@@ -169,9 +180,13 @@ export function exceptionGrowth(base, head) {
     for (const entry of entries) {
       const name = `${list} ${entry.rule}/${entry.subtype ?? '-'} ${entry.record} ${entry.subject}`;
       if (typeof entry.reason !== 'string' || !entry.reason.trim()) problems.push({ name, problem: 'no reason' });
-      const grown = growthOf(before.get(identity(entry)), entry);
+      const previous = before.get(identity(entry));
+      const grown = growthOf(previous, entry);
       const problem = (grown.length || entry.approval) && approvalProblem(entry);
       if (problem) problems.push({ name, grown, problem });
+      else if (approvalRewritten(previous, entry)) problems.push({ name, grown, problem: 'its existing approval was edited. An '
+        + 'approval records what the owner said, when and where. It changes only when he accepts a value the old approval does '
+        + 'not, and the new approval keeps the old note and is not dated earlier' });
     }
   }
   return problems;
