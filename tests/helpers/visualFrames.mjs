@@ -29,6 +29,7 @@ import { fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { paintedShift } from '../../replay/cameraCarry.ts';
 import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
+import { sceneBindingDomainEllipse } from '../../replay/relations/bindingDomainGeometry.ts';
 import { caseFeatureComposition } from '../../replay/relations/featureComposition.ts';
 import { prepareCasePlaqueRows } from '../../replay/relations/plaqueTextLayout.ts';
 import { projectVisibleAnchorSetOrganization } from '../../replay/relations/relationFrame.ts';
@@ -378,7 +379,14 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
       connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, direction: visual.direction, ...extra });
   const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
   const shownMarks = bound => bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
-  if (!items.some(item => item.kind === 'fallback')) return { ...none, plaques, marks: boundMarks(shownMarks(bind({})), items) };
+  // A binding domain paints its own ellipse over the visible syntax and the plaques inside it (bindingDrawing.ts).
+  const markRecords = primitives => boundMarks(primitives, items).map((mark, index) => {
+    const item = items[primitives.filter(primitive => !UNBOUND_MARKS.has(primitive.type))[index].itemIndex];
+    const ellipse = mark.type === 'domain-ellipse' && item?.kind === 'binding-domain'
+      && sceneBindingDomainEllipse(item.domainNodeId, laidOut, painted.nodes, items, placements, measureCategoryText);
+    return ellipse ? { ...mark, painted: { cx: ellipse.cx, cy: ellipse.cy, rx: ellipse.rx, ry: ellipse.ry } } : mark;
+  });
+  if (!items.some(item => item.kind === 'fallback')) return { ...none, plaques, marks: markRecords(shownMarks(bind({}))) };
   // measureFallbackLabels: plain label cells for every laid-out node.
   const labelRects = new Map(all.filter(node => !canvas.isSyntheticWorkspaceRootNode(node) && !isUnderTriangulation(node)).map(node => {
     const run = isCategory(node) ? { kind: 'category', text: node.data.label || '', lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] }
@@ -414,16 +422,18 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
       nodes: primitive.witnessNodeIds.flatMap(id => laidOut.get(id)?.descendants().map(display.getNodeId) ?? [id]),
       paths: pathPolylines(segment.d), halfWidth: (segment.route === 'direct' ? 1.5 : 1.9) * scale / 2 };
   });
-  return { texts, plaques, lines, marks: boundMarks(marks, items) };
+  return { texts, plaques, lines, marks: markRecords(marks) };
 }
 
+const UNBOUND_MARKS = new Set(['plaque', 'fallback-mark', 'segment']);
 /** Every bound mark except plaques, neutral role labels and connectors (recorded
  * above as plaques, texts and lines), as plain data: hierarchy nodes and
  * functions are dropped and repeated references kept once. Ids name the mark's
- * type, claims and occurrence, so a comparison can pair them across checkouts. */
+ * type, claims and occurrence, so a comparison can pair them across checkouts. A
+ * binding domain's ellipse also records the ellipse it paints (`painted`). */
 function boundMarks(primitives, items) {
   const counts = new Map();
-  return primitives.filter(primitive => !['plaque', 'fallback-mark', 'segment'].includes(primitive.type)).map(primitive => {
+  return primitives.filter(primitive => !UNBOUND_MARKS.has(primitive.type)).map(primitive => {
     const base = `${primitive.type}(${refsOf(items[primitive.itemIndex]).join('/')})`, n = (counts.get(base) ?? 0) + 1;
     counts.set(base, n);
     const seen = new WeakSet();

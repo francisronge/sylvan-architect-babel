@@ -3,12 +3,7 @@ import type { SyntaxNode } from '../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds } from './displayIdentity.ts';
 import { paintedShift, type PaintedNodes } from './cameraCarry.ts';
-import {
-  bindingDomainEllipse,
-  bindingDomainPlaques,
-  bindingDomainTreeRect,
-  bindingEllipseBounds
-} from './relations/bindingDomainGeometry.ts';
+import { bindingEllipseBounds, sceneBindingDomainEllipse } from './relations/bindingDomainGeometry.ts';
 import { bindRelationPlanFrame } from './relations/geometryBinding.ts';
 import { boundOverlayBounds, type OverlayBounds } from './relations/geometryBounds.ts';
 import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.ts';
@@ -24,6 +19,7 @@ import {
   measuredCaseSourceRect,
   beyondNearbyReach,
   DETACHED_PLAQUE_GAP,
+  ellipseOutlineObstacles,
   nearbyPlaqueReach,
   MIN_RELOCATION_GAIN,
   plaqueAnchorPoint,
@@ -362,6 +358,10 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       // A port must exist on the narrower shell too, before later rows widen it.
       collectionWidth: Math.min(prior?.collectionWidth ?? Infinity, request.width) });
   }));
+  /** The largest size `item`'s plaque takes in its lifetime. Sizes are kept by the
+   * identity allocation keeps lifetimes by (plaqueIdentity), which ends where a claim
+   * moves to a lower occurrence; the hold pass keeps pockets by claimIdentity. */
+  const allocatedSize = (item: RelationPlanItem) => sizes.get(plaqueIdentity(item));
   const participantIds = (request: typeof phaseRequests[number][number], phaseIndex: number) => {
     const ids = new Set([...request.ids, ...(request.collectionRows ?? []).map(row => row.sourceNodeId)]);
     if (request.caseAssignment) phases[phaseIndex].scenes.forEach(scene => {
@@ -440,7 +440,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     const point = plaqueAnchorPoint(anchor);
     return Math.hypot(box.x + box.width / 2 - point.x, box.y + box.height / 2 - point.y);
   };
-  const reachOf = (box: PlaqueRect, request: Request) => ({ width: box.width, height: box.height, thetaGrid: request.thetaGrid });
+  const reachOf = (box: Pick<PlaqueRect, 'width' | 'height'>, request: Request) => ({ width: box.width, height: box.height, thetaGrid: request.thetaGrid,
+    realizedForm: request.realizedForm });
   const remote = (anchor: d3.HierarchyPointNode<SyntaxNode>, box: PlaqueRect, request: Request) =>
     beyondNearbyReach(anchorDistance(anchor, box), reachOf(box, request));
   /** Every scene of these phases that shows the plaque `key`, carried to `anchor`,
@@ -492,7 +493,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
           }
           return visible;
         };
-        return [{ nodes: scene.nodes, obstacles: scene.obstacles, anchor: futureAnchor, request: futureRequest,
+        return [{ nodes: scene.nodes, obstacles: scene.obstacles, anchor: futureAnchor, request: futureRequest, owner: key,
           dx: anchor.x - futureAnchor.x, dy: anchor.y - futureAnchor.y, caseVisible: rowVisible(caseOwners), rowVisible, added }];
       });
     });
@@ -534,7 +535,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         const pocket = projectPlaqueLayout(new Map([[request.index, projectPlaqueContent(prior, request)]]), id => byId.get(id)).get(request.index);
         if (!pocket) return false;
         const collections = projectPlaqueLayout(collectionReservations[phaseIndex] ?? new Map(), id => byId.get(id));
-        return [...scene.obstacles, ...collections.values()].some(obstacle => plaquesOverlap(pocket, obstacle));
+        return [...scene.obstacles, ...collections.values()].some(obstacle => !obstacle.enclosedPlaques?.has(key)
+          && plaquesOverlap(pocket, obstacle));
       });
       if (invalid) remembered.delete(key);
     });
@@ -582,7 +584,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     /** The nearby pocket `space` holds for the claim at `index`, at `syntaxGap`, if any. */
     const nearbyIn = (index: number, anchor: d3.HierarchyPointNode<SyntaxNode>, request: Request, space: PlaqueSpace,
       syntaxGap?: number) => {
-      const size = sizes.get(keyOf(index)) ?? request, reach = nearbyPlaqueReach({ width: size.width, height: size.height, thetaGrid: request.thetaGrid });
+      const size = allocatedSize(phase.items[index]) ?? request, reach = nearbyPlaqueReach(reachOf(size, request));
       const near = placeStagePlaques(phase.items, nodes, obstacles, new Map(), input.measurePlaqueText, {
         sizes, includes: other => other === index, spaceFor: () => space, caseSources, syntaxGap, searchWithin: reach + 1e-6 }).get(index);
       return near?.location === 'local' && !remote(anchor, near, request) ? near : undefined;
@@ -818,14 +820,15 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     const { nodes, obstacles } = scene.paintedSpace(input.steps[stepIndex].replayVisibleNodeIds, revealed);
     if (!request) return undefined;
     const caseOwners = planItemRelationRefs(items[index]).map(ref => `${ref.stageIndex}:${ref.relationIndex}`);
-    const stageIndex = phases[phaseIndex].stageIndex, scenes: LifetimeScene[] = [{ nodes, obstacles, anchor, request, dx: 0, dy: 0,
+    const owner = plaqueIdentity(items[index]);
+    const stageIndex = phases[phaseIndex].stageIndex, scenes: LifetimeScene[] = [{ nodes, obstacles, anchor, request, owner, dx: 0, dy: 0,
       caseVisible: rowVisible(caseOwners), rowVisible, added: occupants.slice(obstacles.length).filter(occupant => occupant.owner !== key) }];
     for (const later of ahead) {
       const laterRequest = requestsByIndex(later.phaseIndex).get(index);
       if (!laterRequest) return undefined;
       const painted = later.scene.paintedSpace(input.steps[later.stepIndex].replayVisibleNodeIds, later.revealed);
       const visible = rowVisibleAt(stageIndex, later.played);
-      scenes.push({ nodes: painted.nodes, obstacles: painted.obstacles, anchor: later.anchor, request: laterRequest,
+      scenes.push({ nodes: painted.nodes, obstacles: painted.obstacles, anchor: later.anchor, request: laterRequest, owner,
         dx: anchor.x - later.anchor.x, dy: anchor.y - later.anchor.y, caseVisible: visible(caseOwners), rowVisible: visible, added: [] });
     }
     const space = lifetimeSpaceOf(scenes);
@@ -841,7 +844,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     const { nodes, obstacles } = scene.paintedSpace(input.steps[stepIndex].replayVisibleNodeIds, revealed);
     const anchor = sceneNodes({ nodes }).get(candidate.attachmentNodeId);
     if (!request || !anchor) return undefined;
-    const space = lifetimeSpaceOf([{ nodes, obstacles, anchor, request, dx: 0, dy: 0,
+    const space = lifetimeSpaceOf([{ nodes, obstacles, anchor, request, owner: plaqueIdentity(items[index]), dx: 0, dy: 0,
       caseVisible: rowVisible(planItemRelationRefs(items[index]).map(ref => `${ref.stageIndex}:${ref.relationIndex}`)), rowVisible,
       added: occupants.slice(obstacles.length).filter(occupant => occupant.owner !== key) }]);
     return attachAt(phaseIndex, index, candidate, nodes, obstacles, space);
@@ -951,10 +954,10 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         // as what the previous step painted in that nearer pocket has gone.
         const point = plaqueAnchorPoint(anchor);
         if (request && proximityOnly(request) && returnsWithinReach({ before: { pocket, anchor: point }, after: { pocket: placement, anchor: point },
-          owner: key, move, thetaGrid: request.thetaGrid }, before.occupants(), occupants())) continue;
+          owner: key, move, thetaGrid: request.thetaGrid, realizedForm: request.realizedForm }, before.occupants(), occupants())) continue;
         // Nor does it keep a pocket that syntax or a mark of this stage will take while
         // it is still shown beside a still anchor.
-        if (foreseenPocketBlocker({ pocket, move }, before.occupants(),
+        if (foreseenPocketBlocker({ pocket, owner: key, move }, before.occupants(),
           aheadOf(phase.stageIndex, stepIndex, index, placement.attachmentNodeId, anchor, old, playedNow))) { left.add(index); continue; }
         candidates.set(index, { pocket, move });
       }
@@ -997,9 +1000,10 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       const now = () => current ??= occupantsAt(phaseIndex, scene, stepIndex, layout, shown(), revealed(), rowVisible);
       // Only syntax and marks count ahead, so what this step paints of them says what is new later.
       const { obstacles: here } = scene.paintedSpace(step.replayVisibleNodeIds, revealed());
-      const still = { x: 0, y: 0 }, foreseen = (box: PlaquePlacement) => foreseenPocketBlocker({ pocket: at(box), move: still }, here, ahead);
-      const request = requestsByIndex(phaseIndex).get(index), size = sizes.get(identityOf(items[index])) ?? request;
-      const nearby = request && size ? FORESEEN_REACH * nearbyPlaqueReach({ width: size.width, height: size.height, thetaGrid: request.thetaGrid }) : 0;
+      const owner = identityOf(items[index]), still = { x: 0, y: 0 };
+      const foreseen = (box: PlaquePlacement) => foreseenPocketBlocker({ pocket: at(box), owner, move: still }, here, ahead);
+      const request = requestsByIndex(phaseIndex).get(index), size = allocatedSize(items[index]) ?? request;
+      const nearby = request && size ? FORESEEN_REACH * nearbyPlaqueReach(reachOf(size, request)) : 0;
       if (!foreseen(placement)) {
         // One that left its pocket for this stretch need not stand farther than nearby.
         if (!left.has(index) || anchorDistance(anchor, at(placement)) <= nearby + 1e-6) continue;
@@ -1058,18 +1062,10 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   /** How far beyond its nearby reach, as a multiple of it, a plaque may stand to keep
    * clear of what its stage paints later; the offline audit's mark-distance margin. */
   const FORESEEN_REACH = 1.1;
-  const firstOfStage = (phaseIndex: number) => {
-    let first = phaseIndex;
-    while (first > 0 && phases[first - 1].stageIndex === phases[phaseIndex].stageIndex) first--;
-    return first;
-  };
-  /** Enter allocated phases into the schedule once their whole stage is allocated, since
-   * a step's hold reads the stage's later steps (aheadOf), and no undecided remote run
-   * can still change them; publish each completed stage. */
+  const phaseStages = phases.map(phase => phase.stageIndex);
+  /** Enter allocated phases into the schedule as releasablePhase allows; publish each completed stage. */
   const release = (allocated: number) => {
-    const complete = allocated >= 0 && phases[allocated + 1]?.stageIndex === phases[allocated].stageIndex
-      ? firstOfStage(allocated) - 1 : allocated;
-    const pending = Math.min(complete, ...[...openRuns.values()].filter(run => run.remote).map(run => run.phases[0] - 1));
+    const pending = releasablePhase(phaseStages, allocated, [...openRuns.values()].filter(run => run.remote).map(run => run.phases[0]));
     for (; released <= pending; released++) {
       const phase = phases[released], layout = layouts[released];
       schedule.stages[phase.stageIndex] = layout;
@@ -1104,6 +1100,21 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   close(remaining);
   release(phases.length - 1);
   return schedule;
+}
+
+/** The last phase whose Replay steps the plaque schedule may enter once the phases
+ * through `allocated` are allocated, `stageOf` giving each phase's stage: every phase of
+ * its stage is allocated, since a step's hold reads the later steps of its stage
+ * (aheadOf), and no remote run still open may move a pocket of its stage (bringNear),
+ * `remoteStarts` being the first phase of each such run. */
+export function releasablePhase(stageOf: readonly number[], allocated: number, remoteStarts: readonly number[]): number {
+  const firstOfStage = (phase: number) => {
+    let first = phase;
+    while (first > 0 && stageOf[first - 1] === stageOf[phase]) first--;
+    return first;
+  };
+  const complete = allocated >= 0 && stageOf[allocated + 1] === stageOf[allocated] ? firstOfStage(allocated) - 1 : allocated;
+  return Math.min(complete, ...remoteStarts.map(start => firstOfStage(start) - 1));
 }
 
 /** Completed-stage layouts for callers without an active Replay moment. */
@@ -1217,7 +1228,10 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
           && isPlanItemRevealed(item, input.stageIndex, scene.playedRelations)), currentNodes, {
           measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk
         })];
-      obstacles.push(...regionPlaqueObstacles(input.plan, input.stageIndex, marks, byId));
+      // A binding domain's ellipse spans the syntax it is painted over, so it is reserved
+      // only in the scenes that paint it.
+      obstacles.push(...regionPlaqueObstacles(input.plan, input.stageIndex, marks.filter(item => item.kind !== 'binding-domain'
+        || isPlanItemRevealed(item, input.stageIndex, scene.playedRelations)), items, byId, currentNodes, input.measureCategoryText));
       // Use the trajectory binder's actual geometry in each frame's coordinates.
       const trajectories = marks.filter(item => item.kind === 'trajectory');
       if (!input.plan || !trajectories.length) return obstacles;
@@ -1261,31 +1275,39 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
   return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured };
 }
 
-/** The boxes plaques keep clear of a stage's region marks, bound as the painter binds
- * them: an enclosure's whole shaded box, and the outline of a domain box or ellipse,
- * which a plaque may stand inside or outside but not across. A binding domain's
- * ellipse is not reserved: it spans its members' subtree at √2 of their bounds, and
- * keeping plaques off it moves nearby plaques beyond their reach. */
+/** The boxes plaques keep clear of a stage's region marks: an enclosure's whole shaded
+ * box, and the outline of a domain box or ellipse, which a plaque may stand inside or
+ * outside but not across. Enclosures and domain marks are bound as the painter binds
+ * them; a binding domain's ellipse is the one it paints over `nodes`
+ * (sceneBindingDomainEllipse) before it grows around the plaques of `items` attached
+ * inside its domain (bindingDomainPlaques), which it does not block. */
 function regionPlaqueObstacles(plan: StageLayoutInput['plan'], stageIndex: number, marks: readonly RelationPlanItem[],
-  byId: Map<string, d3.HierarchyPointNode<SyntaxNode>>): PlaqueRect[] {
+  items: readonly RelationPlanItem[], byId: Map<string, d3.HierarchyPointNode<SyntaxNode>>,
+  nodes: readonly d3.HierarchyPointNode<SyntaxNode>[], measureCategoryText?: CategoryTextMeasure): PlaqueRect[] {
   const regions = marks.filter(item => item.kind === 'enclosure' || item.kind === 'domain-mark');
-  if (!plan || !regions.length) return [];
-  const bound = bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, index) => index === stageIndex ? { ...frame, items: regions } : frame) },
-    stageIndex, stagePositionProvider(byId), { ...RELATION_BINDING_METRICS, markerScale: 1 });
   const stroke = 4, edge = (x: number, y: number, width: number, height: number): PlaqueRect =>
     ({ x: x - stroke, y: y - stroke, width: width + 2 * stroke, height: height + 2 * stroke });
-  return bound.primitives.flatMap((primitive): PlaqueRect[] => {
+  const outline = (ellipse: { cx: number; cy: number; rx: number; ry: number }) => ellipseOutlineObstacles(ellipse, stroke);
+  const domains = marks.flatMap(item => {
+    const domain = item.kind === 'binding-domain' && byId.get(item.domainNodeId);
+    const ellipse = domain && sceneBindingDomainEllipse(item.domainNodeId, byId, nodes, [], new Map(), measureCategoryText);
+    if (!domain || !ellipse) return [];
+    const members = new Set(domain.descendants().map(node => String((node as any).__vizId ?? node.data.id)));
+    const enclosedPlaques = new Set(items.flatMap(other => other.kind === 'node-plaque' && other.anchorNodeIds.length
+      && other.anchorNodeIds.every(id => members.has(id)) ? [plaqueIdentity(other), claimIdentity(other)] : []));
+    return outline(ellipse).map(box => enclosedPlaques.size ? { ...box, enclosedPlaques } : box);
+  });
+  if (!plan || !regions.length) return domains;
+  const bound = bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, index) => index === stageIndex ? { ...frame, items: regions } : frame) },
+    stageIndex, stagePositionProvider(byId), { ...RELATION_BINDING_METRICS, markerScale: 1 });
+  return [...domains, ...bound.primitives.flatMap((primitive): PlaqueRect[] => {
     if (primitive.type === 'enclosure') return [edge(primitive.x, primitive.y, primitive.width, primitive.height)];
     if (primitive.type === 'domain-region') {
       const { x, y, width, height } = primitive;
       return [edge(x, y, width, 0), edge(x, y + height, width, 0), edge(x, y, 0, height), edge(x + width, y, 0, height)];
     }
-    if (primitive.type !== 'domain-ellipse') return [];
-    const points = Array.from({ length: 65 }, (_, i) => ({ x: primitive.cx + primitive.rx * Math.cos(i * Math.PI / 32),
-      y: primitive.cy + primitive.ry * Math.sin(i * Math.PI / 32) }));
-    return points.slice(1).map((point, i) => edge(Math.min(point.x, points[i].x), Math.min(point.y, points[i].y),
-      Math.abs(point.x - points[i].x), Math.abs(point.y - points[i].y)));
-  });
+    return primitive.type === 'domain-ellipse' ? outline(primitive) : [];
+  })];
 }
 
 /** Layout reads no window size. Every canvas lays out at this reference canvas,
@@ -1454,22 +1476,11 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
         minY: rect.y + STAGE_CAMERA_PADDING.y, maxY: rect.y + rect.height - STAGE_CAMERA_PADDING.y });
     }
     if (includeBindingDomains && plan) {
-      const visible = new Set(fitNodes);
       for (const item of plan.frames[stageIndex]?.items ?? []) {
         if (item.kind !== 'binding-domain') continue;
-        const domain = byId.get(item.domainNodeId);
-        const rect = domain && bindingDomainTreeRect(domain.descendants().filter(node => visible.has(node)), measureCategoryText);
-        if (rect && domain) {
-          const members = new Set(domain.descendants());
-          const boxes = (nodes: typeof fitNodes) => nodes.flatMap(node => {
-            const box = bindingDomainTreeRect([node], measureCategoryText);
-            return box ? [box] : [];
-          });
-          include(bindingEllipseBounds(bindingDomainEllipse(rect,
-            bindingDomainPlaques(domain.descendants().map(node => String((node as any).__vizId ?? node.data.id)),
-              plan.frames[stageIndex]?.items ?? [], projectedPlaques),
-            boxes(fitNodes.filter(node => members.has(node))), boxes(fitNodes.filter(node => !members.has(node))))));
-        }
+        const ellipse = sceneBindingDomainEllipse(item.domainNodeId, byId, fitNodes, plan.frames[stageIndex]?.items ?? [],
+          projectedPlaques, measureCategoryText);
+        if (ellipse) include(bindingEllipseBounds(ellipse));
       }
     }
     const items = plan?.frames[stageIndex]?.items ?? [];

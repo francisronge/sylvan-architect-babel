@@ -471,15 +471,19 @@ Allocation measures the arrow's source as the painter does: the native text box
 of the source's word or category label in that scene, the union of its retained
 label variants. Without label measurements it keeps the estimated box.
 
-Plaques keep clear of region marks as the painter binds them: an enclosure's whole
-shaded box, and the outline of a domain box, which a plaque may stand inside or
-outside but not across. Each is reserved in the scenes that paint it, so a plaque's
-lifetime pocket avoids a region its stage draws later. Francis called a feature
-plaque across a sluicing remnant's enclosure "tiny collisions" on 27 October 2026.
-The offline audit reports a plaque across another claim's enclosure or domain box
-(`region-overlap`). A binding domain's ellipse spans its members at √2 of their
-bounds; keeping plaques off it moved nearby plaques beyond their reach, so it is
-neither reserved nor judged until Francis decides whether a plaque may cross it.
+Plaques keep clear of region marks as the painter draws them: an enclosure's whole
+shaded box, and the outline of a domain box or ellipse, which a plaque may stand
+inside or outside but not across. Enclosures and domain marks are reserved as they
+are bound, in every scene of their stage, so a plaque's lifetime pocket avoids a
+region its stage draws later. A binding domain paints its own ellipse over the
+visible syntax (`sceneBindingDomainEllipse`, which the camera also fits), grown to
+hold the plaques attached inside its domain; that ellipse, before any plaque grows
+it, is reserved in the scenes that paint it. An ellipse outline is reserved as the boxes of arcs at
+most 48 units long. Francis called a feature plaque across a sluicing remnant's
+enclosure "tiny collisions" on 27 October 2026; a plaque across a binding domain's
+ellipse is a fault to fix (Francis's ruling, relayed on 29 October 2026). The offline audit
+reports a plaque inside another claim's enclosure or across its domain box or
+ellipse, a binding domain's as it paints it (`region-overlap`).
 
 Allocation runs in a worker after chunked browser text measurement.
 
@@ -1121,10 +1125,13 @@ and attaches at the word itself when its anchor holds one; it chooses its pocket
 after every relation's plaque, so it never displaces one. Whatever its width, it
 searches the nearest clear pocket beside its owner as a compact plaque does, and
 goes below the subtree only when no pocket stays clear; Francis found a 590-unit
-plate placed below a whole tree on 27 October 2026 ("Plaque very low"). The
-offline audit reports a plate more than a tenth beyond its nearby reach while a
-pocket at least that much nearer stays clear through its stay
-(`mark-distance`, subtype `realization`). The plate
+plate placed below a whole tree on 27 October 2026 ("Plaque very low"). Its
+nearby reach is that of the pocket it is placed in, as for a θ-grid, so the
+schedule brings it near like any plaque beside its owner. The offline audit
+reports a plate more than a tenth beyond its nearby reach (`mark-distance`,
+subtype `plaque`, as for every plaque placed beside its owner), and again where a
+pocket at least that much nearer stays clear through its stay (subtype
+`realization`). The plate
 shows exactly while Replay holds the group active (below), and in the Canopy for
 the final stage; it never first appears at a Stage Record. The relation whose
 moment shows it focuses it. A relation's own realization, spell-out or

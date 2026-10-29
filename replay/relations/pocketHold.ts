@@ -57,6 +57,10 @@ const twin = (earlier: PocketOccupant, later: PocketOccupant, move: Move) => ear
   && Boolean(earlier.blocksConnectors) === Boolean(later.blocksConnectors) && shell(earlier) === shell(later)
   && Boolean(earlier.extendsDownward) === Boolean(later.extendsDownward);
 
+/** Whether `occupant` is the plaque `owner`'s own, or encloses it (PlaqueRect,
+ * `enclosedPlaques`): neither blocks the plaque. */
+export const ownOccupant = (owner: string, occupant: PocketOccupant) => occupant.owner === owner || Boolean(occupant.enclosedPlaques?.has(owner));
+
 /** Whether the earlier step had no twin of `occupant`. */
 export const isNewOccupant = (occupant: PocketOccupant, earlier: readonly PocketOccupant[], move: Move) =>
   !earlier.some(other => twin(other, occupant, move));
@@ -94,7 +98,7 @@ export function newPocketBlocker({ pocket, owner, move }: { pocket: HeldPocket; 
   counts: (occupant: PocketOccupant) => boolean = () => true): PocketOccupant | undefined {
   const routes = earlier.filter(occupant => occupant.owner === owner && occupant.route)
     .map(piece => translateObstacle(piece, move.x, move.y));
-  return later.find(occupant => occupant.owner !== owner && counts(occupant)
+  return later.find(occupant => !ownOccupant(owner, occupant) && counts(occupant)
     && (blocksCarriedPocket(pocket, occupant, pocket.syntaxGap) || routes.some(piece => crossesRoute(piece, occupant)))
     && isNewOccupant(occupant, earlier, move));
 }
@@ -111,12 +115,12 @@ export type AheadStep = { occupants: readonly PocketOccupant[]; move: Move };
  * still anchor; it moves at once rather than at the step that blocks it. `ahead` lists
  * the stage's later steps in order and stops where the plaque is hidden or its anchor
  * moves. Plaques and their own routes (occupants with an owner) are placed step by
- * step and do not count. */
-export function foreseenPocketBlocker({ pocket, move }: { pocket: HeldPocket; move: Move },
+ * step and do not count, nor does a mark that encloses the plaque `owner`. */
+export function foreseenPocketBlocker({ pocket, owner, move }: { pocket: HeldPocket; owner: string; move: Move },
   earlier: readonly PocketOccupant[], ahead: readonly AheadStep[]): PocketOccupant | undefined {
   for (const step of ahead) {
     const carried = { ...pocket, x: pocket.x + step.move.x - move.x, y: pocket.y + step.move.y - move.y };
-    const found = step.occupants.find(occupant => occupant.owner === undefined
+    const found = step.occupants.find(occupant => occupant.owner === undefined && !ownOccupant(owner, occupant)
       && blocksCarriedPocket(carried, occupant, pocket.syntaxGap) && isNewOccupant(occupant, earlier, step.move));
     if (found) return found;
   }
@@ -131,14 +135,14 @@ const distance = (box: PlaqueRect, anchor: { x: number; y: number }) =>
  * earlier step had in that nearer pocket has gone: an occupant other than its own
  * blocked the later pocket, carried back by `move`, and the later step lacks it.
  * Anchors are the points distances are measured from (plaqueAnchorPoint). */
-export function returnsWithinReach({ before, after, owner, move, thetaGrid }: {
+export function returnsWithinReach({ before, after, owner, move, thetaGrid, realizedForm }: {
   before: { pocket: HeldPocket; anchor: { x: number; y: number } };
   after: { pocket: HeldPocket; anchor: { x: number; y: number } };
-  owner: string; move: Move; thetaGrid?: boolean;
+  owner: string; move: Move; thetaGrid?: boolean; realizedForm?: boolean;
 }, earlier: readonly PocketOccupant[], later: readonly PocketOccupant[]) {
-  const reach = (box: PlaqueRect) => nearbyPlaqueReach({ width: box.width, height: box.height, thetaGrid }) + 1e-6;
+  const reach = (box: PlaqueRect) => nearbyPlaqueReach({ width: box.width, height: box.height, thetaGrid, realizedForm }) + 1e-6;
   if (distance(before.pocket, before.anchor) <= reach(before.pocket) || distance(after.pocket, after.anchor) > reach(after.pocket)) return false;
   const back: HeldPocket = { ...after.pocket, x: after.pocket.x - move.x, y: after.pocket.y - move.y };
-  return earlier.some(occupant => occupant.owner !== owner && blocksCarriedPocket(back, occupant, back.syntaxGap)
+  return earlier.some(occupant => !ownOccupant(owner, occupant) && blocksCarriedPocket(back, occupant, back.syntaxGap)
     && !later.some(other => twin(occupant, other, move)));
 }

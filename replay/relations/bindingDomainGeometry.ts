@@ -105,3 +105,23 @@ export function bindingDomainTreeRect(nodes: readonly HierarchyPointNode<SyntaxN
   }
   return rectangles.length ? boundingRect(rectangles) : null;
 }
+
+type DomainNode = HierarchyPointNode<SyntaxNode>;
+const domainNodeId = (node: DomainNode) => String((node as DomainNode & { __vizId?: string }).__vizId ?? node.data.id);
+
+/** The ellipse a binding domain paints over `visibleNodes` (bindingDrawing.ts and
+ * bindingRefinements.ts measure the same boxes from painted ink): the visible part of
+ * its domain's subtree, grown to hold the plaques of `placements` attached inside it,
+ * and narrowed off the other visible syntax. The camera fits it with the stage's
+ * plaques; plaque allocation keeps plaques off it with none (stageCamera.ts). */
+export function sceneBindingDomainEllipse(domainId: string, byId: ReadonlyMap<string, DomainNode>, visibleNodes: readonly DomainNode[],
+  items: readonly RelationPlanItem[] = [], placements: ReadonlyMap<number, Rect> = new Map(), measureText?: CategoryTextMeasure) {
+  const domain = byId.get(domainId);
+  if (!domain) return null;
+  const visible = new Set(visibleNodes), members = new Set(domain.descendants());
+  const rect = bindingDomainTreeRect(domain.descendants().filter(node => visible.has(node)), measureText);
+  if (!rect) return null;
+  const boxes = (nodes: readonly DomainNode[]) => nodes.flatMap(node => bindingDomainTreeRect([node], measureText) ?? []);
+  return bindingDomainEllipse(rect, bindingDomainPlaques(domain.descendants().map(domainNodeId), items, placements),
+    boxes(visibleNodes.filter(node => members.has(node))), boxes(visibleNodes.filter(node => !members.has(node))));
+}

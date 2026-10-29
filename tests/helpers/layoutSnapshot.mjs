@@ -38,11 +38,13 @@ export function panelText({ buildReplayPanelContent, buildReplayDisplayDetailBlo
 /** One normalized frame (visualRules' model) and its panel, in a stable form. A
  * plaque's identity key and allocated pocket describe its allocation, not what it
  * paints; its content box is the audit's measure of its rows, which its shell shows,
- * and `realization` classifies a plate the audit judges by its own rule. */
+ * and `realization` classifies a plate the audit judges by its own rule. A binding
+ * domain's `painted` ellipse follows from the syntax and plaques recorded. */
 export function canonicalFrame(frame, panel = null) {
   const plaques = frame.plaques.map(({ key: _key, pocket: _pocket, content: _content, realization: _realization, ...plaque }) => plaque);
+  const marks = (frame.marks ?? []).map(({ painted: _painted, ...mark }) => mark);
   return JSON.stringify({ zoom: frame.zoom, chrome: frame.chrome, texts: byId(frame.texts), plaques: byId(plaques),
-    lines: byId(frame.lines), marks: byId(frame.marks ?? []), panel }, round);
+    lines: byId(frame.lines), marks: byId(marks), panel }, round);
 }
 
 /** Every plan item: `stage:relation T<tier> kind family facet`, sorted. */

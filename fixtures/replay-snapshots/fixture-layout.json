@@ -1752,7 +1752,7 @@
       ]
     },
     "replay-regressions/inserted-adjunction-segment.json#": {
-      "frames": "Wk65VI3L iAgrF1ZH 3_YIMYd9 gCqGBIGM ltrbqDQX Pjy5mHr5 jyUvepts 1uEsZHpY V4gZO7nY 0pr1TmHC trvSshIU 2BGqKcix aF42YIIM YGJmBvRV MxDBJEHC Fm8Tury2 DQUG_sem x1QJ_Mfa _feD6FLG 5bxxe8KA ofD2J47P GzzIiTAP WHXWwDSz La0dj7ZY 4f0SzgNI kZEuiC9S HAHotR-y V49eo9hz Bi-Nwnqs 41JkEALb BkgXG787 KPlOKX8g _0GvJtHd IiC5Wpeo SQmtokzT LXlwTwYD 3LPzihvB CPOaWxzt CmPSVZEf MvLrSvUd 4AgFskcQ c3RcVUyf glMKU_lq rtLfxb2i wpv3u7wb uk7KX0ih NkWMTS7V onG6p0tn 6WP1kHXU",
+      "frames": "Wk65VI3L iAgrF1ZH 3_YIMYd9 gCqGBIGM ltrbqDQX Pjy5mHr5 jyUvepts 1uEsZHpY V4gZO7nY 0pr1TmHC trvSshIU 2BGqKcix aF42YIIM YGJmBvRV MxDBJEHC Fm8Tury2 DQUG_sem x1QJ_Mfa _feD6FLG 5bxxe8KA ofD2J47P GzzIiTAP WHXWwDSz La0dj7ZY 4f0SzgNI kZEuiC9S HAHotR-y V49eo9hz Bi-Nwnqs 41JkEALb BkgXG787 KPlOKX8g _0GvJtHd IiC5Wpeo SQmtokzT LXlwTwYD 3LPzihvB CPOaWxzt CmPSVZEf MvLrSvUd 4AgFskcQ c3RcVUyf N4Aa0x5B Rrd21hNn JQQlc1ro F_j_YtSv WaqGnJ5V IMT5Auh7 z1IMVTdZ",
       "canopy": "Y0-D9tlv",
       "tiers": [
         "0:0 T3 fallback",
@@ -2779,7 +2779,7 @@
       ]
     },
     "replay-regressions/review-workspace-boundaries.json#/cases/1": {
-      "frames": "NJn_Rvt5 uWnmgv6Z LBbO1UoZ kh6zZgxk IVmXUnHo ZNUygp5l lt8tjGoT pSZjcYT6 NFdUqYeS 36E8mxLa k6MP0GXp _be6-pV6 MzPgehYD Dn4ktB8b wfWEMSgp izwASDFT LqJV39t8 yzwXEkZQ QfA_DRV1 g6-DZe1P Gl9DUIFI UUEQ6fiN 3xRNdAij OWH723l7 v5oD3gjb _hN9fWot MnnOsNev 2-xivwFp bFo97iZ8 mmBU6Mkg WvZpR4Yw ld5G6oE2 g9rL_A16 uZ2aSnj9 mM4luyZn HUF-Ni96 ASPBSSy2 2UUEQ4x5 JrVvMu3O C1xW-lh1 Xwog0YXz HGDdMmz6 XtEbWi6H Cz0KDw9D F8gMqeu5 AqYco3kB ob8yvrxn xHRtssl1 yL8mga-e 3B95ntC3 lprD_92F mXZOom77 JK9R-yxq zjqttNN0 Y1aF4x09 DH8LmAXS pOtzDqeX etvUhDPZ mh85ywof h9TXGWMi",
+      "frames": "NJn_Rvt5 uWnmgv6Z LBbO1UoZ kh6zZgxk IVmXUnHo ZNUygp5l lt8tjGoT pSZjcYT6 NFdUqYeS 36E8mxLa k6MP0GXp _be6-pV6 MzPgehYD Dn4ktB8b wfWEMSgp izwASDFT LqJV39t8 yzwXEkZQ QfA_DRV1 g6-DZe1P Gl9DUIFI UUEQ6fiN 3xRNdAij OWH723l7 v5oD3gjb _hN9fWot MnnOsNev 2-xivwFp bFo97iZ8 mmBU6Mkg WvZpR4Yw ld5G6oE2 g9rL_A16 uZ2aSnj9 mM4luyZn HUF-Ni96 ASPBSSy2 2UUEQ4x5 JrVvMu3O C1xW-lh1 Xwog0YXz HGDdMmz6 XtEbWi6H Cz0KDw9D F8gMqeu5 AqYco3kB ob8yvrxn xHRtssl1 yL8mga-e 3B95ntC3 lprD_92F mXZOom77 JK9R-yxq zjqttNN0 Y1aF4x09 DH8LmAXS pOtzDqeX uxLnvNT9 PCEfg60F 5esDDk5d",
       "canopy": "Fs36ugPT",
       "tiers": [
         "0:0 T2 node-plaque pf.realization pf.structured",
