@@ -62,7 +62,7 @@ export const getCoherentWorkspaceDiagnostics = (steps: readonly PlaybackStep[]) 
  * No syntax, branch ranks, pronunciation or relation timing is added here. */
 export function reserveWorkspaceAttachments({
   steps, sizes, direction, coordinatesForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, minimumSiblingGap = 0,
-  orderedContours = false, alignedStages = false
+  orderedContours = false, alignedStages = false, clearText = false
 }: {
   steps: readonly PlaybackStep[];
   sizes: ReadonlyMap<number, [number, number]>;
@@ -77,9 +77,12 @@ export function reserveWorkspaceAttachments({
   orderedContours?: boolean;
   /** Distinguishes plans over translated stage frames in the plan cache. */
   alignedStages?: boolean;
+  /** Also re-solve a plan without unowned reflow whose painted labels or words
+   * overlap (planCoherentWorkspace `clearText`). */
+  clearText?: boolean;
 }): Reservations {
   const stageSizes = [...sizes].sort(([a], [b]) => a - b);
-  const key = JSON.stringify([direction, stageSizes, minimumSiblingGap, orderedContours, alignedStages]);
+  const key = JSON.stringify([direction, stageSizes, minimumSiblingGap, orderedContours, alignedStages, clearText]);
   let measurements = cache.get(steps);
   if (!measurements) cache.set(steps, measurements = new Map());
   const metricKey = JSON.stringify([categoryMetricKey(steps, measureCategoryText),
@@ -423,7 +426,7 @@ export function reserveWorkspaceAttachments({
   // participants may still exchange sides, so check their construction order
   // before accepting a resolved plan.
   const directInput = candidate;
-  const direct = planCoherentWorkspace({ scenes, baseline: directInput, direction, render: rendered, minimumSiblingGap, metrics: {
+  const direct = planCoherentWorkspace({ scenes, baseline: directInput, direction, render: rendered, minimumSiblingGap, clearText, metrics: {
     measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel,
   } });
   const seeds = workspaceComponentLifetimeSeeds(scenes, direct.coordinates, rendered,
@@ -472,7 +475,7 @@ export function reserveWorkspaceAttachments({
       candidate = baseline;
     }
   }
-  const coherent = candidate === direct.coordinates ? direct : planCoherentWorkspace({ scenes, baseline: candidate, direction, render: rendered, minimumSiblingGap, metrics: {
+  const coherent = candidate === direct.coordinates ? direct : planCoherentWorkspace({ scenes, baseline: candidate, direction, render: rendered, minimumSiblingGap, clearText, metrics: {
     measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel,
   } });
   return rememberCoherent(coherent);

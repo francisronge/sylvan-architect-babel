@@ -25,6 +25,7 @@ import {
 } from './workspaceNativeVerticalReference.ts';
 import { pairedWorkspaceClearance, WORKSPACE_PAIRED_EVALUATION_LIMIT } from './workspacePairedClearance.ts';
 import { rigidPoseGraph } from './workspacePoseGraph.ts';
+import { paintedTextCollisions } from './treeTextCollision.ts';
 import { placeRigidGroups } from './workspacePosePlacement.ts';
 import {
   validateWorkspacePlacement,
@@ -87,19 +88,21 @@ export type CoherentWorkspaceResult = {
 /** A whole-analysis alternative for observed unchanged-component reflow. Valid plans
 * return by identity. New plans use complete material lifetimes and are either
 * accepted together or rejected without modifying the accepted reservations. */
-export function planCoherentWorkspace({ scenes, baseline, direction, render, metrics = {}, minimumSiblingGap = 0 }: {
+export function planCoherentWorkspace({ scenes, baseline, direction, render, metrics = {}, minimumSiblingGap = 0, clearText = false }: {
   scenes: readonly WorkspacePlanScene[];
   baseline: Reservations;
   direction: TreeDirection;
   render: WorkspacePlanRender;
   metrics?: WorkspacePlanMeasurements;
   minimumSiblingGap?: number;
+  /** Also solve when the baseline reflows nothing but paints overlapping labels or words. */
+  clearText?: boolean;
 }): CoherentWorkspaceResult {
   const started = performance.now();
   const reflows = workspaceContinuityReflows(scenes, baseline, render);
   const detected = performance.now();
   const diagnostic: CoherentWorkspaceDiagnostic = { status: 'unchanged', reflows, evaluations: 0, corrections: 0 };
-  if (!reflows.length)
+  if (!reflows.length && !(clearText && paintsTextCollision(scenes, baseline, render, metrics)))
     return { coordinates: baseline, diagnostic };
   const failed = (reason: CoherentWorkspaceDiagnostic['reason'], detail?: string): CoherentWorkspaceResult => ({ coordinates: baseline, diagnostic: { ...diagnostic, status: 'infeasible', reason, detail } });
   const steps = scenes.map(scene => scene.step);
@@ -384,4 +387,13 @@ export function planCoherentWorkspace({ scenes, baseline, direction, render, met
     firstFailure ??= result;
   }
   return firstFailure!;
+}
+
+function paintsTextCollision(scenes: readonly WorkspacePlanScene[], coordinates: Reservations, render: WorkspacePlanRender,
+  { treeLabelRuns, measureTreeLabel, measureCategoryText }: WorkspacePlanMeasurements) {
+  return Boolean(measureTreeLabel) && scenes.some(scene => {
+    const labels = treeLabelRuns?.get(scene.canvas), points = coordinates.get(scene.canvas);
+    return labels && points && paintedTextCollisions(render(scene, points).filter(node => !node.data.replayLayoutOnly
+      && node.data.replayOrigin?.kind !== 'workspace'), labels, measureTreeLabel!, measureCategoryText).size > 0;
+  });
 }
