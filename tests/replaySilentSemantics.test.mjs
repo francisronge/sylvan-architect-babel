@@ -26,9 +26,13 @@ test('preterminal expansion preserves category notation instead of treating it a
     assert.equal(rendered.children[0].replayOrigin.ownerId, 'head');
     assert.deepEqual(authored, { id: 'head', label, word, children: [] });
   }
-  const duplicate = materializeReplayPreterminals({ id: 'word', label: 'Walk', word: 'walk', children: [] });
+  const duplicate = materializeReplayPreterminals({ id: 'word', label: 'walk', word: 'walk', children: [] });
   assert.equal(duplicate.children, undefined);
   assert.equal(duplicate.word, 'walk');
+  // A label differing from its word only in case is a category (I over i).
+  const category = materializeReplayPreterminals({ id: 'infl', label: 'I', word: 'i', children: [] });
+  assert.equal(category.label, 'I');
+  assert.equal(category.children[0].word, 'i');
 });
 
 test('silent syntax preserves authored labels, lineage, and complete subtrees', () => {
