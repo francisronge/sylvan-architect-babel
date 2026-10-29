@@ -303,6 +303,13 @@ test('shards merged compare exactly as one run does, fail as it does, and only a
       .find(record => record.id === 'tier2-witness-persistence').violations[0].kind, 'mechanism-control-failed');
     const refused = (args, pattern) => { const result = cli('--output', out('refused.json'), ...args);
       assert.equal(result.status, 1); assert.match(result.stderr, pattern); };
+    // Shards judged the expectations as they measured, so ones measured under other
+    // expectations cannot pass this run's controls.
+    chosen.find(record => record.id === 'tier2-witness-persistence').expect.facets[1].present = true;
+    await writeFile(manifest, JSON.stringify({ records: chosen }));
+    refused(['--merge', out('failed-1.json'), '--merge', out('failed-2.json')], /other mechanism expectations/);
+    chosen.find(record => record.id === 'tier2-witness-persistence').expect.facets[1].present = false;
+    await writeFile(manifest, JSON.stringify({ records: chosen }));
     refused(['--merge', out('failed-1.json')], /shards 1\/N to N\/N of one N, each once; got 1\/2/);
     refused(['--merge', out('failed-1.json'), '--merge', out('failed-1.json')], /each once; got 1\/2, 1\/2/);
     refused(['--width', '1500', '--merge', out('failed-1.json'), '--merge', out('failed-2.json')], /other records or another layout/);
