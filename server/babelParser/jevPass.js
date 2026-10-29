@@ -1,5 +1,6 @@
 import { neutralJevClaims } from '../../replay/jevClaims.ts';
-import { JEV_CONFIDENCE_THRESHOLD, jevRecordIssues } from '../../replay/relations/jev.ts';
+import { jevRecordIssues } from '../../replay/jevRecord.ts';
+import { JEV_CONFIDENCE_THRESHOLD } from '../../replay/relations/jev.ts';
 import { DEFAULT_JEV_MODEL, JEV_PROMPT_VERSION, askJevClaim, jevRecordFrom, requestJev } from './jev.js';
 
 /**

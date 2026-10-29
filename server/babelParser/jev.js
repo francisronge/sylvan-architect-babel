@@ -1,4 +1,5 @@
-import { JEV_NONE, JEV_RECORD_VERSION, jevFamilies, jevReadingGap, jevTerms, validateJevAnswer } from '../../replay/relations/jev.ts';
+import { JEV_RECORD_VERSION } from '../../replay/jevRecord.ts';
+import { JEV_NONE, jevFamilies, jevReadingGap, jevTerms, validateJevAnswer } from '../../replay/relations/jev.ts';
 import { JEV_FAMILY_DESCRIPTIONS } from './jevDescriptions.js';
 
 /**

@@ -1,6 +1,6 @@
 import type { ParseBundle } from '../types.ts';
 import { canonicalJson, copyJsonData, freezeJsonData, requireExactFields, requirePlainRecord, requireNonemptyString, requireSha256 } from '../derivationalDatabase/jsonData.js';
-import { jevRecordIssues } from '../replay/relations/jev.ts';
+import { jevRecordIssues } from '../replay/jevRecord.ts';
 
 // Browser-local immutable carriers preserve the received bundle. W17 native export
 // requires additional evidence and a separate adapter; these are not W17 envelopes.

@@ -11,8 +11,9 @@ import { JEV_FAMILY_DESCRIPTIONS } from '../server/babelParser/jevDescriptions.j
 import { neutralJevClaims } from '../replay/jevClaims.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  JEV_CONFIDENCE_THRESHOLD, JEV_FAMILIES, JEV_RECORD_VERSION, jevFamilies, jevReadingGap, jevTerms, validateJevAnswer
+  JEV_CONFIDENCE_THRESHOLD, JEV_FAMILIES, jevFamilies, jevReadingGap, jevTerms, validateJevAnswer
 } from '../replay/relations/jev.ts';
+import { JEV_RECORD_VERSION } from '../replay/jevRecord.ts';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
 const { records } = loadFixtureAnalyses();

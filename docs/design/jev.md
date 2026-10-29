@@ -166,8 +166,9 @@ or no applicable mapping, plans are byte-identical to today's.
 
 The Personal Tree Bank stores `jevReadings` inside the analysis record, so a
 reopened analysis draws as it was drawn; `services/treeBankRecords.ts` refuses
-a malformed record (`jevRecordIssues`), and `scripts/verifyParseContract.mjs`
-also checks that each mapping names a relation of its analysis by its words.
+a malformed record (`jevRecordIssues` in `replay/jevRecord.ts`), and
+`scripts/verifyParseContract.mjs` also checks that each mapping names a
+relation of its analysis by its words.
 
 A reading that stands can inform later claims the way any drawn claim does,
 for example through assignment continuity.

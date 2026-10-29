@@ -13,7 +13,7 @@ const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 
 const checkout = t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-stale-dist-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  for (const entry of ['server', 'replay', 'scripts', 'types.ts', 'package.json']) {
+  for (const entry of ['server', 'replay', 'scripts', 'types.ts', 'derivationReplayPlan.js', 'relationLinks.ts', 'package.json']) {
     fs.cpSync(path.join(repoRoot, entry), path.join(root, entry), { recursive: true });
   }
   fs.symlinkSync(path.join(repoRoot, 'node_modules'), path.join(root, 'node_modules'), 'dir');

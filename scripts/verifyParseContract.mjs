@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
-import { jevRecordIssues, jevTerms } from '../replay/relations/jev.ts';
+import { jevRecordIssues } from '../replay/jevRecord.ts';
+import { jevTerms } from '../replay/relations/jev.ts';
 
 const DEFAULT_INPUTS = fs.globSync('fixtures/normalized/*.json').sort();
 const RETAINED_RELATION_RULES = new Set([

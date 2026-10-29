@@ -12,7 +12,8 @@ import { normalizeParseBundle } from '../server/babelParser/parseNormalization.j
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { runManualQualification } from '../contractQualification/manualServer.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { JEV_CONFIDENCE_THRESHOLD, JEV_RECORD_VERSION, jevTerms } from '../replay/relations/jev.ts';
+import { JEV_RECORD_VERSION } from '../replay/jevRecord.ts';
+import { JEV_CONFIDENCE_THRESHOLD, jevTerms } from '../replay/relations/jev.ts';
 import { prepareTreeBankSave, restoreTreeBankBundle, validateTreeBankRecord } from '../services/treeBankRecords.ts';
 import { createTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
