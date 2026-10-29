@@ -15,8 +15,8 @@ prerequisites, not rendered correctness, and starts no server or provider reques
 
 | Command | What it proves |
 |---|---|
-| `npm run verify:all` | Typechecking, exception growth and every provider-free test, including the parse contract (which reuses the parser's rules; a malformed individual relation stays an explicit warning, not proof of a correct relation) and the Replay invariant sweep over every committed fixture analysis (`tests/replayInvariants.test.mjs`). `node scripts/auditReplayInvariants.mjs --out /tmp/invariants.json` runs the same invariants over fixtures and saved qualification batches. |
-| `npm run verify:exceptions` | Part of `verify:all` and CI. Fails when a change adds an entry to `tests/helpers/*Exceptions.mjs`, lists a fault at more places or raises a bound without Francis's approval on that entry (`approval: { by, on, note, accepts }`, `accepts` being the entry's `at` as he accepted it), or when an entry grows beyond what its approval accepts. Approvals do not expire; renumbered frames are not growth. |
+| `npm run verify:all` | Typechecking, exception growth and every provider-free test, including the parse contract (which reuses the parser's rules; a malformed individual relation stays an explicit warning, not proof of a correct relation) and the Replay invariant sweep over every committed fixture analysis (`tests/replayInvariants.test.mjs`), whose `movement-shown-as-movement` rule fails when an authored chain or recognized movement gets its landing from construction or another relation's moment instead of its own claim's moment. `node scripts/auditReplayInvariants.mjs --out /tmp/invariants.json` runs the same invariants over fixtures and saved qualification batches. |
+| `npm run verify:exceptions` | Part of `verify:all` and CI. Fails when a change adds an entry to `tests/helpers/*Exceptions.mjs`, lists a fault at more places or raises a bound without Francis's approval on that entry (`approval: { by, on, note, accepts }`, `accepts` being the entry's `at` as he accepted it), or when an entry grows beyond what its approval accepts. Approvals do not expire; renumbered frames are not growth, and unrelated later commits do not invalidate an approval. |
 | `npm run verify:replay-offline` | Runs `verify:visual-offline` and `verify:camera-offline` in one pass, with the layout fingerprint, preparing each analysis once. CI runs it. |
 | `npm run verify:visual-offline` | Lays out every committed fixture frame and Canopy offline at 1440×900 and 2560×1440 and checks overlapping text, lines through plaques or text, distant plaques and role labels, broken label wraps, clipping, branches off the one-row grid, sisters on different rows, parents more than a pixel off the midpoint of their outermost visible daughters, and plaques that jump while their anchor holds and nothing new takes the pocket they leave. Fails on findings not in `tests/helpers/visualExceptions.mjs`, beyond their bound, or stale. Also checks the layout fingerprint (below). |
 | `npm run verify:camera-offline` | Runs the real camera fit on the same frames at 1440×900 and 390×844 through every adjacent step, a reversal after each arrival and direct selection. Checks settled path independence (justified forward retention only), content placement, first-paint continuity, within-stage stability, that the Canopy paints the last Replay frame's syntax unchanged (`canopy-final-frame`) and shows the whole tree centred (`canopy-placement`). Exceptions: `tests/helpers/cameraExceptions.mjs`. It does not see browser timing or painted motion between poses. |
@@ -24,7 +24,7 @@ prerequisites, not rendered correctness, and starts no server or provider reques
 | `npm run verify:renderer-browser` | Relation drawing in Chromium: native endpoint attachment, persistence, zoom/Fit and narrow views. |
 | `npm run verify:browser` | Every required browser spec, including real app failure recovery and Tree Bank save/reopen. Missing, unowned or skipped required specs fail. |
 | `npm run verify:browser-webkit` | The bounded Chromium/WebKit renderer and comparison-visibility matrix. Not a substitute for reviewing UI changes in the macOS in-app browser. |
-| `npm run verify:browser-visual` | Renders the human-catalogue analyses with the production renderer in Chromium at 1440×900 and 390×844 and judges every painted frame and the Canopy with the shared geometry rules, index letters, settled poses against the camera policy, and every animation frame of each Next step, rapid Next run and resize (empty or faded frames, off-canvas, jumping or blinking syntax and marks, jitter). Exceptions: `tests/helpers/browserVisualExceptions.mjs`. macOS only (see CI). |
+| `npm run verify:browser-visual` | Renders the human-catalogue analyses with the production renderer in Chromium at 1440×900 and 390×844 and judges every painted frame and the Canopy with the shared geometry rules, index letters, settled poses against the camera policy, and every animation frame of each Next step, rapid Next run and resize (empty or faded frames, off-canvas, jumping or blinking syntax and marks, jitter). Fails on findings not in `tests/helpers/browserVisualExceptions.mjs`, beyond their bound or stale, and on unjudged places. macOS only (see CI). |
 | `npm run verify:renderer-performance -- --baseline-root /base --report /tmp/timing.json` | First-paint budget against a base checkout; both need locked dependencies. Full preparation is reported but has no budget yet. |
 | `npm run release:check` | `verify:all`, `verify:replay-offline`, `build` with `release:verify-assets`, `verify:browser` and `verify:browser-visual`, in order, stopping at the first failure. Run renderer performance beside it. |
 
@@ -69,12 +69,18 @@ continuity, geometry and movement only; its Replay, plan, layout and width
 changes are reviewed through the fingerprint. A fixture the change adds is judged
 by motion, continuity and geometry only (`allowAddedFixtures`). Records of
 `fixtures/replay-corpus/manifest.json` keep their own `allow` rules; an
-intentional comparison exception needs an explicit reason.
+intentional comparison exception needs an explicit reason. The manifest links
+representative fixtures for movement and ordinary wrappers, later movement,
+separately established pronunciation, multiple roots, nonmovement construction,
+Tier 2 persistence and malformed claims. `--archive-manifest /private/index.json`
+adds private saved records; unknown mechanism coverage is reported.
 
 For a wider comparison, `node scripts/buildCorpusArchiveManifest.mjs --fixtures
 --runs /path/batch/runs --out /tmp/archive.json` names every committed fixture
 analysis with a saved sentence and every analysis of saved qualification runs;
 pass it as `--archive-manifest`, with a larger `--timeout-ms` for a large archive.
+Fixture analyses without a saved sentence are listed as skipped. Every changed
+record still needs its own review.
 
 ## What each check can and cannot see
 
@@ -94,7 +100,7 @@ pass it as `--archive-manifest`, with a larger `--timeout-ms` for a large archiv
 ## Discovery over saved runs
 
 - Visual audit: `node scripts/auditReplayVisuals.mjs --fixtures --batches /path/codex-qualification --out /tmp/visual-audit.json` (mobile included).
-- Camera audit: add `--audit camera --viewports desktop,wide-short,mobile`.
+- Camera audit: the same `auditReplayVisuals.mjs` with `--audit camera --batches /path/codex-qualification --viewports desktop,wide-short,mobile` (each `--audit` takes its own `--viewports`).
 - Browser audit of a review page: `node scripts/auditReplayBrowser.mjs --page PAGE.html --cases all --out /tmp/audit` (`--dry-run`, `--shard`, `--baseline`).
 
 ## CI
