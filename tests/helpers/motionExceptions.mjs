@@ -13,6 +13,10 @@ const REASON = 'Accepted trade-off (case 3, 27 Oct): with no one-branch N\u2032 
 const APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-27', note: 'Reviewed case 3 on the unary and option-2 pages; after option 2 did not remove the slide: \u201calright. then it\u2019s whatever.\u201d (lead session, 27 Oct)', accepts: at });
 const x = (record, subtype, subject, at) => ({ reason: REASON, record, rule: 'motion', subtype, subject, at, approval: APPROVAL(at) });
 
+const LOWERED_REASON = 'Existing jump on main (C 464, I and VP 66 at the CP-extraposition crossing): the lowered matrix IP is laid out again one row down and slides under C, and the camera carry falls back to it. Putting the chain index on the moved CP label narrows its words, which grows the same jump. Fixing the slide is shared layout work across 11 such crossings, owed next.';
+const LOWERED_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-29', note: 'Asked to approve the jump growing to 574 so the index change can merge, with the 11-tree lowered-subtree jump as the next layout job: \u201cyes\u201d; for I and VP 66\u219292 at the same step: \u201cyeah yeah, I ALREADY SAID YES, GIVEN THAT YOU WILL DEAL WITH IT AFTERWARDS.\u201d (lead session, 29 Oct)', accepts: at });
+const lowered = (subtype, subject, at) => ({ reason: LOWERED_REASON, record: 'fixture:movement/clause-context.json#/cases/2', rule: 'motion', subtype, subject, at, approval: LOWERED_APPROVAL(at) });
+
 export const EXCEPTIONS = [
   x('relative-clause-waiting-clearance', 'attachment-site-motion', 'letterInnerNBar', { '-': { '58': 678.46 } }),
   x('relative-clause-waiting-clearance', 'attachment-site-motion', 'relativeCP', { '-': { '58': 428.6 } }),
@@ -23,4 +27,7 @@ export const EXCEPTIONS = [
   x('fixture:replay-regressions/workspace-component-lifetime.json#/cases/2', 'attachment-site-motion', 'letterInnerNBar', { '-': { '58': 678.46 } }),
   x('fixture:replay-regressions/workspace-component-lifetime.json#/cases/2', 'attachment-site-motion', 'relativeCP', { '-': { '58': 428.6 } }),
   x('fixture:replay-regressions/workspace-component-lifetime.json#/cases/2', 'shape-motion', 'matrixIBar', { '-': { '57': 256.54 } }),
+  lowered('unowned-motion', 'matrixC', { '-': { '55': 573.67 } }),
+  lowered('shape-motion', 'matrixI', { '-': { '55': 92.19 } }),
+  lowered('shape-motion', 'matrixVP', { '-': { '55': 92.19 } }),
 ];
