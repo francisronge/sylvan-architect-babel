@@ -51,9 +51,22 @@ test('Sol n4-14: the parked temporal PP waits where it merges', () => {
   assert.ok(motion(27, 101, 'temporalPP') <= 1, 'the PP travels when it merges');
 });
 
-test('Opus n4-21: the room 本を leaves is mostly closed at its movement, and the later movement re-spreads less', () => {
-  assert.ok(point(30, 64, 'v2_bar').x - point(30, 64, 'kp_jiro').x < 3000, '次郎が stands far from v′');
-  assert.ok(faultsAt(30, 75).reduce((sum, fault) => sum + fault.distance, 0) < 1000, 'the tree re-spreads at 75');
+// The median travel into `frame`, after the carry, of the syntax painted in both
+// frames under the same shared ancestors: what the camera audit's first paint reads.
+const attachedTravel = (bug, frame) => {
+  const [before, after] = [frame - 1, frame].map(index => measured[bug].frames[index - 1]);
+  const painted = entry => new Map(entry.points.map(item => [item.id, { x: item.x, y: item.y, parentId: item.parent }]));
+  const carry = before.stage !== after.stage ? paintedShift(painted(before), painted(after)) : { x: 0, y: 0 };
+  const [a, b] = [before, after].map(entry => new Map(entry.points.map(item => [item.id, item])));
+  const shared = new Set([...b.keys()].filter(id => a.has(id)));
+  const lineage = (map, id) => { const out = []; for (let at = map.get(id).parent; at; at = map.get(at)?.parent) if (shared.has(at)) out.push(at); return out.join(' '); };
+  const travel = [...shared].filter(id => lineage(a, id) === lineage(b, id))
+    .map(id => Math.hypot(b.get(id).x - carry.x - a.get(id).x, b.get(id).y - carry.y - a.get(id).y)).sort((u, v) => u - v);
+  return (travel[(travel.length - 1) >> 1] + travel[travel.length >> 1]) / 2;
+};
+
+test('Opus n4-21: closing the room 本を leaves does not jump the clause it stays attached in', () => {
+  assert.ok(attachedTravel(30, 63) < 20, 'the attached syntax jumps when the object scrambles');
 });
 
 test('Sol n4-36: the book NP waits near where the relative clause merges with it', () => {
