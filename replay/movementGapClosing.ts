@@ -3,7 +3,7 @@ import type { SyntaxNode } from '../types.ts';
 import { carriedShift, paintedShift, type PaintedNodes } from './cameraCarry.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
-import { motionFrame, replayMotionFaults } from './motionRule.ts';
+import { motionFrame, replayMotionFaults, stepOwnership } from './motionRule.ts';
 import { closingAt, workspaceContinuityReflows } from './workspaceShapeReflows.ts';
 import { plaqueTreeObstacles } from './relations/plaquePlacement.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
@@ -215,6 +215,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
     else stages.set(scene.step.replayFrameIndex!, { members: [index], box: boxOf(all[index]) });
     scene.stage = stages.get(scene.step.replayFrameIndex!);
   });
+  const again = new Set<number>();
   for (let m = 1; m < scenes.length; m++) {
     const participants = trajectoryParticipants(scenes[m].step);
     if (!participants.length || firstScene.get(scenes[m].canvas) !== m || lastScene.get(scenes[m - 1].canvas)! >= m) continue;
@@ -451,20 +452,37 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
       }
       // Beyond the closing the rule grants, no node the step does not carry moves farther.
       const granted = closingAt(scenes[m - 1].step, scenes[m].step, prior, closed[0], prior, closed[0]);
+      // Syntax the step owns may also close from both sides at once, as the
+      // camera carry of a crossing can show a closing: each side only
+      // horizontally, toward the room, and no farther than it.
+      const owns = stepOwnership({ target: scenes[m].step.targetNodeId, links: participants,
+        points: [...closed[0]].map(([id, node]) => ({ id, parent: shownParent(closed[0], node) })),
+        prior: new Map([...prior].map(([id, node]) => [id, { id, parent: shownParent(prior, node) }])) });
+      const closesToward = (id: string, dx: number, dy: number) => {
+        const part = partsAt[0].get(id);
+        return Math.abs(dy) <= 1 && Math.abs(dx) <= bound + 1 && (part === 0 ? dx >= -1 : part === 2 ? dx <= 1 : true);
+      };
       for (const [id, node] of closed[0]) {
         const old = prior.get(id), was = current.get(id);
         if (!old || !was || movers.has(id) || granted.has(id)) continue;
+        if (owns.has(id) && closesToward(id, node.x - shiftNow.x - old.x, node.y - shiftNow.y - old.y)) continue;
         const now = Math.hypot(node.x - shiftNow.x - old.x, node.y - shiftNow.y - old.y), before = Math.hypot(was.x - shiftWas.x - old.x, was.y - shiftWas.y - old.y);
         if (now > before + 1) { added.push({ kind: 'ungranted-motion', node: id, distance: now }); break; }
       }
-      if (added.length) debug('rule faults', added.slice(0, 4).map(fault => `${fault.kind} ${fault.node} ${Math.round(fault.distance)}`).join('; '));
+      if (added.length) debug('rule faults', added.slice(0, 4).map(fault => `${fault.kind} ${fault.node} ${Math.round(fault.distance)}`).join('; '), 'carry', Math.round(shiftWas.x), '->', Math.round(shiftNow.x));
       // Nor any continuity fault the corpus gate would newly find.
       const continuous = !added.length && keepsStageSize(scenes, all, new Map(closed.map((frame, index) => [m + index, frame]))) && closed.every((frame, index) => !newContinuityFaults(scenes[m + index - 1], scenes[m + index],
         frames[index], frames[index + 1], index ? closed[index - 1] : frames[0], frame).length);
       if (!added.length && !continuous) debug('continuity');
       if (continuous && closed.slice(1).every((frame, index) =>
         sameMotion(scenes[m + index + 1].step, scenes[m + index].step.replayFrameIndex !== scenes[m + index + 1].step.replayFrameIndex,
-          frames[index + 1], frames[index + 2], closed[index], frame))) { closed.forEach((frame, index) => { all[m + index] = frame; }); debug('closed'); break; }
+          frames[index + 1], frames[index + 2], closed[index], frame))) {
+        closed.forEach((frame, index) => { all[m + index] = frame; });
+        debug('closed');
+        // The other side may then close what room is left.
+        if (!again.has(m)) { again.add(m); m--; }
+        break;
+      }
       debug('motion changed later');
       for (const [canvas, points] of moved) coordinates.set(canvas, points);
     }
