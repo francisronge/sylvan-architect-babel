@@ -1928,6 +1928,19 @@ index draws it, because its placement clears the binding path. Different letters
 at one occurrence stay separate, and a letter on an occurrence's word, such as a
 theta or identity index, does not remove a letter beside its phrase label.
 
+A movement chain's number stands where syntax texts write it. A moved phrase
+shows it once on the category label of each occurrence, [DP which book]₁ … DP₁,
+and the words inside it show none unless they belong to a chain of their own:
+[VP t₁ auf den Tisch gelegt]₂. An anchor inside an occurrence that already
+shows the number, such as a trace witness authored inside its lower copy, does
+not repeat it. A moved head shows it on its words, V₁ … t₁. An occurrence with
+no category label of its own, a bare word or trace, shows it in its text, where
+authored trace notation stays as written. A one-word phrase therefore reads DP₁
+over its word, and the word keeps its theta or identity letters.
+`buildResolvedLinkChainIndices` in `replay/movementIndices.ts` makes this
+placement once for the label runs the offline layout measures and for the
+painter.
+
 ## Required Verification
 
 ### Evidence accounting

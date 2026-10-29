@@ -73,7 +73,7 @@
       "source": "../replay-regressions/relative-clause-waiting-clearance.json",
       "mechanisms": ["multiple-roots", "ordinary-wrapper", "later-movement"],
       "expect": {"minWorkspaceRoots": 2, "minMerges": 1, "minMovementMoments": 1},
-      "allow": {"replay": true, "finalCoordinates": true, "reason": "The relative clause now attaches beside the old N' at one merge, without the one-branch N' frame that no authored stage contains; the accepted slide at that merge is listed in tests/helpers/motionExceptions.mjs."}
+      "allow": {"replay": true, "finalCoordinates": true, "completedWidthGrowth": true, "reason": "The relative clause now attaches beside the old N' at one merge, without the one-branch N' frame that no authored stage contains; the accepted slide at that merge is listed in tests/helpers/motionExceptions.mjs. Moved phrases show their chain index on their labels, not on their words, which widens the completed tree by 0.07 tree units."}
     },
     {
       "id": "phase-edge-retained-sister-contour",
@@ -138,7 +138,8 @@
       "id": "showcase-22-zu-noun-class.r2",
       "source": "../showcase/agreement-and-case.json",
       "selector": "/cases/5",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"finalCoordinates": true, "completedWidthGrowth": true, "reason": "The moved subject NP shows its chain index on its label and its trace's, not on its word Abafana: the completed tree widens by 0.44 tree units and its final coordinates shift by under half a unit."}
     },
     {
       "id": "showcase-68-en-there-expletive",
@@ -240,7 +241,8 @@
       "id": "showcase-04-yue-sfp",
       "source": "../showcase/relatives-and-clitics.json",
       "selector": "/cases/4",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"finalCoordinates": true, "reason": "The moved subject NP shows its chain index on its label and its trace's, not on its word 佢: the final coordinates shift by under one tree unit."}
     },
     {
       "id": "showcase-76-tr-relative",

@@ -12,7 +12,7 @@ import { applyPreFrontingSentenceInitialCasing, maybeLowercaseSentenceInitialFun
 import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
 import { buildReplaySupportLines } from '../replay/replayPanel.ts';
-import { buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
+import { buildResolvedLinkChainIndices, buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
 import { collectPronouncedLeafNodeIdsInOrder } from '../replay/syntaxForest.ts';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import {
@@ -64,6 +64,20 @@ const playback = (card) => applyPreFrontingSentenceInitialCasing(
   ),
   card.sentence
 );
+
+/** The chain index each occurrence shows: on its own text or label, or on the
+ * label of the indexed phrase it lies inside. */
+const occurrenceChainIndices = (forest, links, stepIndex) => {
+  const { terminals, phrases } = buildResolvedLinkChainIndices(forest, links, stepIndex);
+  const shown = new Map();
+  const visit = (node, inherited) => {
+    const own = terminals.get(node.id) ?? phrases.get(node.id);
+    shown.set(node.id, own ?? inherited);
+    (node.children || []).forEach(child => visit(child, phrases.get(node.id) ?? inherited));
+  };
+  forest.forEach(root => visit(root, undefined));
+  return { terminals, phrases, shown };
+};
 
 const cardNamed = (rawCases, title) => {
   const card = rawCases.find((candidate) => candidate.title === title);
@@ -1500,12 +1514,12 @@ test('across-the-board chains share one index across every conjunct gap', async 
   ]) {
     const steps = playback(cardNamed(rawCases, title));
     const final = steps.at(-1);
-    const map = buildResolvedLinkTraceIndexMap(
+    const { shown } = occurrenceChainIndices(
       [final.replayCanvasData],
       final.replayRelationLinks,
       Number.MAX_SAFE_INTEGER
     );
-    const indices = gapLeafIds.map((leafId) => map.get(leafId));
+    const indices = gapLeafIds.map((leafId) => shown.get(leafId));
     assert.ok(
       indices.every(Boolean),
       `${title}: every conjunct gap must carry a chain index (got ${JSON.stringify(indices)})`
@@ -1532,20 +1546,23 @@ test('a gap keeps its own chain index inside a later-moved constituent', async (
 
   /*
    * Müller's remnant notation: the fronted VP's vacated copy shows the VP
-   * chain's index on its own material, while the object gap inside it keeps
-   * the object chain's index — [t₁ auf den Tisch gelegt]₂ … das Buch₁ … t₂.
+   * chain's index on its label, while the object gap inside it keeps the
+   * object chain's index — [VP t₁ auf den Tisch gelegt]₂ … [DP das Buch]₁ … t₂.
    * Containment never overwrites chain membership.
    */
   const steps = playback(cardNamed(rawCases, 'Remnant Movement'));
   const final = steps.at(-1);
-  const map = buildResolvedLinkTraceIndexMap(
+  const { terminals, phrases, shown } = occurrenceChainIndices(
     [final.replayCanvasData],
     final.replayRelationLinks,
     Number.MAX_SAFE_INTEGER
   );
+  for (const [phraseId, index] of [['vp_rt_high', '2'], ['vp_rt_low', '2'], ['dp_obj_high', '1'], ['dp_obj_gap', '1']]) {
+    assert.equal(phrases.get(phraseId), index, `${phraseId}: a moved phrase shows its chain index on its label`);
+  }
   for (const objectGapLeafId of ['d_das_gap__silent', 'n_buch_gap__silent']) {
     assert.equal(
-      map.get(objectGapLeafId),
+      shown.get(objectGapLeafId),
       '1',
       `${objectGapLeafId}: the object gap belongs to the evacuation chain`
     );
@@ -1557,9 +1574,10 @@ test('a gap keeps its own chain index inside a later-moved constituent', async (
     'v_gelegt_low__silent'
   ]) {
     assert.equal(
-      map.get(vpLeafId),
+      shown.get(vpLeafId),
       '2',
       `${vpLeafId}: the remnant VP's own material belongs to the fronting chain`
     );
   }
+  assert.equal(terminals.size, 0, 'no word repeats a phrase chain index');
 });

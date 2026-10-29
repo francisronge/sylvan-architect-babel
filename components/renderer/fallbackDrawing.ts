@@ -1,5 +1,4 @@
 import * as d3 from 'd3';
-import { categoryTextLayout } from '../../replay/categoryTextLayout.ts';
 import {
   ANCHOR_SET_BADGE, anchorSetBadgeRadius, CATEGORY_LABEL, categoryLineBaselineY, markerScaleAtZoom, RELATION_BINDING_METRICS,
   RELATION_LANES_BELOW_DEEPEST_NODE, TERMINAL_LABEL
@@ -50,7 +49,7 @@ interface FallbackLabelsContext {
   g: DrawingLayer;
   frameLayoutById: Map<string, d3.HierarchyPointNode<SyntaxNode>>;
   getReplayRenderedTerminalText: (d: HierNode) => string;
-  measureCategoryText: (text: string) => number;
+  getReplayRenderedCategoryLines: (d: HierNode) => string[];
   replayPlaqueLayout: Map<number, PlaquePlacement>;
   replayVisibleNodeIdSet: Set<string> | null;
   playedRelationIndices: Set<number> | null;
@@ -63,7 +62,7 @@ export function measureFallbackLabels({
   g,
   frameLayoutById,
   getReplayRenderedTerminalText,
-  measureCategoryText,
+  getReplayRenderedCategoryLines,
   replayPlaqueLayout,
   replayVisibleNodeIdSet,
   playedRelationIndices,
@@ -81,8 +80,9 @@ export function measureFallbackLabels({
   if (hasFallback) new Set(frameLayoutById.values()).forEach(node => {
     if (isSyntheticWorkspaceRootNode(node) || isUnderTriangulation(node)) return;
     const category = Boolean(node.children?.length) || shouldExpandPreterminalLeaf(node.data) || isWordlessCategoryLeaf(node.data);
-    const label = category ? node.data.label : getReplayRenderedTerminalText(node as unknown as HierNode);
-    const metricKey = JSON.stringify([category, label]);
+    const lines = category ? getReplayRenderedCategoryLines(node as unknown as HierNode) : [];
+    const label = category ? lines.join('') : getReplayRenderedTerminalText(node as unknown as HierNode);
+    const metricKey = JSON.stringify([category, category ? lines : label]);
     let rect = fallbackTextMetrics.get(metricKey);
     if (!rect) {
       const sample = category ? categorySample : terminalSample;
@@ -98,7 +98,6 @@ export function measureFallbackLabels({
       text.style.fontFamily = 'Quicksand, sans-serif';
       text.style.fontStyle = category ? 'normal' : 'italic';
       if (category) {
-        const { lines } = categoryTextLayout(label, measureCategoryText);
         lines.forEach((line, index) => {
           const span = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
           span.setAttribute('x', '0');

@@ -1,6 +1,5 @@
 import * as d3 from 'd3';
 import type { ResolvedRelationLink } from '../../relationLinks.ts';
-import { categoryTextLayout } from '../../replay/categoryTextLayout.ts';
 import {
   CATEGORY_LABEL, categoryLineBaselineY, quadraticTrajectoryBellyY, TERMINAL_LABEL, TERMINAL_STEM, TRAJECTORY_ROUTES
 } from '../../replay/rendererMetrics.ts';
@@ -36,6 +35,7 @@ import {
 } from '../../replay/replaySurfaceNotation.ts';
 import { collectPronouncedLeafNodeIdsInOrder, hasSilentOrGhostAncestor, isPronouncedHierLeaf, normalizeToken } from '../../replay/syntaxForest.ts';
 import {
+  categoryLabelLines,
   stagedTerminalText
 } from '../../replay/treeLabelRuns.ts';
 import { isUnderTriangulation } from '../../replay/triangulation.ts';
@@ -56,6 +56,8 @@ export interface SyntaxDrawingContext {
   animated: boolean;
   activeStepIndex: number;
   traceDisplayIndexByNodeId: Map<string, string>;
+  /** Category-label chain indices of moved phrases (`buildResolvedLinkChainIndices`). */
+  phraseChainIndexByNodeId: Map<string, string>;
   traceDisplayFrame: ReplayDerivationFrame | null;
   traceDisplayRelationLinks: ResolvedRelationLink[];
   traceDisplayFrameIndex: number;
@@ -80,6 +82,7 @@ export function paintSyntaxTree({
   animated,
   activeStepIndex,
   traceDisplayIndexByNodeId,
+  phraseChainIndexByNodeId,
   traceDisplayFrame,
   traceDisplayRelationLinks,
   traceDisplayFrameIndex,
@@ -421,6 +424,8 @@ export function paintSyntaxTree({
   );
   const categoryInk = (d: HierNode) =>
     isWordlessCategoryLeaf(d.data) && isReplaySilentTerminalLeaf(d) ? SILENT_SAGE : PURE_WHITE;
+  // A category label's painted lines, with a moved phrase's chain index.
+  const getReplayRenderedCategoryLines = (d: HierNode) => categoryLabelLines(d, phraseChainIndexByNodeId, measureCategoryText);
   categories.append('text')
     .attr('class', 'category-label')
     .attr('data-category-node-id', (d) => getNodeId(d))
@@ -437,7 +442,7 @@ export function paintSyntaxTree({
     .style('stroke-width', `${CATEGORY_LABEL.strokeWidth}px`)
     .attr('xml:space', 'preserve')
     .each(function (d) {
-      const { lines } = categoryTextLayout(d.data.label, measureCategoryText);
+      const lines = getReplayRenderedCategoryLines(d);
       d3.select(this).selectAll('tspan').data(lines).join('tspan')
         .attr('x', 0).attr('y', (_line, index) => categoryLineBaselineY(index, lines.length))
         .text(line => line);
@@ -642,6 +647,7 @@ export function paintSyntaxTree({
     getRevealStepForNodeId,
     effectiveRevealThreshold,
     getReplayRenderedTerminalText,
+    getReplayRenderedCategoryLines,
     measureGraphicsElementsInTreeSpace: createTreeGraphicsMeasure(g),
     TARGET_EMERALD
   };

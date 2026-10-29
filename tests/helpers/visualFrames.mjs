@@ -41,7 +41,7 @@ import { resolveUniqueDisplayTerminal } from '../../replay/relations/trajectoryA
 import {
   isDisplayTerminalNode, isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf
 } from '../../replay/replaySurfaceNotation.ts';
-import { treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
+import { categoryLabelLines, chainIndicesForStep, treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
 import { buildMovementProtectedNodeIds, isUnderTriangulation } from '../../replay/triangulation.ts';
 import * as notation from '../../components/renderer/treeNotation.ts';
 import { fitTreeCamera } from '../../components/renderer/frameCamera.ts';
@@ -398,8 +398,10 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     return { ...none, texts: badgeTexts(marks, items, markerScale), plaques, marks: markRecords(marks) };
   }
   // measureFallbackLabels: plain label cells for every laid-out node.
+  const phrases = chainIndicesForStep(visual.prepared, stepIndex)?.phrases;
   const labelRects = new Map(all.filter(node => !canvas.isSyntheticWorkspaceRootNode(node) && !isUnderTriangulation(node)).map(node => {
-    const run = isCategory(node) ? { kind: 'category', text: node.data.label || '', lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] }
+    const lines = isCategory(node) && categoryLabelLines(node, phrases, measureCategoryText);
+    const run = lines ? { kind: 'category', text: lines.join(''), lines, indices: [] }
       : { kind: 'terminal', text: firstRun(runs.get(display.getNodeId(node)), 'terminal')?.text ?? resolveLeafSurface(node).trim(), indices: [] };
     return [display.getNodeId(node), labelGeometry(node, run).cell];
   }));

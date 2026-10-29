@@ -7,7 +7,14 @@ import { hierarchy } from 'd3';
 import { buildAuthoredRelationLinksForFrames } from '../replay/frameRelations.ts';
 import { buildDerivationReplaySnapshot } from '../replay/replayCanvas.ts';
 import { buildReplaySupportLines } from '../replay/replayPanel.ts';
-import { buildResolvedLinkOperatorVariableIndexMap, buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
+import { buildResolvedLinkChainIndices, buildResolvedLinkOperatorVariableIndexMap } from '../replay/movementIndices.ts';
+
+// Every chain index shown, on a word (`terminals`) or a category label (`phrases`).
+const buildResolvedLinkTraceIndexMap = (...args) => {
+  const { terminals, phrases } = buildResolvedLinkChainIndices(...args);
+  return new Map([...terminals, ...phrases]);
+};
+const chainIndices = buildResolvedLinkChainIndices;
 
 
 test('preterminal expansion preserves category notation instead of treating it as word punctuation', () => {
@@ -249,7 +256,9 @@ test('a feature dependency survives replay without becoming a second movement ch
   assert.equal(movement?.witnessNodeId, 'low_d');
   assert.equal(movement?.renderFamily, 'trajectory');
   assert.equal(licensing?.renderFamily, 'authored-anchor-link');
-  assert.equal(traceIndices.get('low_d'), '1');
+  // The lower copy's label shows the chain once; the witness inside it repeats nothing.
+  assert.equal(chainIndices(forest, snapshot.relationLinks, 1).phrases.get('low_dp'), '1');
+  assert.equal(traceIndices.has('low_d'), false);
   assert.equal(traceIndices.has('c_ellipsis'), false);
   assert.equal(traceIndices.has('c_ellipsis__null'), false);
 });
@@ -325,8 +334,9 @@ test('partial copy deletion does not rewrite the deleted lower material as a mov
   );
   const traceIndices = buildResolvedLinkTraceIndexMap(forest, snapshot.relationLinks, 1);
 
-  assert.equal(traceIndices.get('v_low'), '1');
-  assert.equal(traceIndices.has('vp_low'), false);
+  // The moved VP's index stands on the lower copy's label, not on its words.
+  assert.equal(chainIndices(forest, snapshot.relationLinks, 1).phrases.get('vp_low'), '1');
+  assert.equal(traceIndices.has('v_low'), false);
   assert.equal(traceIndices.has('dp_low'), false);
   assert.equal(traceIndices.has('n_low'), false);
 });
@@ -356,8 +366,9 @@ test('a movement relation still assigns its index to the authored trace witness'
     stepIndex: 0
   }], 0);
 
+  // Both DP labels show the chain; the witness inside the lower copy repeats nothing.
   assert.equal(traceIndices.get('low_dp'), '1');
-  assert.equal(traceIndices.get('low_d'), '1');
+  assert.equal(traceIndices.has('low_d'), false);
   assert.equal(traceIndices.get('high_dp'), '1');
 });
 
@@ -420,9 +431,10 @@ test('successive movement links preserve one authored index across the chain', (
     }
   ], 0);
 
-  for (const nodeId of ['base_dp', 'base_d', 'low_dp', 'low_d', 'mid_dp', 'mid_d']) {
+  for (const nodeId of ['base_dp', 'low_dp', 'mid_dp', 'high_dp']) {
     assert.equal(traceIndices.get(nodeId), '1');
   }
+  for (const nodeId of ['base_d', 'low_d', 'mid_d']) assert.equal(traceIndices.has(nodeId), false);
 });
 
 test('successive movement links share one fallback index without authored trace numerals', () => {
@@ -458,9 +470,10 @@ test('successive movement links share one fallback index without authored trace 
     }
   ], 0);
 
-  for (const nodeId of ['base_dp', 'base_d', 'mid_dp', 'mid_d']) {
+  for (const nodeId of ['base_dp', 'mid_dp', 'high_dp']) {
     assert.equal(traceIndices.get(nodeId), '1');
   }
+  for (const nodeId of ['base_d', 'mid_d']) assert.equal(traceIndices.has(nodeId), false);
 });
 
 test('authored relation links preserve literal anchor roles and use shared lineage only as identity', () => {
