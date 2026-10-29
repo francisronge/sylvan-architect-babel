@@ -91,7 +91,7 @@ export function toFrameModel(snapshot, { frame, viewport, anchorsFor = () => [] 
     if (text.host || text.kind === 'plaque-text' || text.kind === 'other') continue;
     const isTree = TREE_TEXT.has(text.kind);
     if (isTree && !text.nodeId) continue;
-    const kind = isTree ? (text.kind === 'category' ? 'category' : 'word') : text.kind === 'index' ? 'index' : 'role';
+    const kind = isTree ? (text.kind === 'category' ? 'category' : 'word') : ['index', 'badge'].includes(text.kind) ? text.kind : 'role';
     const claims = isTree ? [] : text.owners || [];
     const id = unique(isTree ? `${text.nodeId}:${kind}` : `${kind}(${claims.join('/')} ${normalize(text.text)})@${(text.refs || [])[0] ?? ''}`);
     const boxes = [...(text.inkBoxes?.length ? text.inkBoxes : [text.box]), ...(indexRuns.get(text.uid) || [])].filter(Boolean);

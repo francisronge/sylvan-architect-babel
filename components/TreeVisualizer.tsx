@@ -8,6 +8,7 @@ import { isPhrasalReplayMovement } from '../replay/movementLinks.ts';
 import { STEP_DELAY_MS } from '../replay/playbackFormatting.ts';
 import { prepareReplay, type PreparedReplay } from '../replay/prepareReplay.ts';
 import { prepareTreeLabelRuns } from '../replay/prepareTreeLabelRuns.ts';
+import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import type { PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 import {
   DERIVATION_WORKSPACE_ROOT_LABEL,
@@ -643,7 +644,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         relationRenderPlan,
         playedRelationIndices,
         activeRelationMoment,
-        acceptedCompositionIsTreeFirst
+        acceptedCompositionIsTreeFirst,
+        stepLabelRuns: animated ? () => treeLabelRunsForStep({
+          replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
+          movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps
+        }, activeStepIndex, measureCategoryText, { includeRelationIndices: true }) : undefined
       }, camera: { zoomBehavior, cameraAnimationRef, manualCameraRef, data, derivationStagesSignature, autoCameraRef, fitRevision }, lifecycle: {
         svgRef,
         containerRef,

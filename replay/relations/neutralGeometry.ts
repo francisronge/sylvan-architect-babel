@@ -1,4 +1,5 @@
 import { spaceAuthoredName } from '../displayText.ts';
+import { ANCHOR_SET_BADGE_CLEARANCE, anchorSetBadgeOuterRadius } from '../rendererMetrics.ts';
 import type { BoundAnchorSetBadge, BoundFallbackMark } from './boundGeometry.ts';
 import { FALLBACK_ROLE_STYLE, fallbackLabelRect, placeFallbackMark, routeFallbackSegments } from './fallbackGeometry.ts';
 import type { GeometryBinders } from './geometryContext.ts';
@@ -94,6 +95,9 @@ export const neutralGeometry = {
   },
   'anchor-set': (item, itemIndex, context) => {
     const { rectFor, badgeGap, markerScale, laneGap, policyFailed, failed, primitives, frame, options } = context;
+    const badgeSizeFor = (role: string, arrayIndex: number) => item.badgeEntries?.find(entry =>
+      entry.roleIndex === item.set.roles.find(group => group.role === role)?.roleIndex
+      && entry.arrayIndex === arrayIndex)?.badgeSize ?? item.badgeSize;
     const layout = planAnchorSetLayout(
       [{
         relation: item.set.relation,
@@ -101,7 +105,13 @@ export const neutralGeometry = {
         roles: item.set.roles
       }],
       rectFor,
-      { badgeOffsetY: badgeGap * markerScale, railGap: laneGap }
+      {
+        badgeOffsetY: badgeGap * markerScale,
+        railGap: laneGap,
+        ...(options.badgeObstacles ? { clearance: { obstacles: options.badgeObstacles,
+          radiusFor: (role: string, arrayIndex: number) => anchorSetBadgeOuterRadius(badgeSizeFor(role, arrayIndex)) * markerScale,
+          gap: ANCHOR_SET_BADGE_CLEARANCE * markerScale } } : {})
+      }
     );
     const unresolvedAtAuthoring = new Set(
       item.set.roles.flatMap((roleGroup) =>
@@ -122,8 +132,7 @@ export const neutralGeometry = {
       y: badge.y,
       numeral: badge.arrayIndex + 1,
       stackIndex: badge.stackIndex,
-      badgeSize: item.badgeEntries?.find(entry => entry.roleIndex === item.set.roles.find(role => role.role === badge.role)?.roleIndex
-        && entry.arrayIndex === badge.arrayIndex)?.badgeSize ?? item.badgeSize,
+      badgeSize: badgeSizeFor(badge.role, badge.arrayIndex),
       itemIndex
     }));
     const ownsBadge = (badge: typeof layout.badges[number]): boolean => item.badgeEntries

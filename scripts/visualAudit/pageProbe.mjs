@@ -3,9 +3,11 @@
 // until called. The pure helpers below are serialized into that script, so
 // they must not reference module scope; tests import them directly.
 
-/** Classifies a painted SVG text or tspan from its classes and context. */
-export function classifyText({ tag, classes = [], inNodeGroup = false, inPlaque = false, owned = false, inRelationLayer = false }) {
+/** Classifies a painted SVG text or tspan from its classes and context. A
+ * `badge` text is the numeral of an anchor-set badge circle. */
+export function classifyText({ tag, classes = [], inNodeGroup = false, inPlaque = false, owned = false, inRelationLayer = false, badge = false }) {
   if (tag !== 'text' && tag !== 'tspan') return 'ignore';
+  if (badge && tag === 'text') return 'badge';
   const indexClasses = ['babel-relation-index', 'vr-index-badge', 'babel-identity-index', 'babel-theta-terminal-index'];
   if (classes.some(name => indexClasses.includes(name))) return inPlaque ? 'plaque-text' : 'index';
   if (tag === 'tspan') return 'ignore';
@@ -335,7 +337,20 @@ export function installAuditProbe(helpers) {
         if (value < 0.01 || !(box.width > 0 && box.height > 0)) continue;
         const descriptor = describe(element, svg);
         descriptor.inPlaque = Boolean(plaqueOf(element, box));
+        // An anchor-set badge paints its numeral right after its circle.
+        const circle = element.previousElementSibling;
+        descriptor.badge = Boolean(circle) && tagOf(circle) === 'circle' && classesOf(circle).some(name => name === 'vr-anchor-set-badge' || name === 'babel-anchor-set-badge');
         const kind = classifyText(descriptor);
+        if (kind === 'badge') {
+          const disc = circle.getBoundingClientRect(), matrix = circle.getScreenCTM();
+          const half = (parseFloat(getComputedStyle(circle).strokeWidth) || 0) / 2
+            * (getComputedStyle(circle).vectorEffect === 'non-scaling-stroke' ? 1 : matrix ? Math.hypot(matrix.a, matrix.b) : 1);
+          const shell = rect({ x: disc.x - half, y: disc.y - half, width: disc.width + 2 * half, height: disc.height + 2 * half });
+          texts.push({ uid: `t${texts.length}`, kind, cls: descriptor.classes.join(' '), text: ownText(element), nodeId: null,
+            owners: ownersOf(element), refs: refsOf(element), box: shell, inkBoxes: [shell], strokePx: 0, lines: [],
+            opacity: round(value, 3), plaque: null, host: null, fontPx: 0 });
+          continue;
+        }
         if (kind === 'ignore') continue;
         const lineSpans = [...element.children].filter(child => tagOf(child) === 'tspan' && child.hasAttribute('y'));
         const nodeId = element.getAttribute('data-category-node-id') || element.getAttribute('data-node-id')
