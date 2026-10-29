@@ -424,17 +424,17 @@ const firstPoint = item => item.boxes?.[0] ?? item.rect ?? item.paths?.[0]?.[0];
  *   - its anchor moves (against the camera's carry across a stage boundary),
  *   - its own Case arrow or collectors start, end, meet another row or leave a source
  *     that moved,
- *   - the later frame newly paints something in its pocket's way: within one stage
- *     only another plaque or its own route, since the stage laid out its syntax and
- *     marks in advance and the plaque should have left before they arrived,
+ *   - the later frame newly paints something in its pocket's way,
  *   - the later frame begins a stage, and a later frame of that stage, while the
  *     plaque stays shown there beside a still anchor, newly paints syntax or a mark in
  *     its pocket's way (`ahead`: the frames after `after` of its viewport and stage, in
  *     order), or
  *   - it shows its owner only by proximity and returns from beyond its nearby reach
  *     to within it, into a pocket that what the earlier frame had there has left.
- * A plaque that left its pocket where its stage began only because a later frame of
- * the stage takes it keeps the pocket it took, through later stage boundaries too, while
+ * The last but one is the foresight the Replay schedule adds; the others are main's
+ * rule, by which a plaque that has not left early is judged unchanged. A plaque that
+ * left its pocket where its stage began only because a later frame of the stage takes
+ * it keeps the pocket it took, through later stage boundaries too, while
  * its anchor stays still and it stays shown: none of these lets it move again (Francis
  * accepted a farther pocket instead of a jump on 27 October 2026, not a farther pocket
  * and another move). `early` carries the ids of such plaques from one call to the next;
@@ -479,19 +479,17 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
     const owner = plaque.key ?? plaque.id;
     const pocketOf = ({ rect, size = rect, pocket = { x: rect.x, y: rect.y, width: size.width, height: size.height } }) => pocket;
     const pocket = { ...pocketOf(prior), x: pocketOf(prior).x + move.x, y: pocketOf(prior).y + move.y };
-    // Within a stage, syntax and marks a frame newly paints were laid out in advance.
+    // A plaque that has not left early is judged as main judges it.
     const blocked = newPocketBlocker({ pocket, owner, move }, earlier, later);
-    const foreseen = blocked && before.stage !== undefined && !crossing && !newPocketBlocker({ pocket, owner, move }, earlier, later, occupant => occupant.owner !== undefined);
-    if (ownRoutesChanged(owner, move, earlier, later) || blocked && !foreseen
+    if (ownRoutesChanged(owner, move, earlier, later) || blocked
       || !plaque.joined && returnsWithinReach({ before: { pocket, anchor: plaque.anchor }, after: { pocket: pocketOf(plaque),
         anchor: plaque.anchor }, owner, move, thetaGrid: plaque.grid, realizedForm: plaque.realization }, earlier, later)) continue;
     if (crossing && !blocked && foreseenPocketBlocker({ pocket, owner, move }, earlier, aheadOf(plaque, prior, ahead, thresholds))) {
       kept.add(plaque.id);
       continue;
     }
-    out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id, foreseen
-      ? `${describe(plaque)} jumps ${Math.round(shift)} units beside its still anchor when its stage paints syntax or a mark it laid out in advance in its pocket`
-      : `${describe(plaque)} jumps ${Math.round(shift)} units from a pocket nothing new occupies, beside its still anchor`, shift));
+    out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id,
+      `${describe(plaque)} jumps ${Math.round(shift)} units from a pocket nothing new occupies, beside its still anchor`, shift));
   }
   for (const id of [...early]) if (!kept.has(id)) early.delete(id);
   for (const id of kept) early.add(id);

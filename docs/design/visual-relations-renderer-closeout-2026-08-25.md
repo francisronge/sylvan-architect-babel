@@ -334,10 +334,10 @@ it moves beside its still anchor no more often and at most a twentieth farther i
 all. Otherwise the schedule enters those stages again with the early pocket
 barred, and the plaque waits and moves as it would without looking ahead. Stages
 entered while a hold is open are published only once it ends. The offline audit
-reports a jump within a stage that only such syntax or a mark caused, accepts a
-plaque leaving early only where a stage begins, and reports a plaque that left
-early there and moves again beside its still anchor before its anchor moves or it
-leaves. One exception lets a plaque that shows its owner
+accepts a plaque leaving early only where a stage begins, and reports a plaque that
+left early there and moves again beside its still anchor before its anchor moves or
+it leaves. A plaque that did not leave early is judged by the rule and excuses that
+applied before this foresight. One exception lets a plaque that shows its owner
 only by proximity, left beyond its nearby reach, return within it: it takes
 its nearer scheduled pocket at the step where what the previous step painted there
 has gone. A claim a later movement transfers to a lower occurrence keeps one plaque

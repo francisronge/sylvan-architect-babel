@@ -91,3 +91,24 @@ test('the plaque schedule reads lifetime sizes only by the identity allocation k
   const reads = [...source.matchAll(/sizes\.get\(([^)]*\)?)\)/g)].map(match => match[1]);
   assert.deepEqual(reads, ['key', 'plaqueIdentity(item)'], 'the size table itself, and allocatedSize');
 });
+
+// Coordinator's decision on PR #285, 29 October 2026: a plaque that does not take a
+// pocket early does exactly what main does and is judged by main's mark-motion rule
+// and excuses. These two plaques have no early pocket that is the trade (one would
+// travel 613 then 824 units, the other 694 for main's 60), so each moves once beside
+// its still anchor as on main, for syntax its stage paints in its pocket, which main's
+// rule excuses.
+for (const [id, subject, steps, at, shift] of [
+  ['replay-regressions/reviewed-construction.json#/cases/2', 'plaque(0:0 theta agent)@vRestored', [15, 21], 19, 267],
+  ['showcase/movement.json#/cases/2', 'plaque(0:2 theta agent/theme)@rec', [90, 95], 93, 60]
+]) test(`a plaque without an early pocket moves and is judged as on main: ${id}`, () => {
+  const visual = prepareVisualRecord(corpus.records.find(entry => entry.id === id).record);
+  const frames = layoutVisualFrames(visual, [VIEWPORTS[0]], { steps: Array.from({ length: steps[1] - steps[0] + 1 }, (_, n) => steps[0] + n) });
+  const moves = frames.slice(1).flatMap((frame, n) => {
+    const [a, b] = [frames[n], frame].map(entry => offset(entry.plaques.find(plaque => plaque.id === subject)));
+    const moved = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    return moved > 4 ? [[frame.frame, Math.round(moved)]] : [];
+  });
+  assert.deepEqual(moves, [[at, shift]]);
+  assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject} ${found.measure}`), []);
+});

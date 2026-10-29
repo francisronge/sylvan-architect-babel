@@ -27,9 +27,9 @@ import { plaquesOverlap, translateObstacle } from './plaqueObstacleIndex.ts';
  * beside a still anchor (foreseenPocketBlocker) where it is free to move: where the
  * stage begins, where it is first shown or where its anchor moves. It then keeps the
  * pocket it takes, across stage boundaries too, until its anchor moves or it is no
- * longer shown (stageCamera.ts, release). The audit reports a jump within a stage that
- * only such syntax or a mark caused, and a plaque that left early where a stage began
- * and moves again beside its still anchor. */
+ * longer shown (stageCamera.ts, release). The audit reports a plaque that left early
+ * where a stage began and moves again beside its still anchor; it judges any other
+ * plaque as before. */
 
 /** Which of a plaque's own connectors an occupant belongs to: `key` names the Case
  * arrow or collector row and the row height it meets; `far` is the source node it

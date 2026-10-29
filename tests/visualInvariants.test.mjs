@@ -267,16 +267,19 @@ test('control: mark-motion reports a plaque that leaves a pocket nothing new occ
     { ...after, plaques: [plaque(110, 55, undefined, { joined: true })] }).length, 1, 'a plaque its own connector joins to syntax');
 });
 
-test('control: within a stage, mark-motion reports a plaque that waits for syntax its stage laid out in advance', () => {
+test('control: mark-motion judges a plaque that did not leave early as main does, and accepts an early leave only where a stage begins', () => {
   // Francis, 27 October 2026 (n3-04-yue-sfp, steps 12 to 13): a θ-grid kept a pocket above a noun until N′ was projected there.
+  // The schedule now leaves such a pocket early where it can; where it cannot, the plaque moves as on main, and main's rule
+  // excuses a move for what the later frame newly paints (coordinator's decision on PR #285, 29 October 2026).
   const word = (id, x, y) => text(id, 'word', box(x, y, 80, 40));
   const label = (id, x, y) => ({ ...box(x, y, 80, 40), blocksConnectors: true, connectorAttachment: `${id}:category` });
   const plaque = x => ({ id: 'plaque(0:0 theta Theme)@eat', text: 'theta Theme', rect: box(x, 55, 430, 126), radius: 14, claims: ['0:0'],
     anchor: { x: 0, y: 140 }, key: 'theta Theme' });
   const frame = (number, stage, x, reserves = []) => ({ ...blank(0.2), frame: number, stage, texts: [word('eat', -40, 100)], plaques: [plaque(x)], reserves });
   const projected = label('nBar', -300, 90);
-  assert.deepEqual(checkMarkMotion(frame(12, 1, -540), frame(13, 1, 110, [projected])).map(found => [found.frame, found.measure]), [['12>13', 650]],
-    'the projection its stage laid out in advance');
+  assert.deepEqual(checkMarkMotion(frame(12, 1, -540), frame(13, 1, 110, [projected])), [], 'the projection its stage laid out in advance, as on main');
+  assert.deepEqual(checkMarkMotion(frame(12, 1, -540), frame(13, 1, 110)).map(found => [found.frame, found.measure]), [['12>13', 650]],
+    'nothing new in its pocket, as on main');
   assert.deepEqual(checkMarkMotion(frame(10, 0, -540), frame(11, 1, 110, [projected])), [], 'syntax a new stage paints');
   assert.deepEqual(checkMarkMotion(frame(12, 1, -540), frame(13, 1, 110, [{ ...projected, plaqueShell: true, owner: 'other' }])), [],
     'another plaque');
