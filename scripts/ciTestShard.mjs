@@ -11,30 +11,50 @@ import path from 'node:path';
 // fails if that script changes.
 const CONCURRENCY = 2;
 
-// Approximate standalone seconds of the slowest files; unlisted files weigh 1.
+// Approximate standalone seconds of the files that take two or more (measured
+// one file at a time on an M-series Mac, three at once); unlisted files weigh 1.
+// replayCorpusLayout.test.mjs spreads its sweep over worker threads.
 // Weights only balance the shards. A stale or missing weight never drops a file.
 const WEIGHTS = new Map([
-  ['replayCorpusLayout.test.mjs', 81],
-  ['publicBackgroundParse.test.mjs', 19],
-  ['spelloutContract.test.mjs', 17],
+  ['replayCorpusLayout.test.mjs', 25],
+  ['spelloutContract.test.mjs', 21],
+  ['bareLabelParity.test.mjs', 19],
+  ['partsListContract.test.mjs', 19],
+  ['publicBackgroundParse.test.mjs', 18],
+  ['replayInvariants.test.mjs', 18],
   ['providerTransport.test.mjs', 16],
-  ['reviewWorkspaceBoundaries.test.mjs', 15],
-  ['replayInvariants.test.mjs', 15],
-  ['publicDisconnect.test.mjs', 15],
-  ['workspaceArabicContinuity.test.mjs', 8],
-  ['visualInvariants.test.mjs', 7],
-  ['cameraInvariants.test.mjs', 7],
+  ['publicDisconnect.test.mjs', 14],
+  ['cameraInvariants.test.mjs', 9],
+  ['visualInvariants.test.mjs', 9],
+  ['canopyCameraFit.test.mjs', 8],
+  ['movementSlotClearance.test.mjs', 8],
+  ['reviewWorkspaceBoundaries.test.mjs', 8],
+  ['devPreviewBuild.test.mjs', 7],
   ['plaqueLayoutJob.test.mjs', 7],
-  ['stageCamera.test.mjs', 7],
-  ['canopyCameraFit.test.mjs', 6],
   ['replayNamedAtlasRegressions.test.mjs', 6],
-  ['researchGeneration.test.mjs', 6],
-  ['movementSlotClearance.test.mjs', 6],
-  ['workspaceHistoricalContinuity.test.mjs', 6],
-  ['workspaceReservation.test.mjs', 6],
+  ['stageCamera.test.mjs', 6],
+  ['workspaceArabicContinuity.test.mjs', 5],
   ['replayCorpusComparator.test.mjs', 5],
-  ['workspaceHistoryRefinement.test.mjs', 5],
-  ['plaquePlacement.test.mjs', 5],
+  ['movementReceivingSlots.test.mjs', 5],
+  ['plaquePlacement.test.mjs', 4],
+  ['workspaceHistoricalContinuity.test.mjs', 4],
+  ['tier2ProviderFreeVerification.test.mjs', 4],
+  ['rtlRelationMirror.test.mjs', 4],
+  ['workspaceComponentLifetime.test.mjs', 4],
+  ['workspaceReservation.test.mjs', 4],
+  ['contractFingerprintCoverage.test.mjs', 3],
+  ['offlineAuditPass.test.mjs', 3],
+  ['plaqueLayoutInkJob.test.mjs', 3],
+  ['plaqueNearbyLifetime.test.mjs', 3],
+  ['workspaceHistoryRefinement.test.mjs', 3],
+  ['plaqueReach.test.mjs', 3],
+  ['contractQualificationLiveReview.test.mjs', 3],
+  ['serverStaleDist.test.mjs', 3],
+  ['relocatedPlaqueAnchor.test.mjs', 3],
+  ['plaqueGeometrySchedule.test.mjs', 3],
+  ['selectedHeadReceivesRaisedHead.test.mjs', 3],
+  ['nativePlaqueRendering.test.mjs', 2],
+  ['casePlaqueMeasuredSource.test.mjs', 2],
 ]);
 
 const weight = file => WEIGHTS.get(path.basename(file)) ?? 1;
