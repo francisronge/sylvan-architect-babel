@@ -62,6 +62,21 @@ test('a slow phase in three of seven rounds does not move the median past the bu
 
 test('unstable measurements cannot produce a passing check', () => {
   assert.equal(assessRendererPerformance([900, 1800, 1810, 1850, 2300, 1820, 1830], [1700, 1700, 1700, 1700, 1700, 1700, 1700]).status, 'unstable');
+  // Two stray samples on one side, slow or fast, remain unstable.
+  const base = [1638, 1668, 1665, 1771, 1929, 1765, 1757];
+  assert.equal(assessRendererPerformance(base, [1656, 1701, 1710, 1736, 1949, 2220, 2210]).status, 'unstable');
+  assert.equal(assessRendererPerformance(base, [1250, 1701, 1710, 1736, 1749, 1260, 1696]).status, 'unstable');
+  assert.equal(assessRendererPerformance([1250, 1668, 1665, 1771, 1729, 2220, 1757], base).status, 'unstable');
+});
+
+test('one stray sample cannot make equal medians unstable, and is still judged by the median', () => {
+  // CI run 40803967830 (first attempt): equal medians, and one slow candidate
+  // round stretched max - min to 33% of the median.
+  const base = [1638, 1668, 1665, 1771, 1929, 1765, 1757];
+  assert.equal(assessRendererPerformance(base, [1656, 1701, 1710, 1736, 1949, 2220, 1696]).status, 'passed');
+  assert.equal(assessRendererPerformance(base, [1300, 1701, 1710, 1736, 1749, 1720, 1696]).status, 'passed');
+  // A stray sample does not hide a regression the other six show.
+  assert.equal(assessRendererPerformance(base, [1300, 2001, 2010, 2036, 2049, 2020, 1996]).status, 'regression');
 });
 
 test('missing, zero, infinite and NaN samples fail closed', () => {
