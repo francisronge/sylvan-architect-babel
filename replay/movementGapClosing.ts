@@ -14,10 +14,11 @@ import type { PlaybackStep } from './types.ts';
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
 type Box = { minX: number; maxX: number; minY: number; maxY: number };
-/** `width`: the span its stage plan paints; `stage`: the scenes of its stage and the box they span together;
+/** `width`: the span its stage plan paints; `workspaces`: the span its stage plan paints each workspace
+ * root with (workspaceSpans); `stage`: the scenes of its stage and the box they span together;
  * `closing`: a closing kept at this scene's movement moves syntax across the stage crossing into it. */
 type Scene = { step: PlaybackStep; canvas: SyntaxNode; size: [number, number]; visible: Set<string>; width?: number;
-  stage?: { members: number[]; box: Box }; closing?: boolean };
+  workspaces?: Map<string, number>; stage?: { members: number[]; box: Box }; closing?: boolean };
 type Painted = Map<string, Node>;
 
 /** Clearance kept between a closing side's label and word boxes and the syntax it closes toward. */
@@ -117,6 +118,18 @@ const spanOf = (frame: Painted) => {
   for (const node of frame.values()) { low = Math.min(low, node.x); high = Math.max(high, node.x); }
   return high > low ? high - low : 0;
 };
+/** Each painted workspace root's span in a frame: the root and its painted
+ * descendants, as the corpus gate measures a completed workspace's width. */
+const workspaceSpans = (frame: Painted) => {
+  const spans = new Map<string, number>();
+  for (const [id, node] of frame) {
+    if (shownParent(frame, node)) continue;
+    let low = Infinity, high = -Infinity;
+    node.each(member => { const shown = frame.get(getNodeId(member)); if (shown) { low = Math.min(low, shown.x); high = Math.max(high, shown.x); } });
+    spans.set(id, high > low ? high - low : 0);
+  }
+  return spans;
+};
 const boxes = new WeakMap<Painted, Box>();
 const boxOf = (frame: Painted): Box => {
   let box = boxes.get(frame);
@@ -148,8 +161,11 @@ function attachedTravel(before: Painted, after: Painted, carry: { x: number; y: 
 /** Whether frames `changed` (by scene index; the others as `frames` paints them)
  * keep the camera's view of their stages: the stage camera fits the box a
  * stage's frames span together, which may move but grow no more than
- * STAGE_GROWTH wider or deeper than planned, and a completed stage grows no more
- * than WIDTH_GROWTH wider than its plan painted it. */
+ * STAGE_GROWTH wider or deeper than planned, a completed stage grows no more
+ * than WIDTH_GROWTH wider than its plan painted it, and none of its workspaces
+ * is wider than there. A finished workspace that stands wider holds room early
+ * for a later step (a head waiting at its landing, a daughter at a later
+ * place); only the step that needs the room may open it. */
 function keepsStageSize(scenes: readonly Scene[], frames: readonly Painted[], changed: ReadonlyMap<number, Painted>, growth = STAGE_GROWTH) {
   const stages = new Set([...changed.keys()].map(index => scenes[index].stage!));
   for (const stage of stages) {
@@ -159,7 +175,11 @@ function keepsStageSize(scenes: readonly Scene[], frames: readonly Painted[], ch
     if (box!.maxX - box!.minX > (planned.maxX - planned.minX) * (1 + growth) + 1
       || box!.maxY - box!.minY > (planned.maxY - planned.minY) * (1 + growth) + 1) return false;
   }
-  for (const [index, frame] of changed) if (scenes[index].step.replayKind === 'macro' && spanOf(frame) > scenes[index].width! * (1 + WIDTH_GROWTH) + 1) return false;
+  for (const [index, frame] of changed) {
+    if (scenes[index].step.replayKind !== 'macro') continue;
+    if (spanOf(frame) > scenes[index].width! * (1 + WIDTH_GROWTH) + 1) return false;
+    for (const [root, span] of workspaceSpans(frame)) if (span > (scenes[index].workspaces!.get(root) ?? Infinity) + 1e-6) return false;
+  }
   return true;
 }
 
@@ -256,6 +276,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
   const stages = new Map<number, { members: number[]; box: Box }>();
   scenes.forEach((scene, index) => {
     scene.width = spanOf(all[index]);
+    scene.workspaces = workspaceSpans(all[index]);
     const stage = stages.get(scene.step.replayFrameIndex!);
     if (stage) { stage.members.push(index); stage.box = union(stage.box, boxOf(all[index])); }
     else stages.set(scene.step.replayFrameIndex!, { members: [index], box: boxOf(all[index]) });
