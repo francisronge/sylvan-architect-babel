@@ -1604,7 +1604,9 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
   const fallbackPlacements = includePlaques ? plaqueLayout ?? schedule?.stages[stageIndex] ?? new Map() : new Map();
   if (coordinates && !coordinates.has(stageIndex) && steps.some(step => step.replayFrameIndex === stageIndex && step.replayCanvasData))
     throw new Error('Missing prepared Replay coordinates.');
-  for (const { currentTree, visibleIds, stepIndices } of stageLayouts(input,
+  // Without prepared coordinates the stage is planned here, with the plaque
+  // measure the closing pass keeps proximity plaques' room by (StagePlaques).
+  for (const { currentTree, visibleIds, stepIndices } of stageLayouts({ ...input, measurePlaqueText },
     coordinates ? { reservations: coordinates.get(stageIndex) ?? new Map() } : undefined).scenes) {
     if (stepIndex !== undefined && !stepIndices.includes(stepIndex)) continue;
     const placements = includePlaques && schedule ? selectReplayPlaqueLayout(schedule, stageIndex, stepIndices[0]) : fallbackPlacements;

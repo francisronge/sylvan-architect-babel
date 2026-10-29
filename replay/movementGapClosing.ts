@@ -272,13 +272,15 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
     const xs = [...departing].map(id => prior.get(id)!.x);
     // The room the phrase leaves: its former extent and one node unit, less the
     // node unit a lower occurrence painted in that extent keeps.
+    // At a crossing the movement's frame stands in its own stage's coordinates,
+    // `entry` from the frame before.
+    const entry = scenes[m - 1].step.replayFrameIndex !== scenes[m].step.replayFrameIndex ? carriedShift(prior, current).x : 0;
     const lo = Math.min(...xs), hi = Math.max(...xs);
-    const kept = [...current].some(([id, node]) => !prior.has(id) && node.x >= lo - 1 && node.x <= hi + 1);
+    const kept = [...current].some(([id, node]) => !prior.has(id) && node.x - entry >= lo - 1 && node.x - entry <= hi + 1);
     const bound = hi - lo + (kept ? 0 : TREE_SIBLING_GAP);
     // At the movement the lines stand in the room the phrase leaves: past the
     // syntax wholly before and after its former extent, and through no phrase
     // that keeps its daughters except the parents the departure changes.
-    const entry = scenes[m - 1].step.replayFrameIndex !== scenes[m].step.replayFrameIndex ? carriedShift(prior, current).x : 0;
     const extent = new Map<string, [number, number]>();
     const span = (node: Node): [number, number] => {
       const id = getNodeId(node), known = extent.get(id);
@@ -528,7 +530,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
       }
       // What the step leaves attached, beyond what its closing moves, keeps its
       // place on screen.
-      const seen = (after: Painted) => closingAt(scenes[m - 1].step, scenes[m].step, prior, after, prior, after, { throughInsertions: true });
+      const seen = (after: Painted) => closingAt(scenes[m - 1].step, scenes[m].step, prior, after, prior, after);
       const bulk = attachedTravel(prior, closed[0], shiftNow, seen(closed[0]));
       if (bulk > Math.max(attachedTravel(prior, current, shiftWas, seen(current)), 1) + 1e-6)
         added.push({ kind: 'attached-motion', node: '', distance: bulk });
@@ -923,10 +925,14 @@ function openSourceRoom(scenes: readonly Scene[], frames: Painted[], coordinates
             // At the movement only its closing and carried phrases move farther.
             const now = view(k), granted = closingAt(scenes[k - 1].step, step, view(k - 1), now, view(k - 1), now);
             const movers = new Set<string>(); for (const id of participants) now.get(id)?.each(member => { movers.add(getNodeId(member)); });
+            // Across a crossing, motion is measured after the camera carry.
+            const carryNow = crossingJ ? paintedShift(points(view(k - 1)), points(now)) : { x: 0, y: 0 };
+            const carryWas = crossingJ ? paintedShift(points(frames[k - 1]), points(after)) : { x: 0, y: 0 };
             for (const [id, node] of now) {
               const was = frames[k - 1].get(id), prior = view(k - 1).get(id), old = after.get(id);
               if (!was || !prior || !old || granted.has(id) || movers.has(id)) continue;
-              if (Math.hypot(node.x - prior.x, node.y - prior.y) > Math.hypot(old.x - was.x, old.y - was.y) + 1) { ok = false; break; }
+              if (Math.hypot(node.x - carryNow.x - prior.x, node.y - carryNow.y - prior.y)
+                > Math.hypot(old.x - carryWas.x - was.x, old.y - carryWas.y - was.y) + 1) { ok = false; break; }
             }
           }
           else if (j < k && !sameMotion(scenes[j].step, crossingJ, frames[j - 1], frames[j], view(j - 1), view(j))) ok = false;
@@ -1056,8 +1062,8 @@ function seatReceivingHeads(context: Context) {
         if (clearance(later) >= TREE_SIBLING_GAP - 1) candidates.push(later);
       }
       candidates.sort((a, b) => Math.abs(a + delta) - Math.abs(b + delta));
-      candidates.push(-delta);
-      for (const later of candidates.slice(0, 5)) {
+      // The nearest four clear shifts, then the head's own place as the fallback.
+      for (const later of [...candidates.slice(0, 4), -delta]) {
         const reason = tryShift(context, k, members, id => after.get(id)!.x + later - before.get(id)!.x, later, SEAT_GROWTH);
         if (!reason) break;
       }
