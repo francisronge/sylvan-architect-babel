@@ -534,7 +534,8 @@ A connector's participant stands for the words it covers (Francis, 29 October
 2026: "1. works", choosing "Brackets under the words each anchor covers").
 Every two-witness connector uses it, even between two words on the bottom row
 (Francis, 29 October: "transition fully"), and none draws above the bottom of
-the words it brackets. Below the lowest tree text and branches over them, on
+the words it brackets. Below the lowest tree text and branches painted over them in that frame (not
+syntax a later step of the stage adds), on
 the same floor rule and lane, each participant gets a thin bracket spanning the painted
 words it dominates in the current frame, with short ticks rising at the ends
 of every run of words (a run breaks where a word it does not dominate lies
