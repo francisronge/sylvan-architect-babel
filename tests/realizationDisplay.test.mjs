@@ -158,3 +158,15 @@ test('a retained group keeps its preceding display until the moment Replay paint
   assert.deepEqual(steps[2].plates.map(text), []);
   assert.deepEqual(canopyPlates(prepared.relationRenderPlan).map(text), []);
 });
+
+test('a restated group plate retires at the restatement even when a later plate shows the same form', () => {
+  // Relation 2 restates go as went; relation 3, on the silent tense, shows "went" again.
+  const tense = { relation: 'Suppletive past-tense realization', anchors: { tense: 'past' },
+    values: { lexicalBase: 'go', realization: 'went', tense: 'past' } };
+  const steps = stagePlates(prepareReplay(retained([association('Clause typing', ['tp']),
+    { relation: 'Past spell-out', anchors: { verb: 'go' } }, tense], 'went')), 2);
+  assert.deepEqual(steps.map(({ step }) => step.replayRelationIdentity?.relationIndex ?? step.operation), [0, 1, 2, 'StageRecord']);
+  assert.deepEqual(steps[0].plates.map(text), ['go → went'], 'the tree still shows go');
+  assert.deepEqual(steps[1].plates.map(text), [], 'went stands in the tree from the restatement on');
+  for (const { plates } of steps.slice(2)) assert.deepEqual(plates.map(text), ['realization → went / tense → past']);
+});

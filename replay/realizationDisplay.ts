@@ -195,7 +195,7 @@ export const withRealizationDisplays = (
           && showing.every(item => item.appearsAtStage === stageIndex && item.relationRef.stageIndex === stageIndex)
           ? { stageIndex, relationIndex: showing[0].relationRef.relationIndex } : undefined;
         if (showing.length && !replacedAt) return [];
-        return [realizationPlate(entry, display, activatedAt, replacedAt ?? retiredAt)];
+        return [realizationPlate(entry, display, activatedAt, firstReached(stageSteps, replacedAt, retiredAt))];
       });
     });
   });
@@ -221,6 +221,20 @@ const realizationPlate = (entry: { group: SurfaceRealization; activatedAt: PlanS
   realization: { nodeIds: [...entry.group.nodeIds], tokenIndices: [...entry.group.tokenIndices],
     activatedAt, ...(retiredAt ? { retiredAt } : {}) }
 });
+
+/** Of two retirements, the one Replay reaches first; the steps fix the stage's
+ * moment order, which need not be authored order. Without steps both are
+ * reached together, so either stands. */
+const firstReached = (stageSteps: readonly PlaybackStep[], ...moments: Array<PlanStageMoment | undefined>) => {
+  const position = (moment: PlanStageMoment) => {
+    const index = stageSteps.findIndex(step => step.replayKind === 'relation'
+      && step.replayRelationIdentity?.stageIndex === moment.stageIndex
+      && step.replayRelationIdentity.relationIndex === moment.relationIndex);
+    return index < 0 ? Infinity : index;
+  };
+  return moments.filter((moment): moment is PlanStageMoment => moment !== undefined)
+    .reduce<PlanStageMoment | undefined>((first, moment) => !first || position(moment) < position(first) ? moment : first, undefined);
+};
 
 /** The relation moment of this stage at which Replay first paints the group's
  * restated words as the completed stage states them. Undefined when the stage
