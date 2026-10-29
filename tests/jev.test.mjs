@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { readTypeSafeApiKey } from '../contractQualification/jev.js';
 import {
   DEFAULT_JEV_MODEL, JEV_MAX_READINGS, TYPESAFE_SYSTEMONE_URL, anchorIdsReachRequest, askableFamilies, buildFamilyRequest,
   buildReadingRequest, choiceConfidence, jevClaimResult, jevReadings, jevValueReadings,
-  jevRecordFrom, readChoiceAnswer, readSystemOneResponse, readTypeSafeApiKey, requestJev
-} from '../contractQualification/jev.js';
-import { JEV_FAMILY_DESCRIPTIONS } from '../contractQualification/jevDescriptions.js';
+  jevRecordFrom, readChoiceAnswer, readSystemOneResponse, requestJev
+} from '../server/babelParser/jev.js';
+import { JEV_FAMILY_DESCRIPTIONS } from '../server/babelParser/jevDescriptions.js';
 import { neutralJevClaims } from '../replay/jevClaims.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {

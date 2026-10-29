@@ -8,21 +8,22 @@
 //
 // cases.json lists { "source": "<bundle.json>", "analysis": 0 } entries. --dry-run
 // builds and saves every first request and sizes the second, with no key and no
-// network. --run reads the key into memory (contractQualification/jev.js) and sends
-// each request once, with no retries. Every request, the received bytes, the answer
-// check and the record are kept, readable only by the owner. The key is never saved.
+// network. --run reads the key into memory (contractQualification/jev.js) and asks each
+// claim as the app's server does (server/babelParser/jev.js), sending each request
+// once, with no retries. Every request, the received bytes, the answer check and the
+// record are kept, readable only by the owner. The key is never saved.
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { DEFAULT_TYPESAFE_KEYCHAIN_SERVICE, estimateJevCost, readTypeSafeApiKey } from '../contractQualification/jev.js';
 import {
-  DEFAULT_JEV_MODEL, DEFAULT_TYPESAFE_KEYCHAIN_SERVICE, JEV_PROMPT_VERSION, TYPESAFE_SYSTEMONE_URL,
-  anchorIdsReachRequest, askableFamilies, buildFamilyRequest, buildReadingRequest, estimateJevCost, jevClaimResult, jevRecordFrom,
-  readSystemOneResponse, readTypeSafeApiKey, requestJev
-} from '../contractQualification/jev.js';
+  DEFAULT_JEV_MODEL, JEV_PROMPT_VERSION, TYPESAFE_SYSTEMONE_URL,
+  anchorIdsReachRequest, askJevClaim, askableFamilies, buildFamilyRequest, buildReadingRequest, jevRecordFrom, requestJev
+} from '../server/babelParser/jev.js';
 import { neutralJevClaims } from '../replay/jevClaims.ts';
-import { JEV_CONFIDENCE_THRESHOLD, JEV_NONE } from '../replay/relations/jev.ts';
+import { JEV_CONFIDENCE_THRESHOLD } from '../replay/relations/jev.ts';
 
 const { values: args } = parseArgs({ options: {
   cases: { type: 'string' }, out: { type: 'string' }, run: { type: 'boolean', default: false },
@@ -64,40 +65,26 @@ const send = async (dir, name, requestBody) => {
   if (sent.status !== 'completed') totals.failed += 1;
   totals.inputTokens += receipt.usage?.input_tokens ?? 0;
   totals.outputTokens += receipt.usage?.output_tokens ?? 0;
-  return { sent, receipt };
+  return { ...sent, receipt };
 };
 
 const askClaim = async (dir, { relation }) => {
   const families = askableFamilies(relation);
-  // With no family able to read the whole claim, the only answer is none: nothing is asked.
-  if (!families.length) return { result: { status: 'no-family-can-read' }, receipts: [] };
-  const family = buildFamilyRequest({ relation, model: args.model });
-  const familyText = JSON.stringify(family);
-  // An anchor id in a request would carry the tree to Jev; such a claim is withheld.
-  if (anchorIdsReachRequest(relation, candidate => buildFamilyRequest({ relation: candidate, model: args.model })))
-    return { result: { status: 'withheld' }, receipts: [] };
-  totals.estimatedInputTokens.family += estimateTokens(familyText);
-  // The second request reads one family; size the largest so the dry run bounds it.
-  totals.estimatedInputTokens.readingUpperBound += Math.max(...families.map(candidate =>
-    estimateTokens(JSON.stringify(buildReadingRequest({ relation, family: candidate.id, model: args.model }).body))));
-  if (args['dry-run']) {
-    writePrivate(path.join(dir, 'family.request.json'), familyText);
-    totals.requests.family += 1;
-    return { result: { status: 'not-sent' }, receipts: [] };
+  if (families.length && !anchorIdsReachRequest(relation, candidate => buildFamilyRequest({ relation: candidate, model: args.model }))) {
+    const familyText = JSON.stringify(buildFamilyRequest({ relation, model: args.model }));
+    totals.estimatedInputTokens.family += estimateTokens(familyText);
+    // The second request reads one family; size the largest so the dry run bounds it.
+    totals.estimatedInputTokens.readingUpperBound += Math.max(...families.map(candidate =>
+      estimateTokens(JSON.stringify(buildReadingRequest({ relation, family: candidate.id, model: args.model }).body))));
+    if (args['dry-run']) {
+      writePrivate(path.join(dir, 'family.request.json'), familyText);
+      totals.requests.family += 1;
+      return { result: { status: 'not-sent' }, receipts: [] };
+    }
   }
-  const first = await send(dir, 'family', family);
-  if (first.sent.status !== 'completed') return { result: { status: 'transport-failed' }, receipts: [first.receipt] };
-  const familyRead = readSystemOneResponse(first.sent.json, family.questions);
-  const chosen = familyRead.ok ? familyRead.answers.family.choice : JEV_NONE;
-  if (chosen === JEV_NONE) return { result: jevClaimResult(relation, familyRead), familyRead, receipts: [first.receipt] };
-  const reading = buildReadingRequest({ relation, family: chosen, model: args.model });
-  if (anchorIdsReachRequest(relation, candidate => buildReadingRequest({ relation: candidate, family: chosen, model: args.model }).body))
-    return { result: { status: 'withheld' }, receipts: [first.receipt] };
-  const second = await send(dir, 'reading', reading.body);
-  if (second.sent.status !== 'completed') return { result: { status: 'transport-failed' }, receipts: [first.receipt, second.receipt] };
-  const readingRead = readSystemOneResponse(second.sent.json, reading.body.questions);
-  return { result: jevClaimResult(relation, familyRead, { read: readingRead, options: reading.options }),
-    familyRead, readingRead, receipts: [first.receipt, second.receipt] };
+  const { sent, ...asked } = await askJevClaim({ relation, model: args.model,
+    send: (name, requestBody) => send(dir, name, requestBody) });
+  return { ...asked, receipts: sent.map(entry => entry.receipt) };
 };
 
 const cases = JSON.parse(fs.readFileSync(args.cases, 'utf8'));

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // A review sheet for a live Jev run: every reading that stands, with what Babel would draw, to judge by hand.
 //
-//   node scripts/reviewJev.mjs --cases cases.json --run DIR --out sheet.md [--threshold 0.9]
+//   node scripts/reviewJev.mjs --cases cases.json --run DIR --out sheet.md [--threshold 0.7]
 //
 // DIR is the output of `scripts/runJev.mjs --run`. For each analysis the saved record is
 // applied with every mapping at or above --threshold (default JEV_CONFIDENCE_THRESHOLD)
