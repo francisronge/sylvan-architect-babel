@@ -58,3 +58,47 @@ test('a review page shows a few cases, each with one short line', () => {
   const essay = 'Step 35: the head-movement arrow from the lower t up to the upper t (the place V moved to, which V has since left). Before: the arrowhead passes the upper t and ends above it.';
   assert.throws(() => checkCaseList([{ ...ok, watch: essay }]), /one line of at most 120/);
 });
+
+test('a case selecting one analysis keeps the sentence and saved tokens stored above it', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-comparison-context-'));
+  const stages = [{ statement: 's', stageRecord: 'r', relations: [], workspaceForest: { id: 'a', label: 'A' } }];
+  const tokens = ['Mia', 'laughed', '.'];
+  fs.writeFileSync(path.join(root, 'bundle.json'), JSON.stringify({ request: { sentence: 'Mia laughed.' },
+    response: { inputTokens: tokens, analyses: [{ derivationStages: stages }] } }));
+  fs.writeFileSync(path.join(root, 'fixture.json'), JSON.stringify({ sentence: 'Mia laughed.', inputTokens: tokens, analyses: [{ derivationStages: stages }] }));
+  const spec = { title: 'Mia', watch: 'the merge', steps: [1] };
+  for (const [source, selector] of [['bundle.json', '/response/analyses/0'], ['fixture.json', '/analyses/0'], ['bundle.json', '/response']]) {
+    const record = resolveCase({ ...spec, source, selector }, { root });
+    assert.equal(record.sentence, 'Mia laughed.', `${source}${selector}`);
+    assert.deepEqual(record.inputTokens, tokens, `${source}${selector}`);
+  }
+});
+
+test('the panes step together: not before both are ready, and from an arrow key inside either', async () => {
+  const { default: vm } = await import('node:vm');
+  const html = indexHtml({ title: 'T', baseline: { commit: 'a'.repeat(40), dirty: false }, candidate: { commit: 'b'.repeat(40), dirty: false },
+    records: [{ title: 'Mia', watch: 'the merge', steps: [1] }] });
+  const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
+  const listeners = () => ({ handlers: {}, addEventListener(type, handler) { (this.handlers[type] ??= []).push(handler); } });
+  const button = label => ({ textContent: label, disabled: false, clicks: 0, click() { this.clicks++; } });
+  const pane = () => {
+    const frame = Object.assign(listeners(), { src: '', buttons: [], contentWindow: listeners() });
+    frame.contentDocument = { querySelectorAll: () => frame.buttons };
+    return frame;
+  };
+  const element = () => Object.assign(listeners(), { append() {}, replaceChildren() {}, textContent: '' });
+  const ids = { before: pane(), after: pane(), case: element(), next: element(), prev: element(), watch: element(), steps: element() };
+  const document = Object.assign(listeners(), { getElementById: id => ids[id], createElement: () => element() });
+  vm.runInNewContext(script, { document, Option: class {} });
+  ids.before.buttons = [button('Prev'), button('Next')];
+  ids.next.onclick();
+  assert.equal(ids.before.buttons[1].clicks, 0, 'a pane still preparing holds the other back');
+  ids.after.buttons = [button('Prev'), button('Next')];
+  ids.next.onclick();
+  assert.deepEqual([ids.before.buttons[1].clicks, ids.after.buttons[1].clicks], [1, 1]);
+  for (const side of ['before', 'after']) ids[side].handlers.load.forEach(handler => handler());
+  let stopped = 0;
+  const arrow = { key: 'ArrowLeft', preventDefault() {}, stopImmediatePropagation() { stopped++; } };
+  ids.after.contentWindow.handlers.keydown.forEach(handler => handler(arrow));
+  assert.deepEqual([ids.before.buttons[0].clicks, ids.after.buttons[0].clicks, stopped], [1, 1, 1], 'the pane\'s own handler does not step it again');
+});

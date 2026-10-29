@@ -83,6 +83,9 @@ const openingBracket = /^\p{Ps}/u, closingBracket = /^\p{Pe}/u;
 // Closing brackets and quotes, clause punctuation, primes and bar-level marks
 // complete the text before them, so no line starts with one.
 const completesPrevious = /^[\p{Pe}\p{Pf},.;:!?、。，．：；！？′″‴'°⁰]/u;
+// A straight double quote opens or closes; one directly after other text closes it.
+const completesAt = (segments: string[], index: number) => completesPrevious.test(segments[index] ?? '')
+  || segments[index] === '"' && index > 0 && !/^\s/u.test(segments[index - 1]) && !openingBracket.test(segments[index - 1]);
 const punctuationOnly = /^[\p{P}\p{S}\s]+$/u;
 // Plaque text (relations/plaqueTextLayout.ts) breaks at the same characters.
 export { completesPrevious, joiner, openingBracket, wordCharacter };
@@ -179,7 +182,7 @@ function alternativeBreaks(segments: string[], start: number, end: number, greed
   const breaks: number[] = [];
   for (let index = end; index > start; index--) {
     const before = segments[index - 1], after = segments[index];
-    if (index === greedy || /^\s/u.test(after) || completesPrevious.test(after)) continue;
+    if (index === greedy || /^\s/u.test(after) || completesAt(segments, index)) continue;
     if (breakAfter.test(before)
       || openingBracket.test(after) && !openingBracket.test(before) && !/^\s/u.test(before)
       || index - 1 > start && joiner.test(before) && wordCharacter.test(segments[index - 2])
@@ -205,9 +208,9 @@ function alternativeBreaks(segments: string[], start: number, end: number, greed
  * (`joinBlankLines`) or by a single wider grapheme. */
 function lineBreak(segments: string[], start: number, end: number, fits: Fits) {
   for (let index = end; index > start; index--)
-    if (breakAfter.test(segments[index - 1]) && !completesPrevious.test(segments[index])) return index;
+    if (breakAfter.test(segments[index - 1]) && !completesAt(segments, index)) return index;
   if (/^\s/u.test(segments[end])) return end;
-  if (completesPrevious.test(segments[end])) return end + 1;
+  if (completesAt(segments, end)) return end + 1;
   const afterHyphen = (index: number) => index - 1 > start && hyphen.test(segments[index - 1])
     && wordCharacter.test(segments[index - 2]) && wordCharacter.test(segments[index]) && fits(index, segments.length);
   const beforeBracket = (index: number) => {

@@ -127,6 +127,16 @@ export function regroupingParents(
   return parents;
 }
 
+/** Whether a regrouping parent has no new child, as when it takes a dissolved
+ * child's material directly. No construction step completes its wait, so the
+ * stage's completion shows the completed stage instead of the last step. */
+export function hasUnreleasedRegrouping(
+  previousForest: readonly SyntaxNode[],
+  currentForest: readonly SyntaxNode[]
+): boolean {
+  return [...regroupingParents(previousForest, currentForest).values()].some(unbuilt => !unbuilt.size);
+}
+
 /** Until a regrouping parent's new children are all built, draw the parent
  * with its preceding children: each dissolved child returns, holding the
  * surviving material no built new child has taken yet, and a built new child

@@ -1549,6 +1549,17 @@ test('an authored Case outcome draws the same way whether the relation name is e
   assert.equal(caseArrow('Case assignment', { case: 'DAT', outcome: 'failed' }).claimTier, 1);
 });
 
+test('an exact Case outcome stays on the Case arrow when a sibling judgment facet also reads it', () => {
+  const forest = [node('pp', 'PP', [leaf('p', 'P', 'with'), node('dp', 'DP', [leaf('d', 'D', 'it')])])];
+  const items = anchors => compileRelationRenderPlan([stage([{ relation: 'CaseAssignment', anchors,
+    values: { case: 'DAT', outcome: 'blocked' } }], forest)]).frames.flatMap(frame => frame.items);
+  const caseArrow = anchors => items(anchors).find(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment');
+  assert.equal(caseArrow({ assigner: 'p', recipient: 'dp' }).outcome, 'blocked');
+  const withJudgment = { assigner: 'p', recipient: 'dp', judgedAnchor: 'dp' };
+  assert.equal(caseArrow(withJudgment).outcome, 'blocked', 'the sibling does not take the outcome from the Case arrow');
+  assert(items(withJudgment).some(item => item.kind === 'node-badges' && item.outcome === 'blocked'), 'the judgment keeps its badge');
+});
+
 test('a generated index never repeats a letter the model authored for another dependency', () => {
   const tree = node('xp', 'XP', ['a', 'b', 'c', 'd'].map(id => node(id, 'NP', [leaf(`${id}1`, 'N', id)])));
   const indices = (relations) => compileRelationRenderPlan([stage(relations, [tree])]).frames

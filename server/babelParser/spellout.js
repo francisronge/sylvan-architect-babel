@@ -177,19 +177,23 @@ const graphemeBoundaries = (text) => {
  * A code point's caseless form, so a word matches the sentence whatever its
  * letter case. Upper- then lowercasing applies the full case mappings that one
  * lowering misses (ß and ẞ are ss, final ς is σ, ſ is s, ﬁ is fi); İ is i, as
- * Turkish lowers it, and dotless ı stays its own letter. Forms are decomposed
+ * Turkish lowers it, and the combining dot above that default lowering writes
+ * after i (i̇) is part of that i, so i̇ is i too; dotless ı stays its own
+ * letter. Forms are decomposed
  * (NFD), so a precomposed letter and its uppercase spelled with a combining
  * mark agree. A form may be longer than one code point; matching reads it
  * whole, so a sentence character is never split. Only case is ignored: accents
  * and other character variants still count, and punctuation is classified
  * before folding.
  */
-const foldCharacter = (character) => {
+const foldCharacter = (character, previous) => {
   if (character === 'İ') return 'i';
   if (character === 'ı') return character;
+  if (character === '\u0307' && previous === 'i') return '';
   return character.toUpperCase().toLowerCase().replace(/ß/gu, 'ss').normalize('NFD');
 };
-const foldText = (characters) => characters.map(foldCharacter).join('');
+const foldCharacters = (characters) => characters.map((character, index) => foldCharacter(character, characters[index - 1]));
+const foldText = (characters) => foldCharacters(characters).join('');
 
 /** What the spelling check compares of a text: its caseless characters, without spacing or punctuation. */
 export const caselessSpelling = (text) => foldText(significant(text));
@@ -200,7 +204,7 @@ const readSentence = (sentence) => {
   const chars = codePoints(text);
   return {
     chars,
-    fold: chars.map(foldCharacter),
+    fold: foldCharacters(chars),
     ignored: chars.map(character => IGNORED.test(character)),
     space: chars.map(character => SPACE.test(character)),
     boundaries: graphemeBoundaries(text)
@@ -248,6 +252,8 @@ const readSpelling = ({ chars, fold, ignored }, position, { literal, target, fol
     if (!folded.startsWith(fold[position], offset)) break;
     offset += fold[position].length; position += 1;
   }
+  // A mark that folds to nothing belongs to the character the spelling ended on.
+  while (offset === folded.length && position < chars.length && fold[position] === '') position += 1;
   return { position, complete: offset === folded.length };
 };
 
@@ -436,8 +442,9 @@ const occurrences = (sentence, spelling, meter) => {
  * The sentence spans an earlier-stage group realizes, one per piece. A piece
  * usually names whole final words; repeated text resolves through the final
  * words the group's own nodes pronounce. A piece that matches no run of whole
- * final words may name part of a word that grows later (吃完 before 吃完了);
- * it resolves to its occurrence inside those final words.
+ * final words they pronounce may name part of a word that grows later (吃完
+ * before 吃完了); it resolves to its occurrence inside those final words, even
+ * when the same text is also a whole word elsewhere.
  */
 const locateEarlierGroup = (group, reading, final, sentence, meter) => {
   const { units, tokens, positionByLeafId } = final;
@@ -463,11 +470,13 @@ const locateEarlierGroup = (group, reading, final, sentence, meter) => {
   };
   const candidates = pieces.map((piece) => {
     const runs = wholeWordRuns(piece, tokens, meter);
-    const owned = runs.length > 1 ? runs.filter(owns) : [];
-    const spans = (owned.length ? owned : runs).map(([first, last]) => [units[first].span[0], units[last].span[1]]);
-    if (spans.length || !positions.size) return spans;
-    return occurrences(sentence, spellingOf(piece), meter)
+    const owned = runs.filter(owns);
+    const toSpans = list => list.map(([first, last]) => [units[first].span[0], units[last].span[1]]);
+    if (owned.length || !positions.size) return toSpans(owned.length ? owned : runs);
+    const inside = occurrences(sentence, spellingOf(piece), meter)
       .filter(([start, end]) => start >= low && end <= high && sentence.boundaries.has(start) && sentence.boundaries.has(end));
+    // Whole words the group's nodes do not pronounce remain its spelling only when nothing they pronounce spells it.
+    return inside.length ? inside : toSpans(runs);
   });
   // Counts the in-order choices of one span per piece, capped at two, so the
   // search is polynomial however often a piece's text repeats.

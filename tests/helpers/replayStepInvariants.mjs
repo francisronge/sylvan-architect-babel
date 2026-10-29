@@ -87,8 +87,9 @@ function frameChange(previous, current, initialKey) {
  * - `empty-step`: a structural step whose target is not displayed, a selection
  *   or projection of a target already displayed, or a merge into a displayed
  *   target that gains no displayed child.
- * - `child-count`: a new projection over other than one displayed child, or a
- *   new merge over fewer than two.
+ * - `child-count`: a new projection over other than one displayed child, a
+ *   selection over any child but its own word, or a new merge over fewer than
+ *   two.
  * - `authored-removal`: a structural step removes a node its stage still
  *   authors (it returns later in the stage: a blink).
  * - `unowned-removal` and `unowned-move`: a relation moment removes or
@@ -153,6 +154,8 @@ export function checkStepSemantics(replay, record) {
       else if (operation === 'LexicalSelect' || operation === 'Project') {
         if (retained) report('empty-step', target, `${target} is already displayed`);
         else if (operation === 'Project' && children.length !== 1) report('child-count', target, `${target} projects over ${children.length} children [${children}]`);
+        else if (operation === 'LexicalSelect' && children.some(child => !own.has(child)))
+          report('child-count', target, `${target} is selected over children [${children}]`);
       } else if (operation === 'ExternalMerge') {
         if (!retained && children.length < 2) report('child-count', target, `${target} merges ${children.length} children [${children}]`);
         if (retained && !children.some(child => previous.parent.get(child) !== target))
@@ -268,10 +271,12 @@ export function stepMarks(plan, step, played, { select = isPlanItemRevealed, res
   });
 }
 
-/** One mark per relation it represents, by kind and registered piece, so
+/** One mark per relation it represents, by kind, registered piece and the
+ * claim it draws (one relation may draw a grid and badges per predicate), so
  * coalescing a later identical claim into an earlier mark is not an end. */
 const markKeys = item => planItemRelationRefs(item).map(ref => JSON.stringify([item.kind, item.familyId ?? null, item.tier2RenderPart ?? null,
-  item.plaqueStyle ?? item.pathStyle ?? item.badgeStyle ?? item.linkStyle ?? item.domainStyle ?? null, ref.stageIndex, ref.relationIndex]));
+  item.plaqueStyle ?? item.pathStyle ?? item.badgeStyle ?? item.linkStyle ?? item.domainStyle ?? null, ref.stageIndex, ref.relationIndex,
+  item.tier2ClaimIdentity ?? null]));
 const keyRef = key => { const [, , , , stageIndex, relationIndex] = JSON.parse(key); return { stageIndex, relationIndex }; };
 const describeKey = key => { const [kind, family] = JSON.parse(key); return `${kind}${family ? ` ${family}` : ''} ${refKey(keyRef(key))}`; };
 const ENDING_PERSISTENCE = new Set(['stage-only', 'relation-only', 'replace-prior-stage', 'replace-previous-instance']);
@@ -417,7 +422,7 @@ export function checkMarkPersistence(replay, record, { select = isPlanItemReveal
     }
     if (identity) for (const [key, marks] of all) {
       if (refKey(keyRef(key)) !== refKey(identity) || painted.has(key)) continue;
-      const own = marks.find(mark => mark.revealed && refKey(mark.item.relationRef) === refKey(identity));
+      const own = marks.find(mark => mark.revealed && planItemRelationRefs(mark.item).some(ref => refKey(ref) === refKey(identity)));
       if (own) unpaintedAtMoment.set(key, { frame, missing: own.missing });
     }
     previousPainted = painted;

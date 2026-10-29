@@ -115,6 +115,30 @@ test('the adapter calls the existing CLI with literal arguments and returns its 
   assert.deepEqual(result, { status: 200, payload: { ...bundle, requestedModelId: body.modelId } });
 });
 
+test('a response with one analysis that fails the spelling check is rejected, not shown without it', async t => {
+  const outputPath = directory(t);
+  fs.mkdirSync(path.join(outputPath, 'attempts/parse'), { recursive: true });
+  const failure = { ruleId: 'SPELLOUT_MISMATCH', analysisIndex: 1, message: '"Mia" does not spell the sentence at "Max".' };
+  fs.writeFileSync(path.join(outputPath, 'run-receipt.json'), JSON.stringify({ status: 'completed', attempts: [
+    { attemptId: 'parse', outcome: { status: 'succeeded' } },
+    { attemptId: 'parse-analysis-2-spellout', outcome: { status: 'failed', phase: 'spellout', failure } }
+  ] }));
+  fs.writeFileSync(path.join(outputPath, 'attempts/parse/attempt-receipt.json'), JSON.stringify({ outcome: { status: 'succeeded' } }));
+  fs.writeFileSync(path.join(outputPath, 'attempts/parse/bundle.json'),
+    JSON.stringify({ response: { analyses: [{ derivationStages: [{ statement: 'valid' }] }] } }));
+  fs.writeFileSync(path.join(outputPath, 'output.txt'), '{"analyses":[]}');
+  const result = await runManualQualification({ request: { sentence, framework: 'xbar', model: body.modelId, effort: 'high' },
+    outputPath, signal: new AbortController().signal, spawnImpl: () => {
+      const child = new EventEmitter();
+      queueMicrotask(() => child.emit('close', 1));
+      return child;
+    } });
+  assert.equal(result.status, 502);
+  assert.equal(result.payload.error.code, 'PARSE_FAILED');
+  assert.deepEqual(result.payload.error.failure, failure);
+  assert.equal(Buffer.from(result.payload.error.rawOutput.data, 'base64').toString(), '{"analyses":[]}');
+});
+
 test('a sentence beginning with a dash reaches the CLI as the literal sentence', async t => {
   const dashSentence = '-5 degrees is --cold.';
   const outputPath = path.join(directory(t), 'prepared');

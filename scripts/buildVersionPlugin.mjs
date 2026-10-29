@@ -10,11 +10,12 @@ import path from 'node:path';
 // <meta name="babel-worktree"> digests those uncommitted changes, so the local
 // server (server/distFreshness.js) can tell whether dist/ is this checkout's build.
 
-const git = (root, args) => {
+const git = (root, args, { trim = true } = {}) => {
   try {
-    return execFileSync('git', args, {
+    const output = execFileSync('git', args, {
       cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1024 ** 3
-    }).trim();
+    });
+    return trim ? output.trim() : output;
   } catch {
     return null;
   }
@@ -30,15 +31,33 @@ export const readBuildId = ({ root = process.cwd(), env = process.env } = {}) =>
   return `${version}+${commit}${dirty ? '.dirty' : ''}`;
 };
 
-const sha256 = text => createHash('sha256').update(text).digest('hex');
+const sha256 = data => createHash('sha256').update(data).digest('hex');
 
-/** `clean`, a digest of the uncommitted tracked changes and the untracked paths
- * git reports (not their contents), or `unknown` without git. */
+/** `clean`, a digest of each path git reports as changed or untracked with its
+ * current content, or `unknown` without git. It reads the working tree alone,
+ * so staging a change leaves it unchanged. An untracked directory git reports
+ * whole counts by its path. */
 export const readWorktreeDigest = ({ root = process.cwd() } = {}) => {
-  const status = git(root, ['status', '--porcelain=v1', '--untracked-files=normal']);
+  const status = git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=normal'], { trim: false });
   if (status === null) return 'unknown';
   if (!status) return 'clean';
-  return sha256(`${status}\0${git(root, ['diff', 'HEAD', '--binary', '--no-ext-diff', '--no-textconv']) ?? ''}`);
+  const fields = status.split('\0'), paths = new Set();
+  for (let index = 0; index < fields.length; index++) {
+    if (!fields[index]) continue;
+    paths.add(fields[index].slice(3));
+    // A rename or copy names its source in the next field.
+    if (/[RC]/.test(fields[index].slice(0, 2))) paths.add(fields[++index]);
+  }
+  const content = file => {
+    const absolute = path.join(root, file);
+    try {
+      const stat = fs.lstatSync(absolute);
+      return stat.isSymbolicLink() ? `link ${fs.readlinkSync(absolute)}` : stat.isFile() ? sha256(fs.readFileSync(absolute)) : 'directory';
+    } catch {
+      return 'missing';
+    }
+  };
+  return sha256([...paths].sort().map(file => `${file}\0${content(file)}`).join('\0'));
 };
 
 /** The <meta> tags a build of this checkout carries. */

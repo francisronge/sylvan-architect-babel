@@ -357,7 +357,7 @@ export function checkStableConstruction(replay) {
       const where = `at micro ${step.operation} (target ${target})`;
       if (!current.displayed.has(id)) {
         const replaced = newTarget && ((previous.children.get(id) ?? []).some(child => current.displayed.has(child) && holds(child))
-          || current.parent.get(target) === before);
+          || before != null && current.parent.get(target) === before);
         if (!replaced) out.push(violation('stable-construction', index + 1, `${id} disappears ${where}`));
         continue;
       }

@@ -52,7 +52,7 @@ test('ignored node fields copied through references stop at the response expansi
     assert.equal(error.failure.ruleId, 'DERIVATION_WORKSPACE_VALID');
     assert.equal(error.failure.analysisIndex, analysisIndex);
     assert.equal(error.failure.stageIndex, stageIndex);
-    assert.match(error.message, /expanded node fields exceed 1000000 values across the response/);
+    assert.match(error.message, /expanded node fields exceed 1000000 values and characters across the response/);
     return true;
   });
   // A 74 KB response once retained eight million copied values.
@@ -61,6 +61,19 @@ test('ignored node fields copied through references stop at the response expansi
   const half = carried(10_000, 60);
   assert.equal(normalize(half).analyses.length, 1);
   expectBudget({ analyses: [half, half] }, 1, 39);
+  // Copied strings and keys count by their length: a 134 KB response with one
+  // 100,000-character field once normalized to 40 MB.
+  const text = (characters, stages) => ({ derivationStages: [
+    stage([{ id: 'w', label: 'X', word: 'a', extra: 'x'.repeat(characters), children: [] }]),
+    ...Array.from({ length: stages - 1 }, () => stage([{ refId: 'w' }]))
+  ] });
+  expectBudget(text(100_000, 400), 0, 9);
+  const key = (characters, stages) => ({ derivationStages: [
+    stage([{ id: 'w', label: 'X', word: 'a', extra: { ['k'.repeat(characters)]: 0 }, children: [] }]),
+    ...Array.from({ length: stages - 1 }, () => stage([{ refId: 'w' }]))
+  ] });
+  expectBudget(key(100_000, 400), 0, 9);
+  assert.equal(normalize(text(10_000, 60)).analyses.length, 1);
 });
 
 test('deeply nested metadata is rejected by the response preflight before any clone', () => {

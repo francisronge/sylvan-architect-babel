@@ -255,8 +255,11 @@ artifacts stay in the local qualification archive.
 - **Validity did not drop.** Every request in both conditions returned a valid
   response, with no ingress repairs or token-index corrections. Spell-out
   checked all 93 broad-set analyses without error.
-- **Repair work fell.** Final-stage realization groups went from 40 to 23 in the
-  broad set, and from 32 to 27 in the study set.
+- **Fewer realization groups.** Final-stage realization groups went from 40 to
+  23 in the broad set (88 and 93 analyses), and from 32 to 27 in the study set
+  (28 and 31). These groups were not classified by purpose, so the totals also
+  count fused morphology and do not by themselves show that repairs fell. The
+  next point reviews the words each condition produced.
 - **Segmentation stopped shaping analyses.** With today's tokens, models wrote
   a split Japanese verb in romanization (*kak*, *ase*), kept ICU's fragment 読ん
   as a word, and split the names 张伟 and 小李 into two words each. Under
