@@ -70,3 +70,8 @@ export function coveredWordSpan(anchor: Node, wordRect: (node: Node) => Rect | n
   const tick = low <= high ? Math.min(Math.max(x, low), high) : (left!.x + left!.width + right!.x) / 2;
   return { category, runs: [], tick, leaves: range };
 }
+
+/** The box a painted parent→child branch spans, between the two node points. */
+export const fallbackBranchBox = (parent: { x: number; y: number }, child: { x: number; y: number }): Rect => ({
+  x: Math.min(parent.x, child.x), y: parent.y, width: Math.abs(child.x - parent.x), height: child.y - parent.y
+});

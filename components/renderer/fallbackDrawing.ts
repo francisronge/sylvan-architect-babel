@@ -13,7 +13,7 @@ import {
 } from '../../replay/relations/overlayGeometry.ts';
 import type { PlaquePlacement } from '../../replay/relations/plaquePlacement.ts';
 import { boundingRect } from '../../replay/relations/rectGeometry.ts';
-import { coveredWordSpan } from '../../replay/relations/fallbackSpans.ts';
+import { coveredWordSpan, fallbackBranchBox } from '../../replay/relations/fallbackSpans.ts';
 import type { RelationRenderPlan } from '../../replay/relations/renderPlan.ts';
 import {
   isPlanItemRevealed,
@@ -141,6 +141,8 @@ export function measureFallbackLabels({
         activeRelationMoment?.relationIndex ?? null)
         && planItemDependencyNodeIds(item).every(id => Boolean(resolveOverlayAnchor(id)));
     }).map(([, rect]) => rect),
+    branches: [...new Set(frameLayoutById.values())].flatMap(node => node.parent && !isSyntheticWorkspaceRootNode(node.parent)
+      && !isUnderTriangulation(node as unknown as HierNode) ? [fallbackBranchBox(node.parent, node)] : []),
     labelFor: (id: string) => fallbackRectFor(id),
     subtreeFor: (id: string) => fallbackRectFor(id, true),
     spanFor: (id: string) => {

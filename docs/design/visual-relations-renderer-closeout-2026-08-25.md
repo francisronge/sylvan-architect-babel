@@ -533,16 +533,17 @@ have no invented links.
 A connector's participant stands for the words it covers (Francis, 29 October
 2026: "1. works", choosing "Brackets under the words each anchor covers").
 When both participants' subtrees reach the same lowest row (within half a tree
-row) and no tree text lies a row deeper between their stems, each keeps its
+row) and no tree text or branch reaches a row deeper between their stems, each keeps its
 stem below its subtree and its role label beside it, byte for byte as before.
 Otherwise a stem from the higher one would run down through the tree, or the
 run would cross deeper branches, so neither draws a stem: below the lowest
-tree text over them, on the same floor rule and lane, each gets a thin bracket spanning the painted
+tree text and branches over them, on the same floor rule and lane, each gets a thin bracket spanning the painted
 words it dominates in the current frame, with short ticks rising at the ends
 of every run of words (a run breaks where a word it does not dominate lies
 between). A participant covering no painted word, such as a silent head or a
 trace, gets one tick at its own x kept a word-font size clear of the words
-before and after it in tree order. Brackets stand one short drop above the
+before and after it in tree order; two such participants in one gap keep two
+ticks, in tree order. Brackets stand one short drop above the
 lane, and the run joining them takes the lane a stem connector would. When
 one participant dominates the other, or their brackets would overlap, the
 inner (narrower) bracket stays above and the outer one is drawn along the

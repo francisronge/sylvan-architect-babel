@@ -43,7 +43,8 @@ export const neutralGeometry = {
     const linkBottoms = link?.endpoints.map(subtreeBottom);
     const spans = link && spanFor && linkBottoms?.every(Boolean)
       && link.endpoints.every(id => positionFor(id)) && link.endpoints[0] !== link.endpoints[1]
-      && bracketsFallbackLink(linkBottoms[0]!, linkBottoms[1]!, options.fallbackMeasurements?.labels ?? []) ? link.endpoints.map(id => spanFor(id)) : null;
+      && bracketsFallbackLink(linkBottoms[0]!, linkBottoms[1]!,
+        [...options.fallbackMeasurements?.labels ?? [], ...options.fallbackMeasurements?.branches ?? []]) ? link.endpoints.map(id => spanFor(id)) : null;
     const brackets = spans?.every(Boolean) ? spans as FallbackWordSpan[] : null;
     const measure = options.plaqueTextLayout?.measureText ?? fallbackPlaqueTextMeasure;
     const measuredHeight = (metrics: ReturnType<typeof measure>) => options.plaqueTextLayout?.measureText
@@ -105,6 +106,13 @@ export const neutralGeometry = {
     // or bracket the words their participants cover.
     if (link && brackets) {
       const ends = link.endpoints.map((nodeId, index) => ({ nodeId, runs: brackets[index].runs, tick: brackets[index].tick }));
+      // Two silent participants in one gap of the words keep two ticks, in tree order.
+      if (ends[0].tick !== null && ends[1].tick !== null && Math.abs(ends[0].tick - ends[1].tick) < BRACKET_SEPARATION) {
+        const middle = (ends[0].tick + ends[1].tick) / 2, first = brackets[0].leaves[0] <= brackets[1].leaves[0] ? 0 : 1;
+        const side = options.direction === 'rtl' ? 1 : -1;
+        ends[first].tick = middle + side * BRACKET_SEPARATION / 2;
+        ends[1 - first].tick = middle - side * BRACKET_SEPARATION / 2;
+      }
       // A dominated participant's bracket nests inside; so does the narrower of
       // two whose words overlap in x, as words hung at different rows can.
       const [a, b] = brackets.map(span => span.leaves);

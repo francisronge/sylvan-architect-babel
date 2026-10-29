@@ -141,12 +141,12 @@ const SAME_ROW = TREE_ROW_HEIGHT / 2;
  * of dropping a stem below each subtree (`from` and `to`, each its subtree's
  * bottom middle): when the subtrees do not both reach the participants' lowest
  * row, a stem from the higher one would run down through the tree, and when
- * tree text lies a row deeper between the stems, their run would cross its
- * branches. Two words on the lowest row keep their stems. */
-export const bracketsFallbackLink = (from: Point, to: Point, labels: readonly Rect[]): boolean => {
+ * tree text or a branch (`syntax`) reaches a row deeper between the stems,
+ * their run would cross it. Two words on the lowest row keep their stems. */
+export const bracketsFallbackLink = (from: Point, to: Point, syntax: readonly Rect[]): boolean => {
   const bottom = Math.max(from.y, to.y), left = Math.min(from.x, to.x), right = Math.max(from.x, to.x);
   return Math.abs(from.y - to.y) > SAME_ROW
-    || labels.some(box => box.x < right && box.x + box.width > left && box.y + box.height > bottom + SAME_ROW);
+    || syntax.some(box => box.x < right && box.x + box.width > left && box.y + box.height > bottom + SAME_ROW);
 };
 
 // Bracket shape in marker units: the end ticks' rise, and the drop from a
@@ -318,11 +318,11 @@ export const routeFallbackSegments = (
     const [start, end] = extent(segment);
     return { start, end };
   }), laneGap);
-  // Brackets go below all syntax over them, so they never cross its branches.
+  // Brackets go below all syntax over them, labels and branches, so they never cross it.
   const overBrackets = counterSegments.filter(segment => segment.brackets).flatMap(segment => {
     const [x1, x2] = extent(segment);
-    return (options.fallbackMeasurements?.labels ?? []).filter(box => box.x < x2 && box.x + box.width > x1)
-      .map(box => box.y + box.height);
+    return [...options.fallbackMeasurements?.labels ?? [], ...options.fallbackMeasurements?.branches ?? []]
+      .filter(box => box.x < x2 && box.x + box.width > x1).map(box => box.y + box.height);
   });
   const participantBottom = counterSegments.length > 0
     ? Math.max(...counterSegments.flatMap(segment => [segment.from.y, segment.to.y]), ...overBrackets) : 0;

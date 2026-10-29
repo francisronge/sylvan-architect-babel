@@ -26,7 +26,7 @@ import { prepareReplay } from '../../replay/prepareReplay.ts';
 import { TREE_ROW_HEIGHT } from '../../replay/treeSpacing.ts';
 import { prepareTreeLabelRuns } from '../../replay/prepareTreeLabelRuns.ts';
 import { connectorLabelSpots, fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
-import { coveredWordSpan } from '../../replay/relations/fallbackSpans.ts';
+import { coveredWordSpan, fallbackBranchBox } from '../../replay/relations/fallbackSpans.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { paintedShift } from '../../replay/cameraCarry.ts';
 import { drawnPlaque, projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
@@ -424,6 +424,8 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   const fallbackMeasurements = { labels: [...labelRects.values()], obstacles: [...placements.values()],
     visibleLabels: [...labelRects].filter(([id]) => visibleIds.has(id)).map(([, value]) => value),
     visibleObstacles: visiblePlacements.map(([, box]) => box), labelFor: id => rectFor(id, false), subtreeFor: id => rectFor(id, true),
+    branches: all.flatMap(node => node.parent && !canvas.isSyntheticWorkspaceRootNode(node.parent) && !isUnderTriangulation(node)
+      ? [fallbackBranchBox(node.parent, node)] : []),
     spanFor: id => { const anchor = laidOut.get(id); return anchor ? coveredWordSpan(anchor, node => {
       const wordId = display.getNodeId(node);
       return visibleIds.has(wordId) ? labelRects.get(wordId) ?? null : null;
