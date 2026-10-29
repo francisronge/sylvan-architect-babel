@@ -136,7 +136,8 @@ test('without the earlier movement claim the landing-only claim keeps its refusa
 
 // Opus n4-16 (opus-parts, stage 7): antecedent government names the moved
 // operator, its trace and the C head it lands beside; the stage's earlier
-// claim draws that hop. C has no other occurrence, so it lands nowhere.
+// claim draws that hop. C has no other occurrence, so it lands nowhere: the
+// operator kept its ID and tOp2 holds its preceding slot, so C is context.
 const government = (withMovement = true) => {
   const lowerClause = () => node('ibar', 'I′', [word('i', 'I', '', { silent: true }),
     node('vp', 'VP', [word('v', 'V', 'morava'), node('tOp1', 'DP', [], { lineageId: 'op', silent: true })])]);
@@ -156,10 +157,14 @@ test('a government claim citing the head beside a hop an earlier claim draws ass
   assert(!checkMovementUnrendered(replay, record).some(found => found.subject === '1:1'));
 });
 
-test('without the earlier movement claim the government claim keeps its refusal and the audit reports it', () => {
+// Alone, the claim's own structure proves the hop, as it does without the head
+// field; the head it cites stays context (tests/keptLandingAttractingHead.test.mjs).
+test('without the earlier movement claim the government claim draws the hop its structure proves', () => {
   const record = government(false), replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
-  assert.ok(movementCodes(moment(replay, 1, 0)).some(text => text.startsWith('MOVEMENT_')));
-  assert.ok(checkMovementUnrendered(replay, record).some(found => found.subject === '1:0'));
+  assert.deepEqual(replay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory')
+    .map(item => [item.relationRef.relationIndex, item.sourceNodeId, item.targetNodeId]), [[0, 'tOp2', 'op']]);
+  assert.deepEqual(movementCodes(moment(replay, 1, 0)), []);
+  assert.deepEqual(checkMovementUnrendered(replay, record), []);
 });
 
 // Opus s58 (opus-stress, stage 22): after topicalization takes the last hop,
