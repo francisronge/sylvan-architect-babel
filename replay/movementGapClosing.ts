@@ -397,6 +397,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
   }
   if (!process.env.BABEL_NO_SETTLE) settleWaitingPieces(scenes, coordinates, firstScene, lastScene, paint, measureCategoryText);
   if (!process.env.BABEL_NO_HOLD) holdBack(scenes, coordinates, firstScene, lastScene, paint, measureCategoryText);
+  if (!process.env.BABEL_NO_ROOM) openSourceRoom(scenes, coordinates, firstScene, lastScene, paint, measureCategoryText);
   const byStage = new Map<number, Map<SyntaxNode, TreeCoordinateReservation>>();
   for (const scene of scenes) {
     const stage = scene.step.replayFrameIndex!;
@@ -643,6 +644,112 @@ function holdBack(scenes: readonly Scene[], coordinates: Map<SyntaxNode, Map<str
       debug(k + 1, leaves.length, first, Math.round(delta.x), Math.round(delta.y), 'held from', start + 1);
       repainted.forEach((frame, index) => { frames[start + index] = frame; });
       for (const id of leaves) held.add(id);
+    }
+  }
+}
+
+/** Gives a movement's source the room its sisters need before it leaves.
+ *
+ * Before a movement the source keeps its earlier, wider form, while its parent's
+ * sister may already stand where it will stand once the source has left: the two
+ * then crowd on their row (a specifier tucked against v′ until the verb moves
+ * out). Such a sister stands farther out over its whole life before the
+ * movement, and the movement, which owns the closing, brings it back. Kept only
+ * when the rule grants that closing, every changed frame stays clear and ordered,
+ * and no other step moves anything farther. */
+function openSourceRoom(scenes: readonly Scene[], coordinates: Map<SyntaxNode, Map<string, { x: number; y: number }>>,
+  firstScene: ReadonlyMap<SyntaxNode, number>, lastScene: ReadonlyMap<SyntaxNode, number>, paint: (scene: Scene) => Painted,
+  measureCategoryText?: CategoryTextMeasure) {
+  const frames = scenes.map(paint);
+  const debug = (...parts: unknown[]) => { if (process.env.BABEL_GAP_DEBUG) console.error('ROOM', ...parts); };
+  for (let k = scenes.length - 1; k >= 1; k--) {
+    const step = scenes[k].step, participants = trajectoryParticipants(step);
+    if (!participants.length) continue;
+    const before = frames[k - 1], after = frames[k];
+    const departing = new Set<string>();
+    for (const id of participants) before.get(id)?.each(member => { if (before.has(getNodeId(member)) && !after.has(getNodeId(member))) departing.add(getNodeId(member)); });
+    for (const id of participants) { const node = before.get(id), now = after.get(id); if (node && now && shownParent(before, node) !== shownParent(after, now)) node.each(member => { departing.add(getNodeId(member)); }); }
+    if (!departing.size) continue;
+    for (const [parentId, parent] of before) {
+      const daughters = (parent.children ?? []).filter(child => before.has(getNodeId(child)));
+      for (let index = 1; index < daughters.length; index++) {
+        const pair = [daughters[index - 1], daughters[index]];
+        const holds = pair.map(node => { let any = false; node.each(member => { if (departing.has(getNodeId(member))) any = true; }); return any; });
+        if (holds[0] === holds[1]) continue;
+        const crowded = Math.abs(pair[1].x - pair[0].x), later = pair.map(node => after.get(getNodeId(node)));
+        const there = later[0] && later[1] ? Math.abs(later[1].x - later[0].x) : TREE_SIBLING_GAP;
+        if (crowded >= Math.min(TREE_SIBLING_GAP, there) - 1) continue;
+        // The sister without the source stands out by what its row lacks.
+        const side = holds[0] ? 1 : 0, sister = pair[side], sign = side ? 1 : -1, need = Math.min(TREE_SIBLING_GAP, there) - crowded;
+        const own: string[] = [];
+        sister.each(member => { if (before.has(getNodeId(member))) own.push(getNodeId(member)); });
+        // With everything beyond it on its side when that is in the way too.
+        const ancestors = new Set<string>(); for (let id: string | null = parentId; id; id = shownParent(before, before.get(id)!)) ancestors.add(id);
+        const other = new Set<string>(); pair[1 - side].each(member => { other.add(getNodeId(member)); });
+        const edge = sign < 0 ? Math.min(...own.map(id => before.get(id)!.x)) : Math.max(...own.map(id => before.get(id)!.x));
+        const beyond = [...before.keys()].filter(id => !own.includes(id) && !departing.has(id) && !other.has(id) && !ancestors.has(id)
+          && (sign < 0 ? before.get(id)!.x < edge : before.get(id)!.x > edge));
+        // Or, first, the source's sister contents beyond it widen the source's
+        // side instead, its parent recentring away by half their shift.
+        const holder = pair[1 - side], far = holder.descendants().filter(member => before.has(getNodeId(member)) && !departing.has(getNodeId(member))
+          && member !== holder && !departing.has(getNodeId(member)) && (sign < 0 ? member.x > Math.max(...[...departing].map(id => before.get(id)?.x ?? -Infinity)) : member.x < Math.min(...[...departing].map(id => before.get(id)?.x ?? Infinity))));
+        const farIds = far.map(getNodeId).filter(id => { let up = before.get(id)!; for (let p = shownParent(before, up); p && p !== getNodeId(holder); p = shownParent(before, before.get(p)!)) if (departing.has(p)) return false; return true; });
+        const outside = [...before.keys()].filter(id => !farIds.includes(id) && !departing.has(id) && !ancestors.has(id) && !other.has(id) && !own.includes(id)
+          && (sign < 0 ? before.get(id)!.x > Math.max(...farIds.map(f => before.get(f)!.x)) : before.get(id)!.x < Math.min(...farIds.map(f => before.get(f)!.x))));
+        const choices: { members: string[]; shift: number }[] = [];
+        if (farIds.length) choices.push({ members: [...farIds, ...outside], shift: -sign * 2 * need });
+        choices.push({ members: own, shift: sign * need });
+        if (beyond.length) choices.push({ members: [...own, ...beyond], shift: sign * need });
+        for (const { members, shift } of choices) {
+        const births = members.map(id => { let start = k; while (start > 0 && frames[start - 1].has(id)) start--; return start; });
+        const start = Math.min(...births);
+        const canvases = new Set(scenes.slice(start, k).map(scene => scene.canvas));
+        if ([...canvases].some(canvas => lastScene.get(canvas)! >= k)) break;
+        const saved = new Map([...canvases].map(canvas => [canvas, new Map(coordinates.get(canvas)!)] as const));
+        for (let j = start; j < k; j++) {
+          if (firstScene.get(scenes[j].canvas)! !== j) continue;
+          const points = coordinates.get(scenes[j].canvas)!, done = new Set<string>();
+          members.forEach((id, at) => {
+            if (j < births[at]) return;
+            frames[j].get(id)?.each(member => {
+              const memberId = getNodeId(member);
+              if (done.has(memberId) || (memberId !== id && frames[j].has(memberId) && !members.includes(memberId))) return;
+              done.add(memberId);
+              const point = points.get(memberId);
+              if (point) points.set(memberId, { x: point.x + shift, y: point.y });
+            });
+          });
+        }
+        const repainted = scenes.slice(start, k).map(paint);
+        const view = (index: number) => index >= start && index < k ? repainted[index - start] : frames[index];
+        let ok = true, reason = '';
+        for (let j = start; ok && j < k; j++) {
+          const frame = repainted[j - start];
+          const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
+          if (!ordered(frame)) { ok = false; reason = `order at ${j + 1}`; }
+          else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, frames[k])) { ok = false; reason = `clearance at ${j + 1}`; }
+        }
+        for (let j = Math.max(1, start); ok && j <= k; j++) {
+          const crossingJ = scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex;
+          if (newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], view(j - 1), view(j)).length) { ok = false; reason = `faults at ${j + 1}`; }
+          else if (j === k) {
+            // At the movement only its closing and carried phrases move farther.
+            const granted = closingAt(scenes[k - 1].step, step, view(k - 1), after, view(k - 1), after);
+            const movers = new Set<string>(); for (const id of participants) after.get(id)?.each(member => { movers.add(getNodeId(member)); });
+            for (const [id, node] of after) {
+              const was = frames[k - 1].get(id), now = view(k - 1).get(id);
+              if (!was || !now || granted.has(id) || movers.has(id)) continue;
+              if (Math.hypot(node.x - now.x, node.y - now.y) > Math.hypot(node.x - was.x, node.y - was.y) + 1) { ok = false; reason = `ungranted ${id}`; break; }
+            }
+          }
+          else if (j < k && !sameMotion(scenes[j].step, crossingJ, frames[j - 1], frames[j], view(j - 1), view(j))) { ok = false; reason = `motion at ${j + 1}`; }
+        }
+        if (!ok) { for (const [canvas, points] of saved) coordinates.set(canvas, points); debug(k + 1, parentId, getNodeId(sister), Math.round(shift), members.length, 'rejected', reason); continue; }
+        debug(k + 1, parentId, getNodeId(sister), Math.round(shift), members.length, 'opened from', start + 1);
+        repainted.forEach((frame, index) => { frames[start + index] = frame; });
+        break;
+        }
+      }
     }
   }
 }
