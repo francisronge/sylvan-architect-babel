@@ -1,0 +1,2089 @@
+{
+  "description": "From Replay step 71 the large anchor array of \"government and case assignment\" is drawn as numbered anchor-set badges. Each badge sat a nominal 46 marker units below its node, and at the Fit markers are three times their size, so in steps 71 to 74 badge 1 of subjectOperator sat inside the two-line label \"I⁰ [finite, past, perfect auxiliary]\" on the next row, over \"perfect\", and from step 75 on \"C⁰ [relative]\"; badges 2, 3 and 4 sat on the N′ or C⁰ label below their NPs to step 91. The visual audit did not judge badges. A badge now moves along its own column to the nearest height that clears every painted label and plaque, and the audit judges badges as mark text.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 27 October 2026 (sol-cfc-20261027 batch, n4-18-sv-long-v2, analysis 0), commit 1c07640. Exact copy of the analysis, archived in ~/Library/Application Support/Babel/codex-qualification.",
+  "sentence": "Igår läste studenten som hade kommit från Uppsala den bok som professorn hade rekommenderat.",
+  "framework": "xbar",
+  "inputTokens": [
+    "Igår",
+    "läste",
+    "studenten",
+    "som",
+    "hade",
+    "kommit",
+    "från",
+    "Uppsala",
+    "den",
+    "bok",
+    "som",
+    "professorn",
+    "hade",
+    "rekommenderat"
+  ],
+  "derivationStages": [
+    {
+      "statement": "Establish the base structure, argument positions, and the two restrictive relative clauses.",
+      "stageRecord": "The sentence is built with NP-based X-bar projections. Studenten and professorn are inflected definite nouns; den occupies the determiner position of the object NP. Each restrictive relative CP adjoins to the nominal N′ it modifies. Som is a complementizer, not an argument: a silent relative operator initially occupies the subject position of hade kommit and the object position of hade rekommenderat. Läste assigns Agent to studenten and Theme to the book NP. Kommit assigns Theme to its subject operator and Source to från Uppsala. Rekommenderat assigns Agent to professorn and Theme to its object operator. Från assigns its locative role to Uppsala. The embedded finite auxiliaries assign nominative to their subjects; från assigns oblique Case to Uppsala, and the transitive verbs assign accusative to their objects. Each occurrence of hade selects a VP with a supine lexical verb, giving the relative clause its pluperfect interpretation. Igår is initially a right-adjoined VP modifier and locates the reading event yesterday. The main finite inflection and the matrix complementizer are initially silent; subsequent stages establish the matrix verb's head-movement chain.",
+      "relations": [
+        {
+          "relation": "theta_assignment",
+          "anchors": {
+            "predicate": "read",
+            "agent": "studentNP",
+            "theme": "bookNP"
+          },
+          "values": {
+            "roles": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "relation": "theta_assignment",
+          "anchors": {
+            "predicate": "come",
+            "theme": "subjectOperator",
+            "source": "sourcePP"
+          },
+          "values": {
+            "roles": [
+              "Theme",
+              "Source"
+            ]
+          }
+        },
+        {
+          "relation": "theta_assignment",
+          "anchors": {
+            "predicate": "recommend",
+            "agent": "professorNP",
+            "theme": "objectOperator"
+          },
+          "values": {
+            "roles": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "relation": "theta_assignment",
+          "anchors": {
+            "predicate": "from",
+            "ground": "uppsalaNP"
+          },
+          "values": {
+            "ground": "source location"
+          }
+        },
+        {
+          "relation": "government_and_case_assignment",
+          "anchors": {
+            "governors": [
+              "subjectHad",
+              "objectHad",
+              "from",
+              "recommend",
+              "read"
+            ],
+            "nominals": [
+              "subjectOperator",
+              "professorNP",
+              "uppsalaNP",
+              "objectOperator",
+              "bookNP"
+            ]
+          },
+          "values": {
+            "nominals": [
+              "nominative",
+              "nominative",
+              "oblique",
+              "accusative",
+              "accusative"
+            ]
+          }
+        },
+        {
+          "relation": "auxiliary_selection",
+          "anchors": {
+            "auxiliaries": [
+              "subjectHad",
+              "objectHad"
+            ],
+            "selectedVerbs": [
+              "come",
+              "recommend"
+            ]
+          },
+          "values": {
+            "selectedVerbs": [
+              "supine",
+              "supine"
+            ],
+            "interpretation": "past perfect"
+          }
+        },
+        {
+          "relation": "temporal_modification",
+          "anchors": {
+            "modifier": "yesterdayAP",
+            "modifiedProjection": "mainCoreVP"
+          },
+          "values": {
+            "interpretation": "the reading event occurred yesterday"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mainCP",
+          "label": "CP",
+          "children": [
+            {
+              "id": "mainCbar",
+              "label": "C′",
+              "children": [
+                {
+                  "id": "mainComplementizer",
+                  "label": "C⁰ [declarative, V2]",
+                  "silent": true,
+                  "children": []
+                },
+                {
+                  "id": "mainIP",
+                  "label": "IP",
+                  "children": [
+                    {
+                      "id": "studentNP",
+                      "label": "NP",
+                      "children": [
+                        {
+                          "id": "studentModifiedNbar",
+                          "label": "N′",
+                          "children": [
+                            {
+                              "id": "studentCoreNbar",
+                              "label": "N′",
+                              "children": [
+                                {
+                                  "id": "student",
+                                  "label": "N⁰ [definite, singular]",
+                                  "word": "studenten",
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "subjectRelativeCP",
+                              "label": "CP",
+                              "children": [
+                                {
+                                  "id": "subjectRelativeCbar",
+                                  "label": "C′",
+                                  "children": [
+                                    {
+                                      "id": "subjectSom",
+                                      "label": "C⁰ [relative]",
+                                      "word": "som",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "subjectRelativeIP",
+                                      "label": "IP",
+                                      "children": [
+                                        {
+                                          "id": "subjectOperator",
+                                          "label": "NP [relative operator]",
+                                          "silent": true,
+                                          "lineageId": "subjectRelativeOperator",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "subjectRelativeIbar",
+                                          "label": "I′",
+                                          "children": [
+                                            {
+                                              "id": "subjectHad",
+                                              "label": "I⁰ [finite, past, perfect auxiliary]",
+                                              "word": "hade",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "comeVP",
+                                              "label": "VP",
+                                              "children": [
+                                                {
+                                                  "id": "comeVbar",
+                                                  "label": "V′",
+                                                  "children": [
+                                                    {
+                                                      "id": "come",
+                                                      "label": "V⁰ [supine]",
+                                                      "word": "kommit",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "sourcePP",
+                                                      "label": "PP",
+                                                      "children": [
+                                                        {
+                                                          "id": "sourcePbar",
+                                                          "label": "P′",
+                                                          "children": [
+                                                            {
+                                                              "id": "from",
+                                                              "label": "P⁰",
+                                                              "word": "från",
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "uppsalaNP",
+                                                              "label": "NP",
+                                                              "children": [
+                                                                {
+                                                                  "id": "uppsalaNbar",
+                                                                  "label": "N′",
+                                                                  "children": [
+                                                                    {
+                                                                      "id": "uppsala",
+                                                                      "label": "N⁰ [proper]",
+                                                                      "word": "Uppsala",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "mainIbar",
+                      "label": "I′",
+                      "children": [
+                        {
+                          "id": "mainInflection",
+                          "label": "I⁰ [finite, past]",
+                          "silent": true,
+                          "children": []
+                        },
+                        {
+                          "id": "mainAdjunctVP",
+                          "label": "VP",
+                          "children": [
+                            {
+                              "id": "mainCoreVP",
+                              "label": "VP",
+                              "children": [
+                                {
+                                  "id": "mainVbar",
+                                  "label": "V′",
+                                  "children": [
+                                    {
+                                      "id": "read",
+                                      "label": "V⁰ [preterite]",
+                                      "word": "läste",
+                                      "lineageId": "readVerb",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "bookNP",
+                                      "label": "NP",
+                                      "children": [
+                                        {
+                                          "id": "denDetP",
+                                          "label": "DetP",
+                                          "children": [
+                                            {
+                                              "id": "denDetbar",
+                                              "label": "Det′",
+                                              "children": [
+                                                {
+                                                  "id": "den",
+                                                  "label": "Det⁰ [definite]",
+                                                  "word": "den",
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "bookModifiedNbar",
+                                          "label": "N′",
+                                          "children": [
+                                            {
+                                              "id": "bookCoreNbar",
+                                              "label": "N′",
+                                              "children": [
+                                                {
+                                                  "id": "book",
+                                                  "label": "N⁰",
+                                                  "word": "bok",
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "objectRelativeCP",
+                                              "label": "CP",
+                                              "children": [
+                                                {
+                                                  "id": "objectRelativeCbar",
+                                                  "label": "C′",
+                                                  "children": [
+                                                    {
+                                                      "id": "objectSom",
+                                                      "label": "C⁰ [relative]",
+                                                      "word": "som",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "objectRelativeIP",
+                                                      "label": "IP",
+                                                      "children": [
+                                                        {
+                                                          "id": "professorNP",
+                                                          "label": "NP",
+                                                          "children": [
+                                                            {
+                                                              "id": "professorNbar",
+                                                              "label": "N′",
+                                                              "children": [
+                                                                {
+                                                                  "id": "professor",
+                                                                  "label": "N⁰ [definite, singular]",
+                                                                  "word": "professorn",
+                                                                  "children": []
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "id": "objectRelativeIbar",
+                                                          "label": "I′",
+                                                          "children": [
+                                                            {
+                                                              "id": "objectHad",
+                                                              "label": "I⁰ [finite, past, perfect auxiliary]",
+                                                              "word": "hade",
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "recommendVP",
+                                                              "label": "VP",
+                                                              "children": [
+                                                                {
+                                                                  "id": "recommendVbar",
+                                                                  "label": "V′",
+                                                                  "children": [
+                                                                    {
+                                                                      "id": "recommend",
+                                                                      "label": "V⁰ [supine]",
+                                                                      "word": "rekommenderat",
+                                                                      "children": []
+                                                                    },
+                                                                    {
+                                                                      "id": "objectOperator",
+                                                                      "label": "NP [relative operator]",
+                                                                      "silent": true,
+                                                                      "lineageId": "objectRelativeOperator",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "yesterdayAP",
+                              "label": "AdvP",
+                              "lineageId": "yesterdayPhrase",
+                              "children": [
+                                {
+                                  "id": "yesterdayAbar",
+                                  "label": "Adv′",
+                                  "children": [
+                                    {
+                                      "id": "yesterday",
+                                      "label": "Adv⁰",
+                                      "word": "Igår",
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Form the subject-relative and object-relative operator chains.",
+      "stageRecord": "First, the silent subject operator moves from the subject position of hade kommit to the specifier of its relative CP, leaving a nominative subject trace. The operator locally A′-binds that trace; Swedish relative som licenses this subject-relative configuration, so an English-style that-trace prohibition is not imposed. The resulting CP restricts studenten through the correspondence between its nominal head and the operator variable. Next, the silent object operator moves from the complement of rekommenderat to the specifier of the second relative CP, leaving an accusative object trace. This operator locally A′-binds its trace, which remains properly governed by rekommenderat. That CP restricts bok through the corresponding nominal-head/operator dependency. Both movements remain within their respective relative clauses; neither crosses the other relative clause. Hade stays in I in each relative, and som stays in C.",
+      "relations": [
+        {
+          "relation": "A_bar_movement",
+          "anchors": {
+            "landing": "subjectOperator",
+            "sourceTrace": "subjectOperatorTrace",
+            "landingDomain": "subjectRelativeCP"
+          },
+          "priorAnchors": {
+            "source": "subjectOperator"
+          },
+          "values": {
+            "movement": "subject relativization to Spec-CP",
+            "inheritedCase": "nominative"
+          }
+        },
+        {
+          "relation": "A_bar_binding_and_trace_licensing",
+          "anchors": {
+            "binder": "subjectOperator",
+            "trace": "subjectOperatorTrace",
+            "relativeComplementizer": "subjectSom"
+          },
+          "values": {
+            "licensing": "local antecedent government in a Swedish som-relative"
+          }
+        },
+        {
+          "relation": "restrictive_relative_dependency",
+          "anchors": {
+            "nominalHead": "studentCoreNbar",
+            "operator": "subjectOperator",
+            "relativeClause": "subjectRelativeCP"
+          },
+          "values": {
+            "interpretation": "the student who had come from Uppsala"
+          }
+        },
+        {
+          "relation": "A_bar_movement",
+          "anchors": {
+            "landing": "objectOperator",
+            "sourceTrace": "objectOperatorTrace",
+            "landingDomain": "objectRelativeCP"
+          },
+          "priorAnchors": {
+            "source": "objectOperator"
+          },
+          "values": {
+            "movement": "object relativization to Spec-CP",
+            "inheritedCase": "accusative"
+          }
+        },
+        {
+          "relation": "A_bar_binding_and_trace_licensing",
+          "anchors": {
+            "binder": "objectOperator",
+            "trace": "objectOperatorTrace",
+            "lexicalGovernor": "recommend"
+          },
+          "values": {
+            "licensing": "local operator binding and lexical government"
+          }
+        },
+        {
+          "relation": "restrictive_relative_dependency",
+          "anchors": {
+            "nominalHead": "bookCoreNbar",
+            "operator": "objectOperator",
+            "relativeClause": "objectRelativeCP"
+          },
+          "values": {
+            "interpretation": "the book that the professor had recommended"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mainCP",
+          "label": "CP",
+          "children": [
+            {
+              "id": "mainCbar",
+              "label": "C′",
+              "children": [
+                {
+                  "id": "mainComplementizer",
+                  "label": "C⁰ [declarative, V2]",
+                  "silent": true,
+                  "children": []
+                },
+                {
+                  "id": "mainIP",
+                  "label": "IP",
+                  "children": [
+                    {
+                      "id": "studentNP",
+                      "label": "NP",
+                      "children": [
+                        {
+                          "id": "studentModifiedNbar",
+                          "label": "N′",
+                          "children": [
+                            {
+                              "id": "studentCoreNbar",
+                              "label": "N′",
+                              "children": [
+                                {
+                                  "id": "student",
+                                  "label": "N⁰ [definite, singular]",
+                                  "word": "studenten",
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "subjectRelativeCP",
+                              "label": "CP",
+                              "children": [
+                                {
+                                  "id": "subjectOperator",
+                                  "label": "NP [relative operator]",
+                                  "silent": true,
+                                  "lineageId": "subjectRelativeOperator",
+                                  "children": []
+                                },
+                                {
+                                  "id": "subjectRelativeCbar",
+                                  "label": "C′",
+                                  "children": [
+                                    {
+                                      "id": "subjectSom",
+                                      "label": "C⁰ [relative]",
+                                      "word": "som",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "subjectRelativeIP",
+                                      "label": "IP",
+                                      "children": [
+                                        {
+                                          "id": "subjectOperatorTrace",
+                                          "label": "NP [t, subject]",
+                                          "silent": true,
+                                          "lineageId": "subjectRelativeOperator",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "subjectRelativeIbar",
+                                          "label": "I′",
+                                          "children": [
+                                            {
+                                              "id": "subjectHad",
+                                              "label": "I⁰ [finite, past, perfect auxiliary]",
+                                              "word": "hade",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "comeVP",
+                                              "label": "VP",
+                                              "children": [
+                                                {
+                                                  "id": "comeVbar",
+                                                  "label": "V′",
+                                                  "children": [
+                                                    {
+                                                      "id": "come",
+                                                      "label": "V⁰ [supine]",
+                                                      "word": "kommit",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "sourcePP",
+                                                      "label": "PP",
+                                                      "children": [
+                                                        {
+                                                          "id": "sourcePbar",
+                                                          "label": "P′",
+                                                          "children": [
+                                                            {
+                                                              "id": "from",
+                                                              "label": "P⁰",
+                                                              "word": "från",
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "uppsalaNP",
+                                                              "label": "NP",
+                                                              "children": [
+                                                                {
+                                                                  "id": "uppsalaNbar",
+                                                                  "label": "N′",
+                                                                  "children": [
+                                                                    {
+                                                                      "id": "uppsala",
+                                                                      "label": "N⁰ [proper]",
+                                                                      "word": "Uppsala",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "mainIbar",
+                      "label": "I′",
+                      "children": [
+                        {
+                          "id": "mainInflection",
+                          "label": "I⁰ [finite, past]",
+                          "silent": true,
+                          "children": []
+                        },
+                        {
+                          "id": "mainAdjunctVP",
+                          "label": "VP",
+                          "children": [
+                            {
+                              "id": "mainCoreVP",
+                              "label": "VP",
+                              "children": [
+                                {
+                                  "id": "mainVbar",
+                                  "label": "V′",
+                                  "children": [
+                                    {
+                                      "id": "read",
+                                      "label": "V⁰ [preterite]",
+                                      "word": "läste",
+                                      "lineageId": "readVerb",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "bookNP",
+                                      "label": "NP",
+                                      "children": [
+                                        {
+                                          "id": "denDetP",
+                                          "label": "DetP",
+                                          "children": [
+                                            {
+                                              "id": "denDetbar",
+                                              "label": "Det′",
+                                              "children": [
+                                                {
+                                                  "id": "den",
+                                                  "label": "Det⁰ [definite]",
+                                                  "word": "den",
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "bookModifiedNbar",
+                                          "label": "N′",
+                                          "children": [
+                                            {
+                                              "id": "bookCoreNbar",
+                                              "label": "N′",
+                                              "children": [
+                                                {
+                                                  "id": "book",
+                                                  "label": "N⁰",
+                                                  "word": "bok",
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "objectRelativeCP",
+                                              "label": "CP",
+                                              "children": [
+                                                {
+                                                  "id": "objectOperator",
+                                                  "label": "NP [relative operator]",
+                                                  "silent": true,
+                                                  "lineageId": "objectRelativeOperator",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "objectRelativeCbar",
+                                                  "label": "C′",
+                                                  "children": [
+                                                    {
+                                                      "id": "objectSom",
+                                                      "label": "C⁰ [relative]",
+                                                      "word": "som",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "objectRelativeIP",
+                                                      "label": "IP",
+                                                      "children": [
+                                                        {
+                                                          "id": "professorNP",
+                                                          "label": "NP",
+                                                          "children": [
+                                                            {
+                                                              "id": "professorNbar",
+                                                              "label": "N′",
+                                                              "children": [
+                                                                {
+                                                                  "id": "professor",
+                                                                  "label": "N⁰ [definite, singular]",
+                                                                  "word": "professorn",
+                                                                  "children": []
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "id": "objectRelativeIbar",
+                                                          "label": "I′",
+                                                          "children": [
+                                                            {
+                                                              "id": "objectHad",
+                                                              "label": "I⁰ [finite, past, perfect auxiliary]",
+                                                              "word": "hade",
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "recommendVP",
+                                                              "label": "VP",
+                                                              "children": [
+                                                                {
+                                                                  "id": "recommendVbar",
+                                                                  "label": "V′",
+                                                                  "children": [
+                                                                    {
+                                                                      "id": "recommend",
+                                                                      "label": "V⁰ [supine]",
+                                                                      "word": "rekommenderat",
+                                                                      "children": []
+                                                                    },
+                                                                    {
+                                                                      "id": "objectOperatorTrace",
+                                                                      "label": "NP [t, object]",
+                                                                      "silent": true,
+                                                                      "lineageId": "objectRelativeOperator",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "yesterdayAP",
+                              "label": "AdvP",
+                              "lineageId": "yesterdayPhrase",
+                              "children": [
+                                {
+                                  "id": "yesterdayAbar",
+                                  "label": "Adv′",
+                                  "children": [
+                                    {
+                                      "id": "yesterday",
+                                      "label": "Adv⁰",
+                                      "word": "Igår",
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Move the matrix lexical verb to finite I.",
+      "stageRecord": "Läste moves from the matrix V position and adjoins to the immediately higher finite I, leaving a silent verbal trace. The pronounced verb retains its lexical occurrence at the landing site, while the complex I head combines it with the silent past inflection. This is the first step of successive head movement rather than a direct jump from V to C. The resulting finite I governs the matrix subject studenten and assigns it nominative Case. The book NP retains accusative through the lexical verb's chain, and the subject remains in Spec-IP.",
+      "relations": [
+        {
+          "relation": "head_movement",
+          "anchors": {
+            "movedHead": "read",
+            "landingHead": "mainFiniteI",
+            "sourceTrace": "readTrace",
+            "inflection": "mainInflection"
+          },
+          "priorAnchors": {
+            "source": "read",
+            "target": "mainInflection"
+          },
+          "values": {
+            "movement": "V-to-I",
+            "tense": "past"
+          }
+        },
+        {
+          "relation": "government_and_case_assignment",
+          "anchors": {
+            "governor": "mainFiniteI",
+            "nominal": "studentNP"
+          },
+          "values": {
+            "case": "nominative"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mainCP",
+          "label": "CP",
+          "children": [
+            {
+              "id": "mainCbar",
+              "label": "C′",
+              "children": [
+                {
+                  "id": "mainComplementizer",
+                  "label": "C⁰ [declarative, V2]",
+                  "silent": true,
+                  "children": []
+                },
+                {
+                  "id": "mainIP",
+                  "label": "IP",
+                  "children": [
+                    {
+                      "id": "studentNP",
+                      "label": "NP",
+                      "children": [
+                        {
+                          "id": "studentModifiedNbar",
+                          "label": "N′",
+                          "children": [
+                            {
+                              "id": "studentCoreNbar",
+                              "label": "N′",
+                              "children": [
+                                {
+                                  "id": "student",
+                                  "label": "N⁰ [definite, singular]",
+                                  "word": "studenten",
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "subjectRelativeCP",
+                              "label": "CP",
+                              "children": [
+                                {
+                                  "id": "subjectOperator",
+                                  "label": "NP [relative operator]",
+                                  "silent": true,
+                                  "lineageId": "subjectRelativeOperator",
+                                  "children": []
+                                },
+                                {
+                                  "id": "subjectRelativeCbar",
+                                  "label": "C′",
+                                  "children": [
+                                    {
+                                      "id": "subjectSom",
+                                      "label": "C⁰ [relative]",
+                                      "word": "som",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "subjectRelativeIP",
+                                      "label": "IP",
+                                      "children": [
+                                        {
+                                          "id": "subjectOperatorTrace",
+                                          "label": "NP [t, subject]",
+                                          "silent": true,
+                                          "lineageId": "subjectRelativeOperator",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "subjectRelativeIbar",
+                                          "label": "I′",
+                                          "children": [
+                                            {
+                                              "id": "subjectHad",
+                                              "label": "I⁰ [finite, past, perfect auxiliary]",
+                                              "word": "hade",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "comeVP",
+                                              "label": "VP",
+                                              "children": [
+                                                {
+                                                  "id": "comeVbar",
+                                                  "label": "V′",
+                                                  "children": [
+                                                    {
+                                                      "id": "come",
+                                                      "label": "V⁰ [supine]",
+                                                      "word": "kommit",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "sourcePP",
+                                                      "label": "PP",
+                                                      "children": [
+                                                        {
+                                                          "id": "sourcePbar",
+                                                          "label": "P′",
+                                                          "children": [
+                                                            {
+                                                              "id": "from",
+                                                              "label": "P⁰",
+                                                              "word": "från",
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "uppsalaNP",
+                                                              "label": "NP",
+                                                              "children": [
+                                                                {
+                                                                  "id": "uppsalaNbar",
+                                                                  "label": "N′",
+                                                                  "children": [
+                                                                    {
+                                                                      "id": "uppsala",
+                                                                      "label": "N⁰ [proper]",
+                                                                      "word": "Uppsala",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "mainIbar",
+                      "label": "I′",
+                      "children": [
+                        {
+                          "id": "mainFiniteI",
+                          "label": "I⁰ [finite, past]",
+                          "lineageId": "matrixFiniteHead",
+                          "children": [
+                            {
+                              "id": "read",
+                              "label": "V⁰ [preterite]",
+                              "word": "läste",
+                              "lineageId": "readVerb",
+                              "children": []
+                            },
+                            {
+                              "id": "mainInflection",
+                              "label": "I⁰ [finite, past]",
+                              "silent": true,
+                              "children": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "mainAdjunctVP",
+                          "label": "VP",
+                          "children": [
+                            {
+                              "id": "mainCoreVP",
+                              "label": "VP",
+                              "children": [
+                                {
+                                  "id": "mainVbar",
+                                  "label": "V′",
+                                  "children": [
+                                    {
+                                      "id": "readTrace",
+                                      "label": "V⁰ [t]",
+                                      "silent": true,
+                                      "lineageId": "readVerb",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "bookNP",
+                                      "label": "NP",
+                                      "children": [
+                                        {
+                                          "id": "denDetP",
+                                          "label": "DetP",
+                                          "children": [
+                                            {
+                                              "id": "denDetbar",
+                                              "label": "Det′",
+                                              "children": [
+                                                {
+                                                  "id": "den",
+                                                  "label": "Det⁰ [definite]",
+                                                  "word": "den",
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "bookModifiedNbar",
+                                          "label": "N′",
+                                          "children": [
+                                            {
+                                              "id": "bookCoreNbar",
+                                              "label": "N′",
+                                              "children": [
+                                                {
+                                                  "id": "book",
+                                                  "label": "N⁰",
+                                                  "word": "bok",
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "objectRelativeCP",
+                                              "label": "CP",
+                                              "children": [
+                                                {
+                                                  "id": "objectOperator",
+                                                  "label": "NP [relative operator]",
+                                                  "silent": true,
+                                                  "lineageId": "objectRelativeOperator",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "objectRelativeCbar",
+                                                  "label": "C′",
+                                                  "children": [
+                                                    {
+                                                      "id": "objectSom",
+                                                      "label": "C⁰ [relative]",
+                                                      "word": "som",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "objectRelativeIP",
+                                                      "label": "IP",
+                                                      "children": [
+                                                        {
+                                                          "id": "professorNP",
+                                                          "label": "NP",
+                                                          "children": [
+                                                            {
+                                                              "id": "professorNbar",
+                                                              "label": "N′",
+                                                              "children": [
+                                                                {
+                                                                  "id": "professor",
+                                                                  "label": "N⁰ [definite, singular]",
+                                                                  "word": "professorn",
+                                                                  "children": []
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "id": "objectRelativeIbar",
+                                                          "label": "I′",
+                                                          "children": [
+                                                            {
+                                                              "id": "objectHad",
+                                                              "label": "I⁰ [finite, past, perfect auxiliary]",
+                                                              "word": "hade",
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "recommendVP",
+                                                              "label": "VP",
+                                                              "children": [
+                                                                {
+                                                                  "id": "recommendVbar",
+                                                                  "label": "V′",
+                                                                  "children": [
+                                                                    {
+                                                                      "id": "recommend",
+                                                                      "label": "V⁰ [supine]",
+                                                                      "word": "rekommenderat",
+                                                                      "children": []
+                                                                    },
+                                                                    {
+                                                                      "id": "objectOperatorTrace",
+                                                                      "label": "NP [t, object]",
+                                                                      "silent": true,
+                                                                      "lineageId": "objectRelativeOperator",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "yesterdayAP",
+                              "label": "AdvP",
+                              "lineageId": "yesterdayPhrase",
+                              "children": [
+                                {
+                                  "id": "yesterdayAbar",
+                                  "label": "Adv′",
+                                  "children": [
+                                    {
+                                      "id": "yesterday",
+                                      "label": "Adv⁰",
+                                      "word": "Igår",
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Move the matrix finite verb from I to C.",
+      "stageRecord": "The complex finite I containing läste moves from its established position above VP and adjoins to the matrix declarative C. A silent I trace remains above VP, completing the successive V-to-I-to-C head-movement chain. The matrix subject stays in Spec-IP and therefore follows the verb in C. The embedded auxiliaries do not undergo this operation: their relative complementizer positions are already occupied by som. Matrix nominative licensing is preserved through the finite-head chain.",
+      "relations": [
+        {
+          "relation": "head_movement",
+          "anchors": {
+            "movedHead": "mainFiniteI",
+            "landingHead": "mainFiniteC",
+            "sourceTrace": "mainITrace",
+            "complementizer": "mainComplementizer"
+          },
+          "priorAnchors": {
+            "source": "mainFiniteI",
+            "target": "mainComplementizer"
+          },
+          "values": {
+            "movement": "I-to-C",
+            "result": "matrix finite verb precedes the subject"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mainCP",
+          "label": "CP",
+          "children": [
+            {
+              "id": "mainCbar",
+              "label": "C′",
+              "children": [
+                {
+                  "id": "mainFiniteC",
+                  "label": "C⁰ [declarative, V2]",
+                  "children": [
+                    {
+                      "id": "mainFiniteI",
+                      "label": "I⁰ [finite, past]",
+                      "lineageId": "matrixFiniteHead",
+                      "children": [
+                        {
+                          "id": "read",
+                          "label": "V⁰ [preterite]",
+                          "word": "läste",
+                          "lineageId": "readVerb",
+                          "children": []
+                        },
+                        {
+                          "id": "mainInflection",
+                          "label": "I⁰ [finite, past]",
+                          "silent": true,
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "mainComplementizer",
+                      "label": "C⁰ [declarative, V2]",
+                      "silent": true,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "mainIP",
+                  "label": "IP",
+                  "children": [
+                    {
+                      "id": "studentNP",
+                      "label": "NP",
+                      "children": [
+                        {
+                          "id": "studentModifiedNbar",
+                          "label": "N′",
+                          "children": [
+                            {
+                              "id": "studentCoreNbar",
+                              "label": "N′",
+                              "children": [
+                                {
+                                  "id": "student",
+                                  "label": "N⁰ [definite, singular]",
+                                  "word": "studenten",
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "subjectRelativeCP",
+                              "label": "CP",
+                              "children": [
+                                {
+                                  "id": "subjectOperator",
+                                  "label": "NP [relative operator]",
+                                  "silent": true,
+                                  "lineageId": "subjectRelativeOperator",
+                                  "children": []
+                                },
+                                {
+                                  "id": "subjectRelativeCbar",
+                                  "label": "C′",
+                                  "children": [
+                                    {
+                                      "id": "subjectSom",
+                                      "label": "C⁰ [relative]",
+                                      "word": "som",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "subjectRelativeIP",
+                                      "label": "IP",
+                                      "children": [
+                                        {
+                                          "id": "subjectOperatorTrace",
+                                          "label": "NP [t, subject]",
+                                          "silent": true,
+                                          "lineageId": "subjectRelativeOperator",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "subjectRelativeIbar",
+                                          "label": "I′",
+                                          "children": [
+                                            {
+                                              "id": "subjectHad",
+                                              "label": "I⁰ [finite, past, perfect auxiliary]",
+                                              "word": "hade",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "comeVP",
+                                              "label": "VP",
+                                              "children": [
+                                                {
+                                                  "id": "comeVbar",
+                                                  "label": "V′",
+                                                  "children": [
+                                                    {
+                                                      "id": "come",
+                                                      "label": "V⁰ [supine]",
+                                                      "word": "kommit",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "sourcePP",
+                                                      "label": "PP",
+                                                      "children": [
+                                                        {
+                                                          "id": "sourcePbar",
+                                                          "label": "P′",
+                                                          "children": [
+                                                            {
+                                                              "id": "from",
+                                                              "label": "P⁰",
+                                                              "word": "från",
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "uppsalaNP",
+                                                              "label": "NP",
+                                                              "children": [
+                                                                {
+                                                                  "id": "uppsalaNbar",
+                                                                  "label": "N′",
+                                                                  "children": [
+                                                                    {
+                                                                      "id": "uppsala",
+                                                                      "label": "N⁰ [proper]",
+                                                                      "word": "Uppsala",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "mainIbar",
+                      "label": "I′",
+                      "children": [
+                        {
+                          "id": "mainITrace",
+                          "label": "I⁰ [t, finite]",
+                          "silent": true,
+                          "lineageId": "matrixFiniteHead",
+                          "children": []
+                        },
+                        {
+                          "id": "mainAdjunctVP",
+                          "label": "VP",
+                          "children": [
+                            {
+                              "id": "mainCoreVP",
+                              "label": "VP",
+                              "children": [
+                                {
+                                  "id": "mainVbar",
+                                  "label": "V′",
+                                  "children": [
+                                    {
+                                      "id": "readTrace",
+                                      "label": "V⁰ [t]",
+                                      "silent": true,
+                                      "lineageId": "readVerb",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "bookNP",
+                                      "label": "NP",
+                                      "children": [
+                                        {
+                                          "id": "denDetP",
+                                          "label": "DetP",
+                                          "children": [
+                                            {
+                                              "id": "denDetbar",
+                                              "label": "Det′",
+                                              "children": [
+                                                {
+                                                  "id": "den",
+                                                  "label": "Det⁰ [definite]",
+                                                  "word": "den",
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "bookModifiedNbar",
+                                          "label": "N′",
+                                          "children": [
+                                            {
+                                              "id": "bookCoreNbar",
+                                              "label": "N′",
+                                              "children": [
+                                                {
+                                                  "id": "book",
+                                                  "label": "N⁰",
+                                                  "word": "bok",
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "objectRelativeCP",
+                                              "label": "CP",
+                                              "children": [
+                                                {
+                                                  "id": "objectOperator",
+                                                  "label": "NP [relative operator]",
+                                                  "silent": true,
+                                                  "lineageId": "objectRelativeOperator",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "objectRelativeCbar",
+                                                  "label": "C′",
+                                                  "children": [
+                                                    {
+                                                      "id": "objectSom",
+                                                      "label": "C⁰ [relative]",
+                                                      "word": "som",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "objectRelativeIP",
+                                                      "label": "IP",
+                                                      "children": [
+                                                        {
+                                                          "id": "professorNP",
+                                                          "label": "NP",
+                                                          "children": [
+                                                            {
+                                                              "id": "professorNbar",
+                                                              "label": "N′",
+                                                              "children": [
+                                                                {
+                                                                  "id": "professor",
+                                                                  "label": "N⁰ [definite, singular]",
+                                                                  "word": "professorn",
+                                                                  "children": []
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "id": "objectRelativeIbar",
+                                                          "label": "I′",
+                                                          "children": [
+                                                            {
+                                                              "id": "objectHad",
+                                                              "label": "I⁰ [finite, past, perfect auxiliary]",
+                                                              "word": "hade",
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "recommendVP",
+                                                              "label": "VP",
+                                                              "children": [
+                                                                {
+                                                                  "id": "recommendVbar",
+                                                                  "label": "V′",
+                                                                  "children": [
+                                                                    {
+                                                                      "id": "recommend",
+                                                                      "label": "V⁰ [supine]",
+                                                                      "word": "rekommenderat",
+                                                                      "children": []
+                                                                    },
+                                                                    {
+                                                                      "id": "objectOperatorTrace",
+                                                                      "label": "NP [t, object]",
+                                                                      "silent": true,
+                                                                      "lineageId": "objectRelativeOperator",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "yesterdayAP",
+                              "label": "AdvP",
+                              "lineageId": "yesterdayPhrase",
+                              "children": [
+                                {
+                                  "id": "yesterdayAbar",
+                                  "label": "Adv′",
+                                  "children": [
+                                    {
+                                      "id": "yesterday",
+                                      "label": "Adv⁰",
+                                      "word": "Igår",
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Front Igår and complete the Swedish V2 structure and binding analysis.",
+      "stageRecord": "Igår moves from its established VP-adjoined position to matrix Spec-CP, leaving a silent adverbial trace. The fronted phrase A′-binds that trace and is interpreted as the temporal modifier of the reading event, not of either embedded event. With Igår in Spec-CP and läste in C, the matrix clause satisfies Swedish V2: one constituent precedes the finite verb, and studenten remains immediately after it in Spec-IP. The relative clauses retain som in C and hade in I. The referential NPs studenten, den bok som professorn hade rekommenderat, professorn, and Uppsala have no coindexed c-commanding antecedents and satisfy Binding Principle C. The relative operators bind variables through A′-chains rather than functioning as personal pronouns or reflexive anaphors; consequently, no additional Principle A or Principle B dependency is required. The pronounced terminals now give the input sentence in its exact word order.",
+      "relations": [
+        {
+          "relation": "A_bar_movement",
+          "anchors": {
+            "landing": "yesterdayAP",
+            "sourceTrace": "yesterdayTrace",
+            "landingDomain": "mainCP"
+          },
+          "priorAnchors": {
+            "source": "yesterdayAP"
+          },
+          "values": {
+            "movement": "temporal-adjunct fronting to Spec-CP"
+          }
+        },
+        {
+          "relation": "A_bar_binding",
+          "anchors": {
+            "binder": "yesterdayAP",
+            "trace": "yesterdayTrace",
+            "interpretationSite": "mainAdjunctVP"
+          },
+          "values": {
+            "interpretation": "yesterday modifies the matrix reading event"
+          }
+        },
+        {
+          "relation": "V2_configuration",
+          "anchors": {
+            "prefield": "yesterdayAP",
+            "finiteHead": "mainFiniteC",
+            "subject": "studentNP",
+            "clause": "mainCP"
+          },
+          "values": {
+            "surfaceOrder": "temporal phrase – finite verb – subject – object"
+          }
+        },
+        {
+          "relation": "binding_principle_C",
+          "anchors": {
+            "RExpressions": [
+              "studentNP",
+              "bookNP",
+              "professorNP",
+              "uppsalaNP"
+            ]
+          },
+          "values": {
+            "RExpressions": [
+              "free: no coindexed c-commanding antecedent",
+              "free: no coindexed c-commanding antecedent",
+              "free: no coindexed c-commanding antecedent",
+              "free: no coindexed c-commanding antecedent"
+            ]
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mainCP",
+          "label": "CP",
+          "children": [
+            {
+              "id": "yesterdayAP",
+              "label": "AdvP",
+              "lineageId": "yesterdayPhrase",
+              "children": [
+                {
+                  "id": "yesterdayAbar",
+                  "label": "Adv′",
+                  "children": [
+                    {
+                      "id": "yesterday",
+                      "label": "Adv⁰",
+                      "word": "Igår",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "mainCbar",
+              "label": "C′",
+              "children": [
+                {
+                  "id": "mainFiniteC",
+                  "label": "C⁰ [declarative, V2]",
+                  "children": [
+                    {
+                      "id": "mainFiniteI",
+                      "label": "I⁰ [finite, past]",
+                      "lineageId": "matrixFiniteHead",
+                      "children": [
+                        {
+                          "id": "read",
+                          "label": "V⁰ [preterite]",
+                          "word": "läste",
+                          "lineageId": "readVerb",
+                          "children": []
+                        },
+                        {
+                          "id": "mainInflection",
+                          "label": "I⁰ [finite, past]",
+                          "silent": true,
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "mainComplementizer",
+                      "label": "C⁰ [declarative, V2]",
+                      "silent": true,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "mainIP",
+                  "label": "IP",
+                  "children": [
+                    {
+                      "id": "studentNP",
+                      "label": "NP",
+                      "children": [
+                        {
+                          "id": "studentModifiedNbar",
+                          "label": "N′",
+                          "children": [
+                            {
+                              "id": "studentCoreNbar",
+                              "label": "N′",
+                              "children": [
+                                {
+                                  "id": "student",
+                                  "label": "N⁰ [definite, singular]",
+                                  "word": "studenten",
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "subjectRelativeCP",
+                              "label": "CP",
+                              "children": [
+                                {
+                                  "id": "subjectOperator",
+                                  "label": "NP [relative operator]",
+                                  "silent": true,
+                                  "lineageId": "subjectRelativeOperator",
+                                  "children": []
+                                },
+                                {
+                                  "id": "subjectRelativeCbar",
+                                  "label": "C′",
+                                  "children": [
+                                    {
+                                      "id": "subjectSom",
+                                      "label": "C⁰ [relative]",
+                                      "word": "som",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "subjectRelativeIP",
+                                      "label": "IP",
+                                      "children": [
+                                        {
+                                          "id": "subjectOperatorTrace",
+                                          "label": "NP [t, subject]",
+                                          "silent": true,
+                                          "lineageId": "subjectRelativeOperator",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "subjectRelativeIbar",
+                                          "label": "I′",
+                                          "children": [
+                                            {
+                                              "id": "subjectHad",
+                                              "label": "I⁰ [finite, past, perfect auxiliary]",
+                                              "word": "hade",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "comeVP",
+                                              "label": "VP",
+                                              "children": [
+                                                {
+                                                  "id": "comeVbar",
+                                                  "label": "V′",
+                                                  "children": [
+                                                    {
+                                                      "id": "come",
+                                                      "label": "V⁰ [supine]",
+                                                      "word": "kommit",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "sourcePP",
+                                                      "label": "PP",
+                                                      "children": [
+                                                        {
+                                                          "id": "sourcePbar",
+                                                          "label": "P′",
+                                                          "children": [
+                                                            {
+                                                              "id": "from",
+                                                              "label": "P⁰",
+                                                              "word": "från",
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "uppsalaNP",
+                                                              "label": "NP",
+                                                              "children": [
+                                                                {
+                                                                  "id": "uppsalaNbar",
+                                                                  "label": "N′",
+                                                                  "children": [
+                                                                    {
+                                                                      "id": "uppsala",
+                                                                      "label": "N⁰ [proper]",
+                                                                      "word": "Uppsala",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "mainIbar",
+                      "label": "I′",
+                      "children": [
+                        {
+                          "id": "mainITrace",
+                          "label": "I⁰ [t, finite]",
+                          "silent": true,
+                          "lineageId": "matrixFiniteHead",
+                          "children": []
+                        },
+                        {
+                          "id": "mainAdjunctVP",
+                          "label": "VP",
+                          "children": [
+                            {
+                              "id": "mainCoreVP",
+                              "label": "VP",
+                              "children": [
+                                {
+                                  "id": "mainVbar",
+                                  "label": "V′",
+                                  "children": [
+                                    {
+                                      "id": "readTrace",
+                                      "label": "V⁰ [t]",
+                                      "silent": true,
+                                      "lineageId": "readVerb",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "bookNP",
+                                      "label": "NP",
+                                      "children": [
+                                        {
+                                          "id": "denDetP",
+                                          "label": "DetP",
+                                          "children": [
+                                            {
+                                              "id": "denDetbar",
+                                              "label": "Det′",
+                                              "children": [
+                                                {
+                                                  "id": "den",
+                                                  "label": "Det⁰ [definite]",
+                                                  "word": "den",
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "bookModifiedNbar",
+                                          "label": "N′",
+                                          "children": [
+                                            {
+                                              "id": "bookCoreNbar",
+                                              "label": "N′",
+                                              "children": [
+                                                {
+                                                  "id": "book",
+                                                  "label": "N⁰",
+                                                  "word": "bok",
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "objectRelativeCP",
+                                              "label": "CP",
+                                              "children": [
+                                                {
+                                                  "id": "objectOperator",
+                                                  "label": "NP [relative operator]",
+                                                  "silent": true,
+                                                  "lineageId": "objectRelativeOperator",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "objectRelativeCbar",
+                                                  "label": "C′",
+                                                  "children": [
+                                                    {
+                                                      "id": "objectSom",
+                                                      "label": "C⁰ [relative]",
+                                                      "word": "som",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "objectRelativeIP",
+                                                      "label": "IP",
+                                                      "children": [
+                                                        {
+                                                          "id": "professorNP",
+                                                          "label": "NP",
+                                                          "children": [
+                                                            {
+                                                              "id": "professorNbar",
+                                                              "label": "N′",
+                                                              "children": [
+                                                                {
+                                                                  "id": "professor",
+                                                                  "label": "N⁰ [definite, singular]",
+                                                                  "word": "professorn",
+                                                                  "children": []
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        },
+                                                        {
+                                                          "id": "objectRelativeIbar",
+                                                          "label": "I′",
+                                                          "children": [
+                                                            {
+                                                              "id": "objectHad",
+                                                              "label": "I⁰ [finite, past, perfect auxiliary]",
+                                                              "word": "hade",
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "recommendVP",
+                                                              "label": "VP",
+                                                              "children": [
+                                                                {
+                                                                  "id": "recommendVbar",
+                                                                  "label": "V′",
+                                                                  "children": [
+                                                                    {
+                                                                      "id": "recommend",
+                                                                      "label": "V⁰ [supine]",
+                                                                      "word": "rekommenderat",
+                                                                      "children": []
+                                                                    },
+                                                                    {
+                                                                      "id": "objectOperatorTrace",
+                                                                      "label": "NP [t, object]",
+                                                                      "silent": true,
+                                                                      "lineageId": "objectRelativeOperator",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "yesterdayTrace",
+                              "label": "AdvP [t]",
+                              "silent": true,
+                              "lineageId": "yesterdayPhrase",
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

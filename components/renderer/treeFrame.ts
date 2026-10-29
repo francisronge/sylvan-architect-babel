@@ -78,6 +78,7 @@ type FrameRelations = Pick<Parameters<typeof paintRelationScene>[0],
   | 'playedRelationIndices'
   | 'activeRelationMoment'
   | 'acceptedCompositionIsTreeFirst'
+  | 'stepLabelRuns'
 >;
 interface FrameCamera extends Pick<CameraSession,
   | 'cameraAnimationRef'
@@ -141,7 +142,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     relationRenderPlan,
     playedRelationIndices,
     activeRelationMoment,
-    acceptedCompositionIsTreeFirst
+    acceptedCompositionIsTreeFirst,
+    stepLabelRuns
   } = relations;
   const { zoomBehavior, cameraAnimationRef, manualCameraRef, data, derivationStagesSignature, autoCameraRef, fitRevision } = camera;
   const {
@@ -303,7 +305,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     uiBounds,
     containerRef,
     TARGET_EMERALD,
-    treeDirection
+    treeDirection,
+    stepLabelRuns
   });
   // Initial viewport fit:
   // Derivation replay should keep one camera per Derivation frame, not refit to each
