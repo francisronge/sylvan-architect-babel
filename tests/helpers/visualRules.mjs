@@ -422,15 +422,20 @@ const firstPoint = item => item.boxes?.[0] ?? item.rect ?? item.paths?.[0]?.[0];
  *   - the later frame newly paints something in its pocket's way: within one stage
  *     only another plaque or its own route, since the stage laid out its syntax and
  *     marks in advance and the plaque should have left before they arrived,
- *   - a later frame of the later frame's stage, while the plaque stays shown there
- *     beside a still anchor, newly paints syntax or a mark in its pocket's way
- *     (`ahead`: the frames after `after` of its viewport and stage, in order), or
+ *   - the later frame begins a stage, and a later frame of that stage, while the
+ *     plaque stays shown there beside a still anchor, newly paints syntax or a mark in
+ *     its pocket's way (`ahead`: the frames after `after` of its viewport and stage, in
+ *     order), or
  *   - it shows its owner only by proximity and returns from beyond its nearby reach
  *     to within it, into a pocket that what the earlier frame had there has left.
+ * A plaque that left its pocket where its stage began only because a later frame of
+ * the stage takes it keeps the pocket it took through the stage while its anchor stays
+ * still: none of these lets it move again. `early` carries the ids of such plaques
+ * from one call to the next; pass a fresh Set per viewport and the frames in order.
  * The frames' `reserves` say what each paints, as the schedule saw it. Subtype
  * plaque-teleport; the frame is the transition and the measure the shift in tree
  * units. */
-export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCarry = undefined, ahead = []) {
+export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCarry = undefined, ahead = [], early = new Set()) {
   if (!before || before.viewport !== after.viewport) return [];
   const textsBefore = new Map(before.texts.map(text => [text.id, text]));
   const offsets = after.texts.filter(text => TREE_TEXT.has(text.kind) && textsBefore.has(text.id)).map(text => {
@@ -448,7 +453,8 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
   // Plaques sharing an id pair with their nearest earlier pocket of the same size.
   const unpaired = before.plaques.filter(plaque => plaque.anchor);
   const earlier = before.reserves ?? [], later = after.reserves ?? [];
-  const out = [];
+  const out = [], kept = new Set();
+  if (crossing) early.clear();
   for (const plaque of after.plaques) {
     if (!plaque.anchor) continue;
     const candidates = unpaired.filter(prior => prior.id === plaque.id);
@@ -457,7 +463,13 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
     if (!prior) continue;
     unpaired.splice(unpaired.indexOf(prior), 1);
     const move = { x: plaque.anchor.x - prior.anchor.x, y: plaque.anchor.y - prior.anchor.y }, shift = shiftOf(prior, plaque);
-    if (shift <= thresholds.motionUnits || Math.hypot(move.x - carry.dx, move.y - carry.dy) > thresholds.stillUnits) continue;
+    if (Math.hypot(move.x - carry.dx, move.y - carry.dy) > thresholds.stillUnits) continue;
+    if (shift <= thresholds.motionUnits) { if (early.has(plaque.id)) kept.add(plaque.id); continue; }
+    if (early.has(plaque.id)) {
+      out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id,
+        `${describe(plaque)} jumps ${Math.round(shift)} units beside its still anchor after leaving its pocket early where its stage began`, shift));
+      continue;
+    }
     const owner = plaque.key ?? plaque.id;
     const pocketOf = ({ rect, size = rect, pocket = { x: rect.x, y: rect.y, width: size.width, height: size.height } }) => pocket;
     const pocket = { ...pocketOf(prior), x: pocketOf(prior).x + move.x, y: pocketOf(prior).y + move.y };
@@ -465,13 +477,18 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
     const blocked = newPocketBlocker({ pocket, owner, move }, earlier, later);
     const foreseen = blocked && before.stage !== undefined && !crossing && !newPocketBlocker({ pocket, owner, move }, earlier, later, occupant => occupant.owner !== undefined);
     if (ownRoutesChanged(owner, move, earlier, later) || blocked && !foreseen
-      || !blocked && foreseenPocketBlocker({ pocket, owner, move }, earlier, aheadOf(plaque, prior, ahead, thresholds))
       || !plaque.joined && returnsWithinReach({ before: { pocket, anchor: plaque.anchor }, after: { pocket: pocketOf(plaque),
         anchor: plaque.anchor }, owner, move, thetaGrid: plaque.grid, realizedForm: plaque.realization }, earlier, later)) continue;
+    if (crossing && !blocked && foreseenPocketBlocker({ pocket, owner, move }, earlier, aheadOf(plaque, prior, ahead, thresholds))) {
+      kept.add(plaque.id);
+      continue;
+    }
     out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id, foreseen
       ? `${describe(plaque)} jumps ${Math.round(shift)} units beside its still anchor when its stage paints syntax or a mark it laid out in advance in its pocket`
       : `${describe(plaque)} jumps ${Math.round(shift)} units from a pocket nothing new occupies, beside its still anchor`, shift));
   }
+  for (const id of [...early]) if (!kept.has(id)) early.delete(id);
+  for (const id of kept) early.add(id);
   return out.map(entry => ({ ...entry, frame: `${before.frame}>${after.frame}` }));
 }
 

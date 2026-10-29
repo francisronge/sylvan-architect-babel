@@ -562,17 +562,21 @@ export function layoutWidthFindings(visual, viewports, { canopy = true, metrics 
 const paintedNodes = nodes => new Map(nodes.map(node => [display.getNodeId(node),
   { x: node.x, y: node.y, parentId: node.parent ? display.getNodeId(node.parent) : null }]));
 
-/** mark-motion between each pair of adjacent Replay frames of one viewport, with
- * the camera's carry across a stage boundary and the later frame's stage ahead. */
+/** mark-motion between each pair of adjacent Replay frames of one viewport, in frame
+ * order, with the camera's carry across a stage boundary, the later frame's stage
+ * ahead and the plaques that left their pocket early where that stage began. */
 export function markMotionFindings(frames, thresholds = THRESHOLDS) {
   const byPlace = new Map(frames.filter(frame => typeof frame.frame === 'number').map(frame => [`${frame.viewport} ${frame.frame}`, frame]));
-  return [...byPlace.values()].flatMap(frame => {
+  const early = new Map();
+  return [...byPlace.values()].sort((a, b) => a.frame - b.frame).flatMap(frame => {
     const before = byPlace.get(`${frame.viewport} ${frame.frame - 1}`);
+    if (!early.has(frame.viewport)) early.set(frame.viewport, new Set());
+    if (!before) early.get(frame.viewport).clear();
     const shift = before && before.stage !== frame.stage && before.painted && frame.painted ? paintedShift(before.painted, frame.painted) : undefined;
     const ahead = [];
     for (let next = byPlace.get(`${frame.viewport} ${frame.frame + 1}`); next && next.stage === frame.stage;
       next = byPlace.get(`${frame.viewport} ${next.frame + 1}`)) ahead.push(next);
-    return checkMarkMotion(before, frame, thresholds, shift && { dx: shift.x, dy: shift.y }, ahead);
+    return checkMarkMotion(before, frame, thresholds, shift && { dx: shift.x, dy: shift.y }, ahead, early.get(frame.viewport));
   });
 }
 
