@@ -318,7 +318,7 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
   }),
   recipe('feature.dependency', {
     anchors: [current('feature.source', 1, 1), current('feature.target', 1)],
-    values: [optionalValue('feature.rows'), optionalValue('case.literal'), optionalValue('feature.label', 1, 1), optionalValue('outcome', 1, 1)],
+    values: [optionalValue('feature.rows'), optionalValue('case.literal'), optionalValue('outcome', 1, 1)],
     checks: [{ kind: 'distinct', roles: ['feature.source', 'feature.target'], allowRepeatedWithinRole: true }, { kind: 'feature-dependency' }],
     acceptedOutcomeConcepts: [...POSITIVE_OUTCOMES, ...NEGATIVE_PATH_OUTCOMES],
     outputs: [output('Feature connectors')]
