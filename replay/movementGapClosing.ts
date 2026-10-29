@@ -33,6 +33,10 @@ const STAGE_GROWTH = 0.08, SEAT_GROWTH = 0.25;
 const BRANCH_CLEARANCE = 8;
 /** A closing narrower than this is not worth a step's motion. */
 const MIN_CLOSING = TREE_SIBLING_GAP;
+/** Motion below this many tree units is not worth holding a subtree for (the motion gate's noticeable motion). */
+const NOTICED = 20;
+/** tryShift's refusal when every check holds but its `accept` does not. */
+const NO_GAIN = 'not accepted';
 
 const painted = (node: Node) => !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace';
 const stageOrder = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
@@ -610,9 +614,10 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
       for (const [canvas, points] of moved) coordinates.set(canvas, points);
     }
   }
+  const context = { scenes, frames: all, coordinates, firstScene, lastScene, paint, measureCategoryText };
+  holdLoweredSubtrees(context);
   holdBack(scenes, all, coordinates, firstScene, lastScene, paint, measureCategoryText);
   openSourceRoom(scenes, all, coordinates, firstScene, lastScene, paint, measureCategoryText);
-  const context = { scenes, frames: all, coordinates, firstScene, lastScene, paint, measureCategoryText };
   seatReceivingHeads(context);
   holdAcrossCrossings(context);
   const byStage = new Map<number, Map<SyntaxNode, TreeCoordinateReservation>>();
@@ -1014,7 +1019,8 @@ type Context = { scenes: readonly Scene[]; frames: Painted[]; coordinates: Map<S
  * size, no step before `k` moves anything farther or newly breaks continuity, and
  * at `k` only the step's closing, carried phrases and owned syntax move farther.
  * Returns a reason when the change is refused. */
-function tryShift(context: Context, k: number, members: readonly string[], amount: (id: string) => number, later: number, growth = STAGE_GROWTH) {
+function tryShift(context: Context, k: number, members: readonly string[], amount: (id: string) => number, later: number, growth = STAGE_GROWTH,
+  lowered: ReadonlySet<string> = new Set(), accept?: (prior: Painted, now: Painted) => boolean) {
   const { scenes, frames, coordinates, firstScene, lastScene, paint, measureCategoryText } = context;
   const step = scenes[k].step, participants = trajectoryParticipants(step), after = frames[k];
   const births = members.map(id => { let start = k; while (start > 0 && frames[start - 1].has(id)) start--; return start; });
@@ -1042,6 +1048,9 @@ function tryShift(context: Context, k: number, members: readonly string[], amoun
   const within = repaintWithinStageSize(scenes, frames, start, end, paint, growth), repainted = within ?? [];
   const view = (index: number) => index >= start && index < end ? repainted[index - start] : frames[index];
   let reason = within ? '' : 'stage size';
+  // The checks are independent; the cheaper motion rule runs before clearance.
+  for (let j = Math.max(1, start); !reason && j <= k; j++)
+    if (newFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `faults at ${j + 1}`;
   for (let j = start; !reason && j < k; j++) {
     const frame = repainted[j - start];
     const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
@@ -1049,8 +1058,7 @@ function tryShift(context: Context, k: number, members: readonly string[], amoun
     else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, view(k))) reason = `clearance at ${j + 1}`;
   }
   for (let j = Math.max(1, start); !reason && j <= k; j++) {
-    if (newFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `faults at ${j + 1}`;
-    else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `continuity at ${j + 1}`;
+    if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `continuity at ${j + 1}`;
     else if (j === k) {
       const now = view(k), prior = view(k - 1), granted = closingAt(scenes[k - 1].step, step, prior, now, prior, now, { closing: Boolean(scenes[k].closing) });
       const movers = new Set<string>(); for (const id of participants) now.get(id)?.each(member => { movers.add(getNodeId(member)); });
@@ -1058,11 +1066,14 @@ function tryShift(context: Context, k: number, members: readonly string[], amoun
       for (const [id, node] of now) {
         const was = frames[k - 1].get(id), before = prior.get(id), old = after.get(id);
         if (!was || !before || !old || granted.has(id) || movers.has(id)) continue;
-        if (Math.hypot(node.x - carryNow.x - before.x, node.y - carryNow.y - before.y) > Math.hypot(old.x - carryWas.x - was.x, old.y - carryWas.y - was.y) + 1) { reason = `ungranted ${id}`; break; }
+        // Lowered syntax drops the row its inserted parent takes; only its horizontal motion counts.
+        const dy = (a: number, b: number) => lowered.has(id) ? 0 : a - b;
+        if (Math.hypot(node.x - carryNow.x - before.x, dy(node.y - carryNow.y, before.y)) > Math.hypot(old.x - carryWas.x - was.x, dy(old.y - carryWas.y, was.y)) + 1) { reason = `ungranted ${id}`; break; }
       }
     }
     else if (j < k && !sameMotion(scenes, j, frames[j - 1], frames[j], view(j - 1), view(j))) reason = `motion at ${j + 1}`;
   }
+  if (!reason && accept && !accept(view(k - 1), view(k))) reason = NO_GAIN;
   if (reason) { for (const [canvas, points] of saved) coordinates.set(canvas, points); return reason; }
   repainted.forEach((frame, index) => { frames[start + index] = frame; });
   return '';
@@ -1226,6 +1237,75 @@ function holdAcrossCrossings(context: Context) {
       if ([...shifts.keys()].some(id => held.has(id))) continue;
       const reason = tryShiftForward(context, k, shifts);
       if (!reason) for (const id of shifts.keys()) held.add(id);
+    }
+  }
+}
+
+/** Holds a subtree that a stage crossing lowers under an inserted parent at the
+ * place it stands in after the crossing.
+ *
+ * Each stage lays out its own tree, so the stage after a crossing that inserts
+ * a parent above an existing subtree (an extraposition's new IP, a landing's
+ * new projection) lays the lowered subtree out again: its words often stand
+ * sideways of where they stood, beside syntax the crossing leaves in place,
+ * and it slides there on screen, or the camera follows it and the held syntax
+ * jumps. Where the lowered words all shift by one amount against the held
+ * syntax (the nodes carryReference holds), the subtree, with what it carries,
+ * stands over by that amount over its whole life before the crossing, so at
+ * the crossing it only drops the row the new parent takes, and the camera carry
+ * holds the syntax beside it (carryReference). Where the earlier frames have
+ * no room for the whole amount, the largest of three quarters, a half or a
+ * quarter of it is held, so the slide shrinks. Kept only when the crossing's
+ * motion faults shrink and tryShift's checks hold, which keep every stage's
+ * size: a hold that needs a wider earlier stage is refused. */
+function holdLoweredSubtrees(context: Context) {
+  const { scenes, frames } = context;
+  const points = (frame: Painted): PaintedNodes => new Map([...frame].map(([id, node]) => [id, { x: node.x, y: node.y, parentId: shownParent(frame, node) }]));
+  const lineage = (nodes: PaintedNodes, id: string) => {
+    const ids: string[] = [];
+    for (let parent = nodes.get(id)!.parentId; parent && nodes.has(parent); parent = nodes.get(parent)!.parentId) ids.push(parent);
+    return ids;
+  };
+  const median = (values: number[]) => { values.sort((a, b) => a - b); return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2; };
+  const faultSum = (k: number, prior: Painted, now: Painted) => replayMotionFaults({ frames: [motionFrame(scenes[k - 1].step, prior, getNodeId),
+    motionFrame(scenes[k].step, now, getNodeId, Boolean(scenes[k].closing))] }).reduce((sum, fault) => sum + fault.distance, 0);
+  for (let k = 1; k < scenes.length; k++) {
+    const step = scenes[k].step;
+    if (scenes[k - 1].step.replayFrameIndex === step.replayFrameIndex) continue;
+    const before = points(frames[k - 1]), after = points(frames[k]);
+    // carryReference's partition of the shared syntax.
+    const shared = [...after.keys()].filter(id => before.has(id));
+    const unmoved = shared.filter(id => {
+      const prior = lineage(before, id).filter(ancestor => after.has(ancestor)), current = lineage(after, id).filter(ancestor => before.has(ancestor));
+      return prior.length === current.length && prior.every((ancestor, index) => ancestor === current[index]);
+    });
+    const lowered = new Set(unmoved.filter(id => lineage(before, id).some((ancestor, index) => ancestor !== lineage(after, id)[index])));
+    if (!lowered.size) continue;
+    const over = new Set([...lowered].flatMap(id => lineage(after, id)));
+    const held = unmoved.filter(id => !lowered.has(id) && !over.has(id));
+    if (!held.length) continue;
+    const reference = median(held.map(id => after.get(id)!.x - before.get(id)!.x));
+    const movers = new Set<string>();
+    for (const id of trajectoryParticipants(step)) frames[k - 1].get(id)?.each(member => { movers.add(getNodeId(member)); });
+    for (const root of [...lowered].filter(id => !lowered.has(after.get(id)!.parentId ?? ''))) {
+      const node = frames[k - 1].get(root);
+      if (!node) continue;
+      const members: string[] = [];
+      node.each(member => { if (frames[k - 1].has(getNodeId(member))) members.push(getNodeId(member)); });
+      const words = members.filter(id => lowered.has(id) && !movers.has(id) && !frames[k - 1].get(id)!.children?.some(child => frames[k - 1].has(getNodeId(child))));
+      if (!words.length) continue;
+      const shifts = words.map(id => after.get(id)!.x - before.get(id)!.x - reference);
+      const shift = median(shifts);
+      if (Math.abs(shift) < NOTICED || shifts.some(value => Math.abs(value - shift) > 1)) continue;
+      const was = faultSum(k, frames[k - 1], frames[k]);
+      // The whole shift, or failing that the largest part of it every check allows.
+      for (const part of [1, 0.75, 0.5, 0.25]) {
+        if (Math.abs(part * shift) < NOTICED) break;
+        const refused = tryShift(context, k, members, () => part * shift, 0, STAGE_GROWTH, lowered,
+          (prior, now) => faultSum(k, prior, now) < was - 1);
+        // A hold every check allows that does not shrink the crossing's motion is not worth a smaller one.
+        if (!refused || refused === NO_GAIN) break;
+      }
     }
   }
 }
