@@ -52,8 +52,9 @@ function lineage(nodes: PaintedNodes, id: string) {
  * it and its old root, so its painted ancestry before no longer begins its
  * ancestry after (growth above the old root is not lowering). The ancestors of
  * lowered syntax are left out with it, since a parent recentres over its
- * children. With too little syntax left, the shared-ancestor rule alone decides;
- * with none of that, every shared node does. */
+ * children. With too little syntax left, the shared-ancestor rule alone decides,
+ * unless the lowered words keep their place beside what is left; with none of
+ * that, every shared node does. */
 export function carryReference(before: PaintedNodes, after: PaintedNodes) {
   const shared = [...after.keys()].filter(id => before.has(id));
   const unmoved = shared.filter(id => {
@@ -68,8 +69,21 @@ export function carryReference(before: PaintedNodes, after: PaintedNodes) {
   if (!lowered.size) return unmoved.length ? unmoved : shared;
   const over = new Set([...lowered].flatMap(id => lineage(after, id)));
   const held = unmoved.filter(id => !lowered.has(id) && !over.has(id));
-  return held.length > MIN_HELD ? held : unmoved;
+  if (held.length > MIN_HELD) return held;
+  if (!held.length) return unmoved;
+  // A lowered subtree whose words keep their place beside the few held nodes
+  // (the stage plan held it where it stands after the crossing): those nodes are
+  // the reference, so the subtree only drops its row and nothing else moves.
+  const parents = new Set([...lowered].map(id => after.get(id)!.parentId));
+  const words = [...lowered].filter(id => !parents.has(id));
+  const shift = (ids: string[]) => middle(ids.map(id => after.get(id)!.x - before.get(id)!.x));
+  return Math.abs(shift(words) - shift(held)) <= CARRY_TOLERANCE ? held : unmoved;
 }
+
+const middle = (values: number[]) => {
+  values.sort((a, b) => a - b);
+  return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
+};
 
 /** `closing`: the stage plan closed a movement's room at this crossing
  * (closeMovementGaps records it; stageCoordinates.closesOnEntry reads it). */
