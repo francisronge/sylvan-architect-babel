@@ -316,14 +316,14 @@ export const buildStructuralDerivationPlaybackSteps = ({
   };
   const sequence = buildBottomUpSequence(hierarchy, visibleIds)
     .filter((node) => !isSyntheticWorkspaceRootNode(node));
-  // A regrouping parent keeps its preceding children until its first new
-  // child is built; that construction step completes the regrouping.
-  const pendingRegroupingIds = frameIndex > 0 ? regroupingParents(previousConstructionForest, forest) : new Set<string>();
+  // A regrouping parent keeps each preceding branch until the new child that
+  // regroups its material is built; the last such step completes the regrouping.
+  const pendingRegroupings = frameIndex > 0 ? regroupingParents(previousConstructionForest, forest) : new Map<string, Set<string>>();
   // A replaced daughter of a shown parent stays in its slot until its
   // replacement's own construction step swaps the replacement in.
   const pendingReplacements = frameIndex > 0
     ? new Map([...replacedChildren(previousConstructionForest, forest)].filter(([replacementId, { parentId, replacedId }]) =>
-      !pendingRegroupingIds.has(parentId) && previousVisibleConstructionIds.has(parentId) && previousVisibleConstructionIds.has(replacedId)
+      !pendingRegroupings.has(parentId) && previousVisibleConstructionIds.has(parentId) && previousVisibleConstructionIds.has(replacedId)
       && !continuityVisibleNodeIds.has(replacementId)))
     : new Map<string, { parentId: string; replacedId: string }>();
   const nodesToReveal = sequence.filter((node) =>
@@ -390,8 +390,9 @@ export const buildStructuralDerivationPlaybackSteps = ({
     cumulativeVisibleNodeIds.add(nodeId);
     const updatesAttachment = pendingAttachmentNodeIds.delete(nodeId);
     const parentId = String(node.parent?.data?.id || '');
-    if (pendingRegroupingIds.has(parentId) && !collectForestNodesById(previousConstructionForest).has(nodeId))
-      pendingRegroupingIds.delete(parentId);
+    const unbuilt = pendingRegroupings.get(parentId);
+    if (unbuilt?.delete(nodeId) && !unbuilt.size)
+      pendingRegroupings.delete(parentId);
     pendingReplacements.delete(String(node.data?.id || ''));
     const surface = resolveLeafSurface(node);
     const layoutVisibleNodeIds = new Set(cumulativeVisibleNodeIds);
@@ -418,7 +419,7 @@ export const buildStructuralDerivationPlaybackSteps = ({
       ? preserveConstructionAttachments(forest, previousConstructionForest, pendingAttachmentNodeIds, snapshotVisibleNodeIds)
       : forest;
     const constructionForest = restoreReplacedChildren(
-      restoreRegroupedConstituents(attachedForest, previousConstructionForest, pendingRegroupingIds),
+      restoreRegroupedConstituents(attachedForest, previousConstructionForest, pendingRegroupings),
       previousConstructionForest, pendingReplacements);
     // A held attachment keeps its new child a separate root until the parent's
     // merge. Stage reservations keep its slot; the scaffold cannot attach it early.

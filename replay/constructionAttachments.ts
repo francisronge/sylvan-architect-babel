@@ -109,46 +109,55 @@ export function preserveConstructionAttachments(
 }
 
 /** A retained parent can dissolve a child and regroup that child's material
- * under its own new children. Construction waits for that regrouping, which
- * completes when the first of those new children is built. */
+ * under its own new children. Each regrouping parent maps to the new children
+ * construction still has to build; the regrouping completes when all are built. */
 export function regroupingParents(
   previousForest: readonly SyntaxNode[],
   currentForest: readonly SyntaxNode[]
-): Set<string> {
+): Map<string, Set<string>> {
   const previous = indexForest(previousForest), current = indexForest(currentForest);
-  const parents = new Set<string>();
+  const parents = new Map<string, Set<string>>();
   for (const [id, node] of current) {
     const dissolved = childIds(previous.get(id)).filter(child => child && !current.has(child));
     if (dissolved.length && dissolved.every(child => {
       const material = childIds(previous.get(child)).filter(grandchild => current.has(grandchild));
       return material.length > 0 && material.every(grandchild => contains(node, grandchild));
-    })) parents.add(id);
+    })) parents.set(id, new Set(childIds(node).filter(child => child && !previous.has(child))));
   }
   return parents;
 }
 
-/** Until a regrouping parent's first new child is built, draw the parent with
- * its preceding children: the dissolved child returns, holding its surviving
- * material, and the new children wait. Every other node keeps its place. */
+/** Until a regrouping parent's new children are all built, draw the parent
+ * with its preceding children: each dissolved child returns, holding the
+ * surviving material no built new child has taken yet, and a built new child
+ * stands in the slot of the first dissolved child it takes material from.
+ * Unbuilt new children wait. Every other node keeps its place. `pending` maps
+ * each such parent to its unbuilt new children. */
 export function restoreRegroupedConstituents(
   currentForest: readonly SyntaxNode[],
   previousForest: readonly SyntaxNode[],
-  pendingParentIds: ReadonlySet<string>
+  pending: ReadonlyMap<string, ReadonlySet<string>>
 ): SyntaxNode[] {
-  if (!pendingParentIds.size) return currentForest as SyntaxNode[];
+  if (!pending.size) return currentForest as SyntaxNode[];
   const current = indexForest(currentForest), previous = indexForest(previousForest);
   const restoredChildren = new Map<string, SyntaxNode[]>();
-  for (const id of pendingParentIds) {
-    const old = previous.get(id);
-    if (!old || !current.has(id)) continue;
-    restoredChildren.set(id, childIds(old).flatMap(childId => {
+  for (const [id, unbuilt] of pending) {
+    const old = previous.get(id), parent = current.get(id);
+    if (!old || !parent) continue;
+    const built = (parent.children || []).filter(child => child.id && !previous.has(child.id) && !unbuilt.has(child.id));
+    const taken = new Set(built.flatMap(subtreeIds)), placed = new Set<SyntaxNode>();
+    const children = childIds(old).flatMap(childId => {
       const kept = current.get(childId);
       if (kept) return [kept];
       const dissolved = previous.get(childId);
       if (!dissolved) return [];
-      const material = childIds(dissolved).flatMap(grandchildId => current.get(grandchildId) ?? []);
-      return material.length ? [{ ...dissolved, children: material }] : [];
-    }));
+      const material = childIds(dissolved).filter(grandchildId => current.has(grandchildId));
+      const regrouped = built.filter(child => !placed.has(child) && material.some(grandchildId => contains(child, grandchildId)));
+      regrouped.forEach(child => placed.add(child));
+      const remaining = material.filter(grandchildId => !taken.has(grandchildId)).map(grandchildId => current.get(grandchildId)!);
+      return [...regrouped, ...remaining.length ? [{ ...dissolved, children: remaining }] : []];
+    });
+    restoredChildren.set(id, [...children, ...built.filter(child => !placed.has(child))]);
   }
   const clone = (node: SyntaxNode): SyntaxNode => {
     const children = restoredChildren.get(node.id || '') ?? node.children;
