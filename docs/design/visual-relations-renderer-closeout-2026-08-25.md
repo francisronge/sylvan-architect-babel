@@ -549,7 +549,7 @@ one participant dominates the other, or their brackets would overlap, the
 inner (narrower) bracket stays above and the outer one is drawn along the
 lane, extended to the inner's middle, so it is itself the run. Nothing rises
 above the brackets' ticks. Labels then name the bracket instead of the node:
-`category · role` (the category without its features, `T[past]` as `T`) under
+`category · role` (the painted category without its features but with its chain index, `T[past]` as `T`, `CP₁` as `CP₁`) under
 each participant's bracket and the relation name under the run, in the
 role-label style. Each takes its first free spot inside the fitted viewport
 among: below the lowest line, half and one label width to either side,
