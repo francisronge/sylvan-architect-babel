@@ -39,7 +39,9 @@ export function panelText({ buildReplayPanelContent, buildReplayDisplayDetailBlo
  * plaque's identity key and allocated pocket describe its allocation, not what it paints. */
 export function canonicalFrame(frame, panel = null) {
   const plaques = frame.plaques.map(({ key: _key, pocket: _pocket, ...plaque }) => plaque);
-  return JSON.stringify({ zoom: frame.zoom, chrome: frame.chrome, texts: byId(frame.texts), plaques: byId(plaques),
+  // Badge texts restate anchor-set badges, which `marks` already holds.
+  const texts = frame.texts.filter(text => text.kind !== 'badge');
+  return JSON.stringify({ zoom: frame.zoom, chrome: frame.chrome, texts: byId(texts), plaques: byId(plaques),
     lines: byId(frame.lines), marks: byId(frame.marks ?? []), panel }, round);
 }
 

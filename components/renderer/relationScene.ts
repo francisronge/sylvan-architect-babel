@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
-import { type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
-import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
+import { type BindGeometryOptions, type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
+import { bindAnchorSetBadges, bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import {
   markerScaleAtZoom, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
 } from '../../replay/rendererMetrics.ts';
@@ -8,7 +8,7 @@ import { boundOverlayBounds, type OverlayBounds } from '../../replay/relations/g
 import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
-import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
+import { drawnPlaque, projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
 import { projectVisibleAnchorSetOrganization } from '../../replay/relations/relationFrame.ts';
 import type { RelationRenderPlan } from '../../replay/relations/renderPlan.ts';
 import { scopeDomainPaint } from '../../replay/relations/scopeDomainPaint.ts';
@@ -22,6 +22,7 @@ import {
 import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import type { TreeDirection } from '../../replay/treeLayout.ts';
+import type { TreeLabelRuns } from '../../replay/treeLabelRuns.ts';
 import { type HierNode, type PlaybackStep } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
 import { createBindingDrawing, indexLetterLabels } from './bindingDrawing.ts';
@@ -47,7 +48,7 @@ import { createShapeDrawing } from './shapeDrawing.ts';
 import { createSharingDrawing } from './sharingDrawing.ts';
 import { createThetaDrawing } from './thetaDrawing.ts';
 import { createTrajectoryDrawing } from './trajectoryDrawing.ts';
-import { createTreeMeasurements, labelBelongsToNode } from './treeMeasurements.ts';
+import { createTreeMeasurements, labelBelongsToNode, measurePaintedTreeLabelCells } from './treeMeasurements.ts';
 import { appendOverlayMarker, hasTreeGapNotation } from './treeNotation.ts';
 
 interface RelationSceneContext {
@@ -81,6 +82,9 @@ interface RelationSceneContext {
   TARGET_EMERALD: string;
   /** Neutral role labels prefer the reading-direction side of their node. */
   treeDirection: TreeDirection;
+  /** This step's tree labels with their relation index letters
+   * (`treeLabelRunsForStep`), read only when the frame places anchor-set badges. */
+  stepLabelRuns?: () => ReadonlyMap<string, readonly TreeLabelRuns[]> | undefined;
 }
 export function paintRelationScene({
   relationRenderPlan,
@@ -107,7 +111,8 @@ export function paintRelationScene({
   uiBounds,
   containerRef,
   TARGET_EMERALD,
-  treeDirection
+  treeDirection,
+  stepLabelRuns
 }: RelationSceneContext) {
   let overlayFitBounds: OverlayBounds | null = null;
   let fitFallbackOverlays: ((fitZoom: number, fittedViewport: Rect) => void) | undefined;
@@ -231,29 +236,36 @@ export function paintRelationScene({
     const frameMaxNodeY = d3.max([...frameLayoutById.values()], (frameNode) => frameNode.y) ?? 0;
     // Share the exact displayed-notation decision between slot allocation and painting.
     const hasExistingGapNotation = (nodeId: string, text: string) => hasTreeGapNotation(g, nodeId, text);
+    // Anchor-set badges clear the labels as this step paints them and the displayed plaque shells.
+    const labelRuns = frameItems.some(item => item.kind === 'anchor-set') ? stepLabelRuns?.() ?? null : undefined;
+    const badgeObstacles = labelRuns === undefined ? undefined : [
+      ...measurePaintedTreeLabelCells(g, replayVisibleNodeIdSet, labelRuns ? nodeId => labelRuns.get(nodeId) : undefined),
+      ...(fallbackMeasurements.visibleObstacles ?? []).map(drawnPlaque)
+    ];
+    const bindOptions: BindGeometryOptions = {
+      ...RELATION_BINDING_METRICS,
+      markerScale,
+      hasExistingGapNotation,
+      fallbackMeasurements,
+      separateFallbackMoments: animated && usesDerivationFrames,
+      isItemRevealed: itemIndex => revealedItemIndices.has(itemIndex),
+      trajectoryCeilingY: measuredTreeTextTopY() - TRAJECTORY_ROUTES.ceilingAboveTextTop,
+      trajectoryFloorY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
+      // Frame-stable measured baselines: connector lanes just below the
+      // complete frame's terminal row; rails placed by the binder's one
+      // vertical allocation law beneath the deepest allocated lane.
+      connectorBaselineY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
+      railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase,
+      direction: treeDirection,
+      ...(badgeObstacles ? { badgeObstacles } : {})
+    };
     const boundFrame = withPlaqueTextMeasure(svg, measurePlaqueText => bindRelationPlanFrame(
-      displayedRelationPlan,
-      activeDerivationFrameIndex,
-      framePositionFor,
-      {
-        ...RELATION_BINDING_METRICS,
-        markerScale,
-        hasExistingGapNotation,
-        plaqueTextLayout: { measureText: measurePlaqueText },
-        fallbackMeasurements,
-        separateFallbackMoments: animated && usesDerivationFrames,
-        isItemRevealed: itemIndex => revealedItemIndices.has(itemIndex),
-        trajectoryCeilingY: measuredTreeTextTopY() - TRAJECTORY_ROUTES.ceilingAboveTextTop,
-        trajectoryFloorY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
-        // Frame-stable measured baselines: connector lanes just below the
-        // complete frame's terminal row; rails placed by the binder's one
-        // vertical allocation law beneath the deepest allocated lane.
-        connectorBaselineY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
-        railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase,
-        direction: treeDirection
-      }
+      displayedRelationPlan, activeDerivationFrameIndex, framePositionFor,
+      { ...bindOptions, plaqueTextLayout: { measureText: measurePlaqueText } }
     ));
-    const fallbackPlacement = createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g, direction: treeDirection });
+    const fallbackPlacement = createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g, direction: treeDirection,
+      placeAnchorSetBadges: fittedScale => bindAnchorSetBadges(displayedRelationPlan, activeDerivationFrameIndex, framePositionFor,
+        { ...bindOptions, markerScale: fittedScale }) });
     fitFallbackOverlays = fallbackPlacement.fit;
     finishFallbackPlacement = fallbackPlacement.finish;
     const primitiveWitnessesVisible = createPrimitiveVisibility(frameItems, resolveOverlayAnchor);
@@ -406,7 +418,8 @@ export function paintRelationScene({
       treeData,
       exactScreenDirectTreeLabelRectNow,
       uiBounds,
-      deferredTreeMatrix
+      deferredTreeMatrix,
+      badgeObstacles
     });
     const { scheduleAcceptedScopeInformationRelation, scheduleAcceptedFocusProminence } = createScopeDrawing({
       relationLayerKey,
@@ -896,21 +909,7 @@ export function paintRelationScene({
         return;
       }
       if (primitive.type === 'anchor-set-badge') {
-        const compact = primitive.badgeSize === 'compact';
-        const marker = appendMarker(primitive.x, primitive.y);
-        marker.append('circle')
-          .attr('class', 'vr-anchor-set-badge')
-          .attr('r', compact ? 7 : 9)
-          .attr('fill', 'rgba(2,24,15,0.92)')
-          .attr('stroke', '#34d399')
-          .attr('stroke-width', 1.2);
-        marker.append('text')
-          .attr('text-anchor', 'middle')
-          .attr('y', compact ? 3 : 4)
-          .attr('font-size', compact ? '8px' : '10px')
-          .attr('fill', '#a7f3d0')
-          .attr('font-family', "'IBM Plex Mono', monospace")
-          .text(String(primitive.numeral));
+        fallbackPlacement.drawBadge(primitive, host);
         return;
       }
       if (primitive.type === 'anchor-set-rail') {
