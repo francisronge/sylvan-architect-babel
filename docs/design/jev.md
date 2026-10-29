@@ -46,19 +46,33 @@ The options are closed and come from Babel's code (`replay/relations/jev.ts`):
 
 Each claim is asked in at most two requests over the same state:
 
-1. One Choice, `family`: `none` and every family offered for the claim, each
-   described by what it draws and its role and value slots.
-2. Only when the family is not `none`: one Choice per role key over that
-   family's role slots and `none`, and one per value key over its value slots
-   and `none`. A family without value slots asks nothing about value keys.
+1. One Choice, `family`: `none` and every family that can read the whole
+   claim (`askableFamilies`). Each family is described in plain words, with
+   what it means, what Babel draws and what each slot holds
+   (`contractQualification/jevDescriptions.js`, written from what the recipe
+   checks and draws).
+2. Only when the family is not `none`: one Choice, `reading`, whose options
+   are the complete readings of the claim's anchor keys in that family
+   (`jevReadings`), each named and described key by key, such as
+   `operator → operator; head → variable`; and, when the claim has value keys
+   the family has slots for, one Choice, `values`, over the readings of its
+   value keys (`jevValueReadings`).
+
+A complete reading gives every anchor key a slot, as the whole-claim rule
+requires, fills every slot the recipe cannot draw without, and puts at most
+one key in a one-participant slot. Babel computes these, so Jev chooses only
+among readings that could stand, and weighs the keys together: in the first
+live run, questions about one key each were answered in isolation and 56 of 81
+proposals left some key unread. A family with no complete reading, or with
+more than a Choice can offer (254 besides `none`), is not offered; in the
+benchmark that is 7 of 44,304 claim–family pairs. A claim no family can read
+is not sent. Value readings follow the recipe the same way: every value slot
+it needs is filled, and a slot it reads one value from takes one key.
 
 The second request exists because its options depend on the first answer.
-Asking every family's slots in one request would make the median benchmark
-claim 129 questions and the largest 497, near the 64k-token request limit;
-two requests keep the first one small and add a round trip only for claims
-given a family. `none` is listed first in every option list: Jev 1.13 is
-documented to lean toward the first option, and the safe lean is toward
-leaving the claim neutral.
+`none` is listed first in every option list: Jev 1.13 is documented to lean
+toward the first option, and the safe lean is toward leaving the claim
+neutral.
 
 Jev maps a key only when the key's own words say what the slot says. A key
 naming only a position or a category, such as `head`, `specifier` or
@@ -81,7 +95,7 @@ relation.
 ## Confidence
 
 A reading's confidence is the least confidence of the answers it is made of:
-the family and every key's slot. Replay applies a saved reading only when that
+the family, the reading and the value reading. Replay applies a saved reading only when that
 confidence is at least `JEV_CONFIDENCE_THRESHOLD`. The record keeps every
 checked answer with its confidence, so a new threshold needs no new requests.
 
@@ -126,7 +140,7 @@ The answers are saved as the analysis's Jev record:
   "answer": { "family": "theta-grid", "roles": { "assigner": "predicate", "assignee": "theta.arguments" },
     "values": { "role": "role.label" } }, "confidence": 0.94 }],
   "provenance": { "service": "typesafe", "requestedModel": "jev-1.14.0", "models": ["jev-1.14.0"],
-    "promptVersion": "jev-ts-1", "at": "…", "thresholdAtRun": 0.9 } }
+    "promptVersion": "jev-ts-2", "at": "…", "thresholdAtRun": 0.9 } }
 ```
 
 A mapping applies only to the claim at that position whose words equal its
@@ -146,7 +160,14 @@ for example through assignment continuity.
 node scripts/runJev.mjs --cases cases.json --out DIR --dry-run
 node scripts/runJev.mjs --cases cases.json --out DIR --run [--key-file PATH | --keychain-item NAME]
 node scripts/calibrateJev.mjs --cases cases.json --run DIR --reference readings.json
+node scripts/reviewJev.mjs --cases cases.json --run DIR --out sheet.md [--threshold 0.9]
 ```
+
+The review sheet lists every reading that stands at the threshold with the
+sentence, the claim's keys and the nodes they name, its values, Jev's family,
+reading and confidence, and every Tier-2 mark Babel draws with the nodes it is
+drawn on, so a wrong picture can be judged by hand rather than counted. The
+readings that reach the threshold but are refused by Babel's checks follow.
 
 `--run` posts each request once to `https://api.typesafe.ai/v1/systemone`
 with plain `fetch`, no SDK and no retries; a 429 or 529 is recorded as a

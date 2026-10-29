@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  DEFAULT_JEV_MODEL, TYPESAFE_SYSTEMONE_URL, anchorIdsReachRequest, buildFamilyRequest, buildSlotRequest, choiceConfidence, jevClaimResult,
+  DEFAULT_JEV_MODEL, JEV_MAX_READINGS, TYPESAFE_SYSTEMONE_URL, anchorIdsReachRequest, askableFamilies, buildFamilyRequest,
+  buildReadingRequest, choiceConfidence, jevClaimResult, jevReadings, jevValueReadings,
   jevRecordFrom, readChoiceAnswer, readSystemOneResponse, readTypeSafeApiKey, requestJev
 } from '../contractQualification/jev.js';
+import { JEV_FAMILY_DESCRIPTIONS } from '../contractQualification/jevDescriptions.js';
 import { neutralJevClaims } from '../replay/jevClaims.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
@@ -105,11 +107,55 @@ test('a Choice answer is accepted only inside the options asked', () => {
     'not an object': 'theta-grid'
   };
   for (const [what, answer] of Object.entries(bad)) assert.equal(readChoiceAnswer(answer, options).ok, false, what);
+  // Seen live: a choice trailing the rounded top probability by one cent is the rounding, not another choice.
+  const live = { type: 'choice', choice: 'none', confidence: 0.1, probabilities: { none: 0.39, 'feature.rows': 0.4, index: 0.21 } };
+  assert.equal(readChoiceAnswer(live, ['none', 'feature.rows', 'index']).ok, true);
+  assert.equal(readChoiceAnswer({ ...live, probabilities: { none: 0.38, 'feature.rows': 0.41, index: 0.21 }, confidence: 0.115 },
+    ['none', 'feature.rows', 'index']).ok, false, 'three cents is another choice');
   const questions = { family: { type: 'choice', criteria: Object.fromEntries(options.map(option => [option, null])) } };
   assert.equal(readSystemOneResponse({ answers: { family: good } }, questions).ok, true);
   assert.equal(readSystemOneResponse({ answers: {} }, questions).ok, false, 'an unanswered question');
   assert.equal(readSystemOneResponse({ answers: { family: good, other: good } }, questions).ok, false, 'an answer to a question not asked');
   assert.equal(readSystemOneResponse('{}', questions).ok, false, 'no answers object');
+});
+
+test('every family and slot Jev chooses between is described', () => {
+  for (const family of JEV_FAMILIES) {
+    const described = JEV_FAMILY_DESCRIPTIONS[family.id];
+    assert.ok(described?.means && described.draws, family.id);
+    for (const slot of [...family.roles, ...family.values]) assert.ok(described.slots[slot], `${family.id} ${slot}`);
+  }
+  assert.deepEqual(Object.keys(JEV_FAMILY_DESCRIPTIONS).sort(), JEV_FAMILIES.map(family => family.id).sort(), 'no stale descriptions');
+});
+
+test('a complete reading gives every anchor key a slot the recipe can draw', () => {
+  const operatorBinding = JEV_FAMILIES.find(family => family.id === 'operator-binding');
+  // A relative operator and its head: operator binding has no slot for a head outside the clause,
+  // so its only complete readings make one of them the variable.
+  const relative = { relation: 'RelativeBinding', anchors: { operator: 'op', head: 'n' } };
+  assert.deepEqual(jevReadings(relative, operatorBinding),
+    [{ operator: 'operator', head: 'variable' }, { operator: 'variable', head: 'operator' }]);
+  // Every reading passes the closed sets and the whole-claim rule and fills each required slot.
+  for (const { relation } of neutralJevClaims(fixture(THETA.id).derivationStages)) for (const family of askableFamilies(relation)) {
+    for (const roles of jevReadings(relation, family)) {
+      const answer = { family: family.id, roles, values: {} };
+      assert.equal(validateJevAnswer(relation, answer).ok, true);
+      assert.equal(jevReadingGap(relation, answer), undefined);
+      assert.ok(family.requiredRoles.every(slot => Object.values(roles).includes(slot)), family.id);
+    }
+    assert.ok(jevValueReadings(relation, family).every(values => Object.keys(values).length
+      && family.requiredValues.every(slot => Object.values(values).includes(slot))), family.id);
+  }
+  // A family that cannot read the whole claim is not offered.
+  assert.equal(askableFamilies(relative).some(family => family.id === 'ellipsis.site'), false, 'one slot, two keys');
+  const theta = JEV_FAMILIES.find(family => family.id === 'theta-grid');
+  const values = { relation: 'x', anchors: { a: 'a', b: 'b' }, values: { thetaRole: 'Theme', note: 'n' } };
+  assert.deepEqual(jevValueReadings(values, theta), [{ note: 'role.label' }, { thetaRole: 'role.label' }, { thetaRole: 'role.label', note: 'role.label' }]);
+  // Too many readings for one Choice: the family is not offered.
+  const many = { relation: 'x', anchors: Object.fromEntries(Array.from({ length: 9 }, (_unused, index) => [`k${index}`, `n${index}`])) };
+  const transfer = JEV_FAMILIES.find(family => family.id === 'transfer.domain');
+  assert.equal(jevReadings(many, transfer), undefined);
+  assert.equal(askableFamilies(many).some(family => family.id === 'transfer.domain'), false);
 });
 
 test('the requests are System One requests carrying only the claim\'s words', () => {
@@ -119,38 +165,46 @@ test('the requests are System One requests carrying only the claim\'s words', ()
   // https://docs.typesafe.ai/api/system-one.md: model, state and named questions; a Choice has type, instructions and criteria.
   assert.deepEqual(Object.keys(family), ['model', 'state', 'questions']);
   assert.equal(family.model, 'jev-1.14.0', 'a versioned model, since the threshold is calibrated against one version');
-  assert.deepEqual(family.state, { claim: { relation: claim.relation.relation, roleKeys: Object.keys(claim.relation.anchors),
-    values: jevTerms(claim.relation).values } });
+  const terms = jevTerms(claim.relation);
+  assert.deepEqual(family.state, { claim: { relation: claim.relation.relation, roleKeys: terms.roles, values: terms.values } });
   assert.deepEqual(Object.keys(family.questions), ['family']);
-  const { type, instructions, criteria } = family.questions.family;
   assert.deepEqual(Object.keys(family.questions.family), ['type', 'instructions', 'criteria']);
+  const { type, instructions, criteria } = family.questions.family;
   assert.equal(type, 'choice');
   assert.ok(instructions.question);
-  assert.deepEqual(Object.keys(criteria), ['none', ...JEV_FAMILIES.map(candidate => candidate.id)], 'none first, then every family');
-  assert.ok(Object.keys(criteria).length <= 255, 'the documented Choice option limit');
-  const slots = buildSlotRequest({ relation: claim.relation, family: 'theta-grid' });
-  const terms = jevTerms(claim.relation);
-  assert.deepEqual(slots.keys, {
-    ...Object.fromEntries(terms.roles.map((key, index) => [`role.${index}`, { block: 'roles', key }])),
-    ...Object.fromEntries(Object.keys(terms.values).map((key, index) => [`value.${index}`, { block: 'values', key }])) });
-  assert.ok(terms.roles.includes('selector') && Object.hasOwn(terms.values, 'thetaRole'));
-  assert.deepEqual(slots.body.state, family.state, 'both requests share one state');
-  const theta = JEV_FAMILIES.find(candidate => candidate.id === 'theta-grid');
-  assert.deepEqual(Object.keys(slots.body.questions['role.0'].criteria), ['none', ...theta.roles]);
-  assert.deepEqual(Object.keys(slots.body.questions['value.0'].criteria), ['none', ...theta.values]);
+  assert.deepEqual(Object.keys(criteria), ['none', ...askableFamilies(claim.relation).map(candidate => candidate.id)], 'none first');
+  assert.ok(Object.keys(criteria).includes('theta-grid'));
+  assert.equal(criteria['theta-grid'].means, JEV_FAMILY_DESCRIPTIONS['theta-grid'].means, 'each family is described');
+  assert.equal(criteria['theta-grid'].roleSlots.predicate, JEV_FAMILY_DESCRIPTIONS['theta-grid'].slots.predicate, 'each slot is described');
+  assert.ok(Object.keys(criteria).length <= JEV_MAX_READINGS + 1, 'the documented Choice option limit');
+  const reading = buildReadingRequest({ relation: claim.relation, family: 'theta-grid' });
+  assert.deepEqual(reading.body.state, family.state, 'both requests share one state');
+  assert.deepEqual(Object.keys(reading.body.questions), ['reading', 'values']);
+  const readingOptions = Object.keys(reading.body.questions.reading.criteria);
+  assert.equal(readingOptions[0], 'none');
+  assert.deepEqual([...reading.options.reading.values()].slice(1), jevReadings(claim.relation, JEV_FAMILIES.find(candidate => candidate.id === 'theta-grid')));
+  const standing = readingOptions.find(name => reading.options.reading.get(name).selector === 'predicate');
+  assert.equal(standing, 'argument → theta.arguments; selector → predicate', 'an option names its whole reading');
+  assert.deepEqual(reading.body.questions.reading.criteria[standing], {
+    argument: `theta.arguments: ${JEV_FAMILY_DESCRIPTIONS['theta-grid'].slots['theta.arguments']}`,
+    selector: `predicate: ${JEV_FAMILY_DESCRIPTIONS['theta-grid'].slots.predicate}` });
+  assert.ok(Object.keys(reading.body.questions.values.criteria).includes('thetaRole → role.label'));
   // A family without value slots asks nothing about value keys.
-  const noValues = buildSlotRequest({ relation: claim.relation, family: 'predication.dependency' });
-  assert.deepEqual(Object.keys(noValues.body.questions), terms.roles.map((_key, index) => `role.${index}`));
-  assert.throws(() => buildSlotRequest({ relation: claim.relation, family: 'invented' }));
+  assert.deepEqual(Object.keys(buildReadingRequest({ relation: claim.relation, family: 'predication.dependency' }).body.questions), ['reading']);
+  assert.throws(() => buildReadingRequest({ relation: claim.relation, family: 'invented' }));
+  assert.throws(() => buildReadingRequest({ relation: claim.relation, family: 'ellipsis.site' }), /No family/u, 'not askable');
+  for (const question of [family.questions.family, ...askableFamilies(claim.relation).flatMap(candidate =>
+    Object.values(buildReadingRequest({ relation: claim.relation, family: candidate.id }).body.questions))])
+    assert.ok(Object.keys(question.criteria).length <= JEV_MAX_READINGS + 1);
   // No anchor id leaves Babel, in either request.
-  for (const text of [JSON.stringify(family), JSON.stringify(slots.body), ...JEV_FAMILIES.map(candidate =>
-    JSON.stringify(buildSlotRequest({ relation: claim.relation, family: candidate.id }).body))])
+  for (const text of [JSON.stringify(family), ...askableFamilies(claim.relation).map(candidate =>
+    JSON.stringify(buildReadingRequest({ relation: claim.relation, family: candidate.id }).body))])
     for (const id of Object.values(claim.relation.anchors).flat()) assert.equal(text.includes(JSON.stringify(id)), false, id);
   // The requests are built from the claim's words alone, even when an id is spelled like one of them.
   const coincident = { relation: 'agent-identification', anchors: { voice: 'voice', agent: ['DP', 'washed'] }, values: { form: 'washed' } };
   assert.equal(anchorIdsReachRequest(coincident, relation => buildFamilyRequest({ relation })), false);
-  for (const candidate of JEV_FAMILIES)
-    assert.equal(anchorIdsReachRequest(coincident, relation => buildSlotRequest({ relation, family: candidate.id }).body), false, candidate.id);
+  for (const candidate of askableFamilies(coincident))
+    assert.equal(anchorIdsReachRequest(coincident, relation => buildReadingRequest({ relation, family: candidate.id }).body), false, candidate.id);
   // The check itself catches a request that would carry an id.
   assert.equal(anchorIdsReachRequest(coincident, relation => ({ ...buildFamilyRequest({ relation }), leak: relation.anchors })), true);
   // An exactly registered name is never asked.
@@ -160,24 +214,27 @@ test('the requests are System One requests carrying only the claim\'s words', ()
 test('one claim reads into a checked answer with the least confidence of its parts', () => {
   const { relation } = claimOf(THETA);
   const family = buildFamilyRequest({ relation });
-  const slots = buildSlotRequest({ relation, family: 'theta-grid' });
+  const second = buildReadingRequest({ relation, family: 'theta-grid' });
   const familyRead = readSystemOneResponse(answerAll(family.questions, () => 'theta-grid', 0.97), family.questions);
-  const reading = { roles: THETA_READING.roles, values: THETA_READING.values };
-  const pick = id => reading[slots.keys[id].block][slots.keys[id].key] ?? 'none';
-  const slotsRead = readSystemOneResponse(answerAll(slots.body.questions, pick, 0.95), slots.body.questions);
-  const result = jevClaimResult(relation, familyRead, { read: slotsRead, keys: slots.keys });
+  const nameOf = (options, wanted) => [...options].find(([, assignment]) => JSON.stringify(assignment) === JSON.stringify(wanted))[0];
+  const pick = id => (id === 'reading' ? nameOf(second.options.reading, Object.fromEntries(jevTerms(relation).roles.map(key => [key, THETA_READING.roles[key]])))
+    : nameOf(second.options.values, THETA_READING.values));
+  const readingRead = readSystemOneResponse(answerAll(second.body.questions, pick, 0.95), second.body.questions);
+  const result = jevClaimResult(relation, familyRead, { read: readingRead, options: second.options });
   assert.equal(result.status, 'proposal');
   assert.deepEqual(result.answer, THETA_READING);
-  const parts = [familyRead.answers.family, ...Object.values(slotsRead.answers)].map(part => part.confidence);
+  const parts = [familyRead.answers.family, ...Object.values(readingRead.answers)].map(part => part.confidence);
   assert.equal(result.confidence, Math.min(...parts), 'the least confident part');
   assert.ok(result.confidence < familyRead.answers.family.confidence);
-  // None as family ends the claim after one request.
+  // None as family ends the claim after one request; none as reading leaves it neutral.
   const none = readSystemOneResponse(answerAll(family.questions, () => 'none'), family.questions);
   assert.deepEqual(jevClaimResult(relation, none), { status: 'no-drawing', answer: { family: 'none', roles: {}, values: {} }, confidence: 1 });
+  const noReading = readSystemOneResponse(answerAll(second.body.questions, () => 'none'), second.body.questions);
+  assert.equal(jevClaimResult(relation, familyRead, { read: noReading, options: second.options }).answer.family, 'none');
   // An answer outside the options rejects the claim.
-  const outside = answerAll(family.questions, () => 'theta-grid');
-  outside.answers.family = { ...outside.answers.family, choice: 'theta.grid' };
-  assert.equal(jevClaimResult(relation, readSystemOneResponse(outside, family.questions)).status, 'out-of-set');
+  const outside = answerAll(second.body.questions, pick);
+  outside.answers.reading = { ...outside.answers.reading, choice: 'selector → predicate' };
+  assert.equal(jevClaimResult(relation, familyRead, { read: readSystemOneResponse(outside, second.body.questions), options: second.options }).status, 'out-of-set');
   const record = jevRecordFrom({ claims: [{ stageIndex: 1, relationIndex: 0, relation }], results: [result] });
   assert.deepEqual(record, { version: JEV_RECORD_VERSION, mappings: [{ stageIndex: 1, relationIndex: 0, terms: jevTerms(relation),
     answer: THETA_READING, confidence: result.confidence }] });
