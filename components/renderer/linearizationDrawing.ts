@@ -11,9 +11,11 @@ import { settledClientPoint } from './cameraState.ts';
 import type { ClaimDrawing, DrawingLayer, RelationEmphasis, TreeMeasurements } from './drawingContext.ts';
 
 import { nativeLinearizationPlateHeight } from '../../replay/relations/nativeDrawingContent.ts';
+import { ANCHOR_SET_BADGE_CLEARANCE, anchorSetBadgeOuterRadius, anchorSetBadgeRadius } from '../../replay/rendererMetrics.ts';
 import {
   planAnchorSetLayout,
-  type AnchorSetLayout
+  type AnchorSetLayout,
+  type Rect
 } from '../../replay/relations/overlayGeometry.ts';
 
 interface LinearizationDrawingContext extends Pick<ClaimDrawing, 'relationLayerKey' | 'acceptedRelationDrawingKey' | 'queueAcceptedRelationDraw'>, Pick<TreeMeasurements, 'exactScreenTreeLabelRectNow' | 'exactScreenDirectTreeLabelRectNow'> {
@@ -25,6 +27,10 @@ interface LinearizationDrawingContext extends Pick<ClaimDrawing, 'relationLayerK
   uiBounds: { top: number; right: number; bottom: number; headerBottom: number; panelTop: number };
   /** The tree layer's screen matrix under the settled camera (`deferredTreeMatrix`). */
   deferredTreeMatrix: () => DOMMatrix | null;
+  /** What anchor-set badges clear, in tree units: the step's painted label
+   * cells and displayed plaque shells, as the relation scene measured them
+   * for its own badges (`BindGeometryOptions.badgeObstacles`). */
+  badgeObstacles?: readonly Rect[];
 }
 
 export function createLinearizationDrawing({
@@ -39,7 +45,8 @@ export function createLinearizationDrawing({
   treeData,
   exactScreenDirectTreeLabelRectNow,
   uiBounds,
-  deferredTreeMatrix
+  deferredTreeMatrix,
+  badgeObstacles
 }: LinearizationDrawingContext) {
   const scheduleAcceptedCyclicLinearization = (
     item: RelationPlanItem,
@@ -90,7 +97,13 @@ export function createLinearizationDrawing({
           {
             badgeOffsetY: localPx(16),
             railGap: localPx(14),
-            band: anchorSetItem.railBand
+            band: anchorSetItem.railBand,
+            // Compact badges in screen pixels; their stroke does not scale.
+            ...(badgeObstacles ? { clearance: {
+              obstacles: badgeObstacles,
+              radiusFor: () => localPx(anchorSetBadgeOuterRadius('compact')),
+              gap: localPx(ANCHOR_SET_BADGE_CLEARANCE)
+            } } : {})
           }
         ) : { badges: [], rails: [] };
         if (anchorSetItem?.kind === 'anchor-set' && anchorPlan.badges.length > 0) {
@@ -148,7 +161,7 @@ export function createLinearizationDrawing({
               .attr('data-anchor-set-role', badge.role)
               .attr('cx', badge.x.toFixed(1))
               .attr('cy', badge.y.toFixed(1))
-              .attr('r', localPx(7).toFixed(2));
+              .attr('r', localPx(anchorSetBadgeRadius('compact')).toFixed(2));
             anchorLayer.append('text')
               .attr('class', 'babel-anchor-set-badge-number')
               .attr('x', badge.x.toFixed(1))

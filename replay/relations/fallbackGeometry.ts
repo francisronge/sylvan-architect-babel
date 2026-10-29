@@ -1,5 +1,6 @@
 import type {
   BindGeometryOptions,
+  BoundAnchorSetBadge,
   BoundAnchorSetRail,
   BoundFallbackMark,
   BoundFrame,
@@ -9,12 +10,13 @@ import type {
 import type { Point, Rect } from './overlayGeometry.ts';
 import { allocateSpanLanes } from './overlayGeometry.ts';
 import { TREE_ROW_HEIGHT } from '../treeSpacing.ts';
+import { anchorSetBadgeRadius } from '../rendererMetrics.ts';
 import type { PlaqueTextStyle } from './plaqueTextLayout.ts';
 
 export const anchorSetRailPaths = (rail: BoundAnchorSetRail, markerScale: number, fallbackScale = markerScale) => ({
   rail: `M ${rail.x1} ${rail.y} H ${rail.x2}`,
   joins: rail.anchors.map(anchor => {
-    const clearance = anchor.type === 'fallback-mark' ? 12 : anchor.badgeSize === 'compact' ? 7 : 9;
+    const clearance = anchor.type === 'fallback-mark' ? 12 : anchorSetBadgeRadius(anchor.badgeSize);
     return `M ${anchor.x} ${anchor.y + clearance * (anchor.type === 'fallback-mark' ? fallbackScale : markerScale)} V ${rail.y}`;
   }).join(' ')
 });
@@ -327,7 +329,10 @@ export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 't
 export const fitFallbackGeometry = (
   frame: BoundFrame,
   options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap' | 'fallbackMeasurements' | 'separateFallbackMoments' | 'direction'>
-    & { fittedMarkerScale: number; fittedAnchorScale?: number; fittedViewport?: Rect; relationInkObstacles?: Rect[] }
+    & { fittedMarkerScale: number; fittedAnchorScale?: number; fittedViewport?: Rect; relationInkObstacles?: Rect[];
+      /** Where Fit re-placed each anchor-set badge; a badge without an entry
+       * keeps its nominal stack offset at `fittedAnchorScale`. */
+      fittedAnchorSetBadges?: ReadonlyMap<BoundAnchorSetBadge, Point> }
 ): Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail> => {
   if (options.separateFallbackMoments) {
     // Replay shows one neutral relation at a time. Invisible relations must
@@ -395,7 +400,7 @@ export const fitFallbackGeometry = (
     if (rail.type !== 'anchor-set-rail') return;
     const anchors = rail.anchors.map(anchor => anchor.type === 'fallback-mark'
       ? updates.get(anchor) as BoundFallbackMark
-      : {
+      : options.fittedAnchorSetBadges?.has(anchor) ? { ...anchor, ...options.fittedAnchorSetBadges.get(anchor) } : {
         ...anchor, y: anchor.y + (anchor.stackIndex + 1) * (options.badgeGap ?? 22)
           * (anchorScale - (options.markerScale ?? 1))
       });

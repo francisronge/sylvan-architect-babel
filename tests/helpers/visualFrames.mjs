@@ -18,7 +18,7 @@ import * as layout from '../../replay/treeLayout.ts';
 import * as plaqueJob from '../../replay/plaqueLayoutJob.ts';
 import { categoryTextLayout } from '../../replay/categoryTextLayout.ts';
 import {
-  CATEGORY_FONT, categoryLineBaselineY, INDEX_LABEL, markerScaleAtZoom, RELATION_BINDING_METRICS,
+  anchorSetBadgeOuterRadius, CATEGORY_FONT, categoryLineBaselineY, INDEX_LABEL, markerScaleAtZoom, outlinedTreeLabelCell, RELATION_BINDING_METRICS,
   RELATION_LANES_BELOW_DEEPEST_NODE, SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TERMINAL_FONT, TERMINAL_LABEL, TERMINAL_STEM,
   TRAJECTORY_ROUTES
 } from '../../replay/rendererMetrics.ts';
@@ -28,7 +28,7 @@ import { prepareTreeLabelRuns } from '../../replay/prepareTreeLabelRuns.ts';
 import { fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { paintedShift } from '../../replay/cameraCarry.ts';
-import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
+import { drawnPlaque, projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
 import { projectVisibleAnchorSetOrganization } from '../../replay/relations/relationFrame.ts';
 import {
   isPlanItemRevealed, planItemDependencyNodeIds, planItemRelationRefs, resolveDisplayedTrajectoryAttachments
@@ -105,7 +105,9 @@ const refsOf = item => planItemRelationRefs(item).map(ref => `${ref.stageIndex}:
 const INDEX_FONT = { family: 'Crimson Pro', italic: true, weight: 900 };
 
 /** Painted label geometry: `boxes` holds one glyph box per painted line and
- * per index run, and `cell` the SVG text box the renderer measures (font cells).
+ * per index run, `cell` the SVG text box the renderer measures (font cells),
+ * and `pieceCells` the font cells measurePaintedTreeLabelCells reads: one per
+ * line tspan and index run of a wrapped category label, else the whole text box.
  * Index runs follow treeLabelIndexAttributes: dx 5, a subscript shift or a theta
  * dy. Separate boxes keep the empty corner beside a short line, or below a word
  * next to its lowered index, out of the glyphs. */
@@ -131,7 +133,7 @@ export function labelGeometry(node, run) {
       pen += piece.run.width;
     }
   });
-  return { boxes, cell: union(cells), lines };
+  return { boxes, cell: union(cells), lines, pieceCells: !terminal && run.lines ? cells : [union(cells)] };
 }
 
 /** Sampled d3.linkVertical cubic from a parent to a child position. */
@@ -224,26 +226,28 @@ const paintedSyntax = (tree, visible) => tree.descendants().filter(node => !isUn
 
 function paintedTree(tree, visible, runsFor) {
   const nodes = paintedSyntax(tree, visible);
-  const shown = new Set(nodes), texts = [], lines = [];
+  const shown = new Set(nodes), texts = [], lines = [], labelCells = [];
   for (const node of nodes) {
     const id = display.getNodeId(node), runs = runsFor(node);
     if (isCategory(node)) {
       const run = firstRun(runs, 'category') ?? { kind: 'category', text: node.data.label || '',
         lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] };
-      const { boxes, cell, lines: wrapped } = labelGeometry(node, run);
+      const { boxes, cell, lines: wrapped, pieceCells } = labelGeometry(node, run);
       if (boxes.length) texts.push({ id: `${id}:category`, kind: 'category', text: run.text, boxes, cell, halo: 5, nodes: [id], claims: [], lines: wrapped });
+      if (boxes.length) labelCells.push(...pieceCells.map(piece => outlinedTreeLabelCell(piece, 'category')));
     }
     if (isTerminal(node)) {
       const run = firstRun(runs, 'terminal') ?? { kind: 'terminal', text: resolveLeafSurface(node).trim(), indices: [] };
-      const { boxes, cell } = labelGeometry(node, run);
+      const { boxes, cell, pieceCells } = labelGeometry(node, run);
       if (boxes.length) texts.push({ id: `${id}:word`, kind: 'word', text: run.text, boxes, cell, halo: 4, nodes: [id], claims: [] });
+      if (boxes.length) labelCells.push(...pieceCells.map(piece => outlinedTreeLabelCell(piece, 'terminal')));
       lines.push({ id: `${id}:stem`, kind: 'stem', paths: [[{ x: node.x, y: node.y + TERMINAL_STEM.topY }, { x: node.x, y: node.y + TERMINAL_STEM.bottomY }]],
         halfWidth: TERMINAL_STEM.strokeWidth / 2, nodes: [id], claims: [] });
     }
     if (node.parent && shown.has(node.parent)) lines.push({ id: `${display.getNodeId(node.parent)}->${id}`, kind: 'branch',
       paths: [branchPoints(node.parent, node)], halfWidth: 2, nodes: [display.getNodeId(node.parent), id], claims: [] });
   }
-  return { nodes, texts, lines };
+  return { nodes, texts, lines, labelCells };
 }
 
 /** Every painted Replay frame of one record at each viewport. Layout depends on
@@ -361,14 +365,20 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   const textTop = d3.min(painted.texts, text => text.cell.y) ?? TRAJECTORY_ROUTES.textTopFallbackY;
   const lanes = RELATION_LANES_BELOW_DEEPEST_NODE;
   const runText = (id, text) => (runs.get(id) ?? []).some(run => run.text + run.indices.map(index => index.text).join('') === text);
+  // paintRelationScene's badge obstacles: painted label cells and displayed plaque shells.
+  const badgeObstacles = items.some(item => item.kind === 'anchor-set')
+    ? { badgeObstacles: [...painted.labelCells, ...visiblePlacements.map(([, box]) => drawnPlaque(box))] } : {};
   const bind = extra => bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, index) => index === stage ? { ...frame, items } : frame) },
-    stage, positionFor, { ...RELATION_BINDING_METRICS, markerScale,
+    stage, positionFor, { ...RELATION_BINDING_METRICS, markerScale, ...badgeObstacles,
       hasExistingGapNotation: runText, plaqueTextLayout: { measureText: measurePlaqueText }, isItemRevealed: index => revealed.has(index),
       trajectoryCeilingY: textTop - TRAJECTORY_ROUTES.ceilingAboveTextTop, trajectoryFloorY: maxY + lanes.trajectoryFloor,
       connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, direction: visual.direction, ...extra });
   const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
   const shownMarks = bound => bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
-  if (!items.some(item => item.kind === 'fallback')) return { ...none, plaques, marks: boundMarks(shownMarks(bind({})), items) };
+  if (!items.some(item => item.kind === 'fallback')) {
+    const marks = shownMarks(bind({}));
+    return { ...none, texts: badgeTexts(marks, items, markerScale), plaques, marks: boundMarks(marks, items) };
+  }
   // measureFallbackLabels: plain label cells for every laid-out node.
   const labelRects = new Map(all.filter(node => !canvas.isSyntheticWorkspaceRootNode(node) && !isUnderTriangulation(node)).map(node => {
     const run = isCategory(node) ? { kind: 'category', text: node.data.label || '', lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] }
@@ -386,11 +396,12 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     bottom: Math.max(0, ...[...labelRects.values()].map(value => value.y + value.height)) };
   const bound = bind({ fallbackMeasurements, separateFallbackMoments: true });
   const scale = fallbackMarkerScale(fitted.k, fallbackMeasurements.labels.map(value => value.height));
-  // measureRelationInkObstacles reserves filled plaque shells with five units of padding.
+  // measureRelationInkObstacles reserves filled plaque shells and painted badges with five units of padding.
+  const marks = shownMarks(bound), badges = badgeTexts(marks, items, markerScale);
   const refit = fitFallbackGeometry(bound, { markerScale, fittedMarkerScale: scale, fittedAnchorScale: markerScaleAtZoom(fitted.k), direction: visual.direction,
     badgeGap: RELATION_BINDING_METRICS.badgeGap, laneGap: RELATION_BINDING_METRICS.laneGap, fallbackMeasurements, railBaseY: maxY + lanes.railBase, separateFallbackMoments: true, fittedViewport: fitted.view,
-    relationInkObstacles: plaques.map(({ rect: shell }) => rect(shell.x - 5, shell.y - 5, shell.width + 10, shell.height + 10)) });
-  const marks = shownMarks(bound);
+    relationInkObstacles: [...plaques.map(({ rect: shell }) => shell), ...badges.map(badge => badge.boxes[0])]
+      .map(box => rect(box.x - 5, box.y - 5, box.width + 10, box.height + 10)) });
   const texts = marks.filter(primitive => primitive.type === 'fallback-mark').map(primitive => {
     const mark = refit.get(primitive) ?? primitive, height = (mark.textHeight ?? 20) * scale, claims = refsOf(items[primitive.itemIndex]);
     // The placement box adds two units per side for the three-unit round outline.
@@ -404,7 +415,18 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
       nodes: primitive.witnessNodeIds.flatMap(id => laidOut.get(id)?.descendants().map(display.getNodeId) ?? [id]),
       paths: pathPolylines(segment.d), halfWidth: (segment.route === 'direct' ? 1.5 : 1.9) * scale / 2 };
   });
-  return { texts, plaques, lines, marks: boundMarks(marks, items) };
+  return { texts: [...texts, ...badges], plaques, lines, marks: boundMarks(marks, items) };
+}
+
+/** Anchor-set badges as mark text: the painted circle, stroke included, at the
+ * binder's marker scale. A badge labels no tree node, so it may not cover even
+ * its own anchor's label. */
+function badgeTexts(primitives, items, markerScale) {
+  return primitives.filter(primitive => primitive.type === 'anchor-set-badge').map(badge => {
+    const r = anchorSetBadgeOuterRadius(badge.badgeSize) * markerScale, claims = refsOf(items[badge.itemIndex]);
+    return { id: `badge(${claims.join('/')} ${badge.numeral})@${badge.nodeId}#${badge.stackIndex}`, kind: 'badge', text: String(badge.numeral),
+      boxes: [rect(badge.x - r, badge.y - r, 2 * r, 2 * r)], halo: 0, nodes: [], claims };
+  });
 }
 
 /** Every bound mark except plaques, neutral role labels and connectors (recorded

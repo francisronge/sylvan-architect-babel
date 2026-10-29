@@ -5,8 +5,8 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BROWSER_CI_SHARDS, BROWSER_SPECS, checkBrowserShards, checkShardReceipts, requiredTestSummary,
-  selectBrowserSpecs } from '../scripts/browserSuites.mjs';
+import { assignBrowserShards, BROWSER_CI_SHARD_COUNT, BROWSER_CI_SHARDS, BROWSER_SPECS, checkBrowserShards, checkShardReceipts,
+  requiredTestSummary, selectBrowserSpecs } from '../scripts/browserSuites.mjs';
 
 test('browser ownership keeps the existing fast gate and complete coverage distinct', () => {
   const actual = BROWSER_SPECS.map(spec => spec.file);
@@ -38,11 +38,25 @@ test('CI browser shards together select every required spec exactly once', () =>
   assert.deepEqual(shards.flat().sort(), [...actual].sort());
   assert.equal(new Set(shards.flat()).size, actual.length);
   assert.ok(shards.every(files => files.length > 0));
+  assert.equal(Object.keys(BROWSER_CI_SHARDS).length, BROWSER_CI_SHARD_COUNT);
   assert.throws(() => selectBrowserSpecs(actual, 'ci:unknown'), /Unknown browser suite: ci:unknown/);
-  const withNewOwner = [...BROWSER_SPECS, { file: 'newOwner.test.mjs', owner: 'newowner' }];
-  assert.throws(() => selectBrowserSpecs([...actual, 'newOwner.test.mjs'], 'ci:renderer', withNewOwner), /unsharded: newowner/);
-  assert.throws(() => checkBrowserShards(BROWSER_SPECS, { ...BROWSER_CI_SHARDS, extra: ['atlas'] }), /Repeated: atlas/);
-  assert.throws(() => checkBrowserShards(BROWSER_SPECS, { renderer: ['renderer', 'compatibility'], application: ['application', 'atlas'] }), /unsharded: capture/);
+  const withNewSpec = [...BROWSER_SPECS, { file: 'newSpec.test.mjs', owner: 'renderer' }];
+  assert.throws(() => selectBrowserSpecs([...actual, 'newSpec.test.mjs'], 'ci:1', withNewSpec), /unsharded: newSpec/);
+  const [first, ...others] = Object.values(BROWSER_CI_SHARDS);
+  assert.throws(() => checkBrowserShards(BROWSER_SPECS, { ...BROWSER_CI_SHARDS, extra: [first[0]] }), new RegExp(`Repeated: ${first[0]}`));
+  assert.throws(() => checkBrowserShards(BROWSER_SPECS, { 1: first.slice(1), ...Object.fromEntries(others.map((files, index) => [index + 2, files])) }),
+    new RegExp(`unsharded: ${first[0]}`));
+  assert.throws(() => checkBrowserShards(BROWSER_SPECS, { ...BROWSER_CI_SHARDS, extra: [] }), /empty shards: extra/);
+});
+
+test('the CI browser split is deterministic and gives a new spec, weighted or not, exactly one shard', () => {
+  assert.deepEqual(assignBrowserShards(), BROWSER_CI_SHARDS);
+  assert.deepEqual(assignBrowserShards([...BROWSER_SPECS].reverse()), BROWSER_CI_SHARDS);
+  for (const added of [{ file: 'newSpec.test.mjs', owner: 'renderer' }, { file: 'newSpec.test.mjs', owner: 'renderer', ciSeconds: 500 }]) {
+    const specs = [...BROWSER_SPECS, added], shards = assignBrowserShards(specs);
+    assert.doesNotThrow(() => checkBrowserShards(specs, shards));
+    assert.equal(Object.values(shards).flat().filter(file => file === added.file).length, 1);
+  }
 });
 
 const passingReceipt = (shard, specs = selectBrowserSpecs(BROWSER_SPECS.map(spec => spec.file), `ci:${shard}`)) => ({
@@ -53,18 +67,19 @@ const passingReceipt = (shard, specs = selectBrowserSpecs(BROWSER_SPECS.map(spec
 test('shard receipts pass only when they ran the full gate, each spec once', () => {
   const actual = BROWSER_SPECS.map(spec => spec.file);
   const good = Object.keys(BROWSER_CI_SHARDS).map(shard => passingReceipt(shard));
-  assert.deepEqual(checkShardReceipts(actual, good), { shards: 2, specs: actual.length });
-  const [renderer, application] = good;
-  assert.throws(() => checkShardReceipts(actual, [renderer]), /no receipt for ci:application[\s\S]*not run by any shard: tier2ProductionRecipes[^\n]*appWorkflow/);
-  const leftOut = { ...application, required: application.required.slice(1) };
-  assert.throws(() => checkShardReceipts(actual, [renderer, leftOut]), /ci:application ran[\s\S]*not run by any shard: tier2ProductionRecipes/);
-  const overlap = { ...application, required: [...application.required, renderer.required[0]] };
-  assert.throws(() => checkShardReceipts(actual, [renderer, overlap]), /run by more than one shard: movementEndpointAttachment/);
-  assert.throws(() => checkShardReceipts(actual, [renderer, application, { ...renderer, suite: 'full' }]), /unexpected receipt for full/);
-  assert.throws(() => checkShardReceipts(actual, [renderer, renderer, application]), /two receipts for ci:renderer/);
-  for (const broken of [{ exitCode: 1 }, { error: 'Error: Browser ci:application failed' },
-    { testSummary: { ...application.testSummary, pass: 2, skipped: 1 } }, { testSummary: null }]) {
-    assert.throws(() => checkShardReceipts(actual, [renderer, { ...application, ...broken }]), /ci:application did not pass/);
+  assert.deepEqual(checkShardReceipts(actual, good), { shards: BROWSER_CI_SHARD_COUNT, specs: actual.length });
+  const [first, last] = [good[0], good.at(-1)], middle = good.slice(1, -1);
+  const lastFirstSpec = last.required[0].file;
+  assert.throws(() => checkShardReceipts(actual, [first, ...middle]), new RegExp(`no receipt for ${last.suite}[\\s\\S]*not run by any shard: ${lastFirstSpec}`));
+  const leftOut = { ...last, required: last.required.slice(1) };
+  assert.throws(() => checkShardReceipts(actual, [first, ...middle, leftOut]), new RegExp(`${last.suite} ran[\\s\\S]*not run by any shard: ${lastFirstSpec}`));
+  const overlap = { ...last, required: [...last.required, first.required[0]] };
+  assert.throws(() => checkShardReceipts(actual, [first, ...middle, overlap]), new RegExp(`run by more than one shard: ${first.required[0].file}`));
+  assert.throws(() => checkShardReceipts(actual, [...good, { ...first, suite: 'full' }]), /unexpected receipt for full/);
+  assert.throws(() => checkShardReceipts(actual, [first, ...good]), new RegExp(`two receipts for ${first.suite}`));
+  for (const broken of [{ exitCode: 1 }, { error: `Error: Browser ${last.suite} failed` },
+    { testSummary: { ...last.testSummary, pass: 2, skipped: 1 } }, { testSummary: null }]) {
+    assert.throws(() => checkShardReceipts(actual, [first, ...middle, { ...last, ...broken }]), new RegExp(`${last.suite} did not pass`));
   }
 });
 
@@ -77,14 +92,16 @@ test('the receipt check reads the latest attempt of each shard and fails on a mi
   };
   const run = () => spawnSync(process.execPath, [script, dir], { encoding: 'utf8' });
   try {
-    await put('browser-receipt-renderer-1', passingReceipt('renderer'));
-    assert.match(run().stderr, /no receipt for ci:application/);
-    await put('browser-receipt-application-1', { ...passingReceipt('application'), exitCode: 1, error: 'Error: failed' });
+    const [first, ...others] = Object.keys(BROWSER_CI_SHARDS), last = others.at(-1);
+    for (const shard of others.slice(0, -1)) await put(`browser-receipt-${shard}-1`, passingReceipt(shard));
+    await put(`browser-receipt-${first}-1`, passingReceipt(first));
+    assert.match(run().stderr, new RegExp(`no receipt for ci:${last}`));
+    await put(`browser-receipt-${last}-1`, { ...passingReceipt(last), exitCode: 1, error: 'Error: failed' });
     assert.equal(run().status, 1);
-    await put('browser-receipt-application-2', passingReceipt('application'));
+    await put(`browser-receipt-${last}-2`, passingReceipt(last));
     const result = run();
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /2 shards ran all 16 required browser specs, each exactly once/);
+    assert.match(result.stdout, new RegExp(`${BROWSER_CI_SHARD_COUNT} shards ran all 16 required browser specs, each exactly once`));
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -65,7 +65,7 @@ const maps = {
   'pf.impoverishment': [check('realizationDrawing', 'Delinking mark', '.babel-impoverishment-cross', 'babel-impoverishment-cross', { minCount: 2 })],
   'pf.local-dislocation': [check('realizationDrawing', 'State lanes', '.babel-pf-lane-expression', 'babel-pf-lane-expression', { minCount: 2, distinctText: true })],
   'pf.linearization': [check('linearizationDrawing', 'Comparison column layout', '.babel-linearization-column-title', 'babel-linearization-column-title', { minCount: 2 }), check('linearizationDrawing', 'Comparison column layout', '.babel-linearization-row', 'babel-linearization-row', { minCount: 2 })],
-  'organization.large-anchor-set': [check('relationScene', 'Anchor badge', '.vr-anchor-set-badge', 'vr-anchor-set-badge', { minCount: 5 }), check('fallbackDrawing', 'Anchor rail', '.babel-anchor-set-rail')]
+  'organization.large-anchor-set': [check('fallbackDrawing', 'Anchor badge', '.vr-anchor-set-badge', 'vr-anchor-set-badge', { minCount: 5 }), check('fallbackDrawing', 'Anchor rail', '.babel-anchor-set-rail')]
 };
 export function productionDomChecks(recipe, variant, ownedItems) {
   let checks;

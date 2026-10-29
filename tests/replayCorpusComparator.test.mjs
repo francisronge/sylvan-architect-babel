@@ -273,6 +273,44 @@ test('the actual CLI retains evidence and exits nonzero when a required control 
   } finally { await rm(scratch, { recursive: true, force: true }); }
 });
 
+test('shards merged compare exactly as one run does, fail as it does, and only a complete set merges', async () => {
+  const scratch = await mkdtemp(path.join(tmpdir(), 'babel-corpus-shards-'));
+  try {
+    const original = JSON.parse(await readFile(manifestPath, 'utf8'));
+    const chosen = original.records.filter(record => records.some(({ id }) => id === record.id))
+      .map(record => ({ ...record, source: path.resolve(path.dirname(manifestPath), record.source) }));
+    const manifest = path.join(scratch, 'manifest.json'), out = name => path.join(scratch, name);
+    const base = [path.join(root, 'scripts/compareReplayCorpus.mjs'), '--baseline-root', root, '--candidate-root', root,
+      '--manifest', manifest, '--jobs', '1'];
+    const cli = (...args) => spawnSync(process.execPath, [...base, ...args], { timeout: 60000, encoding: 'utf8' });
+    const shardsThenMerge = (name) => {
+      for (const shard of [1, 2]) assert.equal(cli('--shard', `${shard}/2`, '--snapshots-out', out(`${name}-${shard}.json`)).status, 0);
+      return cli('--output', out(`${name}.json`), '--merge', out(`${name}-1.json`), '--merge', out(`${name}-2.json`));
+    };
+    await writeFile(manifest, JSON.stringify({ records: chosen }));
+    assert.equal(cli('--output', out('one.json')).status, 0);
+    assert.equal(shardsThenMerge('merged').status, 0);
+    const shards = await Promise.all([1, 2].map(async shard => JSON.parse(await readFile(out(`merged-${shard}.json`), 'utf8'))));
+    assert.deepEqual(shards.map(shard => shard.snapshots[0].records.length).sort(), [1, 2]);
+    assert.equal(await readFile(out('merged.json'), 'utf8'), await readFile(out('one.json'), 'utf8'));
+    chosen.find(record => record.id === 'tier2-witness-persistence').expect.facets[1].present = false;
+    await writeFile(manifest, JSON.stringify({ records: chosen }));
+    const failed = shardsThenMerge('failed');
+    assert.equal(failed.status, 1, failed.stderr);
+    assert.equal(JSON.parse(await readFile(out('failed.json'), 'utf8')).records
+      .find(record => record.id === 'tier2-witness-persistence').violations[0].kind, 'mechanism-control-failed');
+    const refused = (args, pattern) => { const result = cli('--output', out('refused.json'), ...args);
+      assert.equal(result.status, 1); assert.match(result.stderr, pattern); };
+    refused(['--merge', out('failed-1.json')], /shards 1\/N to N\/N of one N, each once; got 1\/2/);
+    refused(['--merge', out('failed-1.json'), '--merge', out('failed-1.json')], /each once; got 1\/2, 1\/2/);
+    refused(['--width', '1500', '--merge', out('failed-1.json'), '--merge', out('failed-2.json')], /other records or another layout/);
+    await writeFile(manifest, JSON.stringify({ records: chosen.slice(1) }));
+    refused(['--merge', out('failed-1.json'), '--merge', out('failed-2.json')], /other records or another layout/);
+    assert.match(cli('--shard', '1/2').stderr, /--shard needs --snapshots-out/);
+    assert.match(cli('--shard', '3/2', '--snapshots-out', out('x.json')).stderr, /Invalid --shard 3\/2/);
+  } finally { await rm(scratch, { recursive: true, force: true }); }
+});
+
 // A candidate checkout whose prepareReplay passes its result through a hook, so a
 // test can seed one change beneath the compared hashes and require the
 // comparator to report it.
