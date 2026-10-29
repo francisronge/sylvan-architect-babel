@@ -490,11 +490,14 @@ export function alignmentImprovesMotion(before: ReturnType<typeof planMotion>, a
 
 /** Slots in stage-local frames change only the pieces they place, so they are
  * judged without ownership: no painted node may move farther in any frame, total
- * motion must fall, and the final tree stays the same. */
-function slotsReduceMotion(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>) {
+ * motion must fall, and the final tree stays the same. Raw moves across a stage
+ * crossing include the camera carry, which a slot can change, so no unowned
+ * jump, measured after the carry, may appear or grow either. */
+export function slotsReduceMotion(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>) {
   const total = (moves: ReadonlyMap<string, number>) => [...moves.values()].reduce((sum, distance) => sum + distance, 0);
   return after.count < before.count && total(after.moves) < total(before.moves) - 1
     && [...after.moves].every(([key, distance]) => distance <= (before.moves.get(key) ?? 0) + 1)
+    && [...after.unowned].every(([key, distance]) => before.unowned.has(key) && distance <= before.unowned.get(key)! + 1e-6)
     && finalTreeShift(before, after) !== null;
 }
 
