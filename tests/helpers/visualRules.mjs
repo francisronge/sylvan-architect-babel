@@ -1,4 +1,5 @@
-import { newPocketBlocker, ownRoutesChanged, returnsWithinReach } from '../../replay/relations/pocketHold.ts';
+import { foreseenPocketBlocker, newPocketBlocker, ownOccupant, ownRoutesChanged, returnsWithinReach } from '../../replay/relations/pocketHold.ts';
+import { blocksCarriedPocket } from '../../replay/relations/plaquePlacement.ts';
 
 /** Static geometry rules for one painted frame, independent of how the frame was
  * measured. An adapter normalizes a frame to the model below and calls
@@ -21,14 +22,15 @@ import { newPocketBlocker, ownRoutesChanged, returnsWithinReach } from '../../re
  *     claims are the relation keys ('stage:relation') whose mark it belongs to;
  *     lines are the wrapped lines of a label; plaque is the plaque holding it;
  *     reach and distance measure a mark's text against its placer's preferred spots.
- *   plaques [{ id, text, rect, radius, claims, anchor?, size?, pocket?, key?, grid?, joined? }]
+ *   plaques [{ id, text, rect, radius, claims, anchor?, size?, pocket?, key?, grid?, joined?, content? }]
  *     rect is the drawn shell and radius its corner radius; anchor { x, y } is the
  *     point the allocator measures from (below a word-bearing leaf, its word);
  *     size is the allocated box when it differs from rect; pocket is the allocated
  *     box as the schedule placed it, with the narrower `syntaxGap` it was accepted
  *     at, if any (by default rect's corner and size); key is the plaque's identity
  *     among `reserves` owners; grid marks a theta grid; joined marks a plaque tied
- *     to syntax by an arrow or collector of its own.
+ *     to syntax by an arrow or collector of its own; content { width, height } is the
+ *     box the rows it paints need, when the adapter knows it.
  *   lines   [{ id, kind, paths, halfWidth, nodes, claims, masked? }]
  *     paths are polylines of { x, y }; nodes are the tree nodes it may meet (a
  *     branch its parent and child, its path running parent to child; a stem its
@@ -36,7 +38,10 @@ import { newPocketBlocker, ownRoutesChanged, returnsWithinReach } from '../../re
  *     tree text by design.
  *   reserves [PocketOccupant] the boxes plaque allocation reserves for what the
  *     frame paints (replay/relations/pocketHold.ts), when the adapter has them;
- *     only mark-motion reads these.
+ *     only mark-motion and the realization subtype of mark-distance read these.
+ *   marks   [{ id, type, … }] the other bound relation marks; region-overlap reads
+ *     enclosures and domain boxes ({ x, y, width, height }) and domain ellipses
+ *     ({ cx, cy, rx, ry }, with a binding domain's `painted` ellipse when known).
  *   chrome  { canvas, panel?, header? } rects, when the adapter knows the screen.
  * Ids must be stable across frames: node ids, or a mark's claim, text and anchor.
  *
@@ -48,9 +53,9 @@ import { newPocketBlocker, ownRoutesChanged, returnsWithinReach } from '../../re
 /** Every rule the visual audit reports. checkFrame applies all but layout-width,
  * which compares one record's frames across viewports (visualFrames.mjs,
  * layoutWidthFindings), and mark-motion, which compares adjacent frames
- * (checkMarkMotion). */
+ * (checkMarkMotion, and checkStaleShell for its stale-shell subtype). */
 export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-distance', 'label-typography', 'clipped', 'branch-geometry',
-  'parent-centring', 'layout-width', 'mark-motion']);
+  'parent-centring', 'layout-width', 'mark-motion', 'region-overlap']);
 
 /** CSS pixels at the frame's Fit unless noted. Glyph boxes may share a two-pixel
  * sliver of outline; a stroke must keep a pixel from a plaque shell and may not
@@ -58,9 +63,10 @@ export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-dis
  * (a ratio), a mark's text also by 20 pixels; a connector this close to a plaque
  * of its own claim is that plaque's leader. Tree units for mark-motion: a plaque
  * may shift `motionUnits` against its anchor between frames, and an anchor that
- * moves `stillUnits` or less stays still. What occupies a pocket is pocketHold.ts's. */
+ * moves `stillUnits` or less stays still. What occupies a pocket is pocketHold.ts's. A
+ * plaque shell may exceed its painted content by `shellRowUnits`, one Case row. */
 export const THRESHOLDS = Object.freeze({ overlapPx: 2, clearancePx: 1, crossingPx: 1, reachMargin: 0.1, textReachPx: 20,
-  leaderPx: 6, clippedPx: 2, rowUnits: 1, centringPx: 1, motionUnits: 4, stillUnits: 1 });
+  leaderPx: 6, clippedPx: 2, rowUnits: 1, centringPx: 1, motionUnits: 4, stillUnits: 1, shellRowUnits: 62 });
 
 const TREE_TEXT = new Set(['category', 'word']);
 const LOCAL_PLAQUE = 480;
@@ -225,6 +231,14 @@ export function checkLineClearance(frame, thresholds = THRESHOLDS) {
  * column 110 units out, the lowest row 235 units below. */
 export const plaqueNearbyReach = ({ width, height }) => Math.hypot(110 + width / 2, 235 + height / 2);
 
+/** Whether the allocator places `plaque` beside its owner (plaquePlacement.ts,
+ * placedLocally): it fits the local search, or grows sideways with its content (a
+ * theta grid's columns, a realization plate's text) and fits it in height. */
+const judgedNearby = plaque => {
+  const { width, height } = plaque.size ?? plaque.rect;
+  return Math.max(width, height) <= LOCAL_PLAQUE || (plaque.grid || plaque.realization) && height <= LOCAL_PLAQUE;
+};
+
 /** mark-distance: a plaque that relies on proximity farther from its anchor than
  * the allocator's farthest nearby pocket, or a mark's text farther from its
  * placer's preferred spots, by more than `reachMargin` of that reach (measured
@@ -238,7 +252,7 @@ export function checkMarkDistance(frame, thresholds = THRESHOLDS) {
   const out = [], margin = 1 + thresholds.reachMargin, leader = thresholds.leaderPx / frame.zoom;
   for (const plaque of frame.plaques) {
     const size = plaque.size ?? plaque.rect;
-    if (!plaque.anchor || plaque.joined || !(Math.max(size.width, size.height) <= LOCAL_PLAQUE || plaque.grid && size.height <= LOCAL_PLAQUE)) continue;
+    if (!plaque.anchor || plaque.joined || !judgedNearby(plaque)) continue;
     if (frame.lines.some(line => line.kind === 'connector' && shares(line.claims, plaque.claims)
       && Math.min(...line.paths.map(path => pathToShell(path, plaque.rect))) <= leader)) continue;
     const reach = plaqueNearbyReach(size);
@@ -250,6 +264,40 @@ export function checkMarkDistance(frame, thresholds = THRESHOLDS) {
     if (!(text.reach > 0) || text.distance <= text.reach * margin || (text.distance - text.reach) * frame.zoom <= thresholds.textReachPx) continue;
     out.push(finding('mark-distance', text.kind, frame, text.id,
       `${describe(text)} is ${Math.round(text.distance)} units from its witness; nearby reach ${Math.round(text.reach)}`, text.distance / text.reach));
+  }
+  return out;
+}
+
+/** mark-distance, subtype realization: a realization group's plate (`realization`,
+ * realizationDisplay.ts), which allocation places after every relation's plaque, farther
+ * than `reachMargin` beyond its nearby reach from its owner while a pocket at least
+ * that margin nearer stays clear. Pockets are searched on a 40-unit grid around the
+ * owner, nearest first. A pocket is clear when none of `blockers` (pocket occupants,
+ * carried to this frame's anchor) comes within the plaque gap: the boxes allocation
+ * reserved through the plate's stay in its pocket, so a pocket that later syntax or
+ * marks take does not count. Plates of any size are judged. It adds to the plaque
+ * subtype, which reports a plate beyond its reach whether or not a nearer pocket is
+ * clear. */
+export function checkRealizationDistance(frame, blockersOf = plaque => frame.reserves ?? [], thresholds = THRESHOLDS) {
+  const out = [], margin = 1 + thresholds.reachMargin;
+  for (const plaque of frame.plaques) {
+    if (!plaque.realization || !plaque.anchor) continue;
+    const size = plaque.size ?? plaque.rect, { width, height } = size, { x: ax, y: ay } = plaque.anchor;
+    const reach = plaqueNearbyReach(size), distanceOf = box => Math.hypot(box.x + width / 2 - ax, box.y + height / 2 - ay);
+    const distance = distanceOf(plaque.rect);
+    if (distance <= reach * margin) continue;
+    const bound = distance / margin, step = 40, cells = Math.floor(bound / step);
+    const near = { x: ax - bound - width, y: ay - bound - height, width: 2 * (bound + width), height: 2 * (bound + height) };
+    const blockers = blockersOf(plaque).filter(occupant => !ownOccupant(plaque.key ?? plaque.id, occupant) && blocksCarriedPocket(near, occupant));
+    const pockets = [];
+    for (let i = -cells; i <= cells; i++) for (let j = -cells; j <= cells; j++) {
+      const box = { x: ax + i * step - width / 2, y: ay + j * step - height / 2, width, height };
+      if (distanceOf(box) <= bound) pockets.push(box);
+    }
+    const nearer = pockets.sort((a, b) => distanceOf(a) - distanceOf(b)).find(box => !blockers.some(blocker => blocksCarriedPocket(box, blocker)));
+    if (nearer) out.push(finding('mark-distance', 'realization', frame, plaque.id,
+      `${describe(plaque)} is ${Math.round(distance)} units from its owner, nearby reach ${Math.round(reach)}, while a pocket ${Math.round(distanceOf(nearer))} units away stays clear`,
+      distance / reach));
   }
   return out;
 }
@@ -376,13 +424,25 @@ const firstPoint = item => item.boxes?.[0] ?? item.rect ?? item.paths?.[0]?.[0];
  *   - its anchor moves (against the camera's carry across a stage boundary),
  *   - its own Case arrow or collectors start, end, meet another row or leave a source
  *     that moved,
- *   - the later frame newly paints something in its pocket's way, or
+ *   - the later frame newly paints something in its pocket's way,
+ *   - the later frame begins a stage, and a later frame of that stage, while the
+ *     plaque stays shown there beside a still anchor, newly paints syntax or a mark in
+ *     its pocket's way (`ahead`: the frames after `after` of its viewport and stage, in
+ *     order), or
  *   - it shows its owner only by proximity and returns from beyond its nearby reach
  *     to within it, into a pocket that what the earlier frame had there has left.
- * Both frames' `reserves` say what each paints, as the schedule saw it. Subtype
+ * The last but one is the foresight the Replay schedule adds; the others are main's
+ * rule, by which a plaque that has not left early is judged unchanged. A plaque that
+ * left its pocket where its stage began only because a later frame of the stage takes
+ * it keeps the pocket it took, through later stage boundaries too, while
+ * its anchor stays still and it stays shown: none of these lets it move again (Francis
+ * accepted a farther pocket instead of a jump on 27 October 2026, not a farther pocket
+ * and another move). `early` carries the ids of such plaques from one call to the next;
+ * pass a fresh Set per viewport and the frames in order.
+ * The frames' `reserves` say what each paints, as the schedule saw it. Subtype
  * plaque-teleport; the frame is the transition and the measure the shift in tree
  * units. */
-export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCarry = undefined) {
+export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCarry = undefined, ahead = [], early = new Set()) {
   if (!before || before.viewport !== after.viewport) return [];
   const textsBefore = new Map(before.texts.map(text => [text.id, text]));
   const offsets = after.texts.filter(text => TREE_TEXT.has(text.kind) && textsBefore.has(text.id)).map(text => {
@@ -400,7 +460,7 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
   // Plaques sharing an id pair with their nearest earlier pocket of the same size.
   const unpaired = before.plaques.filter(plaque => plaque.anchor);
   const earlier = before.reserves ?? [], later = after.reserves ?? [];
-  const out = [];
+  const out = [], kept = new Set();
   for (const plaque of after.plaques) {
     if (!plaque.anchor) continue;
     const candidates = unpaired.filter(prior => prior.id === plaque.id);
@@ -409,22 +469,121 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
     if (!prior) continue;
     unpaired.splice(unpaired.indexOf(prior), 1);
     const move = { x: plaque.anchor.x - prior.anchor.x, y: plaque.anchor.y - prior.anchor.y }, shift = shiftOf(prior, plaque);
-    if (shift <= thresholds.motionUnits || Math.hypot(move.x - carry.dx, move.y - carry.dy) > thresholds.stillUnits) continue;
+    if (Math.hypot(move.x - carry.dx, move.y - carry.dy) > thresholds.stillUnits) continue;
+    if (shift <= thresholds.motionUnits) { if (early.has(plaque.id)) kept.add(plaque.id); continue; }
+    if (early.has(plaque.id)) {
+      out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id,
+        `${describe(plaque)} jumps ${Math.round(shift)} units beside its still anchor after leaving its pocket early where a stage began`, shift));
+      continue;
+    }
     const owner = plaque.key ?? plaque.id;
     const pocketOf = ({ rect, size = rect, pocket = { x: rect.x, y: rect.y, width: size.width, height: size.height } }) => pocket;
     const pocket = { ...pocketOf(prior), x: pocketOf(prior).x + move.x, y: pocketOf(prior).y + move.y };
-    if (ownRoutesChanged(owner, move, earlier, later) || newPocketBlocker({ pocket, owner, move }, earlier, later)
+    // A plaque that has not left early is judged as main judges it.
+    const blocked = newPocketBlocker({ pocket, owner, move }, earlier, later);
+    if (ownRoutesChanged(owner, move, earlier, later) || blocked
       || !plaque.joined && returnsWithinReach({ before: { pocket, anchor: plaque.anchor }, after: { pocket: pocketOf(plaque),
-        anchor: plaque.anchor }, owner, move, thetaGrid: plaque.grid }, earlier, later)) continue;
+        anchor: plaque.anchor }, owner, move, thetaGrid: plaque.grid, realizedForm: plaque.realization }, earlier, later)) continue;
+    if (crossing && !blocked && foreseenPocketBlocker({ pocket, owner, move }, earlier, aheadOf(plaque, prior, ahead, thresholds))) {
+      kept.add(plaque.id);
+      continue;
+    }
     out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id,
       `${describe(plaque)} jumps ${Math.round(shift)} units from a pocket nothing new occupies, beside its still anchor`, shift));
   }
+  for (const id of [...early]) if (!kept.has(id)) early.delete(id);
+  for (const id of kept) early.add(id);
   return out.map(entry => ({ ...entry, frame: `${before.frame}>${after.frame}` }));
+}
+
+/** mark-motion, subtype stale-shell: a plaque whose shell is larger than the content
+ * it paints by more than a row (`shellRowUnits`, tree units, in width or height) while
+ * an earlier frame of the same viewport, showing it continuously in a shell of that
+ * size, painted content that filled it to within a row. When rows leave a plaque its
+ * shell fits the rest at that step. Only plaques whose adapter reports `content`
+ * { width, height } are judged. `history` maps each plaque id to its run so far and
+ * is updated; pass a fresh Map per viewport and the frames in order. The frame is the
+ * transition and the measure the larger excess. */
+export function checkStaleShell(before, after, history, thresholds = THRESHOLDS) {
+  const out = [], row = thresholds.shellRowUnits, seen = new Set();
+  for (const plaque of after.plaques) {
+    seen.add(plaque.id);
+    const shell = plaque.rect, content = plaque.content, prior = before ? history.get(plaque.id) : undefined;
+    const same = prior && Math.abs(prior.width - shell.width) < 1 && Math.abs(prior.height - shell.height) < 1;
+    const run = same ? prior : { width: shell.width, height: shell.height, filled: false };
+    if (content) {
+      const excess = Math.max(shell.width - content.width, shell.height - content.height);
+      if (excess <= row) run.filled = true;
+      else if (same && prior.filled) out.push(finding('mark-motion', 'stale-shell', after, plaque.id,
+        `${describe(plaque)} keeps a shell ${Math.round(excess)} units larger than the content it paints now`, excess));
+    }
+    history.set(plaque.id, run);
+  }
+  for (const id of [...history.keys()]) if (!seen.has(id)) history.delete(id);
+  return out.map(entry => ({ ...entry, frame: `${before?.frame}>${after.frame}` }));
+}
+
+/** The frames of `ahead` while `plaque` stays shown in them with its anchor within
+ * `stillUnits` of where `plaque` has it (pocketHold.ts, AheadStep), each with what
+ * it paints and the anchor's move since `prior`, the plaque in the earlier frame. */
+function aheadOf(plaque, prior, ahead, thresholds) {
+  const steps = [];
+  for (const frame of ahead) {
+    const later = frame.plaques.find(other => other.id === plaque.id && other.anchor);
+    if (!later || Math.hypot(later.anchor.x - plaque.anchor.x, later.anchor.y - plaque.anchor.y) > thresholds.stillUnits) break;
+    steps.push({ occupants: frame.reserves ?? [], move: { x: later.anchor.x - prior.anchor.x, y: later.anchor.y - prior.anchor.y } });
+  }
+  return steps;
+}
+
+const REGION_MARKS = new Set(['enclosure', 'domain-region', 'domain-ellipse']);
+const claimsOfMark = mark => /\(([^)]*)\)/.exec(mark.id ?? '')?.[1].split('/').filter(Boolean) ?? [];
+
+/** How far the shell `r` would have to move to keep clear of `mark`, as plaque
+ * allocation keeps it (stageCamera.ts, regionPlaqueObstacles), in tree units: out of
+ * an enclosure's whole shaded box, or off the outline of a domain box or ellipse, which
+ * a plaque may stand wholly inside or outside: a binding domain's as it paints it
+ * (`painted`). Within an ellipse a box's nearest and farthest points are measured in the
+ * ellipse's own axes and scaled by its smaller one. */
+function regionDepth(region, r) {
+  if (region.type === 'domain-ellipse') {
+    const mark = region.painted ?? region;
+    const reach = (x, y) => Math.hypot((x - mark.cx) / mark.rx, (y - mark.cy) / mark.ry), scale = Math.min(mark.rx, mark.ry);
+    const nearest = reach(Math.min(Math.max(mark.cx, r.x), r.x + r.width), Math.min(Math.max(mark.cy, r.y), r.y + r.height));
+    const farthest = Math.max(...[[r.x, r.y], [r.x + r.width, r.y], [r.x, r.y + r.height], [r.x + r.width, r.y + r.height]]
+      .map(([x, y]) => reach(x, y)));
+    return nearest >= 1 || farthest <= 1 ? 0 : Math.min(1 - nearest, farthest - 1) * scale;
+  }
+  const mark = region, into = Math.min(overlap1d(r.x, r.x + r.width, mark.x, mark.x + mark.width), overlap1d(r.y, r.y + r.height, mark.y, mark.y + mark.height));
+  if (into <= 0 || mark.type === 'enclosure') return Math.max(0, into);
+  const beyond = Math.max(mark.x - r.x, r.x + r.width - mark.x - mark.width, mark.y - r.y, r.y + r.height - mark.y - mark.height);
+  return Math.max(0, Math.min(into, beyond));
+}
+
+/** region-overlap: a plaque shell on a region mark that belongs to no claim of its
+ * own, by more than `overlapPx` (regionDepth): inside an enclosure's shaded box, or
+ * across the outline of a domain box or a domain ellipse (a binding domain's, or an
+ * argument domain's), in `marks` (bound region primitives, tree units, the claims in
+ * their id `type(stage:relation/…)#n`). These are the marks plaque allocation keeps
+ * plaques off. Subtype plaque; the measure is the depth in pixels. */
+export function checkRegionOverlap(frame, thresholds = THRESHOLDS) {
+  const out = [];
+  for (const mark of frame.marks ?? []) {
+    if (!REGION_MARKS.has(mark.type)) continue;
+    const claims = claimsOfMark(mark);
+    for (const plaque of frame.plaques) {
+      if (shares(plaque.claims, claims)) continue;
+      const depth = regionDepth(mark, plaque.rect);
+      if (depth * frame.zoom > thresholds.overlapPx) out.push(finding('region-overlap', 'plaque', frame, `${plaque.id} ${mark.id}`,
+        `${describe(plaque)} enters the ${mark.type} of ${claims.join('/')} by ${px(frame, depth)} px`, depth * frame.zoom));
+    }
+  }
+  return out;
 }
 
 /** Every rule on one normalized frame. */
 export const checkFrame = (frame, thresholds = THRESHOLDS) => [
   ...checkGlyphOverlap(frame, thresholds), ...checkLineClearance(frame, thresholds), ...checkMarkDistance(frame, thresholds),
   ...checkLabelTypography(frame), ...checkClipped(frame, thresholds), ...checkBranchGeometry(frame, thresholds),
-  ...checkParentCentring(frame, thresholds)
+  ...checkParentCentring(frame, thresholds), ...checkRegionOverlap(frame, thresholds)
 ];

@@ -20,9 +20,10 @@ type CrossingRoutes = ReturnType<ReturnType<typeof collectionPlaqueSpace>['cross
 
 /** One scene of a plaque's lifetime in its own coordinates. `dx`/`dy` carry it to
  * the anchor being allocated; `added` holds the other plaques shown there and
- * their connectors. */
+ * their connectors. `owner`, the plaque's plaqueIdentity, skips the obstacles that
+ * enclose it (PlaqueRect, `enclosedPlaques`). */
 export type LifetimeScene = {
-  nodes: Node[]; obstacles: PlaqueRect[]; added: PlaqueRect[];
+  nodes: Node[]; obstacles: PlaqueRect[]; added: PlaqueRect[]; owner?: string;
   anchor: Node; request: PlaqueRequest; dx: number; dy: number;
   caseVisible: boolean; rowVisible: (owners: string[] | undefined) => boolean;
 };
@@ -61,11 +62,12 @@ export function prepareLifetimePlaqueSpaces(caseSources?: CaseSourceRects) {
     const unique = prepareUniquePlaqueObstacles(), obstacles: PlaqueRect[] = [];
     let previous: LifetimeScene | undefined;
     for (const scene of scenes) {
-      const fixed = translate(scene.obstacles, scene.dx, scene.dy);
-      const carried = previous && Object.is(previous.dx, scene.dx) && Object.is(previous.dy, scene.dy);
+      const fixed = translate(scene.obstacles, scene.dx, scene.dy), owner = scene.owner;
+      const blocks = (box: PlaqueRect) => owner === undefined || !box.enclosedPlaques?.has(owner);
+      const carried = previous && Object.is(previous.dx, scene.dx) && Object.is(previous.dy, scene.dy) && previous.owner === owner;
       if (carried) for (const index of changedSince(previous!.obstacles, scene.obstacles)) {
-        if (unique.add(fixed[index])) obstacles.push(fixed[index]);
-      } else for (const box of fixed) if (unique.add(box)) obstacles.push(box);
+        if (blocks(fixed[index]) && unique.add(fixed[index])) obstacles.push(fixed[index]);
+      } else for (const box of fixed) if (blocks(box) && unique.add(box)) obstacles.push(box);
       if (!carried || scene.added !== previous!.added) for (const added of scene.added) {
         const box = translateObstacle(added, scene.dx, scene.dy);
         if (unique.add(box)) obstacles.push(box);

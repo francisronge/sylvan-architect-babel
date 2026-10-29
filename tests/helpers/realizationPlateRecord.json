@@ -1,0 +1,2509 @@
+{
+ "description": "Saved Sol analysis whose PF realization plate for oku -DIK-AGR.3SG -(n)I (stage 4) was placed below the tree, far from its owner. Test input for tests/realizationPlateNearOwner.test.mjs.",
+ "provenance": {
+  "model": "openai:gpt-6.1-sol",
+  "effort": "high",
+  "harness": "qualification:codex",
+  "source": "sol-cfc/n4-26-tr-long-embedded/attempts/parse/bundle.json, analysis 0",
+  "extraction": "Exact saved derivationStages and inputTokens."
+ },
+ "sentence": "Ahmet'in dün kütüphaneden aldığı kitabı Ayşe'nin çoktan okuduğunu biliyorum.",
+ "inputTokens": [
+  "Ahmet'in",
+  "dün",
+  "kütüphaneden",
+  "aldığı",
+  "kitabı",
+  "Ayşe'nin",
+  "çoktan",
+  "okuduğunu",
+  "biliyorum"
+ ],
+ "derivationStages": [
+  {
+   "statement": "Construct the relative clause with its object operator in the thematic position.",
+   "stageRecord": "The relative predicate al ‘take/obtain’ is merged with a silent nominal operator as its Theme, and Ahmet'in occupies the subject position as Agent. The predicate licenses abstract accusative on its object operator. Nominal participial inflection licenses genitive on Ahmet'in and agrees with that third-person singular subject. The ablative nominal kütüphaneden modifies the event as its Source, while dün locates that same taking event yesterday. The relative complementizer is silent. This analysis uses classical subject-in-Spec-IP phrase structure; nominal case on ordinary nouns is represented in their lexical forms, while the verbal participial ending is represented separately in I.",
+   "relations": [
+    {
+     "relation": "theta_assignment",
+     "anchors": {
+      "predicate": "rV",
+      "agent": "rSubject",
+      "theme": "rOperator"
+     },
+     "values": {
+      "agent": "Agent",
+      "theme": "Theme"
+     }
+    },
+    {
+     "relation": "case_assignment",
+     "anchors": {
+      "licensor": "rV",
+      "bearer": "rOperator"
+     },
+     "values": {
+      "case": "ACC"
+     }
+    },
+    {
+     "relation": "case_assignment",
+     "anchors": {
+      "licensor": "rInfl",
+      "bearer": "rSubject"
+     },
+     "values": {
+      "case": "GEN",
+      "licensing": "nominal agreement"
+     }
+    },
+    {
+     "relation": "agreement",
+     "anchors": {
+      "inflection": "rInfl",
+      "subject": "rSubject"
+     },
+     "values": {
+      "person": "3",
+      "number": "singular"
+     }
+    },
+    {
+     "relation": "source_modification",
+     "anchors": {
+      "modifier": "rSource",
+      "eventDomain": "rVPbase"
+     },
+     "values": {
+      "role": "Source",
+      "case": "ABL"
+     }
+    },
+    {
+     "relation": "temporal_modification",
+     "anchors": {
+      "modifier": "rYesterday",
+      "eventDomain": "rVPsource"
+     },
+     "values": {
+      "interpretation": "the taking occurred yesterday"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "rCP",
+     "label": "CP[relative]",
+     "children": [
+      {
+       "id": "rCbar",
+       "label": "C′",
+       "children": [
+        {
+         "id": "rIP",
+         "label": "IP",
+         "children": [
+          {
+           "id": "rSubject",
+           "label": "NP[GEN]",
+           "children": [
+            {
+             "id": "rSubjectNbar",
+             "label": "N′",
+             "children": [
+              {
+               "id": "rSubjectN",
+               "label": "N⁰[GEN]",
+               "word": "Ahmet'in",
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "rIbar",
+           "label": "I′",
+           "children": [
+            {
+             "id": "rVP",
+             "label": "VP",
+             "children": [
+              {
+               "id": "rYesterday",
+               "label": "AdvP",
+               "children": [
+                {
+                 "id": "rYesterdayBar",
+                 "label": "Adv′",
+                 "children": [
+                  {
+                   "id": "rYesterdayAdv",
+                   "label": "Adv⁰",
+                   "word": "dün",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "rVPsource",
+               "label": "VP",
+               "children": [
+                {
+                 "id": "rSource",
+                 "label": "NP[ABL]",
+                 "children": [
+                  {
+                   "id": "rSourceNbar",
+                   "label": "N′",
+                   "children": [
+                    {
+                     "id": "rSourceN",
+                     "label": "N⁰[ABL]",
+                     "word": "kütüphaneden",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "rVPbase",
+                 "label": "VP",
+                 "children": [
+                  {
+                   "id": "rVbar",
+                   "label": "V′",
+                   "children": [
+                    {
+                     "id": "rOperator",
+                     "label": "NP[Op]",
+                     "silent": true,
+                     "lineageId": "relative-operator",
+                     "children": [
+                      {
+                       "id": "rOperatorTerminal",
+                       "label": "Op",
+                       "silent": true,
+                       "children": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "rV",
+                     "label": "V⁰",
+                     "word": "al",
+                     "lineageId": "relative-verb",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "rInfl",
+             "label": "I⁰[−finite,+nominal,AGR.3SG]",
+             "word": "-DIK-AGR.3SG",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "rC",
+         "label": "C⁰[relative]",
+         "silent": true,
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Complete the relative dependency and attach the relative clause to kitabı.",
+   "stageRecord": "First, al raises to the participial I, leaving a verbal trace; the resulting head complex is realized as aldığı. Next, the silent object operator moves from the complement of al to Spec-CP, leaving an accusative object trace. The Theme and abstract accusative dependencies now terminate at that trace, and the operator binds it as an A-bar chain. The noun kitabı is then introduced, and its nominal projection is modified by the relative CP. Identification of the head noun with the operator restricts the book referent to what Ahmet obtained from the library yesterday. The accusative form kitabı is present lexically but awaits a selecting predicate that licenses its structural case.",
+   "relations": [
+    {
+     "relation": "head_movement",
+     "anchors": {
+      "movedHead": "rV",
+      "sourceTrace": "rVtrace",
+      "target": "rComplex",
+      "inflection": "rInfl"
+     },
+     "priorAnchors": {
+      "source": "rV",
+      "targetInflection": "rInfl"
+     },
+     "values": {
+      "movement": "V-to-I"
+     }
+    },
+    {
+     "relation": "morphological_realization",
+     "anchors": {
+      "complex": "rComplex"
+     },
+     "values": {
+      "text": "aldığı",
+      "composition": "al-DIK-AGR.3SG"
+     }
+    },
+    {
+     "relation": "A_bar_movement",
+     "anchors": {
+      "landing": "rOperator",
+      "sourceTrace": "rOperatorTrace",
+      "clause": "rCP"
+     },
+     "priorAnchors": {
+      "source": "rOperator"
+     },
+     "values": {
+      "movement": "object operator to Spec-CP",
+      "chain": "i"
+     }
+    },
+    {
+     "relation": "theta_assignment",
+     "anchors": {
+      "predicate": "rV",
+      "agent": "rSubject",
+      "theme": "rOperatorTrace"
+     },
+     "values": {
+      "agent": "Agent",
+      "theme": "Theme"
+     }
+    },
+    {
+     "relation": "case_assignment",
+     "anchors": {
+      "licensor": "rV",
+      "bearer": "rOperatorTrace"
+     },
+     "values": {
+      "case": "ACC"
+     }
+    },
+    {
+     "relation": "operator_binding",
+     "anchors": {
+      "binder": "rOperator",
+      "variable": "rOperatorTrace"
+     },
+     "values": {
+      "chain": "i",
+      "dependency": "relative A-bar chain"
+     }
+    },
+    {
+     "relation": "relative_head_identification",
+     "anchors": {
+      "head": "bookN",
+      "operator": "rOperator",
+      "relativeClause": "rCP"
+     },
+     "values": {
+      "interpretation": "the book is the Theme of Ahmet's taking"
+     }
+    },
+    {
+     "relation": "restrictive_modification",
+     "anchors": {
+      "modifier": "rCP",
+      "nominal": "bookNP"
+     },
+     "values": {
+      "interpretation": "the book that Ahmet obtained from the library yesterday"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "bookNP",
+     "label": "NP[ACC]",
+     "lineageId": "book-object",
+     "children": [
+      {
+       "id": "bookNbar",
+       "label": "N′",
+       "children": [
+        {
+         "id": "rCP",
+         "label": "CP[relative]",
+         "children": [
+          {
+           "id": "rOperator",
+           "label": "NP[Op]",
+           "silent": true,
+           "lineageId": "relative-operator",
+           "children": [
+            {
+             "id": "rOperatorTerminal",
+             "label": "Op",
+             "silent": true,
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "rCbar",
+           "label": "C′",
+           "children": [
+            {
+             "id": "rIP",
+             "label": "IP",
+             "children": [
+              {
+               "id": "rSubject",
+               "label": "NP[GEN]",
+               "children": [
+                {
+                 "id": "rSubjectNbar",
+                 "label": "N′",
+                 "children": [
+                  {
+                   "id": "rSubjectN",
+                   "label": "N⁰[GEN]",
+                   "word": "Ahmet'in",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "rIbar",
+               "label": "I′",
+               "children": [
+                {
+                 "id": "rVP",
+                 "label": "VP",
+                 "children": [
+                  {
+                   "id": "rYesterday",
+                   "label": "AdvP",
+                   "children": [
+                    {
+                     "id": "rYesterdayBar",
+                     "label": "Adv′",
+                     "children": [
+                      {
+                       "id": "rYesterdayAdv",
+                       "label": "Adv⁰",
+                       "word": "dün",
+                       "children": []
+                      }
+                     ]
+                    }
+                   ]
+                  },
+                  {
+                   "id": "rVPsource",
+                   "label": "VP",
+                   "children": [
+                    {
+                     "id": "rSource",
+                     "label": "NP[ABL]",
+                     "children": [
+                      {
+                       "id": "rSourceNbar",
+                       "label": "N′",
+                       "children": [
+                        {
+                         "id": "rSourceN",
+                         "label": "N⁰[ABL]",
+                         "word": "kütüphaneden",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    },
+                    {
+                     "id": "rVPbase",
+                     "label": "VP",
+                     "children": [
+                      {
+                       "id": "rVbar",
+                       "label": "V′",
+                       "children": [
+                        {
+                         "id": "rOperatorTrace",
+                         "label": "NP[tᵢ]",
+                         "silent": true,
+                         "lineageId": "relative-operator",
+                         "children": []
+                        },
+                        {
+                         "id": "rVtrace",
+                         "label": "V⁰[t]",
+                         "silent": true,
+                         "lineageId": "relative-verb",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "rComplex",
+                 "label": "I⁰",
+                 "children": [
+                  {
+                   "id": "rV",
+                   "label": "V⁰",
+                   "word": "al",
+                   "lineageId": "relative-verb",
+                   "children": []
+                  },
+                  {
+                   "id": "rInfl",
+                   "label": "I⁰[−finite,+nominal,AGR.3SG]",
+                   "word": "-DIK-AGR.3SG",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "rC",
+             "label": "C⁰[relative]",
+             "silent": true,
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "bookNbarBase",
+         "label": "N′",
+         "children": [
+          {
+           "id": "bookN",
+           "label": "N⁰[ACC]",
+           "word": "kitabı",
+           "children": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "realizations": [
+    {
+     "nodeIds": [
+      "rComplex"
+     ],
+     "tokenIndices": [
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Build the nominalized embedded clause with the book in its base object position.",
+   "stageRecord": "The complete book NP is merged as the complement of oku ‘read’, which assigns it the Theme role and licenses its accusative case. Ayşe'nin is merged as the embedded Agent in Spec-IP. Nominal inflection licenses genitive on Ayşe'nin and agrees with that third-person singular subject. Çoktan modifies the reading event, contributing ‘already/by then’. The embedded clause is nominalized rather than finite. In this implementation its C edge bears the accusative suffix of the nominalized clause; this clausal case remains to be licensed by the matrix verb. The book is still after the embedded subject at this stage, so its eventual preverbal-clausal position has not been stipulated as a base position.",
+   "relations": [
+    {
+     "relation": "theta_assignment",
+     "anchors": {
+      "predicate": "eV",
+      "agent": "eSubject",
+      "theme": "bookNP"
+     },
+     "values": {
+      "agent": "Agent",
+      "theme": "Theme"
+     }
+    },
+    {
+     "relation": "case_assignment",
+     "anchors": {
+      "licensor": "eV",
+      "bearer": "bookNP"
+     },
+     "values": {
+      "case": "ACC"
+     }
+    },
+    {
+     "relation": "case_assignment",
+     "anchors": {
+      "licensor": "eInfl",
+      "bearer": "eSubject"
+     },
+     "values": {
+      "case": "GEN",
+      "licensing": "nominal agreement"
+     }
+    },
+    {
+     "relation": "agreement",
+     "anchors": {
+      "inflection": "eInfl",
+      "subject": "eSubject"
+     },
+     "values": {
+      "person": "3",
+      "number": "singular"
+     }
+    },
+    {
+     "relation": "aspectual_modification",
+     "anchors": {
+      "modifier": "eAlready",
+      "eventDomain": "eVPbase"
+     },
+     "values": {
+      "interpretation": "Ayşe has already read the book"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "eCP",
+     "label": "CP[+nominal,ACC]",
+     "children": [
+      {
+       "id": "eCbar",
+       "label": "C′",
+       "children": [
+        {
+         "id": "eIP",
+         "label": "IP",
+         "children": [
+          {
+           "id": "eSubject",
+           "label": "NP[GEN]",
+           "children": [
+            {
+             "id": "eSubjectNbar",
+             "label": "N′",
+             "children": [
+              {
+               "id": "eSubjectN",
+               "label": "N⁰[GEN]",
+               "word": "Ayşe'nin",
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "eIbar",
+           "label": "I′",
+           "children": [
+            {
+             "id": "eVP",
+             "label": "VP",
+             "children": [
+              {
+               "id": "eAlready",
+               "label": "AdvP",
+               "children": [
+                {
+                 "id": "eAlreadyBar",
+                 "label": "Adv′",
+                 "children": [
+                  {
+                   "id": "eAlreadyAdv",
+                   "label": "Adv⁰",
+                   "word": "çoktan",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "eVPbase",
+               "label": "VP",
+               "children": [
+                {
+                 "id": "eVbar",
+                 "label": "V′",
+                 "children": [
+                  {
+                   "id": "bookNP",
+                   "label": "NP[ACC]",
+                   "lineageId": "book-object",
+                   "children": [
+                    {
+                     "id": "bookNbar",
+                     "label": "N′",
+                     "children": [
+                      {
+                       "id": "rCP",
+                       "label": "CP[relative]",
+                       "children": [
+                        {
+                         "id": "rOperator",
+                         "label": "NP[Op]",
+                         "silent": true,
+                         "lineageId": "relative-operator",
+                         "children": [
+                          {
+                           "id": "rOperatorTerminal",
+                           "label": "Op",
+                           "silent": true,
+                           "children": []
+                          }
+                         ]
+                        },
+                        {
+                         "id": "rCbar",
+                         "label": "C′",
+                         "children": [
+                          {
+                           "id": "rIP",
+                           "label": "IP",
+                           "children": [
+                            {
+                             "id": "rSubject",
+                             "label": "NP[GEN]",
+                             "children": [
+                              {
+                               "id": "rSubjectNbar",
+                               "label": "N′",
+                               "children": [
+                                {
+                                 "id": "rSubjectN",
+                                 "label": "N⁰[GEN]",
+                                 "word": "Ahmet'in",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            },
+                            {
+                             "id": "rIbar",
+                             "label": "I′",
+                             "children": [
+                              {
+                               "id": "rVP",
+                               "label": "VP",
+                               "children": [
+                                {
+                                 "id": "rYesterday",
+                                 "label": "AdvP",
+                                 "children": [
+                                  {
+                                   "id": "rYesterdayBar",
+                                   "label": "Adv′",
+                                   "children": [
+                                    {
+                                     "id": "rYesterdayAdv",
+                                     "label": "Adv⁰",
+                                     "word": "dün",
+                                     "children": []
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                },
+                                {
+                                 "id": "rVPsource",
+                                 "label": "VP",
+                                 "children": [
+                                  {
+                                   "id": "rSource",
+                                   "label": "NP[ABL]",
+                                   "children": [
+                                    {
+                                     "id": "rSourceNbar",
+                                     "label": "N′",
+                                     "children": [
+                                      {
+                                       "id": "rSourceN",
+                                       "label": "N⁰[ABL]",
+                                       "word": "kütüphaneden",
+                                       "children": []
+                                      }
+                                     ]
+                                    }
+                                   ]
+                                  },
+                                  {
+                                   "id": "rVPbase",
+                                   "label": "VP",
+                                   "children": [
+                                    {
+                                     "id": "rVbar",
+                                     "label": "V′",
+                                     "children": [
+                                      {
+                                       "id": "rOperatorTrace",
+                                       "label": "NP[tᵢ]",
+                                       "silent": true,
+                                       "lineageId": "relative-operator",
+                                       "children": []
+                                      },
+                                      {
+                                       "id": "rVtrace",
+                                       "label": "V⁰[t]",
+                                       "silent": true,
+                                       "lineageId": "relative-verb",
+                                       "children": []
+                                      }
+                                     ]
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                }
+                               ]
+                              },
+                              {
+                               "id": "rComplex",
+                               "label": "I⁰",
+                               "children": [
+                                {
+                                 "id": "rV",
+                                 "label": "V⁰",
+                                 "word": "al",
+                                 "lineageId": "relative-verb",
+                                 "children": []
+                                },
+                                {
+                                 "id": "rInfl",
+                                 "label": "I⁰[−finite,+nominal,AGR.3SG]",
+                                 "word": "-DIK-AGR.3SG",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            }
+                           ]
+                          },
+                          {
+                           "id": "rC",
+                           "label": "C⁰[relative]",
+                           "silent": true,
+                           "children": []
+                          }
+                         ]
+                        }
+                       ]
+                      },
+                      {
+                       "id": "bookNbarBase",
+                       "label": "N′",
+                       "children": [
+                        {
+                         "id": "bookN",
+                         "label": "N⁰[ACC]",
+                         "word": "kitabı",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  },
+                  {
+                   "id": "eV",
+                   "label": "V⁰",
+                   "word": "oku",
+                   "lineageId": "embedded-verb",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "eInfl",
+             "label": "I⁰[−finite,+nominal,AGR.3SG]",
+             "word": "-DIK-AGR.3SG",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "eC",
+         "label": "C⁰[declarative,+nominal,ACC]",
+         "word": "-(n)I",
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "realizations": [
+    {
+     "nodeIds": [
+      "rComplex"
+     ],
+     "tokenIndices": [
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Form the embedded verbal inflectional complex okuduğunu.",
+   "stageRecord": "Oku raises from V to embedded I, leaving a silent verbal trace. Its combination with nominal -DIK and third-person singular agreement, together with the clause-edge accusative ending, receives the collective realization okuduğunu. The case ending is thus pronounced with the nominalized predicate even though its syntactic bearer is the nominal clause. No nominal argument moves in this stage.",
+   "relations": [
+    {
+     "relation": "head_movement",
+     "anchors": {
+      "movedHead": "eV",
+      "sourceTrace": "eVtrace",
+      "target": "eComplex",
+      "inflection": "eInfl"
+     },
+     "priorAnchors": {
+      "source": "eV",
+      "targetInflection": "eInfl"
+     },
+     "values": {
+      "movement": "V-to-I"
+     }
+    },
+    {
+     "relation": "morphological_realization",
+     "anchors": {
+      "verbalComplex": "eComplex",
+      "clausalCaseExponent": "eC"
+     },
+     "values": {
+      "text": "okuduğunu",
+      "composition": "oku-DIK-AGR.3SG-ACC"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "eCP",
+     "label": "CP[+nominal,ACC]",
+     "children": [
+      {
+       "id": "eCbar",
+       "label": "C′",
+       "children": [
+        {
+         "id": "eIP",
+         "label": "IP",
+         "children": [
+          {
+           "id": "eSubject",
+           "label": "NP[GEN]",
+           "children": [
+            {
+             "id": "eSubjectNbar",
+             "label": "N′",
+             "children": [
+              {
+               "id": "eSubjectN",
+               "label": "N⁰[GEN]",
+               "word": "Ayşe'nin",
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "eIbar",
+           "label": "I′",
+           "children": [
+            {
+             "id": "eVP",
+             "label": "VP",
+             "children": [
+              {
+               "id": "eAlready",
+               "label": "AdvP",
+               "children": [
+                {
+                 "id": "eAlreadyBar",
+                 "label": "Adv′",
+                 "children": [
+                  {
+                   "id": "eAlreadyAdv",
+                   "label": "Adv⁰",
+                   "word": "çoktan",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "eVPbase",
+               "label": "VP",
+               "children": [
+                {
+                 "id": "eVbar",
+                 "label": "V′",
+                 "children": [
+                  {
+                   "id": "bookNP",
+                   "label": "NP[ACC]",
+                   "lineageId": "book-object",
+                   "children": [
+                    {
+                     "id": "bookNbar",
+                     "label": "N′",
+                     "children": [
+                      {
+                       "id": "rCP",
+                       "label": "CP[relative]",
+                       "children": [
+                        {
+                         "id": "rOperator",
+                         "label": "NP[Op]",
+                         "silent": true,
+                         "lineageId": "relative-operator",
+                         "children": [
+                          {
+                           "id": "rOperatorTerminal",
+                           "label": "Op",
+                           "silent": true,
+                           "children": []
+                          }
+                         ]
+                        },
+                        {
+                         "id": "rCbar",
+                         "label": "C′",
+                         "children": [
+                          {
+                           "id": "rIP",
+                           "label": "IP",
+                           "children": [
+                            {
+                             "id": "rSubject",
+                             "label": "NP[GEN]",
+                             "children": [
+                              {
+                               "id": "rSubjectNbar",
+                               "label": "N′",
+                               "children": [
+                                {
+                                 "id": "rSubjectN",
+                                 "label": "N⁰[GEN]",
+                                 "word": "Ahmet'in",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            },
+                            {
+                             "id": "rIbar",
+                             "label": "I′",
+                             "children": [
+                              {
+                               "id": "rVP",
+                               "label": "VP",
+                               "children": [
+                                {
+                                 "id": "rYesterday",
+                                 "label": "AdvP",
+                                 "children": [
+                                  {
+                                   "id": "rYesterdayBar",
+                                   "label": "Adv′",
+                                   "children": [
+                                    {
+                                     "id": "rYesterdayAdv",
+                                     "label": "Adv⁰",
+                                     "word": "dün",
+                                     "children": []
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                },
+                                {
+                                 "id": "rVPsource",
+                                 "label": "VP",
+                                 "children": [
+                                  {
+                                   "id": "rSource",
+                                   "label": "NP[ABL]",
+                                   "children": [
+                                    {
+                                     "id": "rSourceNbar",
+                                     "label": "N′",
+                                     "children": [
+                                      {
+                                       "id": "rSourceN",
+                                       "label": "N⁰[ABL]",
+                                       "word": "kütüphaneden",
+                                       "children": []
+                                      }
+                                     ]
+                                    }
+                                   ]
+                                  },
+                                  {
+                                   "id": "rVPbase",
+                                   "label": "VP",
+                                   "children": [
+                                    {
+                                     "id": "rVbar",
+                                     "label": "V′",
+                                     "children": [
+                                      {
+                                       "id": "rOperatorTrace",
+                                       "label": "NP[tᵢ]",
+                                       "silent": true,
+                                       "lineageId": "relative-operator",
+                                       "children": []
+                                      },
+                                      {
+                                       "id": "rVtrace",
+                                       "label": "V⁰[t]",
+                                       "silent": true,
+                                       "lineageId": "relative-verb",
+                                       "children": []
+                                      }
+                                     ]
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                }
+                               ]
+                              },
+                              {
+                               "id": "rComplex",
+                               "label": "I⁰",
+                               "children": [
+                                {
+                                 "id": "rV",
+                                 "label": "V⁰",
+                                 "word": "al",
+                                 "lineageId": "relative-verb",
+                                 "children": []
+                                },
+                                {
+                                 "id": "rInfl",
+                                 "label": "I⁰[−finite,+nominal,AGR.3SG]",
+                                 "word": "-DIK-AGR.3SG",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            }
+                           ]
+                          },
+                          {
+                           "id": "rC",
+                           "label": "C⁰[relative]",
+                           "silent": true,
+                           "children": []
+                          }
+                         ]
+                        }
+                       ]
+                      },
+                      {
+                       "id": "bookNbarBase",
+                       "label": "N′",
+                       "children": [
+                        {
+                         "id": "bookN",
+                         "label": "N⁰[ACC]",
+                         "word": "kitabı",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  },
+                  {
+                   "id": "eVtrace",
+                   "label": "V⁰[t]",
+                   "silent": true,
+                   "lineageId": "embedded-verb",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "eComplex",
+             "label": "I⁰",
+             "children": [
+              {
+               "id": "eV",
+               "label": "V⁰",
+               "word": "oku",
+               "lineageId": "embedded-verb",
+               "children": []
+              },
+              {
+               "id": "eInfl",
+               "label": "I⁰[−finite,+nominal,AGR.3SG]",
+               "word": "-DIK-AGR.3SG",
+               "children": []
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "eC",
+         "label": "C⁰[declarative,+nominal,ACC]",
+         "word": "-(n)I",
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "realizations": [
+    {
+     "nodeIds": [
+      "rComplex"
+     ],
+     "tokenIndices": [
+      3
+     ]
+    },
+    {
+     "nodeIds": [
+      "eComplex",
+      "eC"
+     ],
+     "tokenIndices": [
+      7
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Scramble the embedded object to the left of Ayşe'nin.",
+   "stageRecord": "The entire accusative book NP, including its relative clause, moves from the complement position of oku to a left-adjoined IP position within the nominalized embedded clause. This local A-bar scrambling derives the observed order in which kitabı precedes Ayşe'nin without making the book an argument of biliyorum. The movement leaves an object trace governed by the reading predicate. The Theme and accusative dependencies now terminate at that trace and are transmitted through the scrambling chain to the pronounced NP. The moved relative clause remains intact, including its separate operator dependency.",
+   "relations": [
+    {
+     "relation": "A_bar_scrambling",
+     "anchors": {
+      "landing": "bookNP",
+      "sourceTrace": "eBookTrace",
+      "adjunctionDomain": "eTopIP"
+     },
+     "priorAnchors": {
+      "source": "bookNP",
+      "clause": "eIP"
+     },
+     "values": {
+      "movement": "local object scrambling to IP adjunction",
+      "chain": "j"
+     }
+    },
+    {
+     "relation": "theta_assignment",
+     "anchors": {
+      "predicate": "eV",
+      "agent": "eSubject",
+      "theme": "eBookTrace"
+     },
+     "values": {
+      "agent": "Agent",
+      "theme": "Theme"
+     }
+    },
+    {
+     "relation": "case_assignment",
+     "anchors": {
+      "licensor": "eV",
+      "bearer": "eBookTrace"
+     },
+     "values": {
+      "case": "ACC"
+     }
+    },
+    {
+     "relation": "scrambling_chain_binding",
+     "anchors": {
+      "binder": "bookNP",
+      "variable": "eBookTrace"
+     },
+     "values": {
+      "chain": "j",
+      "transmittedProperties": [
+       "Theme",
+       "ACC"
+      ]
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "eCP",
+     "label": "CP[+nominal,ACC]",
+     "children": [
+      {
+       "id": "eCbar",
+       "label": "C′",
+       "children": [
+        {
+         "id": "eTopIP",
+         "label": "IP",
+         "children": [
+          {
+           "id": "bookNP",
+           "label": "NP[ACC]",
+           "lineageId": "book-object",
+           "children": [
+            {
+             "id": "bookNbar",
+             "label": "N′",
+             "children": [
+              {
+               "id": "rCP",
+               "label": "CP[relative]",
+               "children": [
+                {
+                 "id": "rOperator",
+                 "label": "NP[Op]",
+                 "silent": true,
+                 "lineageId": "relative-operator",
+                 "children": [
+                  {
+                   "id": "rOperatorTerminal",
+                   "label": "Op",
+                   "silent": true,
+                   "children": []
+                  }
+                 ]
+                },
+                {
+                 "id": "rCbar",
+                 "label": "C′",
+                 "children": [
+                  {
+                   "id": "rIP",
+                   "label": "IP",
+                   "children": [
+                    {
+                     "id": "rSubject",
+                     "label": "NP[GEN]",
+                     "children": [
+                      {
+                       "id": "rSubjectNbar",
+                       "label": "N′",
+                       "children": [
+                        {
+                         "id": "rSubjectN",
+                         "label": "N⁰[GEN]",
+                         "word": "Ahmet'in",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    },
+                    {
+                     "id": "rIbar",
+                     "label": "I′",
+                     "children": [
+                      {
+                       "id": "rVP",
+                       "label": "VP",
+                       "children": [
+                        {
+                         "id": "rYesterday",
+                         "label": "AdvP",
+                         "children": [
+                          {
+                           "id": "rYesterdayBar",
+                           "label": "Adv′",
+                           "children": [
+                            {
+                             "id": "rYesterdayAdv",
+                             "label": "Adv⁰",
+                             "word": "dün",
+                             "children": []
+                            }
+                           ]
+                          }
+                         ]
+                        },
+                        {
+                         "id": "rVPsource",
+                         "label": "VP",
+                         "children": [
+                          {
+                           "id": "rSource",
+                           "label": "NP[ABL]",
+                           "children": [
+                            {
+                             "id": "rSourceNbar",
+                             "label": "N′",
+                             "children": [
+                              {
+                               "id": "rSourceN",
+                               "label": "N⁰[ABL]",
+                               "word": "kütüphaneden",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          },
+                          {
+                           "id": "rVPbase",
+                           "label": "VP",
+                           "children": [
+                            {
+                             "id": "rVbar",
+                             "label": "V′",
+                             "children": [
+                              {
+                               "id": "rOperatorTrace",
+                               "label": "NP[tᵢ]",
+                               "silent": true,
+                               "lineageId": "relative-operator",
+                               "children": []
+                              },
+                              {
+                               "id": "rVtrace",
+                               "label": "V⁰[t]",
+                               "silent": true,
+                               "lineageId": "relative-verb",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      },
+                      {
+                       "id": "rComplex",
+                       "label": "I⁰",
+                       "children": [
+                        {
+                         "id": "rV",
+                         "label": "V⁰",
+                         "word": "al",
+                         "lineageId": "relative-verb",
+                         "children": []
+                        },
+                        {
+                         "id": "rInfl",
+                         "label": "I⁰[−finite,+nominal,AGR.3SG]",
+                         "word": "-DIK-AGR.3SG",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  },
+                  {
+                   "id": "rC",
+                   "label": "C⁰[relative]",
+                   "silent": true,
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "bookNbarBase",
+               "label": "N′",
+               "children": [
+                {
+                 "id": "bookN",
+                 "label": "N⁰[ACC]",
+                 "word": "kitabı",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "eIP",
+           "label": "IP",
+           "children": [
+            {
+             "id": "eSubject",
+             "label": "NP[GEN]",
+             "children": [
+              {
+               "id": "eSubjectNbar",
+               "label": "N′",
+               "children": [
+                {
+                 "id": "eSubjectN",
+                 "label": "N⁰[GEN]",
+                 "word": "Ayşe'nin",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "eIbar",
+             "label": "I′",
+             "children": [
+              {
+               "id": "eVP",
+               "label": "VP",
+               "children": [
+                {
+                 "id": "eAlready",
+                 "label": "AdvP",
+                 "children": [
+                  {
+                   "id": "eAlreadyBar",
+                   "label": "Adv′",
+                   "children": [
+                    {
+                     "id": "eAlreadyAdv",
+                     "label": "Adv⁰",
+                     "word": "çoktan",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "eVPbase",
+                 "label": "VP",
+                 "children": [
+                  {
+                   "id": "eVbar",
+                   "label": "V′",
+                   "children": [
+                    {
+                     "id": "eBookTrace",
+                     "label": "NP[tⱼ,ACC]",
+                     "silent": true,
+                     "lineageId": "book-object",
+                     "children": []
+                    },
+                    {
+                     "id": "eVtrace",
+                     "label": "V⁰[t]",
+                     "silent": true,
+                     "lineageId": "embedded-verb",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "eComplex",
+               "label": "I⁰",
+               "children": [
+                {
+                 "id": "eV",
+                 "label": "V⁰",
+                 "word": "oku",
+                 "lineageId": "embedded-verb",
+                 "children": []
+                },
+                {
+                 "id": "eInfl",
+                 "label": "I⁰[−finite,+nominal,AGR.3SG]",
+                 "word": "-DIK-AGR.3SG",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "eC",
+         "label": "C⁰[declarative,+nominal,ACC]",
+         "word": "-(n)I",
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "realizations": [
+    {
+     "nodeIds": [
+      "rComplex"
+     ],
+     "tokenIndices": [
+      3
+     ]
+    },
+    {
+     "nodeIds": [
+      "eComplex",
+      "eC"
+     ],
+     "tokenIndices": [
+      7
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Embed the nominalized proposition under bil and license the silent matrix subject.",
+   "stageRecord": "Bil ‘know’ selects the complete nominalized embedded CP as its propositional complement and assigns it the propositional Theme role; the matrix subject pro receives the Experiencer role. The matrix verb licenses accusative on the nominalized CP, whose case exponent is the ending already represented at the embedded C edge. Finite matrix I licenses nominative on pro. Its first-person singular agreement identifies this silent subject as the speaker, so neither Ahmet nor Ayşe is the matrix subject. The matrix inflection is present progressive in form, yielding the ordinary current-state interpretation ‘I know’ with this stative verb.",
+   "relations": [
+    {
+     "relation": "complement_selection",
+     "anchors": {
+      "selector": "mV",
+      "complement": "eCP"
+     },
+     "values": {
+      "category": "nominalized declarative CP"
+     }
+    },
+    {
+     "relation": "theta_assignment",
+     "anchors": {
+      "predicate": "mV",
+      "experiencer": "mPro",
+      "proposition": "eCP"
+     },
+     "values": {
+      "experiencer": "Experiencer",
+      "proposition": "propositional Theme"
+     }
+    },
+    {
+     "relation": "case_assignment",
+     "anchors": {
+      "licensor": "mV",
+      "bearer": "eCP",
+      "exponent": "eC"
+     },
+     "values": {
+      "case": "ACC"
+     }
+    },
+    {
+     "relation": "case_assignment",
+     "anchors": {
+      "licensor": "mInfl",
+      "bearer": "mPro"
+     },
+     "values": {
+      "case": "NOM"
+     }
+    },
+    {
+     "relation": "agreement_and_pro_identification",
+     "anchors": {
+      "inflection": "mInfl",
+      "subject": "mPro"
+     },
+     "values": {
+      "person": "1",
+      "number": "singular",
+      "reference": "speaker"
+     }
+    },
+    {
+     "relation": "finite_temporal_interpretation",
+     "anchors": {
+      "inflection": "mInfl",
+      "predicate": "mV"
+     },
+     "values": {
+      "form": "present progressive",
+      "interpretation": "current knowing state"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "mCP",
+     "label": "CP",
+     "children": [
+      {
+       "id": "mCbar",
+       "label": "C′",
+       "children": [
+        {
+         "id": "mIP",
+         "label": "IP",
+         "children": [
+          {
+           "id": "mPro",
+           "label": "NP[pro,NOM]",
+           "silent": true,
+           "children": [
+            {
+             "id": "mProTerminal",
+             "label": "pro[1SG]",
+             "silent": true,
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "mIbar",
+           "label": "I′",
+           "children": [
+            {
+             "id": "mVP",
+             "label": "VP",
+             "children": [
+              {
+               "id": "mVbar",
+               "label": "V′",
+               "children": [
+                {
+                 "id": "eCP",
+                 "label": "CP[+nominal,ACC]",
+                 "children": [
+                  {
+                   "id": "eCbar",
+                   "label": "C′",
+                   "children": [
+                    {
+                     "id": "eTopIP",
+                     "label": "IP",
+                     "children": [
+                      {
+                       "id": "bookNP",
+                       "label": "NP[ACC]",
+                       "lineageId": "book-object",
+                       "children": [
+                        {
+                         "id": "bookNbar",
+                         "label": "N′",
+                         "children": [
+                          {
+                           "id": "rCP",
+                           "label": "CP[relative]",
+                           "children": [
+                            {
+                             "id": "rOperator",
+                             "label": "NP[Op]",
+                             "silent": true,
+                             "lineageId": "relative-operator",
+                             "children": [
+                              {
+                               "id": "rOperatorTerminal",
+                               "label": "Op",
+                               "silent": true,
+                               "children": []
+                              }
+                             ]
+                            },
+                            {
+                             "id": "rCbar",
+                             "label": "C′",
+                             "children": [
+                              {
+                               "id": "rIP",
+                               "label": "IP",
+                               "children": [
+                                {
+                                 "id": "rSubject",
+                                 "label": "NP[GEN]",
+                                 "children": [
+                                  {
+                                   "id": "rSubjectNbar",
+                                   "label": "N′",
+                                   "children": [
+                                    {
+                                     "id": "rSubjectN",
+                                     "label": "N⁰[GEN]",
+                                     "word": "Ahmet'in",
+                                     "children": []
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                },
+                                {
+                                 "id": "rIbar",
+                                 "label": "I′",
+                                 "children": [
+                                  {
+                                   "id": "rVP",
+                                   "label": "VP",
+                                   "children": [
+                                    {
+                                     "id": "rYesterday",
+                                     "label": "AdvP",
+                                     "children": [
+                                      {
+                                       "id": "rYesterdayBar",
+                                       "label": "Adv′",
+                                       "children": [
+                                        {
+                                         "id": "rYesterdayAdv",
+                                         "label": "Adv⁰",
+                                         "word": "dün",
+                                         "children": []
+                                        }
+                                       ]
+                                      }
+                                     ]
+                                    },
+                                    {
+                                     "id": "rVPsource",
+                                     "label": "VP",
+                                     "children": [
+                                      {
+                                       "id": "rSource",
+                                       "label": "NP[ABL]",
+                                       "children": [
+                                        {
+                                         "id": "rSourceNbar",
+                                         "label": "N′",
+                                         "children": [
+                                          {
+                                           "id": "rSourceN",
+                                           "label": "N⁰[ABL]",
+                                           "word": "kütüphaneden",
+                                           "children": []
+                                          }
+                                         ]
+                                        }
+                                       ]
+                                      },
+                                      {
+                                       "id": "rVPbase",
+                                       "label": "VP",
+                                       "children": [
+                                        {
+                                         "id": "rVbar",
+                                         "label": "V′",
+                                         "children": [
+                                          {
+                                           "id": "rOperatorTrace",
+                                           "label": "NP[tᵢ]",
+                                           "silent": true,
+                                           "lineageId": "relative-operator",
+                                           "children": []
+                                          },
+                                          {
+                                           "id": "rVtrace",
+                                           "label": "V⁰[t]",
+                                           "silent": true,
+                                           "lineageId": "relative-verb",
+                                           "children": []
+                                          }
+                                         ]
+                                        }
+                                       ]
+                                      }
+                                     ]
+                                    }
+                                   ]
+                                  },
+                                  {
+                                   "id": "rComplex",
+                                   "label": "I⁰",
+                                   "children": [
+                                    {
+                                     "id": "rV",
+                                     "label": "V⁰",
+                                     "word": "al",
+                                     "lineageId": "relative-verb",
+                                     "children": []
+                                    },
+                                    {
+                                     "id": "rInfl",
+                                     "label": "I⁰[−finite,+nominal,AGR.3SG]",
+                                     "word": "-DIK-AGR.3SG",
+                                     "children": []
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                }
+                               ]
+                              },
+                              {
+                               "id": "rC",
+                               "label": "C⁰[relative]",
+                               "silent": true,
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          },
+                          {
+                           "id": "bookNbarBase",
+                           "label": "N′",
+                           "children": [
+                            {
+                             "id": "bookN",
+                             "label": "N⁰[ACC]",
+                             "word": "kitabı",
+                             "children": []
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      },
+                      {
+                       "id": "eIP",
+                       "label": "IP",
+                       "children": [
+                        {
+                         "id": "eSubject",
+                         "label": "NP[GEN]",
+                         "children": [
+                          {
+                           "id": "eSubjectNbar",
+                           "label": "N′",
+                           "children": [
+                            {
+                             "id": "eSubjectN",
+                             "label": "N⁰[GEN]",
+                             "word": "Ayşe'nin",
+                             "children": []
+                            }
+                           ]
+                          }
+                         ]
+                        },
+                        {
+                         "id": "eIbar",
+                         "label": "I′",
+                         "children": [
+                          {
+                           "id": "eVP",
+                           "label": "VP",
+                           "children": [
+                            {
+                             "id": "eAlready",
+                             "label": "AdvP",
+                             "children": [
+                              {
+                               "id": "eAlreadyBar",
+                               "label": "Adv′",
+                               "children": [
+                                {
+                                 "id": "eAlreadyAdv",
+                                 "label": "Adv⁰",
+                                 "word": "çoktan",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            },
+                            {
+                             "id": "eVPbase",
+                             "label": "VP",
+                             "children": [
+                              {
+                               "id": "eVbar",
+                               "label": "V′",
+                               "children": [
+                                {
+                                 "id": "eBookTrace",
+                                 "label": "NP[tⱼ,ACC]",
+                                 "silent": true,
+                                 "lineageId": "book-object",
+                                 "children": []
+                                },
+                                {
+                                 "id": "eVtrace",
+                                 "label": "V⁰[t]",
+                                 "silent": true,
+                                 "lineageId": "embedded-verb",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            }
+                           ]
+                          },
+                          {
+                           "id": "eComplex",
+                           "label": "I⁰",
+                           "children": [
+                            {
+                             "id": "eV",
+                             "label": "V⁰",
+                             "word": "oku",
+                             "lineageId": "embedded-verb",
+                             "children": []
+                            },
+                            {
+                             "id": "eInfl",
+                             "label": "I⁰[−finite,+nominal,AGR.3SG]",
+                             "word": "-DIK-AGR.3SG",
+                             "children": []
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    },
+                    {
+                     "id": "eC",
+                     "label": "C⁰[declarative,+nominal,ACC]",
+                     "word": "-(n)I",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "mV",
+                 "label": "V⁰",
+                 "word": "bil",
+                 "lineageId": "matrix-verb",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "mInfl",
+             "label": "I⁰[+finite,PRES,PROG,AGR.1SG]",
+             "word": "-Iyor-AGR.1SG",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "mC",
+         "label": "C⁰[declarative]",
+         "silent": true,
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "realizations": [
+    {
+     "nodeIds": [
+      "rComplex"
+     ],
+     "tokenIndices": [
+      3
+     ]
+    },
+    {
+     "nodeIds": [
+      "eComplex",
+      "eC"
+     ],
+     "tokenIndices": [
+      7
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Complete the matrix inflection and the surface derivation.",
+   "stageRecord": "Bil raises to finite I and leaves a verbal trace. The resulting combination of bil, present-progressive inflection, and first-person singular agreement is realized as biliyorum. The completed structure therefore says that the speaker knows that Ayşe has already read the book that Ahmet obtained from the library yesterday. Its surface order follows from head-final projections, relative-operator movement, and local scrambling of the embedded book object; the matrix subject and all movement traces remain silent.",
+   "relations": [
+    {
+     "relation": "head_movement",
+     "anchors": {
+      "movedHead": "mV",
+      "sourceTrace": "mVtrace",
+      "target": "mComplex",
+      "inflection": "mInfl"
+     },
+     "priorAnchors": {
+      "source": "mV",
+      "targetInflection": "mInfl"
+     },
+     "values": {
+      "movement": "V-to-I"
+     }
+    },
+    {
+     "relation": "morphological_realization",
+     "anchors": {
+      "complex": "mComplex"
+     },
+     "values": {
+      "text": "biliyorum",
+      "composition": "bil-Iyor-AGR.1SG"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "mCP",
+     "label": "CP",
+     "children": [
+      {
+       "id": "mCbar",
+       "label": "C′",
+       "children": [
+        {
+         "id": "mIP",
+         "label": "IP",
+         "children": [
+          {
+           "id": "mPro",
+           "label": "NP[pro,NOM]",
+           "silent": true,
+           "children": [
+            {
+             "id": "mProTerminal",
+             "label": "pro[1SG]",
+             "silent": true,
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "mIbar",
+           "label": "I′",
+           "children": [
+            {
+             "id": "mVP",
+             "label": "VP",
+             "children": [
+              {
+               "id": "mVbar",
+               "label": "V′",
+               "children": [
+                {
+                 "id": "eCP",
+                 "label": "CP[+nominal,ACC]",
+                 "children": [
+                  {
+                   "id": "eCbar",
+                   "label": "C′",
+                   "children": [
+                    {
+                     "id": "eTopIP",
+                     "label": "IP",
+                     "children": [
+                      {
+                       "id": "bookNP",
+                       "label": "NP[ACC]",
+                       "lineageId": "book-object",
+                       "children": [
+                        {
+                         "id": "bookNbar",
+                         "label": "N′",
+                         "children": [
+                          {
+                           "id": "rCP",
+                           "label": "CP[relative]",
+                           "children": [
+                            {
+                             "id": "rOperator",
+                             "label": "NP[Op]",
+                             "silent": true,
+                             "lineageId": "relative-operator",
+                             "children": [
+                              {
+                               "id": "rOperatorTerminal",
+                               "label": "Op",
+                               "silent": true,
+                               "children": []
+                              }
+                             ]
+                            },
+                            {
+                             "id": "rCbar",
+                             "label": "C′",
+                             "children": [
+                              {
+                               "id": "rIP",
+                               "label": "IP",
+                               "children": [
+                                {
+                                 "id": "rSubject",
+                                 "label": "NP[GEN]",
+                                 "children": [
+                                  {
+                                   "id": "rSubjectNbar",
+                                   "label": "N′",
+                                   "children": [
+                                    {
+                                     "id": "rSubjectN",
+                                     "label": "N⁰[GEN]",
+                                     "word": "Ahmet'in",
+                                     "children": []
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                },
+                                {
+                                 "id": "rIbar",
+                                 "label": "I′",
+                                 "children": [
+                                  {
+                                   "id": "rVP",
+                                   "label": "VP",
+                                   "children": [
+                                    {
+                                     "id": "rYesterday",
+                                     "label": "AdvP",
+                                     "children": [
+                                      {
+                                       "id": "rYesterdayBar",
+                                       "label": "Adv′",
+                                       "children": [
+                                        {
+                                         "id": "rYesterdayAdv",
+                                         "label": "Adv⁰",
+                                         "word": "dün",
+                                         "children": []
+                                        }
+                                       ]
+                                      }
+                                     ]
+                                    },
+                                    {
+                                     "id": "rVPsource",
+                                     "label": "VP",
+                                     "children": [
+                                      {
+                                       "id": "rSource",
+                                       "label": "NP[ABL]",
+                                       "children": [
+                                        {
+                                         "id": "rSourceNbar",
+                                         "label": "N′",
+                                         "children": [
+                                          {
+                                           "id": "rSourceN",
+                                           "label": "N⁰[ABL]",
+                                           "word": "kütüphaneden",
+                                           "children": []
+                                          }
+                                         ]
+                                        }
+                                       ]
+                                      },
+                                      {
+                                       "id": "rVPbase",
+                                       "label": "VP",
+                                       "children": [
+                                        {
+                                         "id": "rVbar",
+                                         "label": "V′",
+                                         "children": [
+                                          {
+                                           "id": "rOperatorTrace",
+                                           "label": "NP[tᵢ]",
+                                           "silent": true,
+                                           "lineageId": "relative-operator",
+                                           "children": []
+                                          },
+                                          {
+                                           "id": "rVtrace",
+                                           "label": "V⁰[t]",
+                                           "silent": true,
+                                           "lineageId": "relative-verb",
+                                           "children": []
+                                          }
+                                         ]
+                                        }
+                                       ]
+                                      }
+                                     ]
+                                    }
+                                   ]
+                                  },
+                                  {
+                                   "id": "rComplex",
+                                   "label": "I⁰",
+                                   "children": [
+                                    {
+                                     "id": "rV",
+                                     "label": "V⁰",
+                                     "word": "al",
+                                     "lineageId": "relative-verb",
+                                     "children": []
+                                    },
+                                    {
+                                     "id": "rInfl",
+                                     "label": "I⁰[−finite,+nominal,AGR.3SG]",
+                                     "word": "-DIK-AGR.3SG",
+                                     "children": []
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                }
+                               ]
+                              },
+                              {
+                               "id": "rC",
+                               "label": "C⁰[relative]",
+                               "silent": true,
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          },
+                          {
+                           "id": "bookNbarBase",
+                           "label": "N′",
+                           "children": [
+                            {
+                             "id": "bookN",
+                             "label": "N⁰[ACC]",
+                             "word": "kitabı",
+                             "children": []
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      },
+                      {
+                       "id": "eIP",
+                       "label": "IP",
+                       "children": [
+                        {
+                         "id": "eSubject",
+                         "label": "NP[GEN]",
+                         "children": [
+                          {
+                           "id": "eSubjectNbar",
+                           "label": "N′",
+                           "children": [
+                            {
+                             "id": "eSubjectN",
+                             "label": "N⁰[GEN]",
+                             "word": "Ayşe'nin",
+                             "children": []
+                            }
+                           ]
+                          }
+                         ]
+                        },
+                        {
+                         "id": "eIbar",
+                         "label": "I′",
+                         "children": [
+                          {
+                           "id": "eVP",
+                           "label": "VP",
+                           "children": [
+                            {
+                             "id": "eAlready",
+                             "label": "AdvP",
+                             "children": [
+                              {
+                               "id": "eAlreadyBar",
+                               "label": "Adv′",
+                               "children": [
+                                {
+                                 "id": "eAlreadyAdv",
+                                 "label": "Adv⁰",
+                                 "word": "çoktan",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            },
+                            {
+                             "id": "eVPbase",
+                             "label": "VP",
+                             "children": [
+                              {
+                               "id": "eVbar",
+                               "label": "V′",
+                               "children": [
+                                {
+                                 "id": "eBookTrace",
+                                 "label": "NP[tⱼ,ACC]",
+                                 "silent": true,
+                                 "lineageId": "book-object",
+                                 "children": []
+                                },
+                                {
+                                 "id": "eVtrace",
+                                 "label": "V⁰[t]",
+                                 "silent": true,
+                                 "lineageId": "embedded-verb",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            }
+                           ]
+                          },
+                          {
+                           "id": "eComplex",
+                           "label": "I⁰",
+                           "children": [
+                            {
+                             "id": "eV",
+                             "label": "V⁰",
+                             "word": "oku",
+                             "lineageId": "embedded-verb",
+                             "children": []
+                            },
+                            {
+                             "id": "eInfl",
+                             "label": "I⁰[−finite,+nominal,AGR.3SG]",
+                             "word": "-DIK-AGR.3SG",
+                             "children": []
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    },
+                    {
+                     "id": "eC",
+                     "label": "C⁰[declarative,+nominal,ACC]",
+                     "word": "-(n)I",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "mVtrace",
+                 "label": "V⁰[t]",
+                 "silent": true,
+                 "lineageId": "matrix-verb",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "mComplex",
+             "label": "I⁰",
+             "children": [
+              {
+               "id": "mV",
+               "label": "V⁰",
+               "word": "bil",
+               "lineageId": "matrix-verb",
+               "children": []
+              },
+              {
+               "id": "mInfl",
+               "label": "I⁰[+finite,PRES,PROG,AGR.1SG]",
+               "word": "-Iyor-AGR.1SG",
+               "children": []
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "mC",
+         "label": "C⁰[declarative]",
+         "silent": true,
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "realizations": [
+    {
+     "nodeIds": [
+      "rComplex"
+     ],
+     "tokenIndices": [
+      3
+     ]
+    },
+    {
+     "nodeIds": [
+      "eComplex",
+      "eC"
+     ],
+     "tokenIndices": [
+      7
+     ]
+    },
+    {
+     "nodeIds": [
+      "mComplex"
+     ],
+     "tokenIndices": [
+      8
+     ]
+    }
+   ]
+  }
+ ]
+}

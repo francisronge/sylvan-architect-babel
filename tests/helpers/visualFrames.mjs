@@ -29,6 +29,9 @@ import { fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { paintedShift } from '../../replay/cameraCarry.ts';
 import { drawnPlaque, projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
+import { sceneBindingDomainEllipse } from '../../replay/relations/bindingDomainGeometry.ts';
+import { caseFeatureComposition } from '../../replay/relations/featureComposition.ts';
+import { prepareCasePlaqueRows } from '../../replay/relations/plaqueTextLayout.ts';
 import { projectVisibleAnchorSetOrganization } from '../../replay/relations/relationFrame.ts';
 import {
   isPlanItemRevealed, planItemDependencyNodeIds, planItemRelationRefs, resolveDisplayedTrajectoryAttachments
@@ -50,7 +53,7 @@ import { availableTreeViewport } from '../../components/treeViewport.ts';
 import { layoutReplayFrames } from '../../scripts/replayFrameLayout.mjs';
 import { createCameraHarness } from './cameraHarness.mjs';
 import { createSvgDom } from './svgDom.mjs';
-import { checkFrame, checkMarkMotion, THRESHOLDS } from './visualRules.mjs';
+import { checkFrame, checkStaleShell, checkMarkMotion, checkRealizationDistance, THRESHOLDS } from './visualRules.mjs';
 import { SNAPSHOT_VIEWPORT, snapshotRecord } from './layoutSnapshot.mjs';
 import { buildReplayPanelContent } from '../../replay/replayPanel.ts';
 import { buildReplayDisplayDetailBlocks } from '../../replay/replayPanelFormatting.ts';
@@ -186,6 +189,7 @@ export function plaqueRecord(item, box, anchor) {
   return { id: `plaque(${refsOf(item).join('/')} ${text.slice(0, 48)})@${box.attachmentNodeId}`, text, claims: refsOf(item),
     rect: rect(box.x, box.y, box.drawnWidth ?? box.width, box.drawnHeight ?? box.height), radius: 14,
     size: { width: box.width, height: box.height }, grid,
+    ...item.kind === 'node-plaque' && item.realization ? { realization: true } : {},
     joined: item.kind === 'directed-path' || Boolean(box.collectionRows?.length),
     anchor: anchor && { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0) } };
 }
@@ -359,8 +363,15 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   const revealed = new Set(items.flatMap((item, index) => isPlanItemRevealed(item, stage, played, active) ? [index] : []));
   const shown = index => revealed.has(index) && planItemDependencyNodeIds(items[index]).every(id => Boolean(resolveOverlayAnchor(id)));
   const visiblePlacements = [...placements].filter(([index]) => items[index] && shown(index));
+  // A Case plaque paints the rows a revealed claim owns (caseFeatureDrawing.ts).
+  const contentOf = index => {
+    const rows = caseFeatureComposition(items, index)?.rows.filter(row => row.ownerIndices.some(owner => revealed.has(owner)));
+    if (!rows?.length) return {};
+    const { width, height } = prepareCasePlaqueRows(rows);
+    return { content: { width, height } };
+  };
   const plaques = visiblePlacements.map(([index, box]) => ({ ...plaqueRecord(items[index], box, laidOut.get(box.attachmentNodeId)),
-    ...pockets ? { key: pockets.owner(index), pocket: pockets.pocket(index) } : {} }));
+    ...contentOf(index), ...pockets ? { key: pockets.owner(index), pocket: pockets.pocket(index) } : {} }));
   const markerScale = markerScaleAtZoom(fitted.k), maxY = d3.max(all, node => node.y) ?? 0;
   const textTop = d3.min(painted.texts, text => text.cell.y) ?? TRAJECTORY_ROUTES.textTopFallbackY;
   const lanes = RELATION_LANES_BELOW_DEEPEST_NODE;
@@ -375,9 +386,16 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
       connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, direction: visual.direction, ...extra });
   const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
   const shownMarks = bound => bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
+  // A binding domain paints its own ellipse over the visible syntax and the plaques inside it (bindingDrawing.ts).
+  const markRecords = primitives => boundMarks(primitives, items).map((mark, index) => {
+    const item = items[primitives.filter(primitive => !UNBOUND_MARKS.has(primitive.type))[index].itemIndex];
+    const ellipse = mark.type === 'domain-ellipse' && item?.kind === 'binding-domain'
+      && sceneBindingDomainEllipse(item.domainNodeId, laidOut, painted.nodes, items, placements, measureCategoryText);
+    return ellipse ? { ...mark, painted: { cx: ellipse.cx, cy: ellipse.cy, rx: ellipse.rx, ry: ellipse.ry } } : mark;
+  });
   if (!items.some(item => item.kind === 'fallback')) {
     const marks = shownMarks(bind({}));
-    return { ...none, texts: badgeTexts(marks, items, markerScale), plaques, marks: boundMarks(marks, items) };
+    return { ...none, texts: badgeTexts(marks, items, markerScale), plaques, marks: markRecords(marks) };
   }
   // measureFallbackLabels: plain label cells for every laid-out node.
   const labelRects = new Map(all.filter(node => !canvas.isSyntheticWorkspaceRootNode(node) && !isUnderTriangulation(node)).map(node => {
@@ -415,7 +433,7 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
       nodes: primitive.witnessNodeIds.flatMap(id => laidOut.get(id)?.descendants().map(display.getNodeId) ?? [id]),
       paths: pathPolylines(segment.d), halfWidth: (segment.route === 'direct' ? 1.5 : 1.9) * scale / 2 };
   });
-  return { texts: [...texts, ...badges], plaques, lines, marks: boundMarks(marks, items) };
+  return { texts: [...texts, ...badges], plaques, lines, marks: markRecords(marks) };
 }
 
 /** Anchor-set badges as mark text: the painted circle, stroke included, at the
@@ -429,13 +447,15 @@ function badgeTexts(primitives, items, markerScale) {
   });
 }
 
+const UNBOUND_MARKS = new Set(['plaque', 'fallback-mark', 'segment']);
 /** Every bound mark except plaques, neutral role labels and connectors (recorded
  * above as plaques, texts and lines), as plain data: hierarchy nodes and
  * functions are dropped and repeated references kept once. Ids name the mark's
- * type, claims and occurrence, so a comparison can pair them across checkouts. */
+ * type, claims and occurrence, so a comparison can pair them across checkouts. A
+ * binding domain's ellipse also records the ellipse it paints (`painted`). */
 function boundMarks(primitives, items) {
   const counts = new Map();
-  return primitives.filter(primitive => !['plaque', 'fallback-mark', 'segment'].includes(primitive.type)).map(primitive => {
+  return primitives.filter(primitive => !UNBOUND_MARKS.has(primitive.type)).map(primitive => {
     const base = `${primitive.type}(${refsOf(items[primitive.itemIndex]).join('/')})`, n = (counts.get(base) ?? 0) + 1;
     counts.set(base, n);
     const seen = new WeakSet();
@@ -564,14 +584,65 @@ export function layoutWidthFindings(visual, viewports, { canopy = true, metrics 
 const paintedNodes = nodes => new Map(nodes.map(node => [display.getNodeId(node),
   { x: node.x, y: node.y, parentId: node.parent ? display.getNodeId(node.parent) : null }]));
 
-/** mark-motion between each pair of adjacent Replay frames of one viewport, with
- * the camera's carry across a stage boundary. */
+/** mark-motion between each pair of adjacent Replay frames of one viewport, in frame
+ * order, with the camera's carry across a stage boundary, the later frame's stage
+ * ahead and the plaques that left their pocket early where that stage began. */
 export function markMotionFindings(frames, thresholds = THRESHOLDS) {
   const byPlace = new Map(frames.filter(frame => typeof frame.frame === 'number').map(frame => [`${frame.viewport} ${frame.frame}`, frame]));
-  return [...byPlace.values()].flatMap(frame => {
+  const early = new Map();
+  return [...byPlace.values()].sort((a, b) => a.frame - b.frame).flatMap(frame => {
     const before = byPlace.get(`${frame.viewport} ${frame.frame - 1}`);
+    if (!early.has(frame.viewport)) early.set(frame.viewport, new Set());
+    if (!before) early.get(frame.viewport).clear();
     const shift = before && before.stage !== frame.stage && before.painted && frame.painted ? paintedShift(before.painted, frame.painted) : undefined;
-    return checkMarkMotion(before, frame, thresholds, shift && { dx: shift.x, dy: shift.y });
+    const ahead = [];
+    for (let next = byPlace.get(`${frame.viewport} ${frame.frame + 1}`); next && next.stage === frame.stage;
+      next = byPlace.get(`${frame.viewport} ${next.frame + 1}`)) ahead.push(next);
+    return checkMarkMotion(before, frame, thresholds, shift && { dx: shift.x, dy: shift.y }, ahead, early.get(frame.viewport));
+  });
+}
+
+/** mark-distance's realization subtype over each viewport's Replay frames: a plate's
+ * pocket is judged against what allocation reserves at every frame of its stay in
+ * that pocket (consecutive frames at one offset from its anchor), carried to each
+ * frame's anchor. */
+export function realizationDistanceFindings(frames, thresholds = THRESHOLDS) {
+  const byViewport = new Map();
+  for (const frame of frames) if (typeof frame.frame === 'number')
+    byViewport.set(frame.viewport, [...(byViewport.get(frame.viewport) ?? []), frame]);
+  const offset = plaque => `${Math.round(plaque.rect.x - plaque.anchor.x)},${Math.round(plaque.rect.y - plaque.anchor.y)}`;
+  return [...byViewport.values()].flatMap(list => {
+    list.sort((a, b) => a.frame - b.frame);
+    const stay = (index, plaque) => {
+      const run = [];
+      const take = at => {
+        const frame = list[at], same = frame?.plaques.find(other => other.id === plaque.id && other.anchor);
+        if (!same || offset(same) !== offset(plaque)) return false;
+        run.push(...(frame.reserves ?? []).map(box => ({ ...box, x: box.x + plaque.anchor.x - same.anchor.x, y: box.y + plaque.anchor.y - same.anchor.y })));
+        return true;
+      };
+      take(index);
+      for (let at = index - 1; at >= 0 && list[at].frame === list[at + 1].frame - 1 && take(at); at--);
+      for (let at = index + 1; at < list.length && list[at].frame === list[at - 1].frame + 1 && take(at); at++);
+      return run;
+    };
+    return list.flatMap((frame, index) => frame.plaques.some(plaque => plaque.realization)
+      ? checkRealizationDistance(frame, plaque => stay(index, plaque), thresholds) : []);
+  });
+}
+
+/** mark-motion's stale-shell subtype over each viewport's Replay frames in order. */
+export function staleShellFindings(frames, thresholds = THRESHOLDS) {
+  const byViewport = new Map();
+  for (const frame of frames) if (typeof frame.frame === 'number')
+    byViewport.set(frame.viewport, [...(byViewport.get(frame.viewport) ?? []), frame]);
+  return [...byViewport.values()].flatMap(list => {
+    const history = new Map();
+    return list.sort((a, b) => a.frame - b.frame).flatMap((frame, index) => {
+      const before = list[index - 1]?.frame === frame.frame - 1 ? list[index - 1] : undefined;
+      if (!before) history.clear();
+      return checkStaleShell(before, frame, history, thresholds);
+    });
   });
 }
 
@@ -585,6 +656,7 @@ export function auditVisualRecord(id, record, { viewports = VIEWPORTS, canopy = 
   if (canopy) frames.push(...viewports.map(viewport => layoutCanopyVisualFrame(visual, viewport)).filter(Boolean));
   return { steps: visual.prepared.playbackSteps.length, frames: frames.length,
     findings: [...frames.flatMap(frame => checkFrame(frame, thresholds)), ...markMotionFindings(frames, thresholds),
+      ...staleShellFindings(frames, thresholds), ...realizationDistanceFindings(frames, thresholds),
       ...layoutWidthFindings(visual, viewports, { canopy })]
       .map(finding => ({ ...finding, record: id })),
     ...(snapshot ? { snapshot: snapshotVisualRecord(visual, frames.filter(frame => frame.viewport === SNAPSHOT_VIEWPORT)) } : {}) };
