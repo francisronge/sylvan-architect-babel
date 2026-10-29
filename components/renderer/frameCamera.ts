@@ -32,6 +32,26 @@ interface FrameCameraLayout {
    * stage (stageCoordinates.closesOnEntry), so the camera carry there breaks a tie. */
   closesOnEntry?: boolean;
 }
+/** The stage's cyclic-linearization plate, which takes a column or row of the view. */
+const cyclicLinearizationPlate = (relationRenderPlan: RelationRenderPlan | null, stageIndex: number) => (
+  relationRenderPlan?.frames[stageIndex]?.items ?? []
+).find((item) =>
+  item.familyId === 'pf.cyclic-linearization'
+  && item.kind === 'node-plaque'
+  && item.nativeContent?.kind === 'linearization'
+);
+
+/** The rectangle fitTreeCamera fits one stage's tree into: the usable view
+ * (`availableTreeViewport`) less the column or row its cyclic-linearization
+ * plate takes. The offline camera audit judges poses against the same rectangle. */
+export function treeFitViewport(relationRenderPlan: RelationRenderPlan | null, stageIndex: number, treeViewport: ReturnType<typeof availableTreeViewport>) {
+  const plate = cyclicLinearizationPlate(relationRenderPlan, stageIndex);
+  const placement = plate ? linearizationViewport(treeViewport,
+    nativeLinearizationPlateHeight(plate.kind === 'node-plaque' ? plate.nativeContent : undefined)) : null;
+  return { left: treeViewport.left, top: placement?.treeTop ?? treeViewport.top,
+    right: placement?.treeRight ?? treeViewport.right, bottom: treeViewport.bottom };
+}
+
 export function fitTreeCamera({ session, layout }: { session: CameraSession; layout: FrameCameraLayout }) {
   const { containerWidth, containerHeight } = session;
   const {
@@ -48,24 +68,11 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
     visibleNodes,
     closesOnEntry = false
   } = layout;
-  const cyclicLinearizationPlateItem = (
-    relationRenderPlan?.frames[activeDerivationFrameIndex]?.items ?? []
-  ).find((item) =>
-    item.familyId === 'pf.cyclic-linearization'
-    && item.kind === 'node-plaque'
-    && item.nativeContent?.kind === 'linearization'
-  );
-  const hasCyclicLinearizationPlate = Boolean(cyclicLinearizationPlateItem);
+  const hasCyclicLinearizationPlate = Boolean(cyclicLinearizationPlate(relationRenderPlan, activeDerivationFrameIndex));
   const compactViewport = isCompactViewport(containerWidth);
-  const cyclicLinearizationPlateHeight = nativeLinearizationPlateHeight(
-    cyclicLinearizationPlateItem?.kind === 'node-plaque' ? cyclicLinearizationPlateItem.nativeContent : undefined
-  );
-  const treeViewport = availableTreeViewport(containerWidth, containerHeight, uiBounds);
-  const cyclicPlacement = hasCyclicLinearizationPlate ? linearizationViewport(treeViewport, cyclicLinearizationPlateHeight) : null;
-  const fitLeft = treeViewport.left;
-  const fitRight = cyclicPlacement?.treeRight ?? treeViewport.right;
-  const fitTop = cyclicPlacement?.treeTop ?? treeViewport.top;
-  const fitBottom = treeViewport.bottom;
+  const {
+    left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom
+  } = treeFitViewport(relationRenderPlan, activeDerivationFrameIndex, availableTreeViewport(containerWidth, containerHeight, uiBounds));
   // Retained framing must protect the same label margin as a fresh Fit.
   const stageFitContainmentBounds = stageCameraBounds ? {
     minX: Math.min(stagePlaqueContainmentBounds?.minX ?? Infinity, stageCameraBounds.minX - STAGE_CAMERA_PADDING.x),

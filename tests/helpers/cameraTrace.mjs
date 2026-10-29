@@ -12,7 +12,7 @@
  * from the bundled fonts), the painted pixels between first and settled poses,
  * and real browser timing (a step pressed mid-move, deferred refits, resize). A
  * step's camera move finishes before the next step. */
-import { fitTreeCamera } from '../../components/renderer/frameCamera.ts';
+import { fitTreeCamera, treeFitViewport } from '../../components/renderer/frameCamera.ts';
 import { availableTreeViewport } from '../../components/treeViewport.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import { STAGE_CAMERA_PADDING } from '../../replay/stageCamera.ts';
@@ -81,6 +81,7 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
       throw Error(`Frame ${index + 1}: the camera move did not settle on its destination`);
     return { first: pose(first), settled: pose(settled), transform: settled, auto: camera.session.autoCameraRef.current };
   };
+  const view = availableTreeViewport(viewport.width, viewport.height, uiBounds);
   try {
     const direct = scenes.map((_, index) => show(harness(), index).settled);
     const play = order => {
@@ -106,10 +107,9 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
     const passes = [{ name: 'forward', steps: forward.steps }, { name: 'backward', steps: backward.steps }];
     if (reversals) passes.push({ name: 'next-then-prev', steps: reverse(forward.states, -1) },
       { name: 'prev-then-next', steps: reverse(backward.states, 1) });
-    return { canvas: { width: viewport.width, height: viewport.height },
-      view: availableTreeViewport(viewport.width, viewport.height, uiBounds),
+    return { canvas: { width: viewport.width, height: viewport.height }, view,
       frames: scenes.map(scene => ({ stage: scene.stage, final: scene.completedStep !== undefined, bounds: scene.bounds,
-        envelope: scene.envelope, nodes: scene.nodes, closing: scene.closing })),
+        envelope: scene.envelope, nodes: scene.nodes, closing: scene.closing, view: treeFitViewport(plan, scene.stage, view) })),
       direct, passes };
   } finally { restore(); }
 }
