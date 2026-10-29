@@ -27,6 +27,8 @@ export const categoryLineBaselineY = (index: number, count: number) =>
 /** A terminal word or notation glyph below its leaf. */
 export const TERMINAL_LABEL = { baselineY: 115, fontSize: 56, fontWeight: 900, strokeWidth: 8 } as const;
 export const TERMINAL_FONT = `italic ${TERMINAL_LABEL.fontWeight} ${TERMINAL_LABEL.fontSize}px ${TREE_FONT_FAMILY}`;
+/** The italic word string Constituent Glyphing paints below a triangulated phrase. */
+export const TRIANGLE_WORDS = { baselineY: 155, fontSize: 52, fontWeight: 900, strokeWidth: 8 } as const;
 
 /** Chain and theta indices painted after a label. A theta index is lowered by
  * `thetaDy`; an identity index uses the font's subscript baseline instead. */
@@ -149,13 +151,19 @@ export const steepTrajectoryBowWeight = (sourceCentre: RoutePoint, targetCentre:
   return t * t * (3 - 2 * t);
 };
 
+/** The side a steep route bows to when its departure's branch does not decide:
+ * left, reflected to right in right-to-left Replay. */
+export const defaultTrajectoryBowSide = (direction: 'ltr' | 'rtl' = 'ltr'): TrajectoryBowSide =>
+  direction === 'rtl' ? 1 : -1;
+
 /** A route prefers to bow away from the branch its departure hangs from, so
  * it does not cross it; under a parent in the same column, or no parent, it
- * prefers left. `clearTrajectoryBowSide` may take the other side. */
-export const trajectoryBowSide = (departure: RoutePoint, departureParent: RoutePoint | null): TrajectoryBowSide =>
+ * takes `defaultTrajectoryBowSide`. `clearTrajectoryBowSide` may take the other side. */
+export const trajectoryBowSide = (departure: RoutePoint, departureParent: RoutePoint | null,
+  direction: 'ltr' | 'rtl' = 'ltr'): TrajectoryBowSide =>
   departureParent && Math.abs(departure.x - departureParent.x) > TRAJECTORY_ROUTES.verticalColumnTolerance
     ? (departure.x > departureParent.x ? 1 : -1)
-    : -1;
+    : defaultTrajectoryBowSide(direction);
 
 const mix = (from: number, to: number, weight: number) => weight === 1 ? to : from + (to - from) * weight;
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { reviewIndexHtml, reviewNotes } from '../scripts/buildReplayReview.mjs';
+import { auditBatches, reviewIndexHtml, reviewNotes } from '../scripts/buildReplayReview.mjs';
 
 // Francis found by eye what the checks already knew: Sol n4-34's unresolved
 // V-to-I group (27 Oct) carried MOVEMENT_ENDPOINTS_UNRESOLVED, but the review page
@@ -17,6 +17,30 @@ test('review notes print movement diagnostics and Replay violations before visua
     'glyph-overlap (text) 20.4 at desktop, step 21'
   ]);
   assert.deepEqual(reviewNotes({}), []);
+});
+
+test('review notes keep every distinct visual and camera fault, grouped by rule', () => {
+  const at = (rule, subtype, measure, subject) => ({ rule, subtype, measure, subject, viewport: 'desktop', frame: '4>5' });
+  const notes = reviewNotes({ visual: [at('clipping', 'panel', 3, 'a'), at('branch-geometry', 'row', 40, 'b'), at('parent-centring', null, 12, 'c'),
+    at('glyph-overlap', 'text', 2, 'd'), at('glyph-overlap', 'text', 9, 'e'), at('glyph-overlap', 'text', 1, 'e')] });
+  assert.deepEqual(notes, [
+    'branch-geometry (row) 40 at desktop, step 4',
+    'clipping (panel) 3 at desktop, step 4',
+    'glyph-overlap (text) 9 at desktop, step 4',
+    'glyph-overlap (text) 2 at desktop, step 4',
+    'parent-centring 12 at desktop, step 4'
+  ]);
+});
+
+test('two batches sharing a directory name keep their own audit results', () => {
+  // Audit ids name a batch by its basename: /archive/sol/batch and /archive/opus/batch both give batch/n4-34.
+  const batches = [{ dir: '/archive/sol/batch', label: 'Sol' }, { dir: '/archive/opus/batch', label: 'Opus' }];
+  const audits = auditBatches(batches, {
+    auditInvariants: (_batch, index) => ({ records: index ? [] : [{ id: 'batch/n4-34 a1', violations: [{ rule: 'whole-parent', frame: 3, detail: 'sol' }] }] }),
+    auditVisual: (_batch, index) => index ? [{ record: 'run:batch/n4-34/parse#0', rule: 'clipping', measure: 2 }] : []
+  });
+  assert.deepEqual(audits.map(({ violations }) => violations.get('n4-34 a1')?.map(v => v.detail)), [['sol'], undefined]);
+  assert.deepEqual(audits.map(({ visual }) => visual.get('n4-34 a1')?.map(f => f.rule)), [undefined, ['clipping']]);
 });
 
 test('the review page opens every tree at step 1 and keeps the arrow keys on Replay', () => {

@@ -49,7 +49,7 @@ function timeline(samples, m) {
       if (node.opacity >= m.shownOpacity) shownOnCanvas++;
     }
     const next = samples[index + 1];
-    return { index, t: sample.t, nodes, marks: marksOf(sample), onCanvas, beyond, shownOnCanvas, presentOnCanvas,
+    return { index, t: sample.t, k: sample.transform?.k, nodes, marks: marksOf(sample), onCanvas, beyond, shownOnCanvas, presentOnCanvas,
       visibility: (sample.visibility ?? 1) * (1 - (sample.cover ?? 0)), cover: sample.cover ?? 0,
       durationMs: next ? Math.max(0, next.t - sample.t) : 1000 / 60 };
   });
@@ -58,17 +58,23 @@ function timeline(samples, m) {
 const span = (picked, t0) => ({ frames: picked.length, durationMs: Math.round(picked.reduce((sum, frame) => sum + frame.durationMs, 0)),
   firstAtMs: picked.length ? Math.round(picked[0].t - t0) : null });
 
-/** Per-node one-frame moves of `ids` painted in both frames, and their common (median) move. */
+/** Per-node one-frame moves of `ids` painted in both frames, their common (median)
+ * move, and each node's residual apart from the view. A camera zoom moves every
+ * node by its distance from the zoom centre, so residuals first scale the earlier
+ * position by the sampled camera's zoom ratio; the median then removes the common
+ * translation (camera pan, zoom centre and SVG origin alike). */
 function moves(a, b, ids, m) {
-  const list = [];
+  const list = [], zoom = a.k > 0 && b.k > 0 ? b.k / a.k : 1;
   for (const id of ids) {
     const p = a.nodes.get(id), q = b.nodes.get(id);
-    if (p && q && p.opacity >= m.presentOpacity && q.opacity >= m.presentOpacity) list.push({ id, dx: q.x - p.x, dy: q.y - p.y });
+    if (p && q && p.opacity >= m.presentOpacity && q.opacity >= m.presentOpacity)
+      list.push({ id, dx: q.x - p.x, dy: q.y - p.y, vx: q.x - zoom * p.x, vy: q.y - zoom * p.y });
   }
   if (!list.length) return null;
   const dx = median(list.map(move => move.dx)), dy = median(list.map(move => move.dy));
+  const vx = median(list.map(move => move.vx)), vy = median(list.map(move => move.vy));
   return { dx, dy, length: median(list.map(move => Math.hypot(move.dx, move.dy))), list,
-    residuals: list.map(move => ({ id: move.id, rx: move.dx - dx, ry: move.dy - dy, px: Math.hypot(move.dx - dx, move.dy - dy) })) };
+    residuals: list.map(move => ({ id: move.id, rx: move.vx - vx, ry: move.vy - vy, px: Math.hypot(move.vx - vx, move.vy - vy) })) };
 }
 
 /** shown → not shown → shown runs for every key shown in some frame. */
