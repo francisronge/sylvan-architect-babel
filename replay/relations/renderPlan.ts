@@ -1,6 +1,6 @@
 /** Compiled relation data and exact ownership/lifetime rules. No claim recognition or geometry. */
 import type { SyntaxNode } from '../../types.ts';
-import { headTrajectoryAttachment, terminalTrajectoryAttachment } from './trajectoryAttachment.ts';
+import { headTrajectoryAttachment, terminalTrajectoryAttachment, visibleTextTrajectoryAttachment } from './trajectoryAttachment.ts';
 import type { FallbackDrawing } from './fallbackTopology.ts';
 import type { LargeAnchorSet } from './largeAnchorSets.ts';
 import type { NativePlaqueContent } from './nativeDrawingContent.ts';
@@ -212,15 +212,15 @@ export const resolveDisplayedTrajectoryAttachments = (
   const sourceNodeId = trajectorySourceNodeId(item);
   const source = nodeFor(sourceNodeId);
   const target = nodeFor(item.targetNodeId);
-  const sourceAttachment = item.sourceAttachment === 'terminal' && source
-    ? terminalTrajectoryAttachment(source) : item.sourceAttachment;
-  const targetAttachment = item.targetAttachment === 'terminal' && target
+  const sourceAttachment = !source ? item.sourceAttachment : item.sourceAttachment === 'terminal'
+    ? terminalTrajectoryAttachment(source) : visibleTextTrajectoryAttachment(source, item.sourceAttachment);
+  const targetAttachment = !target ? item.targetAttachment : item.targetAttachment === 'terminal'
     ? (item.trajectoryKind === 'head' ? headTrajectoryAttachment(target) : terminalTrajectoryAttachment(target))
-    : item.targetAttachment;
-  return sourceAttachment === item.sourceAttachment && targetAttachment === item.targetAttachment
-    ? item : { ...item, sourceAttachment, targetAttachment,
-      ...(sourceAttachment !== item.sourceAttachment && sourceNodeId !== item.sourceNodeId
-        ? { sourceAttachmentNodeId: sourceNodeId } : {}) };
+    : visibleTextTrajectoryAttachment(target, item.targetAttachment);
+  if (sourceAttachment === item.sourceAttachment && targetAttachment === item.targetAttachment) return item;
+  const next = { ...item, sourceAttachment, targetAttachment };
+  // The departure stays the node whose attachment was decided, not a witness the new attachment would read.
+  return trajectorySourceNodeId(next) === sourceNodeId ? next : { ...next, sourceAttachmentNodeId: sourceNodeId };
 };
 
 
