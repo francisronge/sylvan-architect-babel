@@ -1,0 +1,1542 @@
+{
+ "description": "Saved Sol sluicing analysis whose subjectCase feature plaque of who (stage 4) crossed the remnant enclosure around who (stage 6). Test input for tests/plaqueAvoidsRegions.test.mjs.",
+ "provenance": {
+  "model": "openai:gpt-6.1-sol",
+  "effort": "high",
+  "harness": "qualification:codex",
+  "source": "sol-cfc/n3-47-en-sluicing/attempts/parse/bundle.json, analysis 0",
+  "extraction": "Exact saved derivationStages and inputTokens."
+ },
+ "sentence": "Someone called, but I don't know who.",
+ "inputTokens": [
+  "Someone",
+  "called",
+  "but",
+  "I",
+  "don't",
+  "know",
+  "who"
+ ],
+ "derivationStages": [
+  {
+   "statement": "Build the antecedent clause's predicate and introduce its subject.",
+   "stageRecord": "Merge the intransitive verb called with a silent light verb, and externally merge Someone as the caller. The thematic relation identifies Someone as the agent of called. Introduce a separate past-tense head for the finite clause.",
+   "relations": [
+    {
+     "relation": "thematic interpretation",
+     "anchors": {
+      "predicate": "aV",
+      "agent": "someone"
+     },
+     "values": {
+      "predicateUse": "intransitive",
+      "role": "caller"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "avSubject",
+     "label": "v",
+     "children": [
+      {
+       "id": "someone",
+       "label": "D[indefinite]",
+       "word": "Someone",
+       "lineageId": "someone-chain",
+       "children": []
+      },
+      {
+       "id": "avCore",
+       "label": "v",
+       "children": [
+        {
+         "id": "av",
+         "label": "v",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "aV",
+         "label": "V",
+         "word": "called",
+         "children": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "aT",
+     "label": "T[past]",
+     "silent": true,
+     "children": []
+    }
+   ]
+  },
+  {
+   "statement": "Complete the finite antecedent Someone called.",
+   "stageRecord": "Merge past T with the existing predicate and internally merge Someone at the edge of the resulting T object. Someone moves from its previously established agent position, where an unpronounced lower occurrence remains. The finite dependency connects past T with the raised subject and called: the subject receives nominative licensing, and called realizes the predicate's past-tense form.",
+   "relations": [
+    {
+     "relation": "subject internal merge",
+     "anchors": {
+      "lowerOccurrence": "someoneLow",
+      "landingOccurrence": "someone",
+      "landingProjection": "aTP"
+     },
+     "priorAnchors": {
+      "sourceOccurrence": "someone"
+     },
+     "values": {
+      "pronunciation": "higher occurrence only"
+     }
+    },
+    {
+     "relation": "finite licensing",
+     "anchors": {
+      "tense": "aT",
+      "subject": "someone",
+      "predicate": "aV"
+     },
+     "values": {
+      "tense": "past",
+      "subjectCase": "nominative",
+      "predicateForm": "called"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "aTP",
+     "label": "T",
+     "children": [
+      {
+       "id": "someone",
+       "label": "D[indefinite]",
+       "word": "Someone",
+       "lineageId": "someone-chain",
+       "children": []
+      },
+      {
+       "id": "aTCore",
+       "label": "T",
+       "children": [
+        {
+         "id": "aT",
+         "label": "T[past]",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "avSubject",
+         "label": "v",
+         "children": [
+          {
+           "id": "someoneLow",
+           "label": "D[indefinite]",
+           "word": "Someone",
+           "silent": true,
+           "lineageId": "someone-chain",
+           "children": []
+          },
+          {
+           "id": "avCore",
+           "label": "v",
+           "children": [
+            {
+             "id": "av",
+             "label": "v",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "aV",
+             "label": "V",
+             "word": "called",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Build the predicate underlying the embedded question.",
+   "stageRecord": "Construct a second intransitive called predicate with a silent light verb, and externally merge who as its agent. This thematic relation makes who the caller, matching the subject interpretation of Someone in the antecedent. Introduce a separate past-tense head for the embedded clause.",
+   "relations": [
+    {
+     "relation": "thematic interpretation",
+     "anchors": {
+      "predicate": "eV",
+      "agent": "who"
+     },
+     "values": {
+      "predicateUse": "intransitive",
+      "role": "caller"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "aTP",
+     "label": "T",
+     "children": [
+      {
+       "id": "someone",
+       "label": "D[indefinite]",
+       "word": "Someone",
+       "lineageId": "someone-chain",
+       "children": []
+      },
+      {
+       "id": "aTCore",
+       "label": "T",
+       "children": [
+        {
+         "id": "aT",
+         "label": "T[past]",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "avSubject",
+         "label": "v",
+         "children": [
+          {
+           "id": "someoneLow",
+           "label": "D[indefinite]",
+           "word": "Someone",
+           "silent": true,
+           "lineageId": "someone-chain",
+           "children": []
+          },
+          {
+           "id": "avCore",
+           "label": "v",
+           "children": [
+            {
+             "id": "av",
+             "label": "v",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "aV",
+             "label": "V",
+             "word": "called",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "evSubject",
+     "label": "v",
+     "children": [
+      {
+       "id": "who",
+       "label": "D[wh]",
+       "word": "who",
+       "lineageId": "who-chain",
+       "children": []
+      },
+      {
+       "id": "evCore",
+       "label": "v",
+       "children": [
+        {
+         "id": "ev",
+         "label": "v",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "eV",
+         "label": "V",
+         "word": "called",
+         "children": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "eT",
+     "label": "T[past]",
+     "silent": true,
+     "children": []
+    }
+   ]
+  },
+  {
+   "statement": "Raise the embedded wh-subject to the finite subject position.",
+   "stageRecord": "Merge embedded past T with the predicate and internally merge who at the T edge, leaving an unpronounced occurrence in its previously established agent position. The finite dependency licenses nominative who and the past form called. The embedded clause at this point has the structure of who called, before interrogative movement and ellipsis.",
+   "relations": [
+    {
+     "relation": "subject internal merge",
+     "anchors": {
+      "lowerOccurrence": "whoAgent",
+      "landingOccurrence": "who",
+      "landingProjection": "eTP"
+     },
+     "priorAnchors": {
+      "sourceOccurrence": "who"
+     },
+     "values": {
+      "pronunciation": "higher occurrence only"
+     }
+    },
+    {
+     "relation": "finite licensing",
+     "anchors": {
+      "tense": "eT",
+      "subject": "who",
+      "predicate": "eV"
+     },
+     "values": {
+      "tense": "past",
+      "subjectCase": "nominative",
+      "predicateForm": "called"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "aTP",
+     "label": "T",
+     "children": [
+      {
+       "id": "someone",
+       "label": "D[indefinite]",
+       "word": "Someone",
+       "lineageId": "someone-chain",
+       "children": []
+      },
+      {
+       "id": "aTCore",
+       "label": "T",
+       "children": [
+        {
+         "id": "aT",
+         "label": "T[past]",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "avSubject",
+         "label": "v",
+         "children": [
+          {
+           "id": "someoneLow",
+           "label": "D[indefinite]",
+           "word": "Someone",
+           "silent": true,
+           "lineageId": "someone-chain",
+           "children": []
+          },
+          {
+           "id": "avCore",
+           "label": "v",
+           "children": [
+            {
+             "id": "av",
+             "label": "v",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "aV",
+             "label": "V",
+             "word": "called",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "eTP",
+     "label": "T",
+     "children": [
+      {
+       "id": "who",
+       "label": "D[wh]",
+       "word": "who",
+       "lineageId": "who-chain",
+       "children": []
+      },
+      {
+       "id": "eTCore",
+       "label": "T",
+       "children": [
+        {
+         "id": "eT",
+         "label": "T[past]",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "evSubject",
+         "label": "v",
+         "children": [
+          {
+           "id": "whoAgent",
+           "label": "D[wh]",
+           "word": "who",
+           "silent": true,
+           "lineageId": "who-chain",
+           "children": []
+          },
+          {
+           "id": "evCore",
+           "label": "v",
+           "children": [
+            {
+             "id": "ev",
+             "label": "v",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "eV",
+             "label": "V",
+             "word": "called",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Form the embedded interrogative and move who outside the future ellipsis domain.",
+   "stageRecord": "Merge a silent interrogative C with the embedded finite clause. Internally merge who from its established T-edge position to the C edge, leaving an unpronounced occurrence at the T edge. The interrogative dependency connects C to the raised wh-expression and makes the complement a question about the caller's identity. This movement places pronounced who outside the T constituent that can undergo sluicing.",
+   "relations": [
+    {
+     "relation": "wh internal merge",
+     "anchors": {
+      "lowerOccurrence": "whoSubject",
+      "landingOccurrence": "who",
+      "landingProjection": "eCP"
+     },
+     "priorAnchors": {
+      "sourceOccurrence": "who"
+     },
+     "values": {
+      "pronunciation": "C-edge occurrence only"
+     }
+    },
+    {
+     "relation": "interrogative dependency",
+     "anchors": {
+      "interrogativeHead": "eC",
+      "whExpression": "who",
+      "propositionalDomain": "eTP"
+     },
+     "values": {
+      "question": "identity of the person who called"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "aTP",
+     "label": "T",
+     "children": [
+      {
+       "id": "someone",
+       "label": "D[indefinite]",
+       "word": "Someone",
+       "lineageId": "someone-chain",
+       "children": []
+      },
+      {
+       "id": "aTCore",
+       "label": "T",
+       "children": [
+        {
+         "id": "aT",
+         "label": "T[past]",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "avSubject",
+         "label": "v",
+         "children": [
+          {
+           "id": "someoneLow",
+           "label": "D[indefinite]",
+           "word": "Someone",
+           "silent": true,
+           "lineageId": "someone-chain",
+           "children": []
+          },
+          {
+           "id": "avCore",
+           "label": "v",
+           "children": [
+            {
+             "id": "av",
+             "label": "v",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "aV",
+             "label": "V",
+             "word": "called",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "eCP",
+     "label": "C",
+     "children": [
+      {
+       "id": "who",
+       "label": "D[wh]",
+       "word": "who",
+       "lineageId": "who-chain",
+       "children": []
+      },
+      {
+       "id": "eCCore",
+       "label": "C",
+       "children": [
+        {
+         "id": "eC",
+         "label": "C[interrogative]",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "eTP",
+         "label": "T",
+         "children": [
+          {
+           "id": "whoSubject",
+           "label": "D[wh]",
+           "word": "who",
+           "silent": true,
+           "lineageId": "who-chain",
+           "children": []
+          },
+          {
+           "id": "eTCore",
+           "label": "T",
+           "children": [
+            {
+             "id": "eT",
+             "label": "T[past]",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "evSubject",
+             "label": "v",
+             "children": [
+              {
+               "id": "whoAgent",
+               "label": "D[wh]",
+               "word": "who",
+               "silent": true,
+               "lineageId": "who-chain",
+               "children": []
+              },
+              {
+               "id": "evCore",
+               "label": "v",
+               "children": [
+                {
+                 "id": "ev",
+                 "label": "v",
+                 "silent": true,
+                 "children": []
+                },
+                {
+                 "id": "eV",
+                 "label": "V",
+                 "word": "called",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Apply sluicing to leave only who pronounced in the embedded question.",
+   "stageRecord": "License nonpronunciation of the embedded T constituent against Someone called. Someone supplies the indefinite correlate for who, and the two clauses share the open proposition that a person called. Mark the embedded T domain as silent while retaining its syntax and interpretation. Because who has already moved to the C edge, it survives as the pronounced remnant; the embedded question still means who called.",
+   "relations": [
+    {
+     "relation": "sluicing",
+     "anchors": {
+      "antecedent": "aTP",
+      "correlate": "someone",
+      "ellipsisDomain": "eTP",
+      "remnant": "who",
+      "licensingHead": "eC"
+     },
+     "values": {
+      "recoverableOpenProposition": "x called",
+      "ellipsisOperation": "nonpronunciation of the embedded T domain",
+      "interpretedQuestion": "who called"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "aTP",
+     "label": "T",
+     "children": [
+      {
+       "id": "someone",
+       "label": "D[indefinite]",
+       "word": "Someone",
+       "lineageId": "someone-chain",
+       "children": []
+      },
+      {
+       "id": "aTCore",
+       "label": "T",
+       "children": [
+        {
+         "id": "aT",
+         "label": "T[past]",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "avSubject",
+         "label": "v",
+         "children": [
+          {
+           "id": "someoneLow",
+           "label": "D[indefinite]",
+           "word": "Someone",
+           "silent": true,
+           "lineageId": "someone-chain",
+           "children": []
+          },
+          {
+           "id": "avCore",
+           "label": "v",
+           "children": [
+            {
+             "id": "av",
+             "label": "v",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "aV",
+             "label": "V",
+             "word": "called",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "eCP",
+     "label": "C",
+     "children": [
+      {
+       "id": "who",
+       "label": "D[wh]",
+       "word": "who",
+       "lineageId": "who-chain",
+       "children": []
+      },
+      {
+       "id": "eCCore",
+       "label": "C",
+       "children": [
+        {
+         "id": "eC",
+         "label": "C[interrogative]",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "eTP",
+         "label": "T",
+         "silent": true,
+         "children": [
+          {
+           "id": "whoSubject",
+           "label": "D[wh]",
+           "word": "who",
+           "silent": true,
+           "lineageId": "who-chain",
+           "children": []
+          },
+          {
+           "id": "eTCore",
+           "label": "T",
+           "children": [
+            {
+             "id": "eT",
+             "label": "T[past]",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "evSubject",
+             "label": "v",
+             "children": [
+              {
+               "id": "whoAgent",
+               "label": "D[wh]",
+               "word": "who",
+               "silent": true,
+               "lineageId": "who-chain",
+               "children": []
+              },
+              {
+               "id": "evCore",
+               "label": "v",
+               "children": [
+                {
+                 "id": "ev",
+                 "label": "v",
+                 "silent": true,
+                 "children": []
+                },
+                {
+                 "id": "eV",
+                 "label": "V",
+                 "word": "called",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Build the negative matrix predicate I do not know the embedded answer.",
+   "stageRecord": "Merge know with the sluiced interrogative complement. The selection relation connects know to the question about who called. Merge a silent light verb and externally merge I as the experiencer of knowing. Then merge not above that predicate and introduce a separate present-tense auxiliary do for the matrix clause.",
+   "relations": [
+    {
+     "relation": "interrogative complement selection",
+     "anchors": {
+      "selector": "mV",
+      "complement": "eCP"
+     },
+     "values": {
+      "complementType": "embedded interrogative"
+     }
+    },
+    {
+     "relation": "thematic interpretation",
+     "anchors": {
+      "predicate": "mV",
+      "experiencer": "I",
+      "content": "eCP"
+     },
+     "values": {
+      "interpretation": "knowing the answer to who called"
+     }
+    },
+    {
+     "relation": "negation scope",
+     "anchors": {
+      "negation": "neg",
+      "scope": "mvSubject"
+     },
+     "values": {
+      "interpretation": "the speaker does not know who called"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "aTP",
+     "label": "T",
+     "children": [
+      {
+       "id": "someone",
+       "label": "D[indefinite]",
+       "word": "Someone",
+       "lineageId": "someone-chain",
+       "children": []
+      },
+      {
+       "id": "aTCore",
+       "label": "T",
+       "children": [
+        {
+         "id": "aT",
+         "label": "T[past]",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "avSubject",
+         "label": "v",
+         "children": [
+          {
+           "id": "someoneLow",
+           "label": "D[indefinite]",
+           "word": "Someone",
+           "silent": true,
+           "lineageId": "someone-chain",
+           "children": []
+          },
+          {
+           "id": "avCore",
+           "label": "v",
+           "children": [
+            {
+             "id": "av",
+             "label": "v",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "aV",
+             "label": "V",
+             "word": "called",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "negP",
+     "label": "Neg",
+     "children": [
+      {
+       "id": "neg",
+       "label": "Neg",
+       "word": "not",
+       "children": []
+      },
+      {
+       "id": "mvSubject",
+       "label": "v",
+       "children": [
+        {
+         "id": "I",
+         "label": "D[1sg]",
+         "word": "I",
+         "lineageId": "I-chain",
+         "children": []
+        },
+        {
+         "id": "mvCore",
+         "label": "v",
+         "children": [
+          {
+           "id": "mv",
+           "label": "v",
+           "silent": true,
+           "children": []
+          },
+          {
+           "id": "mVP",
+           "label": "V",
+           "children": [
+            {
+             "id": "mV",
+             "label": "V",
+             "word": "know",
+             "children": []
+            },
+            {
+             "id": "eCP",
+             "label": "C",
+             "children": [
+              {
+               "id": "who",
+               "label": "D[wh]",
+               "word": "who",
+               "lineageId": "who-chain",
+               "children": []
+              },
+              {
+               "id": "eCCore",
+               "label": "C",
+               "children": [
+                {
+                 "id": "eC",
+                 "label": "C[interrogative]",
+                 "silent": true,
+                 "children": []
+                },
+                {
+                 "id": "eTP",
+                 "label": "T",
+                 "silent": true,
+                 "children": [
+                  {
+                   "id": "whoSubject",
+                   "label": "D[wh]",
+                   "word": "who",
+                   "silent": true,
+                   "lineageId": "who-chain",
+                   "children": []
+                  },
+                  {
+                   "id": "eTCore",
+                   "label": "T",
+                   "children": [
+                    {
+                     "id": "eT",
+                     "label": "T[past]",
+                     "silent": true,
+                     "children": []
+                    },
+                    {
+                     "id": "evSubject",
+                     "label": "v",
+                     "children": [
+                      {
+                       "id": "whoAgent",
+                       "label": "D[wh]",
+                       "word": "who",
+                       "silent": true,
+                       "lineageId": "who-chain",
+                       "children": []
+                      },
+                      {
+                       "id": "evCore",
+                       "label": "v",
+                       "children": [
+                        {
+                         "id": "ev",
+                         "label": "v",
+                         "silent": true,
+                         "children": []
+                        },
+                        {
+                         "id": "eV",
+                         "label": "V",
+                         "word": "called",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mT",
+     "label": "T[present, auxiliary]",
+     "word": "do",
+     "children": []
+    }
+   ]
+  },
+  {
+   "statement": "Complete the finite negative matrix clause.",
+   "stageRecord": "Merge auxiliary T with the negative predicate and internally merge I at the T edge, leaving an unpronounced occurrence in its established experiencer position. The finite dependency licenses nominative I and present-tense first-person singular do. The do-support dependency connects the auxiliary, negation, and know: do carries finite tense above not, while know remains in its base form.",
+   "relations": [
+    {
+     "relation": "subject internal merge",
+     "anchors": {
+      "lowerOccurrence": "ILow",
+      "landingOccurrence": "I",
+      "landingProjection": "mTP"
+     },
+     "priorAnchors": {
+      "sourceOccurrence": "I"
+     },
+     "values": {
+      "pronunciation": "higher occurrence only"
+     }
+    },
+    {
+     "relation": "finite licensing",
+     "anchors": {
+      "tense": "mT",
+      "subject": "I"
+     },
+     "values": {
+      "tense": "present",
+      "agreement": "first-person singular",
+      "subjectCase": "nominative"
+     }
+    },
+    {
+     "relation": "do-support",
+     "anchors": {
+      "auxiliary": "mT",
+      "negation": "neg",
+      "lexicalPredicate": "mV"
+     },
+     "values": {
+      "finiteCarrier": "do",
+      "lexicalVerbForm": "base"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "aTP",
+     "label": "T",
+     "children": [
+      {
+       "id": "someone",
+       "label": "D[indefinite]",
+       "word": "Someone",
+       "lineageId": "someone-chain",
+       "children": []
+      },
+      {
+       "id": "aTCore",
+       "label": "T",
+       "children": [
+        {
+         "id": "aT",
+         "label": "T[past]",
+         "silent": true,
+         "children": []
+        },
+        {
+         "id": "avSubject",
+         "label": "v",
+         "children": [
+          {
+           "id": "someoneLow",
+           "label": "D[indefinite]",
+           "word": "Someone",
+           "silent": true,
+           "lineageId": "someone-chain",
+           "children": []
+          },
+          {
+           "id": "avCore",
+           "label": "v",
+           "children": [
+            {
+             "id": "av",
+             "label": "v",
+             "silent": true,
+             "children": []
+            },
+            {
+             "id": "aV",
+             "label": "V",
+             "word": "called",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "mTP",
+     "label": "T",
+     "children": [
+      {
+       "id": "I",
+       "label": "D[1sg]",
+       "word": "I",
+       "lineageId": "I-chain",
+       "children": []
+      },
+      {
+       "id": "mTCore",
+       "label": "T",
+       "children": [
+        {
+         "id": "mT",
+         "label": "T[present, auxiliary]",
+         "word": "do",
+         "children": []
+        },
+        {
+         "id": "negP",
+         "label": "Neg",
+         "children": [
+          {
+           "id": "neg",
+           "label": "Neg",
+           "word": "not",
+           "children": []
+          },
+          {
+           "id": "mvSubject",
+           "label": "v",
+           "children": [
+            {
+             "id": "ILow",
+             "label": "D[1sg]",
+             "word": "I",
+             "silent": true,
+             "lineageId": "I-chain",
+             "children": []
+            },
+            {
+             "id": "mvCore",
+             "label": "v",
+             "children": [
+              {
+               "id": "mv",
+               "label": "v",
+               "silent": true,
+               "children": []
+              },
+              {
+               "id": "mVP",
+               "label": "V",
+               "children": [
+                {
+                 "id": "mV",
+                 "label": "V",
+                 "word": "know",
+                 "children": []
+                },
+                {
+                 "id": "eCP",
+                 "label": "C",
+                 "children": [
+                  {
+                   "id": "who",
+                   "label": "D[wh]",
+                   "word": "who",
+                   "lineageId": "who-chain",
+                   "children": []
+                  },
+                  {
+                   "id": "eCCore",
+                   "label": "C",
+                   "children": [
+                    {
+                     "id": "eC",
+                     "label": "C[interrogative]",
+                     "silent": true,
+                     "children": []
+                    },
+                    {
+                     "id": "eTP",
+                     "label": "T",
+                     "silent": true,
+                     "children": [
+                      {
+                       "id": "whoSubject",
+                       "label": "D[wh]",
+                       "word": "who",
+                       "silent": true,
+                       "lineageId": "who-chain",
+                       "children": []
+                      },
+                      {
+                       "id": "eTCore",
+                       "label": "T",
+                       "children": [
+                        {
+                         "id": "eT",
+                         "label": "T[past]",
+                         "silent": true,
+                         "children": []
+                        },
+                        {
+                         "id": "evSubject",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "whoAgent",
+                           "label": "D[wh]",
+                           "word": "who",
+                           "silent": true,
+                           "lineageId": "who-chain",
+                           "children": []
+                          },
+                          {
+                           "id": "evCore",
+                           "label": "v",
+                           "children": [
+                            {
+                             "id": "ev",
+                             "label": "v",
+                             "silent": true,
+                             "children": []
+                            },
+                            {
+                             "id": "eV",
+                             "label": "V",
+                             "word": "called",
+                             "children": []
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Coordinate the clauses with but and realize do plus not as don't.",
+   "stageRecord": "Merge but with the negative matrix clause and then merge the antecedent clause as the first conjunct. The adversative relation connects the assertion that someone called with the speaker's lack of knowledge of the caller's identity. Finally, establish the contracted realization don't for auxiliary do together with not. With the embedded T domain silent and who pronounced at the embedded C edge, the completed structure spells out Someone called, but I don't know who.",
+   "relations": [
+    {
+     "relation": "adversative coordination",
+     "anchors": {
+      "coordinator": "but",
+      "firstConjunct": "aTP",
+      "secondConjunct": "mTP"
+     },
+     "values": {
+      "interpretation": "someone called, contrary to an expectation that the speaker could identify the caller"
+     }
+    },
+    {
+     "relation": "negative contraction realization",
+     "anchors": {
+      "sources": [
+       "mT",
+       "neg"
+      ]
+     },
+     "values": {
+      "surfaceText": "don't"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "coordination",
+     "label": "Conj",
+     "children": [
+      {
+       "id": "aTP",
+       "label": "T",
+       "children": [
+        {
+         "id": "someone",
+         "label": "D[indefinite]",
+         "word": "Someone",
+         "lineageId": "someone-chain",
+         "children": []
+        },
+        {
+         "id": "aTCore",
+         "label": "T",
+         "children": [
+          {
+           "id": "aT",
+           "label": "T[past]",
+           "silent": true,
+           "children": []
+          },
+          {
+           "id": "avSubject",
+           "label": "v",
+           "children": [
+            {
+             "id": "someoneLow",
+             "label": "D[indefinite]",
+             "word": "Someone",
+             "silent": true,
+             "lineageId": "someone-chain",
+             "children": []
+            },
+            {
+             "id": "avCore",
+             "label": "v",
+             "children": [
+              {
+               "id": "av",
+               "label": "v",
+               "silent": true,
+               "children": []
+              },
+              {
+               "id": "aV",
+               "label": "V",
+               "word": "called",
+               "children": []
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "conjCore",
+       "label": "Conj",
+       "children": [
+        {
+         "id": "but",
+         "label": "Conj",
+         "word": "but",
+         "children": []
+        },
+        {
+         "id": "mTP",
+         "label": "T",
+         "children": [
+          {
+           "id": "I",
+           "label": "D[1sg]",
+           "word": "I",
+           "lineageId": "I-chain",
+           "children": []
+          },
+          {
+           "id": "mTCore",
+           "label": "T",
+           "children": [
+            {
+             "id": "mT",
+             "label": "T[present, auxiliary]",
+             "word": "do",
+             "children": []
+            },
+            {
+             "id": "negP",
+             "label": "Neg",
+             "children": [
+              {
+               "id": "neg",
+               "label": "Neg",
+               "word": "not",
+               "children": []
+              },
+              {
+               "id": "mvSubject",
+               "label": "v",
+               "children": [
+                {
+                 "id": "ILow",
+                 "label": "D[1sg]",
+                 "word": "I",
+                 "silent": true,
+                 "lineageId": "I-chain",
+                 "children": []
+                },
+                {
+                 "id": "mvCore",
+                 "label": "v",
+                 "children": [
+                  {
+                   "id": "mv",
+                   "label": "v",
+                   "silent": true,
+                   "children": []
+                  },
+                  {
+                   "id": "mVP",
+                   "label": "V",
+                   "children": [
+                    {
+                     "id": "mV",
+                     "label": "V",
+                     "word": "know",
+                     "children": []
+                    },
+                    {
+                     "id": "eCP",
+                     "label": "C",
+                     "children": [
+                      {
+                       "id": "who",
+                       "label": "D[wh]",
+                       "word": "who",
+                       "lineageId": "who-chain",
+                       "children": []
+                      },
+                      {
+                       "id": "eCCore",
+                       "label": "C",
+                       "children": [
+                        {
+                         "id": "eC",
+                         "label": "C[interrogative]",
+                         "silent": true,
+                         "children": []
+                        },
+                        {
+                         "id": "eTP",
+                         "label": "T",
+                         "silent": true,
+                         "children": [
+                          {
+                           "id": "whoSubject",
+                           "label": "D[wh]",
+                           "word": "who",
+                           "silent": true,
+                           "lineageId": "who-chain",
+                           "children": []
+                          },
+                          {
+                           "id": "eTCore",
+                           "label": "T",
+                           "children": [
+                            {
+                             "id": "eT",
+                             "label": "T[past]",
+                             "silent": true,
+                             "children": []
+                            },
+                            {
+                             "id": "evSubject",
+                             "label": "v",
+                             "children": [
+                              {
+                               "id": "whoAgent",
+                               "label": "D[wh]",
+                               "word": "who",
+                               "silent": true,
+                               "lineageId": "who-chain",
+                               "children": []
+                              },
+                              {
+                               "id": "evCore",
+                               "label": "v",
+                               "children": [
+                                {
+                                 "id": "ev",
+                                 "label": "v",
+                                 "silent": true,
+                                 "children": []
+                                },
+                                {
+                                 "id": "eV",
+                                 "label": "V",
+                                 "word": "called",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "realizations": [
+    {
+     "nodeIds": [
+      "mT",
+      "neg"
+     ],
+     "tokenIndices": [
+      4
+     ]
+    }
+   ]
+  }
+ ]
+}

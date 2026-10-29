@@ -13,6 +13,7 @@ const SPOKE_ATTACHED = 'Accepted since #76: keeping the gap would cut off the sp
 const PLAQUE_CROWDED = 'Accepted (catalog #3; ROADMAP Explicitly Not Active, Francis on 23 and 24 Oct): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
   + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 
+const STABLE_FARTHER_NOTE = '27 Oct, in chat: asked "Plaques that would jump take the farther stretch-clear pocket?", Francis answered "Yes"';
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
@@ -46,7 +47,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/case-source-transfer.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta Experiencer/Theme)@v1', { desktop: { '15-18': 1.13 }, 'desktop-large': { '15-18': 1.13 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/compact-current-root.json#/cases/1', 'mark-distance', 'plaque',
-    'plaque(0:0 theta Agent/Theme)@v', { desktop: { '33-38': 1.19 }, 'desktop-large': { '33-38': 1.19 } }),
+    'plaque(0:0 theta Agent/Theme)@v', { desktop: { '36-38': 1.19 }, 'desktop-large': { '36-38': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/head-movement-ordinary-wrapper.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta external participant in living)@i_v', { desktop: { '28-36': 1.22 }, 'desktop-large': { '28-36': 1.22 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/inserted-adjunction-segment.json#', 'mark-distance', 'plaque',
@@ -54,14 +55,22 @@ export const EXCEPTIONS = [
     { by: 'Francis Ronge', on: '2026-10-23', note: 'Move first, then adjoin: the movement now plays before the phrase it lands in is merged into a larger one. Francis reviewed the click-through side-by-side of all seven changed fixtures on 23 Oct in the lead session (\'Looked at the replay page, looks good.\'): the relative clause\'s movements play before the matrix builds, so stage 3 is laid out differently and this plaque sits at 1.55 of its reach instead of 1.29.',
       accepts: { desktop: { '45-50': 1.55 }, 'desktop-large': { '45-50': 1.55 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/native-plaque-footprints.json#', 'mark-distance', 'plaque',
-    'plaque(1:2 theta Agent)@v', { desktop: { '24-29': 1.19 }, 'desktop-large': { '24-29': 1.19 } }),
+    'plaque(1:2 theta Agent)@v', { desktop: { '24-29': 1.19, '30-35': 1.29 }, 'desktop-large': { '24-29': 1.19, '30-35': 1.29 } },
+    { by: 'Francis Ronge', on: '2026-10-27', note: 'Frames 24-29 are main\'s entry, unchanged and listed for the reason given; '
+      + 'this answer covers only frames 30-35, though an approval names the whole entry. Frames 30-35: ' + STABLE_FARTHER_NOTE
+      + '. Its anchor moves where stage 3 begins at frame 30; main gives it a pocket there that syntax of stage 3 takes at frame 31, '
+      + 'where main moves it beside its still anchor. It takes instead the nearest pocket that stays clear until its anchor moves '
+      + 'at frame 36, and keeps it until then.',
+      accepts: { desktop: { '24-29': 1.19, '30-35': 1.29 }, 'desktop-large': { '24-29': 1.19, '30-35': 1.29 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/ordinary-receiving-width-control.json#', 'mark-distance', 'plaque',
-    'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '34-41': 1.14 }, 'desktop-large': { '34-41': 1.14 } },
-    { by: 'Francis Ronge', on: '2026-10-23', note: 'Accepted 21 Oct on the plaque-gap side-by-side review '
+    'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '33-41': 1.14 }, 'desktop-large': { '33-41': 1.14 } },
+    { by: 'Francis Ronge', on: '2026-10-27', note: 'Accepted 21 Oct on the plaque-gap side-by-side review '
       + '("The plaque changes are fine."): a plaque brought near keeps the full gap from movement arrows, so this theme grid '
       + 'has no nearer pocket and returns to its spot from before #150. Move first, then adjoin (reviewed 23 Oct: '
-      + '"Looked at the replay page, looks good.") plays the raising two frames earlier, so the same state starts at frame 34.',
-      accepts: { desktop: { '34-41': 1.14 }, 'desktop-large': { '34-41': 1.14 } } }),
+      + '"Looked at the replay page, looks good.") plays the raising two frames earlier, so the same state starts at frame 34.'
+      + ' Frame 33: ' + STABLE_FARTHER_NOTE + '. Stage 2 begins at frame 33 and paints syntax or a mark in the grid\'s earlier '
+      + 'pocket at frame 34, where main moves it to this pocket; it now takes this pocket at frame 33 and keeps it through the stage.',
+      accepts: { desktop: { '33-41': 1.14 }, 'desktop-large': { '33-41': 1.14 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/receiving-slot-width-control.json#', 'mark-distance', 'plaque',
     'plaque(3:1 clauseType: declarative personal infinitive)@infinitivalC', { desktop: { '33-48': 1.2 }, 'desktop-large': { '33-48': 1.2 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/review-workspace-boundaries.json#/cases/0', 'mark-distance', 'plaque',
@@ -75,7 +84,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/shared-landing-source.json#', 'mark-distance', 'plaque',
     'plaque(0:3 theta Agent/propositional Content)@sayV', { desktop: { '36-40': 1.67 }, 'desktop-large': { '36-40': 1.67 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/sol-spanish-qr.json#/analyses/0', 'mark-distance', 'plaque',
-    'plaque(0:0 theta Agent/Theme)@v', { desktop: { '33-38': 1.19 }, 'desktop-large': { '33-38': 1.19 } }),
+    'plaque(0:0 theta Agent/Theme)@v', { desktop: { '36-38': 1.19 }, 'desktop-large': { '36-38': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-distance', 'plaque',
     'plaque(0:1 participialForm: default neuter singular, not ag)@helpV', { desktop: { '21-36': 1.37 }, 'desktop-large': { '21-36': 1.37 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-distance', 'plaque',

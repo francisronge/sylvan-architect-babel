@@ -1,7 +1,8 @@
 import * as d3 from 'd3';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import {
-  caseFeatureComposition
+  caseFeatureComposition,
+  presentCaseRows
 } from '../../replay/relations/featureComposition.ts';
 import {
   caseAssignmentPlaquePath,
@@ -22,6 +23,8 @@ import type { ClaimDrawing, DrawingLayer, RelationEmphasis, RelationLayers, Tree
 interface CaseFeatureDrawingContext extends Pick<ClaimDrawing, 'decorateRelationElement'>, Pick<RelationLayers, 'ensureAgreementCaseRelationLayer'>, Pick<TreeMeasurements, 'measuredTreeLabelRectNow' | 'measuredTerminalSubtreeRectNow'> {
   relationEmphasisForItem: (item: RelationPlanItem) => RelationEmphasis;
   activeDerivationFrameIndex: number;
+  /** The active stage's played relations; null for its completed state. */
+  playedRelationIndices: ReadonlySet<number> | null;
   markerScale: number;
   frameItems: RelationPlanItem[];
   replayPlaqueLayout: ReturnType<typeof projectPlaqueLayout>;
@@ -34,6 +37,7 @@ export function createCaseFeatureDrawing({
   decorateRelationElement,
   relationEmphasisForItem,
   activeDerivationFrameIndex,
+  playedRelationIndices,
   markerScale,
   frameItems,
   replayPlaqueLayout,
@@ -82,7 +86,9 @@ export function createCaseFeatureDrawing({
     if (!revealedOwners.length) return;
     renderedCaseCompositions.add(String(assignmentIndex));
     const { assignment } = composition;
-    const rowLayout = prepareCasePlaqueRows(composition.rows);
+    // Rows a later relation superseded have left; the shell fits the rest at this step.
+    const rows = presentCaseRows(frameItems, composition.rows, activeDerivationFrameIndex, playedRelationIndices);
+    const rowLayout = prepareCasePlaqueRows(rows);
     const box = { x: placement.x, y: placement.y, width: rowLayout.width, height: rowLayout.height };
     const layer = ensureAgreementCaseRelationLayer();
     const plaque = layer.append('g')
@@ -106,7 +112,7 @@ export function createCaseFeatureDrawing({
       .attr('x', (box.x + 20).toFixed(1)).attr('y', (box.y + 32).toFixed(1)).text('CASE / AGREEMENT');
     const rowTargets = new Map<number, number>();
     rowLayout.rows.forEach((row, rowIndex) => {
-      const claim = composition.rows[rowIndex];
+      const claim = rows[rowIndex];
       claim.ownerIndices.forEach(index => rowTargets.set(index, box.y + row.y));
       if (!claim.ownerIndices.some(index => revealedItemIndices.has(index))) return;
       const group = plaque.append('g').attr('class', 'babel-feature-row')

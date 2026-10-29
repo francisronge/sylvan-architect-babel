@@ -54,7 +54,10 @@ export type PlaqueRect = ObstacleRect & {
   /** A fixed native plaque's footprint: a plaque, not syntax or a connector. */
   plaqueShell?: boolean;
   /** A sampled movement trajectory: like a plaque, it keeps the full gap when syntax gets a narrower one. */
-  trajectory?: boolean };
+  trajectory?: boolean;
+  /** The plaques this box does not block, by plaqueIdentity and claimIdentity: a binding
+   * domain's outline grows around the plaques attached inside its domain. */
+  enclosedPlaques?: ReadonlySet<string> };
 type CollectionRow = { sourceNodeId: string; y: number; lane?: number; ownerKeys?: string[]; featureKey?: string; edge?: CollectionEdge; portX?: number };
 type Node = HierarchyPointNode<SyntaxNode>;
 /** The shell a placed plaque paints, which may differ from its allocated box. */
@@ -102,6 +105,13 @@ const candidateWeights = Array.from({ length: 65 }, (_, index) => {
   return u ** 3 + 3 * u * u * t;
 });
 const fitsLocalPocket = ({ width, height }: Pick<PlaqueRect, 'width' | 'height'>) => Math.max(width, height) <= localPlaqueSize;
+/** What decides whether a plaque is placed beside its owner: its size and whether it
+ * grows sideways with its content. */
+export type PlaqueReachShape = Pick<PlaqueRect, 'width' | 'height'> & { thetaGrid?: boolean; realizedForm?: boolean };
+/** Role grids grow horizontally with their columns, and a realization plate with its
+ * realized text: width alone must not detach either from its owner. */
+const placedLocally = ({ width, height, thetaGrid, realizedForm }: PlaqueReachShape) =>
+  fitsLocalPocket({ width, height }) || Boolean(thetaGrid || realizedForm) && height <= localPlaqueSize;
 // The local search first tries pockets beside and above or below the anchor point:
 // these box tops, each centred or this far to either side.
 const nearbyPocketTops = (height: number) => [-height - 60, -height / 2, 55, 115, 175, 235];
@@ -152,9 +162,11 @@ export function plaqueAnchorPoint(anchor: Pick<Node, 'x' | 'y' | 'data' | 'child
   return { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0) };
 }
 /** Distance from the anchor point to the centre of the farthest nearby pocket. A
- * plaque beyond it is remote; one too large for the local search has no reach. */
-export function nearbyPlaqueReach({ width, height, thetaGrid }: Pick<PlaqueRect, 'width' | 'height'> & { thetaGrid?: boolean }) {
-  if (!fitsLocalPocket({ width, height }) && !(thetaGrid && height <= localPlaqueSize)) return Infinity;
+ * plaque beyond it is remote; one the local search does not place (placedLocally)
+ * has no reach. */
+export function nearbyPlaqueReach(shape: PlaqueReachShape) {
+  const { width, height } = shape;
+  if (!placedLocally(shape)) return Infinity;
   return Math.hypot(nearbyPocketGap + width / 2, Math.max(...nearbyPocketTops(height).map(top => Math.abs(top + height / 2))));
 }
 /** The farthest nearby pocket itself is nearby; the margin absorbs rounding. */
@@ -432,6 +444,22 @@ const curveObstacleRects = (curve: ReturnType<typeof featureCollectionPlaqueCurv
   return [...curveObstacleRects({ source: curve.source, control1: ab, control2: abc, target: split }, padding, depth - 1),
     ...curveObstacleRects({ source: split, control1: bcd, control2: cd, target: curve.target }, padding, depth - 1)];
 };
+
+/** The outline of an ellipse as obstacles, so a plaque may stand inside the ellipse or
+ * outside it but not across its outline: the boxes of arcs no longer than `arc`, grown by
+ * `stroke`, which keep the plaque gap like any box. Each quadrant splits into whole arcs,
+ * so every arc's box is its endpoints' box, and a box reaches at most half an arc's
+ * length beyond the outline. */
+export function ellipseOutlineObstacles({ cx, cy, rx, ry }: { cx: number; cy: number; rx: number; ry: number }, stroke: number,
+  arc = 48): PlaqueRect[] {
+  const count = 4 * Math.max(16, Math.ceil(Math.PI / 2 * Math.max(rx, ry) / arc));
+  const points = Array.from({ length: count + 1 }, (_, i) => ({ x: cx + rx * Math.cos(2 * Math.PI * i / count),
+    y: cy + ry * Math.sin(2 * Math.PI * i / count) }));
+  return points.slice(1).map((point, i) => {
+    const x = Math.min(point.x, points[i].x), y = Math.min(point.y, points[i].y);
+    return { x: x - stroke, y: y - stroke, width: Math.abs(point.x - points[i].x) + 2 * stroke, height: Math.abs(point.y - points[i].y) + 2 * stroke };
+  });
+}
 
 /** Test the drawn approach against opaque ink, leaving its own attachment available. */
 export function caseAssignmentClears(anchor: Node, box: PlaqueRect, obstacles: PlaqueRect[], sources?: CaseSourceRects): boolean {
@@ -1145,8 +1173,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const availableNodes = new Set(nodes);
     const domainBounds = boundingRect(plaqueTreeObstacles(domain.descendants().filter(node => availableNodes.has(node))));
     const { width, height } = request;
-    // Role grids grow horizontally with their columns; width alone must not detach them from the predicate.
-    const local = fitsLocalPocket(request) || (request.thetaGrid && height <= localPlaqueSize);
+    const local = placedLocally(request);
     const terminal = request.caseAssignment ? anchor.descendants().filter(node => !node.children?.length && node.data.word) : [];
     const anchorY = terminal.length === 1 ? terminal[0].y + TERMINAL_ATTACHMENT_Y
       : anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0);

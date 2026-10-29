@@ -267,6 +267,77 @@ test('control: mark-motion reports a plaque that leaves a pocket nothing new occ
     { ...after, plaques: [plaque(110, 55, undefined, { joined: true })] }).length, 1, 'a plaque its own connector joins to syntax');
 });
 
+test('control: mark-motion judges a plaque that did not leave early as main does, and accepts an early leave only where a stage begins', () => {
+  // Francis, 27 October 2026 (n3-04-yue-sfp, steps 12 to 13): a θ-grid kept a pocket above a noun until N′ was projected there.
+  // The schedule now leaves such a pocket early where it can; where it cannot, the plaque moves as on main, and main's rule
+  // excuses a move for what the later frame newly paints (coordinator's decision on PR #285, 29 October 2026).
+  const word = (id, x, y) => text(id, 'word', box(x, y, 80, 40));
+  const label = (id, x, y) => ({ ...box(x, y, 80, 40), blocksConnectors: true, connectorAttachment: `${id}:category` });
+  const plaque = x => ({ id: 'plaque(0:0 theta Theme)@eat', text: 'theta Theme', rect: box(x, 55, 430, 126), radius: 14, claims: ['0:0'],
+    anchor: { x: 0, y: 140 }, key: 'theta Theme' });
+  const frame = (number, stage, x, reserves = []) => ({ ...blank(0.2), frame: number, stage, texts: [word('eat', -40, 100)], plaques: [plaque(x)], reserves });
+  const projected = label('nBar', -300, 90);
+  assert.deepEqual(checkMarkMotion(frame(12, 1, -540), frame(13, 1, 110, [projected])), [], 'the projection its stage laid out in advance, as on main');
+  assert.deepEqual(checkMarkMotion(frame(12, 1, -540), frame(13, 1, 110)).map(found => [found.frame, found.measure]), [['12>13', 650]],
+    'nothing new in its pocket, as on main');
+  assert.deepEqual(checkMarkMotion(frame(10, 0, -540), frame(11, 1, 110, [projected])), [], 'syntax a new stage paints');
+  assert.deepEqual(checkMarkMotion(frame(12, 1, -540), frame(13, 1, 110, [{ ...projected, plaqueShell: true, owner: 'other' }])), [],
+    'another plaque');
+  // Leaving at the stage's first frame for that later projection is not a jump.
+  const ahead = [frame(12, 1, 110), frame(13, 1, 110, [projected])];
+  assert.deepEqual(checkMarkMotion(frame(10, 0, -540), frame(11, 1, 110), undefined, undefined, ahead), []);
+  assert.equal(checkMarkMotion(frame(10, 0, -540), frame(11, 1, 110), undefined, undefined, [frame(12, 1, 110)]).length, 1,
+    'nothing later takes the pocket');
+  const hidden = [{ ...ahead[0], plaques: [] }, ahead[1]];
+  assert.equal(checkMarkMotion(frame(10, 0, -540), frame(11, 1, 110), undefined, undefined, hidden).length, 1,
+    'the plaque is hidden before the projection');
+  // Only where its stage begins: within the stage it keeps its pocket until it must move
+  // (PR #285 review, 29 October 2026; the unfixed audit let this through).
+  assert.deepEqual(checkMarkMotion(frame(11, 1, -540), frame(12, 1, 110), undefined, undefined, [ahead[1]]).map(found => [found.frame, found.measure]),
+    [['11>12', 650]], 'leaving early within a stage');
+});
+
+test('control: mark-motion reports a plaque that leaves its pocket early where its stage begins and then moves again in that stage', () => {
+  // PR #285 review, 29 October 2026 (reviewed-construction#/cases/2, frames 16 to 19): a θ-grid
+  // took a farther pocket where stage 1 began, clear of a projection at frame 19, and returned
+  // within reach at frame 19 once a word that stood in a nearer pocket had gone. Francis
+  // accepted a farther pocket instead of a jump (27 October), not a farther pocket and a jump.
+  const word = (id, x, y) => text(id, 'word', box(x, y, 80, 40));
+  const label = (id, x, y) => ({ ...box(x, y, 80, 40), blocksConnectors: true, connectorAttachment: `${id}:category` });
+  const plaque = x => ({ id: 'plaque(0:0 theta agent)@v', text: 'theta agent', rect: box(x, 55, 430, 126), radius: 14, claims: ['0:0'],
+    anchor: { x: 0, y: 140 }, key: 'theta agent' });
+  const frame = (number, stage, x, reserves = []) => ({ ...blank(0.2), frame: number, stage, texts: [word('v', -40, 100)], plaques: [plaque(x)], reserves });
+  const nearer = label('w', 300, 90), projected = label('nBar', -300, 90);
+  const frames = [frame(10, 0, -540), frame(11, 1, 600, [nearer]), frame(12, 1, 600, [nearer]), frame(13, 1, 110, [projected])];
+  assert.deepEqual(markMotionFindings(frames).map(found => [found.frame, found.measure]), [['12>13', 490]]);
+  // Each judged alone, the return within reach is no jump: the word in the nearer pocket has gone.
+  assert.deepEqual(checkMarkMotion(frames[2], frames[3]), []);
+  // A plaque that keeps the pocket it took through the stage is not reported.
+  assert.deepEqual(markMotionFindings([...frames.slice(0, 3), frame(13, 1, 600, [projected])]), []);
+});
+
+test('control: mark-motion reports a plaque that leaves its pocket early where a stage begins and moves again where the next begins', () => {
+  // PR #285 review, 29 October 2026 (reviewed-construction#/cases/2 at 9ef8615): a θ-grid took a
+  // farther pocket where stage 1 began at frame 16, held it through stage 2 and moved again where
+  // stage 3 began at frame 26, which the audit then excused as a return within reach. The early
+  // pocket is held until the anchor moves or the plaque leaves, across stage boundaries too.
+  const word = (id, x, y) => text(id, 'word', box(x, y, 80, 40));
+  const label = (id, x, y) => ({ ...box(x, y, 80, 40), blocksConnectors: true, connectorAttachment: `${id}:category` });
+  const plaque = x => ({ id: 'plaque(0:0 theta agent)@v', text: 'theta agent', rect: box(x, 55, 430, 126), radius: 14, claims: ['0:0'],
+    anchor: { x: 0, y: 140 }, key: 'theta agent' });
+  const frame = (number, stage, x, reserves = []) => ({ ...blank(0.2), frame: number, stage, texts: [word('v', -40, 100)], plaques: [plaque(x)], reserves });
+  const nearer = label('w', 300, 90), projected = label('nBar', -300, 90);
+  const frames = [frame(10, 0, -540), frame(11, 1, 600, [nearer]), frame(12, 1, 600, [nearer, projected]), frame(13, 2, 110, [projected])];
+  assert.deepEqual(markMotionFindings(frames).map(found => [found.frame, found.measure]), [['12>13', 490]]);
+  // Without the early move, the return where stage 2 begins is no jump.
+  assert.deepEqual(markMotionFindings([frame(11, 1, 600, [nearer]), ...frames.slice(2)]), []);
+  // Its anchor moving, or the plaque leaving, ends the hold.
+  const moved = { ...frames[3], plaques: [{ ...plaque(270), anchor: { x: 200, y: 140 } }] };
+  assert.deepEqual(markMotionFindings([...frames.slice(0, 3), moved]), []);
+  const gone = { ...frames[2], frame: 13, stage: 2, plaques: [] };
+  assert.deepEqual(markMotionFindings([...frames.slice(0, 3), gone, { ...frames[3], frame: 14 }]), []);
+});
+
 test('mark-motion: plaques keep their pockets where main moved them beside a still anchor with nothing new in the way', () => {
   // Main moved each of these at the transition named (desktop): a nearer pocket at a
   // stage boundary, a pocket blocked only later in the stage, a pocket left at a stage
