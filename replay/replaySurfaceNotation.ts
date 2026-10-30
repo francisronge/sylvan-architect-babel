@@ -6,26 +6,30 @@ import { categoryLabel as normalizeStructuralLabel } from './categoryLabel.ts';
 /** Surface and index notation only; this does not infer movement or pronunciation. */
 const PRIME_CATEGORY_LABEL_RE = /[′’'](?:\s*\[[^\[\]]*\])*$/u;
 
-const HEAD_LIKE_LABEL_RE = /^(?:C|Q|WH|T|INFL|I|V|D|N|A|P|AUX)$/i;
+/* Text only: whether a written surface (a wordless leaf's label, "⟨T⟩") spells
+ * a category name rather than a word or trace. A string has no shape, so this
+ * keeps a short list of single-head category names. It never decides whether a
+ * tree node is a head; structuralHeads.ts reads that from shape. */
+const CATEGORY_NAME_SURFACE_RE = /^(?:C|Q|WH|T|INFL|I|V|D|N|A|P|AUX)$/i;
 
-export const isPhraseShellLabel = (label?: string): boolean => {
+const isPhraseShellLabel = (label?: string): boolean => {
   const normalized = normalizeStructuralLabel(label);
   if (!normalized) return false;
   return /P$/i.test(normalized);
 };
 
-export const isHeadShellLabel = (label?: string): boolean => {
+const isHeadCategorySurface = (label?: string): boolean => {
   const raw = String(label || '').trim();
   if (!raw || PRIME_CATEGORY_LABEL_RE.test(raw)) return false;
   const normalized = normalizeStructuralLabel(raw);
   if (!normalized) return false;
-  return HEAD_LIKE_LABEL_RE.test(normalized);
+  return CATEGORY_NAME_SURFACE_RE.test(normalized);
 };
 
 export const isStructuralCategorySurface = (surface?: string): boolean => {
   const normalized = normalizeStructuralLabel(surface);
   if (!normalized) return false;
-  return isHeadShellLabel(normalized) || isPhraseShellLabel(normalized);
+  return isHeadCategorySurface(normalized) || isPhraseShellLabel(normalized);
 };
 
 const SUBSCRIPT_MAP: Record<string, string> = {
