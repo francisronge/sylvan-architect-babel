@@ -8,10 +8,11 @@ import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { planSpelloutAttempts } from '../contractQualification/spelloutArtifacts.js';
 import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
-import { checkOneLetterPerLabel } from './helpers/replayInvariants.mjs';
+import { plaqueIdentity } from '../replay/relations/plaquePlacement.ts';
+import { checkOneLetterPerLabel, checkPlanIdentityUnique } from './helpers/replayInvariants.mjs';
 
-/* Defects of the 29 October 2026 held-out batch, each reproduced from its saved
- * analysis (tests/helpers/heldoutDefectRecords.json). */
+/* Defects of the 29 October 2026 held-out batch and the 30 October confirmation
+ * batch, each reproduced from its saved analysis (tests/helpers/heldoutDefectRecords.json). */
 
 const records = JSON.parse(readFileSync(new URL('./helpers/heldoutDefectRecords.json', import.meta.url), 'utf8'));
 const prepare = key => {
@@ -86,4 +87,29 @@ test('Opus h1-093: a word that spells its token across a space times alike on ev
   assert.deepEqual(old.playbackSteps.flatMap(step => step.replayRealizationDiagnostics ?? []), []);
   old.playbackSteps.forEach((step, index) => assert.equal((step.replayRealizations ?? []).some(entry => JSON.stringify(entry) === key),
     step.replayFrameIndex === 7, `saved step ${index + 1}`));
+});
+
+test('Sol c1-013: a relation recovered as Case and as agreement with the same Case draws one Case path', () => {
+  // wil agrees with jan and licenses its Case. Both recoveries drew the same
+  // nominative path and plaque under one identity, and from frame 24 one
+  // plaque took its twin's pocket. The agreement claim owns every authored
+  // item of the Case claim, so it alone draws.
+  const replay = prepare('sol-c1-013-a1');
+  assert.deepEqual(checkPlanIdentityUnique(replay), []);
+  const paths = (stageIndex, from) => replay.relationRenderPlan.frames[stageIndex].items
+    .filter(item => item.kind === 'directed-path' && item.relationRef.stageIndex === stageIndex && item.fromNodeId === from)
+    .map(item => `${item.pathStyle} ${item.toNodeId}`);
+  assert.deepEqual(paths(3, 'wil').filter(path => path.startsWith('case-assignment')), ['case-assignment jan']);
+  assert.deepEqual(paths(8, 'mt').filter(path => path.startsWith('case-assignment')), ['case-assignment ik']);
+});
+
+test('marks that request no plaque may share an identity, as two trajectories to one shared landing do', () => {
+  const { sentence, inputTokens, analyses } = JSON.parse(readFileSync(new URL('../fixtures/movement/shared-landing.json', import.meta.url), 'utf8'));
+  const replay = prepareReplay({ sentence, inputTokens, derivationStages: structuredClone(analyses[0].derivationStages), includePlayback: true });
+  const shared = replay.relationRenderPlan.frames.some(frame => {
+    const identities = frame.items.map(plaqueIdentity);
+    return identities.length !== new Set(identities).size;
+  });
+  assert.equal(shared, true, 'the fixture still has marks sharing an identity');
+  assert.deepEqual(checkPlanIdentityUnique(replay), []);
 });
