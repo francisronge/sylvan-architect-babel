@@ -248,8 +248,8 @@ once its mistake can no longer happen.
 | Construction never merges an existing constituent again: one that left a parent its stage keeps moved. | `existing-not-remerged` in `tests/helpers/replayInvariants.mjs` |
 | Branches span one row, sisters share a row, parents stand centred. | `branch-geometry`, `parent-centring` in `verify:replay-offline` (CI) |
 | A plaque does not jump while its anchor holds. | `plaque-teleport` in `verify:replay-offline` (CI) |
-| A restated claim shares its plaque; one node never shows two plaques with the same content. | `duplicate-plaque` in `verify:replay-offline` (CI) |
-| A label shows each index letter once, every letter comes from its own chain or grid, and a shared restated plaque keeps each claim's letters. | `one-letter-per-label`, `label-index-owned`, `restated-letters-kept` in `tests/replayInvariants.test.mjs` (`verify:all`) |
+| A restated claim shares its plaque; one node never shows two plaques with the same content. | `duplicate-plaque` in `verify:replay-offline` (CI), for plaques with a face (rows or a theta grid) that serve different claims; a Case or agreement path's faceless plaque is not checked |
+| A label shows each index letter once, every letter belongs to a dependency containing its node (a movement chain, an identity coindex, a theta grid, or the authored label or word), and a shared restated plaque keeps each claim's letters. | `one-letter-per-label`, `label-index-owned`, `restated-letters-kept` in `tests/replayInvariants.test.mjs` (`verify:all`) |
 | Every layout change is reviewed, never regenerated blind. | Layout fingerprint in `verify:replay-offline` |
 | A check judges the layout the browser paints, not another plan. | Shared camera fit; measured-layout test in `tests/replayCorpusComparator.test.mjs` |
 | Painted frames and motion stay clean. | `verify:browser-visual` before merge, on macOS |
