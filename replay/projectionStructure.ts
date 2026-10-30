@@ -1,20 +1,24 @@
-/** Projection levels of Bare Phrase Structure labels, read from the tree.
+/** Projection levels read from the tree's shape, whatever the labels spell.
  *
- * X-bar notation writes the level in the label (TP, T′, T). A bare label (T
- * for all three) leaves it to structure: a node projects from the daughter
- * with its own category, is maximal when its parent does not project from it,
- * and is minimal when nothing projects into it. A complex head formed by head
- * movement ([T C] under C) is minimal too, when structure shows the movement
- * (see headShape below).
+ * A node projects from the daughter with its own head category, is maximal
+ * when its parent does not project from it, and is minimal when nothing
+ * projects into it. A complex head formed by head movement ([T C] under C) is
+ * minimal too, when structure shows the movement (see headShape below). The
+ * same structure therefore reads alike in bare labels ([T D [T T V]]) and in
+ * Minimalist "XP over XP" labels ([TP DP [TP T VP]]), where the inner TP is a
+ * non-maximal segment: "P" names the category, not the level.
  *
- * Consumers keep reading levels from notation whenever any label of the tree
- * writes one; `readBareProjections` then answers undefined. */
+ * X-bar notation writes the intermediate level (T′, or prose such as
+ * "T-projection"). There a repeated XP marks an adjunct, not a segment with a
+ * specifier, which structure alone cannot tell, so consumers keep reading
+ * levels from that notation and `readStructuralProjections` answers
+ * undefined. */
 import type { SyntaxNode } from '../types.ts';
 import { readCategoryLabel } from './categoryLabel.ts';
 
 type ProjectionNode = Pick<SyntaxNode, 'label' | 'children' | 'lineageId'>;
 
-export interface BareProjections<Node extends ProjectionNode = SyntaxNode> {
+export interface StructuralProjections<Node extends ProjectionNode = SyntaxNode> {
   /** The head category the label names, or undefined when it names none. */
   category: (node: Node) => string | undefined;
   parent: (node: Node) => Node | undefined;
@@ -35,7 +39,7 @@ export interface BareProjections<Node extends ProjectionNode = SyntaxNode> {
 
 const childrenOf = <Node extends ProjectionNode>(node: Node): Node[] => (Array.isArray(node.children) ? node.children : []) as Node[];
 
-// Prose such as "T-projection" also states a level.
+// Prose such as "T-projection" also states a level, which is read as notation.
 const PROSE_LEVEL = /^[A-Za-z\p{Script=Greek}]+[\s-]+(?:projection|phrase|bar)\b/iu;
 
 /** Whether some label writes a projection level (XP, X′ or "X projection"). */
@@ -51,14 +55,27 @@ export const writesProjectionLevels = (roots: readonly ProjectionNode[]): boolea
   return false;
 };
 
+/** Whether some label writes an intermediate projection level (X′ or "X
+ * projection"), as X-bar notation does. */
+export const writesIntermediateLevels = (roots: readonly ProjectionNode[]): boolean => {
+  const pending = [...roots];
+  while (pending.length) {
+    const node = pending.pop();
+    if (!node) continue;
+    if (readCategoryLabel(node.label)?.kind === 'bar' || PROSE_LEVEL.test(String(node.label ?? '').trim())) return true;
+    pending.push(...childrenOf(node));
+  }
+  return false;
+};
+
 // A lower occurrence written as "T trace" or "D-copy" keeps its category.
 const LOWER_OCCURRENCE = /^([A-Za-z\p{Script=Greek}]+)[\s-]+(?:trace|copy)$/iu;
 const structuralCategory = (label?: string): string | undefined => readCategoryLabel(label)?.head
   ?? readCategoryLabel(LOWER_OCCURRENCE.exec(String(label ?? '').trim())?.[1])?.head;
 
-/** Structural projection levels for a forest written in bare labels. */
-export const readBareProjections = <Node extends ProjectionNode>(roots: readonly Node[]): BareProjections<Node> | undefined => {
-  if (!roots.length || writesProjectionLevels(roots)) return undefined;
+/** Structural projection levels for a forest that writes no intermediate level. */
+export const readStructuralProjections = <Node extends ProjectionNode>(roots: readonly Node[]): StructuralProjections<Node> | undefined => {
+  if (!roots.length || writesIntermediateLevels(roots)) return undefined;
   const parents = new Map<Node, Node>();
   const categories = new Map<Node, string | undefined>();
   const all: Node[] = [];
@@ -118,7 +135,11 @@ export const readBareProjections = <Node extends ProjectionNode>(roots: readonly
     const above = parents.get(node);
     return !maximal(node) || Boolean(above && headShape(above) && inHeadPosition(above));
   };
-  const isHead = (node: Node): boolean => simpleHead(node) || headShape(node) && inHeadPosition(node);
+  // A phrase label (DP over "Mia") settles what structure leaves open: a
+  // one-word item may be a head or a phrase, and the label says phrase.
+  const phraseLabels = new Set(all.filter(node => readCategoryLabel(node.label)?.kind === 'phrase'));
+  const isHead = (node: Node): boolean => !phraseLabels.has(node)
+    && (simpleHead(node) || headShape(node) && inHeadPosition(node));
   let minimalCache: Map<Node, boolean> | undefined;
   const minimal = (node: Node): boolean => {
     if (!minimalCache) {

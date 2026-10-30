@@ -3,7 +3,7 @@
  * analyses author such labels; the rewrite lets a test compare the same
  * structure under both notations. */
 import { readCategoryLabel } from '../../replay/categoryLabel.ts';
-import { readBareProjections } from '../../replay/projectionStructure.ts';
+import { readStructuralProjections } from '../../replay/projectionStructure.ts';
 
 const LEADING_CATEGORY = /^([A-Za-z]+)(⁰|°|\^?0|[′’']+)?/u;
 
@@ -21,6 +21,11 @@ const bareNode = node => !node || node.refId ? node : {
   ...(Array.isArray(node.children) ? { children: node.children.map(bareNode) } : {})
 };
 
+/** Whether some label writes a level (XP or X′), as the rewrite expects. */
+export const writesLevelNotation = forest => forest.some(function writes(node) {
+  return ['phrase', 'bar'].includes(readCategoryLabel(node.label)?.kind) || (node.children ?? []).some(writes);
+});
+
 export const toBareForest = forest => forest.map(bareNode);
 export const toBareStages = stages => stages.map(stage => ({ ...stage, workspaceForest: toBareForest(stage.workspaceForest) }));
 
@@ -31,7 +36,7 @@ export const toBareStages = stages => stages.map(stage => ({ ...stage, workspace
  * without V′) make no claim the bare rewrite could keep. */
 export const isStructureFaithfulXbar = forest => {
   const rewritten = toBareForest(forest);
-  const bare = readBareProjections(rewritten);
+  const bare = readStructuralProjections(rewritten);
   const faithful = (authored, node) => {
     if (isWordLeaf(authored)) return true;
     const shape = readCategoryLabel(authored.label);
@@ -46,21 +51,31 @@ export const isStructureFaithfulXbar = forest => {
   return Boolean(bare) && forest.every((root, index) => faithful(root, rewritten[index]));
 };
 
-/** Rewrite the labels a position description names: `Spec,TP` → `Spec,T`. */
+const escape = text => text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+// Only X′ tells a specifier from an adjunct, so bare labels describe X-bar's
+// Spec,TP neutrally, as the phrase in T.
+const NEUTRAL_SPECIFIER = parent => `(?:.+ in )?${escape(toBareLabel(parent))}`;
+
+/** Rewrite the labels a position description names: `T⁰ in T′` → `T in T`.
+ * The result is a pattern: X-bar's `Spec,TP` becomes "<phrase> in T". */
 export const toBarePosition = text => {
   const spec = /^Spec,(.+)$/u.exec(text);
-  if (spec) return `Spec,${toBareLabel(spec[1])}`;
+  if (spec) return NEUTRAL_SPECIFIER(spec[1]);
   const within = /^(.+) in (.+)$/u.exec(text);
-  if (within) return `${toBareLabel(within[1])} in ${toBareLabel(within[2])}`;
-  return /^complement of /u.test(text) ? text : toBareLabel(text);
+  if (within) return escape(`${toBareLabel(within[1])} in ${toBareLabel(within[2])}`);
+  return escape(/^complement of /u.test(text) ? text : toBareLabel(text));
 };
 
 /** Rewrite a Source or Landing panel value: `did (I in I′)`, `did (I) in C`,
- * `Spec,TP`, and several of them joined by ` + `. */
-export const toBarePanelValue = value => value.split(' + ').map(part => {
+ * `Spec,TP`, and several of them joined by ` + `, into a pattern the bare
+ * value must match whole. */
+export const toBarePanelPattern = value => new RegExp(`^${value.split(' + ').map(part => {
   const named = /^(.*) \(([^()]*)\)$/u.exec(part);
-  if (named) return `${toBareLabel(named[1])} (${toBarePosition(named[2])})`;
+  if (named) return `${escape(toBareLabel(named[1]))} \\(${toBarePosition(named[2])}\\)`;
   const head = /^(.*) \(([^()]*)\) in (.+)$/u.exec(part);
-  if (head) return `${head[1]} (${toBareLabel(head[2])}) in ${toBareLabel(head[3])}`;
+  if (head) return escape(`${head[1]} (${toBareLabel(head[2])}) in ${toBareLabel(head[3])}`);
   return toBarePosition(part);
-}).join(' + ');
+}).join(' \\+ ')}$`, 'u');
+
+/** The exact bare position for a whole X-bar description. */
+export const toBarePositionPattern = text => new RegExp(`^${toBarePosition(text)}$`, 'u');
