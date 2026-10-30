@@ -1,5 +1,5 @@
 {
-  "description": "Analyses whose movement hops keep the continuing id at the source, the form Babel gives every hop. The moved phrase's lower occurrence keeps its id and becomes a silent trace, while its content moves on under the new landing id. Neither change is a displacement for another claim of the stage to own, and a pending movement still restores its source until its own moment.",
+  "description": "Analyses whose movement hops keep the continuing id at the source, the form Babel gives every hop. The moved phrase's lower occurrence keeps its id and becomes a silent trace, while its content moves on under the new landing id. Neither change is a displacement for another claim of the stage to own, and a pending movement still restores its source until its own moment. A claim may name the landing in a field Babel does not read as a landing, or restate a chain whose earlier occurrences all pair with the new landing; the kept source and its slot still identify the hop.",
   "cases": [
     {
       "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (v3), commit bcf1b56, 19 October 2026 (fourth night batch, 04-en-raising-control-mix, analysis 1 of 2; analysis 2 repeats the shape in its stage 6). Tokens are the model’s own final words. Here the hop is renamed so the source keeps aCommittee and the landing is aCommitteeTrace; nothing else changes. A finite subject licensing claim names the landing and, in its prior anchors, aCommittee: the source-kept trace once made that claim own the whole matrix clause, so seems, I and I′ were never built and appeared at a later claim.",
@@ -1318,6 +1318,712 @@
                               "label": "I⁰: finite, past",
                               "silent": true,
                               "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Claude Opus 5.5, high reasoning, Anthropic API qualification run, commit 35e88f0, 29 October 2026 (held-out batch heldout-20261029, h1-023-en-pseudogapping, analysis 1 of 1). The analysis's stages 5 and 6 of 15; the others are trimmed, the first stage here keeps its forest with its relations removed, and the sentence is the second stage's pronounced words. Every hop of the whole analysis is renamed so the source keeps the continuing id. The EPP claim names the landing e_shetr as \"mover\", the kept source e_she as \"trace\" and T as \"target\": recognition once found the landing only when it kept the id, so the subject raising lost its arrow.",
+      "sentence": "she did to the hospital give much money",
+      "framework": "minimalism",
+      "derivationStages": [
+        {
+          "statement": "A Focus head above vP attracts the remnant 'to the hospital' out of the future ellipsis site.",
+          "stageRecord": "Pseudogapping leaves 'to the hospital' pronounced while the rest of the verb phrase goes unpronounced. So the remnant must escape the verb phrase before ellipsis. A silent Focus head merges with the v projection. It carries a contrastive-focus feature and also the ellipsis feature that will later license deletion of its complement. The goal phrase then moves from its VP-internal position to the specifier of Focus, leaving a silent trace. The focusMovement relation links the moved goal phrase, its trace and the attracting Focus head.",
+          "relations": [],
+          "workspaceForest": [
+            {
+              "id": "e_focP",
+              "label": "Foc",
+              "children": [
+                {
+                  "id": "e_pptr",
+                  "label": "P",
+                  "lineageId": "L_epp",
+                  "children": [
+                    {
+                      "id": "e_to",
+                      "label": "P",
+                      "word": "to",
+                      "children": []
+                    },
+                    {
+                      "id": "e_dp",
+                      "label": "D",
+                      "children": [
+                        {
+                          "id": "e_the",
+                          "label": "D",
+                          "word": "the",
+                          "children": []
+                        },
+                        {
+                          "id": "e_hosp",
+                          "label": "N",
+                          "word": "hospital",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "e_focbar",
+                  "label": "Foc",
+                  "children": [
+                    {
+                      "id": "e_foc",
+                      "label": "Foc",
+                      "silent": true,
+                      "children": []
+                    },
+                    {
+                      "id": "e_vP",
+                      "label": "v",
+                      "children": [
+                        {
+                          "id": "e_she",
+                          "label": "D",
+                          "word": "she",
+                          "lineageId": "L_eshe",
+                          "children": []
+                        },
+                        {
+                          "id": "e_vbar",
+                          "label": "v",
+                          "children": [
+                            {
+                              "id": "e_vcomplex",
+                              "label": "v",
+                              "children": [
+                                {
+                                  "id": "e_givetr",
+                                  "label": "V",
+                                  "word": "give",
+                                  "lineageId": "L_egive",
+                                  "children": []
+                                },
+                                {
+                                  "id": "e_lv",
+                                  "label": "v",
+                                  "silent": true,
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "e_vp",
+                              "label": "V",
+                              "children": [
+                                {
+                                  "id": "e_obj",
+                                  "label": "N",
+                                  "lineageId": "L_eobj",
+                                  "children": [
+                                    {
+                                      "id": "e_qp",
+                                      "label": "Q",
+                                      "children": [
+                                        {
+                                          "id": "e_op",
+                                          "label": "Op",
+                                          "silent": true,
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "e_much",
+                                          "label": "Q",
+                                          "word": "much",
+                                          "children": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "e_money",
+                                      "label": "N",
+                                      "word": "money",
+                                      "children": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "e_v1",
+                                  "label": "V",
+                                  "children": [
+                                    {
+                                      "id": "e_give",
+                                      "label": "V",
+                                      "silent": true,
+                                      "lineageId": "L_egive",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "e_pp",
+                                      "label": "P",
+                                      "silent": true,
+                                      "lineageId": "L_epp",
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "statement": "Past T, spelled out as 'did', agrees with 'she', and 'she' raises to the T edge.",
+          "stageRecord": "Past tense T merges above the Focus phrase. The verb complex is buried below Focus and inside the soon-to-be-elided verb phrase, so tense cannot be realized on the verb. T is therefore spelled out by do-support as 'did'. T first probes and agrees with the subject 'she' for phi-features and nominative case. 'She' then raises to the specifier of T, leaving a silent trace in the agent position. The doSupport relation records that past tense on T is realized as 'did'. The agree relation links T to 'she'. The epp movement relation links the raised 'she', its trace and T.",
+          "relations": [
+            {
+              "relation": "doSupport",
+              "anchors": {
+                "tense": "e_t"
+              },
+              "values": {
+                "tense": "past",
+                "form": "did"
+              }
+            },
+            {
+              "relation": "agree",
+              "anchors": {
+                "probe": "e_t",
+                "goal": "e_shetr"
+              },
+              "values": {
+                "features": [
+                  "phi",
+                  "nominative case"
+                ]
+              }
+            },
+            {
+              "relation": "eppMovement",
+              "anchors": {
+                "mover": "e_shetr",
+                "trace": "e_she",
+                "target": "e_t"
+              }
+            }
+          ],
+          "workspaceForest": [
+            {
+              "id": "e_tp",
+              "label": "T",
+              "children": [
+                {
+                  "id": "e_shetr",
+                  "label": "D",
+                  "word": "she",
+                  "lineageId": "L_eshe",
+                  "children": []
+                },
+                {
+                  "id": "e_tbar",
+                  "label": "T",
+                  "children": [
+                    {
+                      "id": "e_t",
+                      "label": "T",
+                      "word": "did",
+                      "children": []
+                    },
+                    {
+                      "id": "e_focP",
+                      "label": "Foc",
+                      "children": [
+                        {
+                          "id": "e_pptr",
+                          "label": "P",
+                          "lineageId": "L_epp",
+                          "children": [
+                            {
+                              "id": "e_to",
+                              "label": "P",
+                              "word": "to",
+                              "children": []
+                            },
+                            {
+                              "id": "e_dp",
+                              "label": "D",
+                              "children": [
+                                {
+                                  "id": "e_the",
+                                  "label": "D",
+                                  "word": "the",
+                                  "children": []
+                                },
+                                {
+                                  "id": "e_hosp",
+                                  "label": "N",
+                                  "word": "hospital",
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "e_focbar",
+                          "label": "Foc",
+                          "children": [
+                            {
+                              "id": "e_foc",
+                              "label": "Foc",
+                              "silent": true,
+                              "children": []
+                            },
+                            {
+                              "id": "e_vP",
+                              "label": "v",
+                              "children": [
+                                {
+                                  "id": "e_she",
+                                  "label": "D",
+                                  "silent": true,
+                                  "lineageId": "L_eshe",
+                                  "children": []
+                                },
+                                {
+                                  "id": "e_vbar",
+                                  "label": "v",
+                                  "children": [
+                                    {
+                                      "id": "e_vcomplex",
+                                      "label": "v",
+                                      "children": [
+                                        {
+                                          "id": "e_givetr",
+                                          "label": "V",
+                                          "word": "give",
+                                          "lineageId": "L_egive",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "e_lv",
+                                          "label": "v",
+                                          "silent": true,
+                                          "children": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "e_vp",
+                                      "label": "V",
+                                      "children": [
+                                        {
+                                          "id": "e_obj",
+                                          "label": "N",
+                                          "lineageId": "L_eobj",
+                                          "children": [
+                                            {
+                                              "id": "e_qp",
+                                              "label": "Q",
+                                              "children": [
+                                                {
+                                                  "id": "e_op",
+                                                  "label": "Op",
+                                                  "silent": true,
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "e_much",
+                                                  "label": "Q",
+                                                  "word": "much",
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "e_money",
+                                              "label": "N",
+                                              "word": "money",
+                                              "children": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "e_v1",
+                                          "label": "V",
+                                          "children": [
+                                            {
+                                              "id": "e_give",
+                                              "label": "V",
+                                              "silent": true,
+                                              "lineageId": "L_egive",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "e_pp",
+                                              "label": "P",
+                                              "silent": true,
+                                              "lineageId": "L_epp",
+                                              "children": []
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "Claude Opus 5.5, high reasoning, Anthropic API qualification run, commit 35e88f0, 29 October 2026 (held-out batch heldout-20261029, h1-057-fr-it-cleft, analysis 1 of 1). The analysis's stages 5 and 6 of 10; the others are trimmed, the first stage here keeps its forest with its relations removed, and the sentence is the second stage's pronounced words. Every hop of the whole analysis is renamed so the source keeps the continuing id. The A-bar chain claim names head, intermediate and tail: both earlier occurrences pair with the new head, and recognition once read the claim as ambiguous instead of moving the highest one.",
+      "sentence": "à sa grand-mère que Léa a envoyé ces fleurs",
+      "framework": "minimalism",
+      "derivationStages": [
+        {
+          "statement": "The auxiliary 'a' heads T, agrees with 'Léa', and attracts her to its specifier.",
+          "stageRecord": "The perfect auxiliary 'a' merges as the finite T head above the light-verb phrase and projects. T probes and agrees with 'Léa', which values T as third person singular and gives 'Léa' nominative case. The EPP property of T then raises 'Léa' to its specifier, so the subject precedes the auxiliary. Her agent position inside the vP is left as an unpronounced occurrence. The goal phrase remains at the vP edge, below the subject.",
+          "relations": [],
+          "workspaceForest": [
+            {
+              "id": "tp",
+              "label": "T",
+              "children": [
+                {
+                  "id": "n_lea_c1",
+                  "label": "D",
+                  "word": "Léa",
+                  "lineageId": "L_lea",
+                  "children": []
+                },
+                {
+                  "id": "t1",
+                  "label": "T",
+                  "children": [
+                    {
+                      "id": "n_aux",
+                      "label": "T",
+                      "word": "a",
+                      "children": []
+                    },
+                    {
+                      "id": "v3",
+                      "label": "v",
+                      "children": [
+                        {
+                          "id": "pp_goal_c1",
+                          "label": "P",
+                          "lineageId": "L_pp",
+                          "children": [
+                            {
+                              "id": "n_a",
+                              "label": "P",
+                              "word": "à",
+                              "children": []
+                            },
+                            {
+                              "id": "dp_goal",
+                              "label": "D",
+                              "children": [
+                                {
+                                  "id": "n_sa",
+                                  "label": "D",
+                                  "word": "sa",
+                                  "children": []
+                                },
+                                {
+                                  "id": "n_gm",
+                                  "label": "N",
+                                  "word": "grand-mère",
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "v2",
+                          "label": "v",
+                          "children": [
+                            {
+                              "id": "n_lea",
+                              "label": "D",
+                              "silent": true,
+                              "lineageId": "L_lea",
+                              "children": []
+                            },
+                            {
+                              "id": "v1",
+                              "label": "v",
+                              "children": [
+                                {
+                                  "id": "n_v",
+                                  "label": "v",
+                                  "silent": true,
+                                  "children": []
+                                },
+                                {
+                                  "id": "vp",
+                                  "label": "V",
+                                  "children": [
+                                    {
+                                      "id": "v_bar1",
+                                      "label": "V",
+                                      "children": [
+                                        {
+                                          "id": "n_envoye",
+                                          "label": "V",
+                                          "word": "envoyé",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "dp_obj",
+                                          "label": "D",
+                                          "children": [
+                                            {
+                                              "id": "n_ces",
+                                              "label": "D",
+                                              "word": "ces",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "n_fleurs",
+                                              "label": "N",
+                                              "word": "fleurs",
+                                              "children": []
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "pp_goal",
+                                      "label": "P",
+                                      "silent": true,
+                                      "lineageId": "L_pp",
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "statement": "The complementizer 'que' heads the cleft clause, and the goal phrase moves into its specifier as the focus.",
+          "stageRecord": "The complementizer 'que' merges with the TP 'Léa a envoyé ces fleurs' and projects. 'que' carries a focus feature that probes and finds the goal phrase at the vP edge. The goal phrase then internally merges as the specifier of 'que', which puts 'à sa grand-mère' in front of 'que' as the clefted constituent. Its intermediate position at the vP edge becomes unpronounced. The result is a single A-bar chain with three occurrences: the focus position, the phase-edge position and the base goal position. Only the highest occurrence is pronounced.",
+          "relations": [
+            {
+              "relation": "agree-focus",
+              "anchors": {
+                "probe": "n_que",
+                "goal": "pp_goal_c2"
+              },
+              "values": {
+                "feature": "Foc"
+              }
+            },
+            {
+              "relation": "internal-merge",
+              "anchors": {
+                "mover": "pp_goal_c2",
+                "source": "pp_goal_c1",
+                "target": "cp"
+              },
+              "values": {
+                "type": "A-bar movement",
+                "trigger": "focus"
+              }
+            },
+            {
+              "relation": "A-bar-chain",
+              "anchors": {
+                "head": "pp_goal_c2",
+                "intermediate": "pp_goal_c1",
+                "tail": "pp_goal"
+              },
+              "values": {
+                "pronouncedOccurrence": "head"
+              }
+            }
+          ],
+          "workspaceForest": [
+            {
+              "id": "cp",
+              "label": "C",
+              "children": [
+                {
+                  "id": "pp_goal_c2",
+                  "label": "P",
+                  "lineageId": "L_pp",
+                  "children": [
+                    {
+                      "id": "n_a",
+                      "label": "P",
+                      "word": "à",
+                      "children": []
+                    },
+                    {
+                      "id": "dp_goal",
+                      "label": "D",
+                      "children": [
+                        {
+                          "id": "n_sa",
+                          "label": "D",
+                          "word": "sa",
+                          "children": []
+                        },
+                        {
+                          "id": "n_gm",
+                          "label": "N",
+                          "word": "grand-mère",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "c1",
+                  "label": "C",
+                  "children": [
+                    {
+                      "id": "n_que",
+                      "label": "C",
+                      "word": "que",
+                      "children": []
+                    },
+                    {
+                      "id": "tp",
+                      "label": "T",
+                      "children": [
+                        {
+                          "id": "n_lea_c1",
+                          "label": "D",
+                          "word": "Léa",
+                          "lineageId": "L_lea",
+                          "children": []
+                        },
+                        {
+                          "id": "t1",
+                          "label": "T",
+                          "children": [
+                            {
+                              "id": "n_aux",
+                              "label": "T",
+                              "word": "a",
+                              "children": []
+                            },
+                            {
+                              "id": "v3",
+                              "label": "v",
+                              "children": [
+                                {
+                                  "id": "pp_goal_c1",
+                                  "label": "P",
+                                  "silent": true,
+                                  "lineageId": "L_pp",
+                                  "children": []
+                                },
+                                {
+                                  "id": "v2",
+                                  "label": "v",
+                                  "children": [
+                                    {
+                                      "id": "n_lea",
+                                      "label": "D",
+                                      "silent": true,
+                                      "lineageId": "L_lea",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "v1",
+                                      "label": "v",
+                                      "children": [
+                                        {
+                                          "id": "n_v",
+                                          "label": "v",
+                                          "silent": true,
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "vp",
+                                          "label": "V",
+                                          "children": [
+                                            {
+                                              "id": "v_bar1",
+                                              "label": "V",
+                                              "children": [
+                                                {
+                                                  "id": "n_envoye",
+                                                  "label": "V",
+                                                  "word": "envoyé",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "dp_obj",
+                                                  "label": "D",
+                                                  "children": [
+                                                    {
+                                                      "id": "n_ces",
+                                                      "label": "D",
+                                                      "word": "ces",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "n_fleurs",
+                                                      "label": "N",
+                                                      "word": "fleurs",
+                                                      "children": []
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "pp_goal",
+                                              "label": "P",
+                                              "silent": true,
+                                              "lineageId": "L_pp",
+                                              "children": []
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
                             }
                           ]
                         }

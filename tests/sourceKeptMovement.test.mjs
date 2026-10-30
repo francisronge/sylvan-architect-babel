@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { checkMovementShownAsMovement, checkNoEarlyReveal, checkWholeParent, movementPresentations } from './helpers/replayInvariants.mjs';
+import { checkMovementUnrendered } from './helpers/replayContractWarnings.mjs';
 
 const { cases } = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/source-kept-movement.json', import.meta.url), 'utf8'));
 const prepare = record => prepareReplay({ ...structuredClone(record), includePlayback: true });
@@ -32,4 +33,14 @@ test('a pending phrasal movement whose source keeps its id restores that source 
     { landing: 'contentTrace', shown: true, trajectory: true },
     { landing: 'mVerbTrace', shown: true, trajectory: true }
   ]);
+});
+
+test('a source-kept hop is recognized when its landing field is not a landing role or its chain restates earlier occurrences', () => {
+  for (const [index, landing] of [[2, 'e_shetr'], [3, 'pp_goal_c2']]) {
+    const record = cases[index], replay = prepare(record);
+    assert.deepEqual(faults(replay, record), [], `case ${index}`);
+    assert.deepEqual(checkMovementUnrendered(replay, record).map(warning => warning.detail), [], `case ${index}`);
+    assert.deepEqual(movementPresentations(replay, record).map(({ landing, shown, trajectory }) => ({ landing, shown, trajectory })),
+      [{ landing, shown: true, trajectory: true }], `case ${index}`);
+  }
 });

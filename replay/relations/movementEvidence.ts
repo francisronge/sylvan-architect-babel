@@ -775,10 +775,18 @@ function recoverAnchoredMovement(
       const pair = sourceOccurrencePair(current, prior, id, anchored);
       return pair?.landing.id === id && pair.source.id === sources[0];
     };
+    // Its mirror: the lower occurrence kept its ID and exact preceding slot,
+    // so the one other anchored occurrence of its lineage, new in the stage, is
+    // the landing, whatever its field is called.
+    const keptSourceLanding = (id: string): boolean => {
+      if (priorSource || !prior.nodes.has(sources[0]) || prior.nodes.has(id)) return false;
+      const pair = sourceOccurrencePair(current, prior, sources[0], anchored);
+      return pair?.source.id === sources[0] && pair.landing.id === id;
+    };
     // The exact preceding root pair can identify an openly named landing even
     // when the directional field names its parent rather than the occurrence.
     const identifiesLanding = (id: string): boolean => targets.includes(id)
-      || sourcePair?.source.id === sources[0] && sourcePair.landing.id === id || retainsLanding(id);
+      || sourcePair?.source.id === sources[0] && sourcePair.landing.id === id || retainsLanding(id) || keptSourceLanding(id);
     const isPhrasalHeadParticipant = (occurrence: string, id: string): boolean => {
       const target = current.nodes.get(occurrence), head = current.nodes.get(id);
       const precedingId = prior.nodes.has(sources[0]) ? sources[0]
@@ -882,9 +890,18 @@ function recoverAnchoredMovement(
         pairs.push({ source: sourceId, target: targetId });
       }
     }
-    if (pairs.length === 1) {
-      sources = [pairs[0].source];
-      targets = [pairs[0].target];
+    // Several earlier occurrences of one chain can pair with its one new
+    // landing when the lower occurrence keeps its ID. The step moves the
+    // chain's highest occurrence: the one that c-commands every other.
+    const cCommands = (id: string, other: string): boolean => {
+      const parent = current.parents.get(id);
+      return Boolean(parent && contains(parent, other) && !contains(current.nodes.get(id)!, other));
+    };
+    const chosen = pairs.length > 1 && pairs.every(pair => pair.target === pairs[0].target)
+      ? pairs.filter(pair => pairs.every(other => other === pair || cCommands(pair.source, other.source))) : pairs;
+    if (chosen.length === 1) {
+      sources = [chosen[0].source];
+      targets = [chosen[0].target];
       structurallyBound = true;
     }
   }
