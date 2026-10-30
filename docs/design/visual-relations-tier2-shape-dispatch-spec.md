@@ -1245,7 +1245,7 @@ Category comparisons read trailing feature annotations separately and preserve
 every authored label.
 Within a stage, the first supported relation owns each exact occurrence transition;
 later claims can draw or inspect it without executing the structural change again.
-Drawing dispatch may consume a replacement witness as gap notation; neutral
+Drawing dispatch may consume a replacement witness as a gap label; neutral
 structural ownership still retains that exact prior-slot replacement. This does
 not absorb independent sibling claims or their unrelated structure.
 
@@ -1653,7 +1653,10 @@ The geometry follows the resolved structure:
 Tier 2 preserves the model's lower occupant and its notation verbatim. A silent
 full word remains that word, `null`/empty symbols remain those symbols, and no
 lower occupant is converted into a trace. Derived chain identities still bind
-movement paths without replacing the authored trace label or index.
+movement paths without replacing the authored trace label or index. A
+`Gap label` shows only the model's text: the `label` value it authored for that
+gap, or else the gap's own word or category label. An authored `index` value is
+never appended to it; Babel writes no gap notation of its own.
 
 ### Silence And Deletion
 

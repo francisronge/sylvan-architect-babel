@@ -145,8 +145,9 @@ test('blank optional gap annotations keep the witnessed gap and do not shift lat
     const record = relation({ gap: ['a', 'b'] }, { label: [blank, blank], gap: [blank, 'j'] });
     const result = inspect(record, tree);
     assert(result.facets.includes('gap.notation'));
+    // The gaps keep the model's own word; Babel never writes the index onto it.
     assert.deepEqual(result.items.find(item => item.badgeStyle === 'gap-notation').badges,
-      [{ nodeId: 'a', text: 't', shape: 'plain' }, { nodeId: 'b', text: 't_j', shape: 'plain' }]);
+      [{ nodeId: 'a', text: 't', shape: 'plain' }, { nodeId: 'b', text: 't', shape: 'plain' }]);
     assert.deepEqual(result.dispatch.primaryRelation.values, { label: [blank, blank], gap: [blank] });
     const mismatch = inspect(relation({ gap: ['a', 'b'] }, { gap: ['i', blank, 'j'] }), tree);
     assert(!mismatch.facets.includes('gap.notation'));

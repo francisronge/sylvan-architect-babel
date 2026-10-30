@@ -119,7 +119,6 @@ export function refineRelationGeometry({
       refinePhillipsPathNode,
       refinePhillipsBlockedEdge,
       refineParasiticGapCoindex,
-      refineParasiticGapLabel,
       refineSidewardPath,
       refineOrthogonalTrajectory,
       refinePhrasalPath,
@@ -174,7 +173,6 @@ export function refineRelationGeometry({
     g.selectAll<SVGGraphicsElement, unknown>('.babel-pg-path-node').each(refinePhillipsPathNode);
     g.selectAll<SVGGElement, unknown>('.babel-pg-island-relation-layer').each(refinePhillipsBlockedEdge);
     g.selectAll<SVGTextElement, unknown>('.babel-binding-index[data-coindex-anchor]').each(refineParasiticGapCoindex);
-    g.selectAll<SVGTextElement, unknown>('.babel-pg-gap-label[data-gap-label-anchor]').each(refineParasiticGapLabel);
     refineAcrossTheBoardPaths();
     g.selectAll<SVGPathElement, unknown>('.vr-trajectory-sideward').each(refineSidewardPath);
     // Only remnant and smuggling paths run along a lane under the tree; head,

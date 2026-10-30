@@ -1,4 +1,3 @@
-import { extractMovementIndex, isTraceLike } from '../replaySurfaceNotation.ts';
 import type { Tier2ResolvedFacet } from './relationClaims.ts';
 import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 
@@ -6,14 +5,6 @@ export const flatten = (value: readonly string[] | string | undefined): string[]
   (value === undefined ? [] : Array.isArray(value) ? value : [value])
     .map((item) => String(item ?? ''))
 );
-
-export const gapBadgeText = (surface: string, index?: string): string => {
-  if (!index?.trim()) return surface;
-  // The index can already be carried by a trace inside a category annotation.
-  const authored = [surface, ...Array.from(surface.matchAll(/\[([^\[\]]+)\]/gu), match => match[1])
-    .filter(isTraceLike)].map(extractMovementIndex);
-  return authored.includes(index.trim().toLowerCase()) ? surface : `${surface}_${index}`;
-};
 
 export const unique = (items: readonly string[]): string[] => (
   items.filter((item, index) => items.indexOf(item) === index)

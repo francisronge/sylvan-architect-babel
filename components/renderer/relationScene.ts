@@ -677,7 +677,6 @@ export function paintRelationScene({
       markSubtreeLensNodes,
       acceptedLayerInHost,
       idiomChunkLayers,
-      parasiticGapCoindexLayers,
       appendMarker
     });
     drawablePrimitives.forEach((primitive) => {
