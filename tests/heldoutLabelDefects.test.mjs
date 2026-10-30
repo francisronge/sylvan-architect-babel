@@ -10,6 +10,7 @@ import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../tre
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import { plaqueIdentity } from '../replay/relations/plaquePlacement.ts';
 import { checkOneLetterPerLabel, checkPlanIdentityUnique } from './helpers/replayInvariants.mjs';
+import { checkMovementUnrendered } from './helpers/replayContractWarnings.mjs';
 
 /* Defects of the 29 October 2026 held-out batch and the 30 October confirmation
  * batch, each reproduced from its saved analysis (tests/helpers/heldoutDefectRecords.json). */
@@ -101,6 +102,21 @@ test('Sol c1-013: a relation recovered as Case and as agreement with the same Ca
     .map(item => `${item.pathStyle} ${item.toNodeId}`);
   assert.deepEqual(paths(3, 'wil').filter(path => path.startsWith('case-assignment')), ['case-assignment jan']);
   assert.deepEqual(paths(8, 'mt').filter(path => path.startsWith('case-assignment')), ['case-assignment ik']);
+});
+
+test('Sol c1-028: a fused head landing over a VP the same stage built draws its head movement', () => {
+  // In bare labels látta moves from V to v as the fused head v+V, which
+  // projects v over a VP that the same stage first joined with the locative
+  // adjunct. That complement did not exist before the stage, so no landing
+  // was read and the V-to-v hop drew nothing (MOVEMENT_CONTEXT_UNRESOLVED).
+  for (const [key, source, landing] of [['sol-c1-028-a1', 'fV', 'fvHead'], ['sol-c1-028-a2', 'tV', 'tvHead']]) {
+    const replay = prepare(key), record = records[key];
+    const hops = replay.relationRenderPlan.frames.flatMap(frame => frame.items)
+      .filter(item => item.kind === 'trajectory' && item.relationRef.stageIndex === 1 && item.relationRef.relationIndex === 3)
+      .map(item => `${item.trajectoryKind} ${item.sourceNodeId}->${item.targetNodeId}`);
+    assert.deepEqual([...new Set(hops)], [`head ${source}->${landing}`], key);
+    assert.deepEqual(checkMovementUnrendered(replay, record), [], key);
+  }
 });
 
 test('marks that request no plaque may share an identity, as two trajectories to one shared landing do', () => {

@@ -109,6 +109,81 @@ test('bare head projection requires a unique identity and the retained complemen
   }
 });
 
+// Bare Phrase Structure: the fused head v+V projects v over a VP that the same
+// stage first joined with a locative adjunct, so that complement is new.
+const assembledComplement = () => {
+  const verb = leaf('verb', 'V', { word: 'saw', tokenIndex: 1, lineageId: 'verb' });
+  const object = leaf('object', 'D', { word: 'Peter', tokenIndex: 2, lineageId: 'object' });
+  const locative = node('locative', 'D', [leaf('det', 'D', { word: 'the', tokenIndex: 3 }), leaf('noun', 'N', { word: 'cinema', tokenIndex: 4 })]);
+  const vp = node('vp', 'V', [verb, object]);
+  const lowerVp = structuredClone(vp);
+  Object.assign(find([lowerVp], 'verb'), { silent: true });
+  delete find([lowerVp], 'verb').tokenIndex;
+  return {
+    priorForest: [vp, locative],
+    currentForest: [node('vP', 'v', [leaf('subject', 'D', { word: 'Anna', tokenIndex: 0 }),
+      node('vBar', 'v', [leaf('vHead', 'v+V', { word: 'saw', tokenIndex: 1, lineageId: 'verb' }),
+        node('adjoined', 'V', [lowerVp, structuredClone(locative)])])])],
+    relation: { relation: 'An authored dependency', anchors: { source: 'verb', landing: 'vHead' } }
+  };
+};
+
+test('a fused head projecting over a complement assembled in its stage is a head landing', () => {
+  const input = assembledComplement(), original = structuredClone(input);
+  const movement = recover(input).movement;
+  assert.deepEqual([movement?.trajectoryKind, movement?.sourceNodeId, movement?.targetNodeId], ['head', 'verb', 'vHead']);
+  assert.deepEqual(input, original);
+});
+
+test('a one-word phrase landing in the same assembled shape stays phrasal', () => {
+  const input = assembledComplement();
+  const vBar = find(input.currentForest, 'vBar');
+  vBar.children[0] = leaf('vHead', 'v', { silent: true });
+  find(input.currentForest, 'vP').children[0] = leaf('raised', 'D', { word: 'Peter', tokenIndex: 2, lineageId: 'object' });
+  Object.assign(find(input.currentForest, 'object'), { silent: true });
+  delete find(input.currentForest, 'object').tokenIndex;
+  find(input.currentForest, 'verb').word = 'saw'; delete find(input.currentForest, 'verb').silent;
+  find(input.currentForest, 'verb').tokenIndex = 1;
+  input.relation = { relation: 'An authored dependency', anchors: { source: 'object', landing: 'raised' } };
+  const movement = recover(input).movement;
+  assert.deepEqual([movement?.trajectoryKind, movement?.sourceNodeId, movement?.targetNodeId], ['phrasal', 'object', 'raised']);
+});
+
+// A second adjunct joins over the first: [V [V VP D] A], two new levels.
+const twoLevelAssembly = input => {
+  input.priorForest.push(leaf('late', 'A', { word: 'late', tokenIndex: 5 }));
+  const vBar = find(input.currentForest, 'vBar');
+  vBar.children[1] = node('outer', 'V', [vBar.children[1], leaf('late', 'A', { word: 'late', tokenIndex: 5 })]);
+  return input;
+};
+
+test('an assembled complement may hold several new levels', () => {
+  const movement = recover(twoLevelAssembly(assembledComplement())).movement;
+  assert.deepEqual([movement?.trajectoryKind, movement?.sourceNodeId, movement?.targetNodeId], ['head', 'verb', 'vHead']);
+});
+
+test('an assembled complement joins only unchanged earlier roots under new branching nodes', () => {
+  for (const [name, mutate] of [
+    ['a part taken from inside another earlier tree', input => {
+      input.priorForest[1] = node('scene', 'P', [input.priorForest[1], leaf('at', 'P', { word: 'at' })]);
+    }],
+    ['a new node claiming an earlier object\'s lineage', input => {
+      const other = node('other', 'V', [leaf('rest', 'V', { word: 'rested' })]);
+      other.lineageId = 'predicate';
+      input.priorForest.push(other); input.currentForest.push(structuredClone(other));
+      find(input.currentForest, 'adjoined').lineageId = 'predicate';
+    }],
+    ['a new leaf in the complement', input => {
+      find(input.currentForest, 'adjoined').children.push(leaf('extra', 'A', { word: 'late' }));
+    }],
+    ['a changed earlier root', input => { find(input.currentForest, 'noun').word = 'theatre'; }],
+    ['a duplicated nested new node', input => { twoLevelAssembly(input).currentForest.push(leaf('adjoined', 'V')); }]
+  ]) {
+    const input = assembledComplement(); mutate(input);
+    assert.notEqual(recover(input).movement?.trajectoryKind, 'head', name);
+  }
+});
+
 test('a branching bare phrase stays phrasal when it moves into a specifier', () => {
   const phrase = node('low', 'D', [leaf('name', 'N', { word: 'Mira', tokenIndex: 0 })]);
   phrase.lineageId = 'nominal';
@@ -153,4 +228,40 @@ test('Replay introduces the projected head, parent and trajectory atomically', (
   assert.equal(recoverMovementEvidence(input.relation, input.currentForest, input.currentForest).movement?.transition ?? false, false,
     'a restated state does not create another movement transition');
   assert.deepEqual(stages, original);
+});
+
+test('a head-sized phrase landing beside a projection of its own category assembled in its stage stays phrasal', () => {
+  // [D it [D the [V saw it]]]: the new sister projects the landing's own
+  // category, so the landing is its specifier, not a head over a complement.
+  const object = leaf('low', 'D', { word: 'it', tokenIndex: 2, lineageId: 'object' });
+  const vp = node('oldVP', 'V', [leaf('verb', 'V', { word: 'saw', tokenIndex: 1 }), object]);
+  const det = leaf('oldD', 'D', { word: 'the', tokenIndex: 0 });
+  const lowerVp = structuredClone(vp);
+  Object.assign(find([lowerVp], 'low'), { silent: true });
+  delete find([lowerVp], 'low').tokenIndex;
+  const movement = recover({
+    priorForest: [det, vp],
+    currentForest: [node('top', 'D', [leaf('high', 'D', { word: 'it', tokenIndex: 2, lineageId: 'object' }),
+      node('dBar', 'D', [structuredClone(det), lowerVp])])],
+    relation: { relation: 'An authored dependency', anchors: { source: 'low', landing: 'high' } }
+  }).movement;
+  assert.deepEqual([movement?.trajectoryKind, movement?.sourceNodeId, movement?.targetNodeId], ['phrasal', 'low', 'high']);
+});
+
+test('an assembled complement refuses a non-branching new node', () => {
+  for (const [name, mutate] of [
+    ['a unary complement over one earlier tree', input => {
+      const vBar = find(input.currentForest, 'vBar');
+      const [lowerVp, locative] = vBar.children[1].children;
+      vBar.children[1] = node('adjoined', 'V', [lowerVp]);
+      input.currentForest.push(locative);
+    }],
+    ['a unary wrapper inside a branching assembly', input => {
+      const adjoined = find(input.currentForest, 'adjoined');
+      adjoined.children[0] = node('wrap', 'V', [adjoined.children[0]]);
+    }]
+  ]) {
+    const input = assembledComplement(); mutate(input);
+    assert.notEqual(recover(input).movement?.trajectoryKind, 'head', name);
+  }
 });
