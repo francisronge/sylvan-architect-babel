@@ -1665,7 +1665,12 @@ lower occupant is converted into a trace. Derived chain identities still bind
 movement paths without replacing the authored trace label or index. A
 `Gap label` shows only the model's text: the `label` value it authored for that
 gap, or else the gap's own word or category label. An authored `index` value is
-never appended to it; Babel writes no gap notation of its own.
+never appended to it; Babel writes no gap notation of its own. A label that is
+authored text the tree paints for the gap (its category label, its word, or
+both for a preterminal Replay expands) is already in the tree and draws nothing
+more, even where the tree paints a chain index after it. Any other `label`
+value, such as a trace-like label `t` above the word `t_i` that the tree does
+not paint, is drawn beside the gap.
 
 ### Silence And Deletion
 
