@@ -1,0 +1,176 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { plaqueIdentity } from '../replay/relations/plaquePlacement.ts';
+import { isPlanItemRevealed, planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+
+// Structural Case is a reflex of Agree (Francis, 30 Oct 2026): an Agree that
+// values its goal's Case shows it on its own probe→goal path, drawn as Case.
+const forest = [{ id: 'tp', label: 'TP', children: [
+  { id: 'goal', label: 'DP', lineageId: 'subject', word: 'children' },
+  { id: 'tbar', label: "T'", children: [
+    { id: 'probe', label: 'T', lineageId: 'tense' },
+    { id: 'vp', label: 'vP', children: [{ id: 'v', label: 'v' }, { id: 'other', label: 'DP', word: 'books' }] }
+  ] }
+] }];
+const stage = relations => ({ statement: 'Completed syntax.', stageRecord: 'The authored relations.',
+  workspaceForest: structuredClone(forest), relations });
+const items = relations => compileRelationRenderPlan([stage(relations)]).frames[0].items;
+const casePaths = list => list.filter(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment');
+const plaqueRows = (list, familyId) => list.filter(item => item.kind === 'node-plaque' && item.familyId === familyId)
+  .flatMap(item => item.rows.map(row => `${row.label}: ${row.value}`));
+const agree = (values, relation = 'Agree', anchors = { probe: 'probe', goal: 'goal' }) => ({ relation, anchors, values });
+
+test('an exact Agree valuing its goal\'s Case draws that Case on its probe-goal path', () => {
+  for (const relation of ['Agree', 'Feature Valuation']) for (const key of ['case', 'Case']) {
+    const relations = [agree({ phi: '3pl', [key]: 'nominative' }, relation)];
+    const before = structuredClone(relations), list = items(relations);
+    const paths = casePaths(list);
+    assert.equal(paths.length, 1, `${relation} ${key}`);
+    assert.deepEqual([paths[0].fromNodeId, paths[0].toNodeId, paths[0].label], ['probe', 'goal', 'nominative']);
+    assert.deepEqual(planItemRelationRefs(paths[0]).map(ref => [ref.stageIndex, ref.relationIndex]), [[0, 0]]);
+    assert.equal(isPlanItemRevealed(paths[0], 0, new Set()), false);
+    assert.equal(isPlanItemRevealed(paths[0], 0, new Set([0])), true);
+    // The path replaces the plaque's Case row; the phi row stays on the probe.
+    assert.deepEqual(plaqueRows(list, 'agree.plaque'), ['phi: 3pl']);
+    assert.deepEqual(relations, before);
+  }
+  const caseOnly = items([agree({ case: 'nominative' })]);
+  assert.equal(casePaths(caseOnly).length, 1);
+  assert.equal(caseOnly.some(item => item.kind === 'node-plaque' || item.kind === 'node-badges'), false);
+});
+
+test('an exact Agree and the recovered agreement it restates draw the same Case path and rows', () => {
+  const shape = list => ({
+    paths: list.filter(item => item.kind === 'directed-path')
+      .map(item => [item.pathStyle, item.fromNodeId, item.toNodeId, item.label ?? null, item.featureRow ?? null]).sort(),
+    rows: list.filter(item => item.kind === 'node-plaque').map(item => [item.anchorNodeIds, item.rows])
+  });
+  const values = { number: 'plural', person: 'third', case: 'nominative' };
+  const exact = items([agree(values)]), recovered = items([agree(values, 'An authored agreement')]);
+  assert.equal(exact[0].tier2FacetId, undefined);
+  assert(recovered.some(item => item.tier2FacetId));
+  assert.equal(casePaths(recovered).length, 1);
+  assert.deepEqual(shape(exact), shape(recovered));
+});
+
+test('an Agree without a Case value is unchanged', () => {
+  const list = items([agree({ person: 'third', number: 'plural' })]);
+  assert.equal(list.length, 1);
+  assert.equal(list[0].kind, 'node-plaque');
+  assert.equal(list[0].title, 'T probe');
+  assert.deepEqual(plaqueRows(list, 'agree.plaque'), ['person: third', 'number: plural']);
+  const bare = items([agree(undefined)]);
+  assert.deepEqual(bare.map(item => [item.kind, item.badgeStyle]), [['node-badges', 'agreement-goal']]);
+});
+
+test('an Agree never draws a Case it does not establish for its one goal', () => {
+  for (const relation of [
+    agree({ phi: '3pl', case: 'unvalued' }),
+    agree({ phi: '3pl', case: 'nominative', outcome: 'failed' }),
+    agree({ phi: '3pl', probeCase: 'nominative' }),
+    agree({ phi: '3pl', case: ['nominative', 'accusative'] }),
+    agree({ phi: '3pl', case: 'nominative' }, 'Agree', { probe: 'probe', goal: ['goal', 'other'] }),
+    agree({ phi: '3pl', case: 'nominative' }, 'Agree', { probe: 'probe', goal: 'missing' }),
+    agree({ phi: '3pl', case: 'nominative' }, 'Agree', { probe: 'probe' })
+  ]) {
+    const list = items([relation]);
+    assert.equal(casePaths(list).length, 0, JSON.stringify(relation));
+    assert.equal(list.some(item => item.pathStyle === 'case-agree'), false, JSON.stringify(relation));
+  }
+});
+
+test('a separately authored Case claim and an Agree carrying the same Case draw one path', () => {
+  const companions = [
+    { relation: 'CaseAssignment', anchors: { assigner: 'probe', bearer: 'goal' }, values: { feature: 'Case', value: 'nominative' } },
+    { relation: 'An authored licensing', anchors: { licensor: 'probe', nominal: 'goal' }, values: { case: 'nominative' } },
+    agree({ case: 'nominative', number: 'plural' }, 'An authored agreement')
+  ];
+  for (const companion of companions) for (const reverse of [false, true]) {
+    const relations = [agree({ phi: '3pl', case: 'nominative' }), companion];
+    if (reverse) relations.reverse();
+    const list = items(relations), paths = casePaths(list);
+    assert.equal(paths.length, 1, JSON.stringify({ companion: companion.relation, reverse }));
+    assert.equal(paths[0].familyId === 'agree.plaque', false);
+    assert.deepEqual([paths[0].fromNodeId, paths[0].toNodeId], ['probe', 'goal']);
+    // The exact Agree keeps its Case row, as it did beside a Case claim before.
+    assert(plaqueRows(list, 'agree.plaque').includes('case: nominative'));
+    const identities = list.filter(item => item.kind === 'node-plaque' || item.pathStyle === 'case-assignment').map(plaqueIdentity);
+    assert.equal(new Set(identities).size, identities.length);
+  }
+});
+
+test('two exact Agree claims valuing one goal\'s Case in a stage draw one path', () => {
+  const list = items([agree({ phi: '3pl', case: 'nominative' }), agree({ number: 'plural', case: 'nominative' })]);
+  const paths = casePaths(list);
+  assert.equal(paths.length, 1);
+  assert.deepEqual(planItemRelationRefs(paths[0]).map(ref => ref.relationIndex), [0]);
+  assert.deepEqual(plaqueRows(list, 'agree.plaque').sort(), ['case: nominative', 'number: plural', 'phi: 3pl']);
+});
+
+// Sol review of 927a9b5: Case-state notation (a label prefix, brackets, a u-prefixed
+// feature name, an underscore, "?" or nothing) does not hide an unvalued Case.
+const unvaluedCaseDrawsNothing = written => {
+  const list = items([agree({ phi: '3pl', case: written })]);
+  assert.equal(casePaths(list).length, 0, JSON.stringify(written));
+  assert.equal(list.some(item => item.pathStyle === 'case-agree'), false, JSON.stringify(written));
+  assert.deepEqual(plaqueRows(list, 'agree.plaque'), ['phi: 3pl', `case: ${written}`], JSON.stringify(written));
+  // Recovered agreement reads Case state through the same check.
+  assert.equal(casePaths(items([agree({ phi: '3pl', case: written }, 'An authored agreement')])).length, 0, JSON.stringify(written));
+};
+
+test('an Agree whose Case is written unvalued in feature notation draws no Case path and keeps its row', () => {
+  for (const written of ['Case: unvalued', '[uCase: _]', '[uCase:]', 'uCase', '[uCase]', 'u-Case', '_', '?', 'Case: ?',
+    'Case = _', '[Case: ?]', 'case: not yet valued', '   ',
+    // Sol round 2: complete state expressions and dash or empty-set placeholders.
+    'unvalued Case', 'Case value: unvalued', 'Case: -', '[Case: —]', 'Case: –', '[uCase: ∅]', '∅', 'Case (unvalued)',
+    'uCase[ ]', 'Case: none', 'Case: pending', 'Case value is still unassigned', 'Case: undetermined', 'Case: not determined']) {
+    unvaluedCaseDrawsNothing(written);
+  }
+});
+
+// Sol round 3 and the lead's decision (30 Oct 2026): Babel does not parse prose. A Case
+// value with any deny, withhold, pending or unvalued word, or a placeholder, anywhere
+// in it draws no Case path, even beside a Case name. This includes prose such as
+// "abstract object Case without overt accusative marking" (the Turkish fixture
+// astra-turkish-relative-2, stage 2), whose object Case is in fact assigned.
+test('a Case value with a state or denial word anywhere draws no Case path', () => {
+  for (const written of ['Case: not nominative', 'nominative, unvalued', 'Case: nominative not assigned', 'nominative?',
+    'abstract object Case without overt accusative marking', 'nominative, with no overt suffix', 'nominative (pending)']) {
+    unvaluedCaseDrawsNothing(written);
+  }
+});
+
+test('the negative Case values of saved analyses draw no Case path in either tier', () => {
+  const { values } = JSON.parse(readFileSync(new URL('./data/negative-case-values.json', import.meta.url), 'utf8'));
+  assert(values.length >= 20);
+  for (const { value } of values) unvaluedCaseDrawsNothing(value);
+});
+
+test('an Agree whose Case is written valued in feature notation keeps that notation on its path', () => {
+  for (const written of ['Case: nominative', '[uCase: NOM]', 'uCase = nom', 'NOM', 'valued Case: nominative', 'Case value: dative',
+    'nominative-accusative', 'Case: nominative (assigned by T)']) {
+    const paths = casePaths(items([agree({ phi: '3pl', case: written })]));
+    assert.deepEqual(paths.map(path => [path.fromNodeId, path.toNodeId, path.label]), [['probe', 'goal', written]], written);
+    assert.equal(casePaths(items([agree({ phi: '3pl', case: written }, 'An authored agreement')])).length, 1, written);
+  }
+});
+
+// Codex review of 95d6fa5: a stage registers every Case path it derives before it
+// composes agreement collections, so equivalent claims draw the same marks in any
+// order and either tier.
+test('a phi-only Agree beside an Agree valuing Case draws the same marks in either order and tier', () => {
+  const shape = list => ({
+    paths: list.filter(item => item.kind === 'directed-path')
+      .map(item => JSON.stringify([item.pathStyle, item.fromNodeId, item.toNodeId, item.label ?? null, item.featureRow ?? null])).sort(),
+    plaques: list.filter(item => item.kind === 'node-plaque' || item.kind === 'node-badges')
+      .map(item => JSON.stringify([item.kind, item.anchorNodeIds ?? null, item.rows ?? null, Boolean(item.title)])).sort()
+  });
+  const phi = agree({ phi: '3pl' }), valued = agree({ case: 'nominative' });
+  const shapes = [[phi, valued], [valued, phi], [phi, agree({ case: 'nominative' }, 'An authored agreement')]]
+    .map(relations => shape(items(relations)));
+  assert(shapes[0].paths.some(path => path.includes('"case-agree"')), JSON.stringify(shapes[0]));
+  assert.deepEqual(shapes[1], shapes[0]);
+  assert.deepEqual(shapes[2], shapes[0]);
+});

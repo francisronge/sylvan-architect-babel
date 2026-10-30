@@ -237,13 +237,14 @@ test('Agree with authored values begins with the probe plaque instead of a goal-
     }], [tree])
   ]);
   const items = visiblePlanFrameItems(plan, 0, new Set([0]));
-  assert.equal(items.length, 1);
-  assert.equal(items[0].kind, 'node-plaque');
-  assert.deepEqual(items[0].anchorNodeIds, ['t_agree_plaque']);
-  assert.deepEqual(items[0].rows, [
-    { label: 'uφ', value: '__ → 3PL' },
-    { label: 'Case', value: 'NOM' }
-  ]);
+  const plaques = items.filter((item) => item.kind === 'node-plaque');
+  assert.equal(plaques.length, 1);
+  assert.deepEqual(plaques[0].anchorNodeIds, ['t_agree_plaque']);
+  // The Agree's own Case is drawn on its probe-goal path (Francis, 30 Oct 2026),
+  // so the plaque keeps the uφ row and the path carries NOM.
+  assert.deepEqual(plaques[0].rows, [{ label: 'uφ', value: '__ → 3PL' }]);
+  assert.deepEqual(items.filter((item) => item.pathStyle === 'case-assignment')
+    .map((item) => [item.fromNodeId, item.toNodeId, item.label]), [['t_agree_plaque', 'dp_agree_goal', 'NOM']]);
   assert.ok(!items.some((item) => item.kind === 'node-badges'),
     'the relation moment must not substitute a goal highlight for its authored plaque');
 });

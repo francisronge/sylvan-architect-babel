@@ -42,7 +42,8 @@ test('qualified Case fields keep independently paired literal rows and exact end
  const r={relation:'government and internal-argument Case licensing',anchors:{governor:'verb',accusativeArgument:'object',dativeArgument:'subject'},values:{accusativeArgument:'accusative',dativeArgument:'lexically selected dative'}};
  const original=structuredClone(r),p=paths(r);assert.equal(p.length,2);assert.deepEqual(p.map(x=>x.toNodeId).sort(),['object','subject']);assert.deepEqual(r,original);
  const open={relation:'matrix Case licensing',anchors:{objectLicensor:'verb',objectNP:'object'},values:{objectNP:'abstract object Case without an overt suffix'}};
- assert(paths(open).some(x=>x.toNodeId==='object'));
+ // Babel does not parse prose (lead decision, 30 Oct 2026): a Case value with "without" draws no Case path.
+ assert(!paths(open).some(x=>x.toNodeId==='object'));
  const finite={relation:'nominative Case licensing',anchors:{finiteLicenser:'inflection',subject:'subject'},values:{case:'nominative'}};
  assert(paths(finite).some(x=>x.fromNodeId==='inflection'&&x.toNodeId==='subject'));
 });
