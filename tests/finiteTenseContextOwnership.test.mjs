@@ -124,3 +124,71 @@ test('verified finite context does not consume or print independent unknown sibl
   assert.equal(plate(data).rows.some(row => row.label === 'foreignOperation'), false);
   assert.equal(items(data).some(item => item.kind === 'fallback'), true);
 });
+
+/** One finite clause in three phrase-structure notations. The tense head's
+ * mother is read as its projection and its sister as verbal because it holds
+ * the verb, so no notation depends on spelling I′ or VP. */
+const notations = {
+  // I′ over VP.
+  xbar: () => authored(),
+  // TP over TP, with T's sister a vP.
+  phrasal: () => ({ ...authored(), forest: [{ id: 'clause', label: 'TP', children: [
+    { id: 'subject', label: 'DP', word: 'Mira' },
+    { id: 'ibar', label: 'TP', children: [
+      { id: 'finite', label: 'T [finite, past]', silent: true, children: [] },
+      { id: 'vp', label: 'vP', children: [
+        { id: 'little-v', label: 'v', silent: true, children: [] },
+        { id: 'vbar', label: 'VP', children: [
+          { id: 'lexical', label: 'V', word: 'persuaded', children: [] },
+          { id: 'object', label: 'DP', word: 'Joel' }
+        ] }
+      ] }
+    ] }
+  ] }] }),
+  // Bare labels: T over v.
+  bare: () => ({ ...authored(), forest: [{ id: 'clause', label: 'T', children: [
+    { id: 'subject', label: 'D', word: 'Mira' },
+    { id: 'ibar', label: 'T', children: [
+      { id: 'finite', label: 'T [finite, past]', silent: true, children: [] },
+      { id: 'vp', label: 'v', children: [
+        { id: 'little-v', label: 'v', silent: true, children: [] },
+        { id: 'vbar', label: 'V', children: [
+          { id: 'lexical', label: 'V', word: 'persuaded', children: [] },
+          { id: 'object', label: 'D', word: 'Joel' }
+        ] }
+      ] }
+    ] }
+  ] }] })
+};
+
+test('finite context is recovered from structure in X-bar, phrasal and bare notation', () => {
+  for (const [name, build] of Object.entries(notations)) {
+    const data = build();
+    assert.equal(contextOwned(data), true, name);
+    assert.equal(items(data).some(item => item.kind === 'fallback'), false, name);
+    assert.deepEqual(plate(data).anchorNodeIds, ['lexical'], name);
+  }
+});
+
+test('in every notation, a sister without the verb, a clause boundary or another tense keeps the residual', () => {
+  const negatives = [
+    ['sister without the verb', data => {
+      const vp = node(data, 'vp');
+      node(data, 'ibar').children[1] = { id: 'other', label: node(data, 'subject').label, word: 'it' };
+      node(data, 'clause').children[0] = vp;
+    }],
+    ['clause boundary', data => {
+      const vp = node(data, 'vp'), index = vp.children.findIndex(child => child.id === 'vbar');
+      vp.children[index] = { id: 'embedded', label: node(data, 'clause').label === 'T' ? 'C' : 'CP', children: [
+        { id: 'complementizer', label: 'C', word: 'that' }, vp.children[index]
+      ] };
+    }],
+    ['other tense', data => { node(data, 'finite').label = node(data, 'finite').label.replace('past', 'present'); }]
+  ];
+  for (const [name, build] of Object.entries(notations)) {
+    for (const [label, change] of negatives) {
+      const data = build(); change(data);
+      assert.equal(contextOwned(data), false, `${name}: ${label}`);
+    }
+  }
+});

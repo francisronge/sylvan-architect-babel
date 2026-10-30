@@ -288,7 +288,7 @@ const isPartialFeatureView = (scope: Tier2EvaluatedFacet, scopes: readonly Tier2
 
 /** A silent finite head can be context for an already proved lexical PF form.
  * It is not another realization host or an Agree/movement endpoint. Require
- * matching authored tense and a local V complement before retiring its residual. */
+ * matching authored tense and a sister holding the local verb before retiring its residual. */
 const ownFiniteTenseContext = (
   facets: readonly Tier2EvaluatedFacet[],
   evidence: Tier2FacetEvidence,
@@ -332,12 +332,15 @@ const ownFiniteTenseContext = (
   const parent = parentNodes?.length === 1 ? parentNodes[0] : undefined;
   const parentShape = readCategoryLabel(parent?.label);
   const complements = parent?.children?.filter(child => child.id !== head.id) ?? [];
+  // Any projection of a clause head (CP, C′ or a bare C over its complement)
+  // closes the local domain; the verb must be found without crossing one.
   const containsLocalVerb = (node: SyntaxNode): boolean => node.id === verb.id
-    || (!['CP', 'IP', 'TP'].includes(readCategoryLabel(node.label)?.category ?? '')
+    || (!['C', 'I', 'T'].includes(readCategoryLabel(node.label)?.head ?? '')
       && Boolean(node.children?.some(containsLocalVerb)));
-  if (parentShape?.kind !== 'bar' || parentShape.compound || parentShape.category !== headShape.category
-    || complements.length !== 1 || readCategoryLabel(complements[0].label)?.category !== 'VP'
-    || !containsLocalVerb(complements[0])) return [...facets];
+  // The head's mother is its projection in any notation (I′, TP over TP, a
+  // bare T), and its single sister is verbal because it holds the local verb.
+  if (!parentShape || parentShape.compound || parentShape.head !== headShape.head
+    || complements.length !== 1 || !containsLocalVerb(complements[0])) return [...facets];
   const treatments = values.filter(entry => normalizeTier2Synonym(entry.key) === 'morphological treatment');
   if (treatments.length > 1 || treatments.some(entry => entry.items.length !== 1
     || !/^whole[- ]word lexical inflection(?: without (?:overt )?(?:V|verb)-to-(?:I|T|Infl) movement)?\.?$/iu.test(entry.items[0].trim()))) return [...facets];
