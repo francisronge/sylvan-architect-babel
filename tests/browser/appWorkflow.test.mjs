@@ -198,12 +198,12 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
               if (headerWidth >= 1600) assert.ok(await page.getByRole('banner').evaluate(header => header.getBoundingClientRect().height < 80),
                 'the brand and desktop controls share one row');
               if (headerWidth >= 1280) {
-                await page.getByRole('button', { name: 'X-Bar Theory', exact: true }).click();
-                await page.getByRole('button', { name: 'Minimalist Program', exact: true }).waitFor();
+                await page.getByRole('button', { name: 'Minimalist Program', exact: true }).click();
+                await page.getByRole('button', { name: 'X-Bar Theory', exact: true }).waitFor();
                 assert.ok(await page.getByRole('banner').evaluate(header => [...header.querySelectorAll('button,select')]
                   .every(element => { const box = element.getBoundingClientRect(); return box.left >= 0 && box.right <= innerWidth; })),
-                  'the longer framework name also fits');
-                await page.getByRole('button', { name: 'Minimalist Program', exact: true }).click();
+                  'the other framework name also fits');
+                await page.getByRole('button', { name: 'X-Bar Theory', exact: true }).click();
               }
             }
             if (engine === 'chromium' && width === 1440) {
@@ -404,6 +404,9 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         assert.equal(await sentenceFocusable(), false, 'the hidden panel is out of the focus order');
         await page.getByTitle('Restore Arboretum Link', { exact: true }).click();
         assert.equal(await sentenceFocusable(), true);
+        // Minimalism is the default; this fixture is an X-bar analysis.
+        await page.getByRole('button', { name: 'Minimalist Program', exact: true }).click();
+        await page.getByRole('button', { name: 'X-Bar Theory', exact: true }).waitFor();
         await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill(bundle.sentence);
         // Enter that confirms an input-method candidate does not submit.
         await page.getByRole('textbox', { name: 'Sentence to analyze' }).evaluate(box => {
