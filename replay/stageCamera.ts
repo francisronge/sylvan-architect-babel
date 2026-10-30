@@ -400,6 +400,22 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   const playedByPhase = (phaseIndex: number) => new Set(phases.slice(0, phaseIndex + 1)
     .filter(phase => phase.stageIndex === phases[phaseIndex].stageIndex)
     .flatMap(phase => phase.scenes.flatMap(scene => [...scene.playedRelations ?? []])));
+  /** The relations its stage has played by the last phase from `last` on in which the
+   * anchor `anchorId` has stood still (within a unit) at every scene since `last`, or null
+   * when it stands still to the end of the stage. */
+  const playedWhileStill = (anchorId: string, last: number) => {
+    const stage = phases[last].stageIndex;
+    let at = sceneNodes(phases[last].scenes.at(-1)!).get(anchorId), through = last;
+    for (let next = last + 1; phases[next]?.stageIndex === stage; next++) {
+      for (const scene of phases[next].scenes) {
+        const node = sceneNodes(scene).get(anchorId);
+        if (!at || !node || Math.hypot(node.x - at.x, node.y - at.y) > 1) return playedByPhase(through);
+        at = node;
+      }
+      through = next;
+    }
+    return null;
+  };
   type Request = typeof phaseRequests[number][number];
   /** A pocket chosen in this phase stays clear until `end`, where the participants'
    * relative geometry changes. `movement` is the first earlier phase whose authored
@@ -437,10 +453,12 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   const pocketScenes = (key: string, anchor: d3.HierarchyPointNode<SyntaxNode>, phaseIndices: readonly number[],
     othersAt: (phaseIndex: number) => ReadonlyMap<number, PlaquePlacement>): LifetimeScene[] => {
     const anchorId = String((anchor as any).__vizId ?? anchor.data.id);
-    // Where these phases end inside a stage, its later marks are no obstacle in them.
+    // Where these phases end inside a stage, a mark the stage paints later is no obstacle
+    // in them, unless the plaque may still hold this pocket then: the Replay step hold
+    // (holdPockets) keeps it while the anchor stays still, so the pocket also stays clear
+    // of every mark the stage paints until the anchor moves.
     const last = phaseIndices.at(-1);
-    const playedThrough = last !== undefined && phases[last + 1]?.stageIndex === phases[last].stageIndex
-      ? playedByPhase(last) : null;
+    const playedThrough = last === undefined ? null : playedWhileStill(anchorId, last);
     return phaseIndices.flatMap(phaseIndex => {
       const space = phases[phaseIndex], items = space.items, requests = requestsByIndex(phaseIndex);
       const futureIndex = items.findIndex(item => plaqueIdentity(item) === key);

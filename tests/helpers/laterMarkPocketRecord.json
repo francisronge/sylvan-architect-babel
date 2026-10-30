@@ -1,5 +1,5 @@
 {
- "description": "Saved Claude analysis whose theta grid for lv2 (stage 4) stood 1.24 nearby reaches from its anchor, above the tree, from frame 36 to 41, while the pocket below it stayed clear: allocation reserved the stem of a neutral link that stage 5 first paints at step 45, after the plaque's pocket lifetime ends at step 41. Test input for tests/plaqueLaterMarkPocket.test.mjs.",
+ "description": "Saved Claude analysis whose theta grid for lv2 keeps a pocket lifetime from step 31 to 41 while lv2 stands still to the end of stage 5, where the tense link T2–v_prom appears at step 45. A reservation that ended with the lifetime let the held pocket be taken there, and the grid jumped beside lv2. Test input for tests/plaqueLaterMarkPocket.test.mjs.",
  "provenance": {
   "model": "claude-opus-5-5",
   "effort": "high",
