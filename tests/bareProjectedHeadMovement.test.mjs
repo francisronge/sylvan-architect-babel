@@ -229,3 +229,39 @@ test('Replay introduces the projected head, parent and trajectory atomically', (
     'a restated state does not create another movement transition');
   assert.deepEqual(stages, original);
 });
+
+test('a head-sized phrase landing beside a projection of its own category assembled in its stage stays phrasal', () => {
+  // [D it [D the [V saw it]]]: the new sister projects the landing's own
+  // category, so the landing is its specifier, not a head over a complement.
+  const object = leaf('low', 'D', { word: 'it', tokenIndex: 2, lineageId: 'object' });
+  const vp = node('oldVP', 'V', [leaf('verb', 'V', { word: 'saw', tokenIndex: 1 }), object]);
+  const det = leaf('oldD', 'D', { word: 'the', tokenIndex: 0 });
+  const lowerVp = structuredClone(vp);
+  Object.assign(find([lowerVp], 'low'), { silent: true });
+  delete find([lowerVp], 'low').tokenIndex;
+  const movement = recover({
+    priorForest: [det, vp],
+    currentForest: [node('top', 'D', [leaf('high', 'D', { word: 'it', tokenIndex: 2, lineageId: 'object' }),
+      node('dBar', 'D', [structuredClone(det), lowerVp])])],
+    relation: { relation: 'An authored dependency', anchors: { source: 'low', landing: 'high' } }
+  }).movement;
+  assert.deepEqual([movement?.trajectoryKind, movement?.sourceNodeId, movement?.targetNodeId], ['phrasal', 'low', 'high']);
+});
+
+test('an assembled complement refuses a non-branching new node', () => {
+  for (const [name, mutate] of [
+    ['a unary complement over one earlier tree', input => {
+      const vBar = find(input.currentForest, 'vBar');
+      const [lowerVp, locative] = vBar.children[1].children;
+      vBar.children[1] = node('adjoined', 'V', [lowerVp]);
+      input.currentForest.push(locative);
+    }],
+    ['a unary wrapper inside a branching assembly', input => {
+      const adjoined = find(input.currentForest, 'adjoined');
+      adjoined.children[0] = node('wrap', 'V', [adjoined.children[0]]);
+    }]
+  ]) {
+    const input = assembledComplement(); mutate(input);
+    assert.notEqual(recover(input).movement?.trajectoryKind, 'head', name);
+  }
+});

@@ -207,9 +207,10 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
   // the preceding complement, unchanged except for the proved lower occurrence
   // or, for a head copied sideward, a preceding separate workspace. That
   // complement may also be assembled in this stage before the head merges,
-  // as when an adjunct joins VP first ([V [V V DP] D] from VP and D): each new
-  // node in it branches, renews no earlier object's lineage and joins only
-  // earlier separate roots, which stay unchanged as before.
+  // as when an adjunct joins VP first ([V [V V DP] D] from VP and D): it has
+  // another category than the parent, each new node in it has at least two
+  // daughters and renews no earlier object's lineage, and it joins only earlier
+  // separate roots, which stay unchanged as before.
   // The head carries its word itself or, in a forest written wholly in bare
   // labels, over a single terminal ("C" over "did").
   const preterminals = Boolean(workspaces && bareProjectionsOf(workspaces.current) && bareProjectionsOf(workspaces.prior));
@@ -227,11 +228,13 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
   const assembled = (node: SyntaxNode): boolean => {
     const old = prior.nodes.get(node.id);
     if (old) return !prior.parents.has(node.id) && Boolean(parts.push([node, old]));
-    return Boolean(node.children?.length) && !current.duplicates.has(node.id)
+    return (node.children?.length ?? 0) >= 2 && !current.duplicates.has(node.id)
       && !(node.lineageId && [...prior.nodes.values()].some(other => other.lineageId === node.lineageId))
       && node.children!.every(assembled);
   };
-  if (!oldComplement && !assembled(complement)) return false;
+  // A new sister of the landing's own category projects the parent itself,
+  // which makes the landing its specifier rather than its head.
+  if (!oldComplement && (sharesHeadCategory(complement, parent) || !assembled(complement))) return false;
   const rootOf = (id: string): string => {
     let root = id;
     while (current.parents.get(root)) root = current.parents.get(root)!.id;
