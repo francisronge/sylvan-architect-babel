@@ -754,7 +754,9 @@ const resolvePriorWitnessTreeTransitionOwnership = (
     .filter(([, location]) => location?.node.lineageId && copiedLineages.has(location.node.lineageId)).map(([id]) => id)]
     .filter(id => previousLocations.has(id)));
   const movementOccurrences = new Set(relation.movementOccurrenceNodeIds ?? []);
-  const lowerOccurrences = new Set(relation.movementLowerOccurrenceNodeIds ?? []);
+  // Only a witness the claim names itself: a trace left inside other material
+  // it covers still changes that material, as on a kept-id landing's source.
+  const lowerOccurrences = new Set((relation.movementLowerOccurrenceNodeIds ?? []).filter(id => priorAnchorIds.includes(id)));
   const rewritesWitness = !retainedPriorAnchors || [...coveredEarlierIds].some(id => {
     const earlier = previousLocations.get(id);
     return !earlier || displacedOutsideMovements(earlier.node, previousLocations, currentLocations, movementOccurrences, lowerOccurrences);
