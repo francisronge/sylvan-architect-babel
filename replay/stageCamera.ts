@@ -56,7 +56,7 @@ import {
 import { cloneSyntaxTree } from './syntaxForest.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import { isUnderTriangulation, markTriangulatedNodes } from './triangulation.ts';
-import { resolveLeafSurface } from './replaySurfaceNotation.ts';
+import { isOwnNodeNotation } from './replaySurfaceNotation.ts';
 import {
   LEAF_INK_EXTENT_Y, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
 } from './rendererMetrics.ts';
@@ -1673,10 +1673,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       trajectoryFloorY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
       connectorBaselineY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
       railBaseY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase, direction,
-      hasExistingGapNotation: (id, text) => {
-        const node = byId.get(id);
-        return Boolean(node && (resolveLeafSurface(node) || node.data.label) === text);
-      }
+      hasExistingGapNotation: (id, text) => isOwnNodeNotation(byId.get(id)?.data, text)
     });
     // The shared stage allocation above owns plaque extents, not their legacy anchor-relative estimates.
     include(boundOverlayBounds({ ...bound, primitives: bound.primitives.filter(primitive => primitive.type !== 'plaque') }, { markerScale: 1 }));

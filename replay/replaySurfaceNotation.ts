@@ -168,6 +168,26 @@ export const isDisplayTerminalNode = (node: SyntaxNode): boolean =>
 
 export const resolveLeafSurface = (node: d3.HierarchyNode<SyntaxNode>): string => (node.data.word || node.data.label || '').trim();
 
+/** The authored text the tree paints for a node, before any index runs: a
+ * phrase's category label; a leaf's word, with its category label too when
+ * Replay expands it into a category above that word; or a wordless leaf's label.
+ * Replay's own display word child (replayOrigin) still counts as a leaf. */
+const paintedAuthoredTexts = (node: SyntaxNode): string[] => {
+  const label = String(node.label || '').trim();
+  const word = typeof node.word === 'string' ? node.word.trim() : '';
+  const ownWord = (child: SyntaxNode) => child?.replayOrigin?.kind === 'word' && Boolean(node.id) && child.replayOrigin.ownerId === node.id;
+  const children = (node.children ?? []).filter(child => !ownWord(child));
+  if (children.length || !word) return label ? [label] : [];
+  return shouldExpandPreterminalLeaf({ ...node, children: [] }) ? [label, word] : [word];
+};
+
+/** A gap label that is authored text the tree already paints for its node
+ * restates it, whatever index runs the renderer appends to that text. */
+export const isOwnNodeNotation = (node: SyntaxNode | undefined, text: string): boolean => {
+  const notation = text.trim();
+  return Boolean(notation && node) && paintedAuthoredTexts(node!).includes(notation);
+};
+
 
 /**
  * Pronunciation is decided by authored fields (nodePronunciation.js). The

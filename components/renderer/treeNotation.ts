@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import { markerScaleAtZoom } from '../../replay/rendererMetrics.ts';
 import { isSyntheticWorkspaceRootNode } from '../../replay/replayCanvas.ts';
-import { formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue, isTraceLike, isWordlessCategoryLeaf } from '../../replay/replaySurfaceNotation.ts';
+import { formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue, isOwnNodeNotation, isTraceLike, isWordlessCategoryLeaf } from '../../replay/replaySurfaceNotation.ts';
 import type { HierNode } from '../../replay/types.ts';
 import type { SyntaxNode } from '../../types.ts';
 import type { DrawingLayer } from './drawingContext.ts';
@@ -38,9 +38,9 @@ export const hasTreeGapNotation = (g: DrawingLayer, nodeId: string, text: string
     .filter(function exactGapOccurrence() {
       return labelBelongsToNode(this, nodeId);
     })
-    .filter(function sameGapNotation() {
+    .filter(function sameGapNotation(node) {
       if (!text) return false;
-      if (this.textContent === text) return true;
+      if (this.textContent === text || isOwnNodeNotation(node?.data, text)) return true;
       if (this.getAttribute('data-default-label') !== text) return false;
       const index = this.getAttribute('data-trace-index');
       const formatted = isTraceLike(text)

@@ -3,7 +3,7 @@
   "viewport": "desktop",
   "records": {
     "movement/clause-context.json#/cases/0": {
-      "frames": "q9kJYm4Z wZTzyq-D nyRT-fu2 UhyGRpiz 8LOAUem6 tjecg2Ag Y_ForWZU 9vEJVBRN BvlOhCmw A00LQAyl MlKsdg2I TOOvUk3j zNAs2wp3 QTmb0Ia4 zdW0sKua epY_2rv4 VZfstLfQ RkoA9g_C eT7nYUaU rwK8NzbA fnr64Zmn JtxmN8dW 4dBYG2uE raOrt8El FUPBPzqn XH0g81vB KuEZLO4u 4I4-ikWf OOOY7Bst TCc2cu4r cgBej2sN MfxDY7pQ JHrOLgp7 aSJTBSc3 i8rR6yIN kd5Rd_lm x_RHva9X ZAFIaiui 2jF0Gk0s XXhzlPUN 00xRRH1V 5wk6elUg wGbLHN59 Fzlhprhy ScIWcfFq OdTjtpzD",
+      "frames": "q9kJYm4Z wZTzyq-D nyRT-fu2 UhyGRpiz 8LOAUem6 tjecg2Ag Y_ForWZU 9vEJVBRN BvlOhCmw A00LQAyl MlKsdg2I TOOvUk3j zNAs2wp3 QTmb0Ia4 zdW0sKua epY_2rv4 VZfstLfQ RkoA9g_C eT7nYUaU rwK8NzbA fnr64Zmn JtxmN8dW 4dBYG2uE raOrt8El FUPBPzqn XH0g81vB KuEZLO4u 4I4-ikWf OOOY7Bst TCc2cu4r cgBej2sN MfxDY7pQ JHrOLgp7 aSJTBSc3 i8rR6yIN kd5Rd_lm x_RHva9X oBfmtGEg X0z9Q-2r UXpJycPd 5lNtQkJO N2Q_38dm aZJom1DS J1GuXHXa 98ijKwNO q1KNJYgR",
       "canopy": "93OyHoSL",
       "tiers": [
         "0:0 T3 fallback",
@@ -33,7 +33,7 @@
       ]
     },
     "movement/clause-context.json#/cases/1": {
-      "frames": "0kJVwuma tSTR7fkK QkqZ-D8t yuWCzvsI GHAjXYMk YFlAsrSW GAH-l-Ls -fGezo0a 2ciQhatR yjvX1AsT YFb4DM4F P-jih6AV ff33nro1 V4cxw5lj 0Urb6rlW Qz3Ut0GZ J5SGKKwn 3Q4x8a6A XYuzHjAB rVB-biQF pZNiS3mp 51_-MZ6f KxH5Zn90 5QFNtsEB OjzK3Pkl Bb8CaZU1 ca9EDAj8 Zb0edFGs hPjslNKS 809XTvji e9Jvy4eC Wn9QZMYl _LtKrtb6 icCzttfe FEIj2dIX 9YGh00tZ NPgYG3Is FlR6C2p_ Es4Ajejl 7cgbEClO",
+      "frames": "0kJVwuma tSTR7fkK QkqZ-D8t yuWCzvsI GHAjXYMk YFlAsrSW GAH-l-Ls -fGezo0a 2ciQhatR yjvX1AsT YFb4DM4F P-jih6AV ff33nro1 V4cxw5lj 0Urb6rlW Qz3Ut0GZ J5SGKKwn 3Q4x8a6A XYuzHjAB rVB-biQF pZNiS3mp 51_-MZ6f KxH5Zn90 5QFNtsEB OjzK3Pkl Bb8CaZU1 ca9EDAj8 Zb0edFGs hPjslNKS 809XTvji e9Jvy4eC Wn9QZMYl _LtKrtb6 icCzttfe FEIj2dIX 9YGh00tZ NPgYG3Is FlR6C2p_ hVtONEmb -y9v2-CQ",
       "canopy": "U6VsqrUn",
       "tiers": [
         "0:0 T3 fallback",
@@ -381,7 +381,7 @@
       ]
     },
     "movement/projected-head-landing.json#/analyses/0": {
-      "frames": "dQK2C4vs DUBlDk6s Cr1WUnR9 qoQ0zwLf YxauDAyJ c_d4U7LH XyhnOn-T IK1fMaIJ WlBbRbcf IjdCCPjw a-pNJcRJ 9zSopwxG qrmMP6IR qZecsU77 jvyxFXBo rSuQRInC x2G4qzPe 18ty9jS0 uSVSaROf y68ctcDt QnOlKBDB 30BUlDu6 UGRUWG8B BTAKC_Me JZWzBVQi 10h5OVEM MOmAly4O SYBlMuM- GEuliYpm w_Q4LFCg VGpWzZ1B 4VNjl0fv 7zmh78tu pxSioylU kArI3n2W Qe2O9UUq lAKJsGto CjbrcMaz grLp_egN aUV18nxe ltuy7RbX oq-9-zwj T9otHCME",
+      "frames": "dQK2C4vs DUBlDk6s Cr1WUnR9 qoQ0zwLf YxauDAyJ c_d4U7LH XyhnOn-T IK1fMaIJ WlBbRbcf IjdCCPjw a-pNJcRJ 9zSopwxG qrmMP6IR qZecsU77 jvyxFXBo rSuQRInC x2G4qzPe 18ty9jS0 uSVSaROf y68ctcDt QnOlKBDB 30BUlDu6 UGRUWG8B BTAKC_Me JZWzBVQi 10h5OVEM MOmAly4O lvjQyuPT pXBnygTe JutsPgnm oZa0xGSl u5AOe5-9 gvEpKcDH DoUpDoxl GYWjVB7v VIC1Ef5s G7xb4gUQ GBytDBsz e1IAQzfu Of_N4YzM -WE_ESF9 32ppoMme PH-IhSgj",
       "canopy": "NMHdPMJJ",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -418,7 +418,7 @@
       ]
     },
     "movement/restated-chains.json#/0": {
-      "frames": "LkiyRvIA kcT3R5jf UmeNxD2i kjJjID0T mRwBb4av RrelFOs_ DrW79LTG 288e143F zqgXJdyT PyvYRmtN pvn4etgl D5QEyOYd KP7ipOWU DuHAsLta 5LyvZjtU wjyC1UIG Q9kYpVsV NP7BDZQI OkKLTdu2 R16kJ_57 1f1lHPE0 _CUZao-V JO4_pO1B i0AJIgHT 2v6BQFmb O7L6W-sb 9_F4RPNn l9RXbXuQ 8qRS0qFv h1hoSPOV cFAGJIkK pNC43560 7sc9RvTl ceu43gXf w8lwln0Y ZC_FgtSH _gUxbWxW bcYlaTrm 15hGn00o XEnx-UeJ tXLbuq2h YCsLgvKb CbXRGroI bwqY5s33 WhyNJx0- eiiNw0gE Nw3naULu RTzhT1iZ 7tS-ZfQx VhtGb5bX _y6scEdy LDgG1BTf dAMwi2rf UsLLm2Be ZQNp9o-o fK1juZZK TSzzaA3d MqcM-NhQ Y4F42HJM kQAuWWTt eQ0pS63C HNSrHo69 1CvAi_VT tbxuzk8B xHgr3I9K y0z8LUiy tOKAQCNB -4E3A3FI m1WF8ttO",
+      "frames": "LkiyRvIA kcT3R5jf UmeNxD2i kjJjID0T mRwBb4av RrelFOs_ DrW79LTG 288e143F zqgXJdyT PyvYRmtN pvn4etgl D5QEyOYd KP7ipOWU DuHAsLta 5LyvZjtU wjyC1UIG Q9kYpVsV NP7BDZQI OkKLTdu2 R16kJ_57 1f1lHPE0 _CUZao-V JO4_pO1B i0AJIgHT 2v6BQFmb O7L6W-sb 9_F4RPNn l9RXbXuQ 8qRS0qFv h1hoSPOV cFAGJIkK pNC43560 7sc9RvTl ceu43gXf w8lwln0Y ZC_FgtSH _gUxbWxW bcYlaTrm 15hGn00o XEnx-UeJ tXLbuq2h YCsLgvKb CbXRGroI bwqY5s33 WhyNJx0- eiiNw0gE Nw3naULu RTzhT1iZ 7tS-ZfQx VhtGb5bX _y6scEdy LDgG1BTf dAMwi2rf UsLLm2Be ZQNp9o-o fK1juZZK TSzzaA3d MqcM-NhQ Y4F42HJM kQAuWWTt eQ0pS63C HNSrHo69 1CvAi_VT tbxuzk8B xHgr3I9K y0z8LUiy yXs-9z7D jhjKWKUB TJ5_uLSK",
       "canopy": "qyc2X42M",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -597,7 +597,7 @@
       ]
     },
     "movement/saved-qualification.json#/3": {
-      "frames": "DqRzBlw6 BH-9-FFr MZuGNvBe GslQ5AjS -9alPdBW BlMq4Mqp ObSqNKWA sdqStDhw O19jH4dz qaV_P1bu 5Jzy1UUw 50_gCt7g fxaHyylM 5HLIr0_j xKKsJg0x BGMulq4T gDcyZXwF 71Ylo4gZ rvNHNdRy oJn9jFTW N69774Pr xdCTkIfq Jnj9_N3m LgytJLGT Wc6E-g-8 CSmAu_l4 dCz3byfg 6UEn9ZqT _er_qoj7 6v2q2ynF O3MX8WFO Ck_HIdAY 4qylKNWR JF0JLGRa Sa_p-UnE 04zozVPD GY6heXrt",
+      "frames": "DqRzBlw6 BH-9-FFr MZuGNvBe GslQ5AjS -9alPdBW BlMq4Mqp ObSqNKWA sdqStDhw O19jH4dz qaV_P1bu 5Jzy1UUw 50_gCt7g fxaHyylM 5HLIr0_j xKKsJg0x BGMulq4T gDcyZXwF 71Ylo4gZ rvNHNdRy oJn9jFTW N69774Pr xdCTkIfq Jnj9_N3m LgytJLGT Wc6E-g-8 CSmAu_l4 dCz3byfg 6UEn9ZqT _er_qoj7 6v2q2ynF O3MX8WFO Ck_HIdAY 4qylKNWR k_a59lap 2ETUSrlz _3yE1xkB OcoBuO6i",
       "canopy": "RxgCNKBk",
       "tiers": [
         "1:0 T3 fallback",
@@ -865,7 +865,7 @@
       ]
     },
     "performance/turkish-embedded.json#": {
-      "frames": "IRt-bTy5 szb7uCzI nvm0nDSg V9Ef0y6_ xhNYVRKQ VgO1d9_R EEqBXrFB mPTqvCNK krjHELXC fYffP1a6 T_inBcP- rs7X4URw DcPCzmPo tssCJT18 7f6TVZtn MV_g6_0Z gdRW4sL2 MU6oZZoh lVOxcyoy Exk4Kq34 oKaQRYnm KTmqqsfH 7SmuTo_I l0Hpt4yJ 4ELFty9m r1-d0Rzl wQ5008cz nPewyqd0 SwErRTGr pCVOEaXs NtP3oL5S W3GLa61T E2Dvm3sV k2Bleh8j aYuln4YP cdaoOF1_ VWPeh-tp YK47tf5x sUNOuQq6 s2Q5fDVU BYQe258N qw_hd5Pa rZg_DxFk XEraP1dT VfrUr36h d375kHQc sTXbdLGz 38yIgB4y aonf9hTm mvhgz7ca YsuM6Y6H k2ZC81cD ZIxVooqo UKI-uIY8 DtH6DFk6 Nnm-Sqer Tk74_cac yBk0kN5T A5BiJD90 UYs9aV80 Cg0L8-Hn cOLMwWQh 7v_NQfWS dFpSbjXd PKI0vlMt u3M549YM XBX6zVDk mxbQ5odz 3eSV9dG3 YTrDzExg tJoVAYKQ Qp9qiPX1 2LqbL35O kZ5Fo3o0 fIQnnc2Z -ZveRP5s _2XawsXv IHABguw0 VwzIdRw8 5hqAECJ7 k892a4-L cTp0yI_L KyJx5nJA XlVDwN_r fi2B_p0s _GUGqNPg lSdLkg6v NJiyBqrM gCMsyD7- 7pLbz7ul",
+      "frames": "IRt-bTy5 szb7uCzI nvm0nDSg V9Ef0y6_ xhNYVRKQ VgO1d9_R EEqBXrFB mPTqvCNK krjHELXC fYffP1a6 T_inBcP- rs7X4URw DcPCzmPo tssCJT18 7f6TVZtn MV_g6_0Z gdRW4sL2 MU6oZZoh lVOxcyoy Exk4Kq34 oKaQRYnm KTmqqsfH 7SmuTo_I l0Hpt4yJ 4ELFty9m r1-d0Rzl wQ5008cz nPewyqd0 SwErRTGr pCVOEaXs NtP3oL5S W3GLa61T BafCmrfv W77s0XJ0 HOXxy_0a mJktRTYG ddUSMLaU VD8p4UsG EP112xNN mdSQh7nT 8rwadSgi GYGncWfL i8pt9o6v nmNSsTXr tx6w7epc pl8noOkJ vc5XWDY6 INkei626 cpCPs1ed FGCaT50K etxhac7w 55cUt1S3 4ZzjJheK 8u3ceoBP HSRGWbSC asyRzjo9 RX9F_NuH U_YvQX49 pw9ErSAI _cgOQWpO HZvvVpgS C6Ie0ICw T3LbP7p5 IE5U1hMI Ub0z5Ce2 zgLx5r5a QPdNYoe- oKUPYh-y Xg7jId33 dMnuL1kT g_OxPibQ OkBiY2iy am1OQxVj HF5dOPO1 pIX_j7MN QHI-OS2C 390uCHjB FjWyq5TK 2BesqyUS 424Dfsdg jF6QMoxZ 51ibdjPb zIIdt4DU -lGl65Sx lLHcGwfP Tnz8V2rg VVDWPnoI ZyLWuasC fmP85pNg 1EXlcZiI",
       "canopy": "PJx_MFUz",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -954,7 +954,7 @@
       ]
     },
     "replay-regressions/anchor-set-badge-label-clearance.json#": {
-      "frames": "P5ufz3HN lmHQjar9 b4grU6Qt Ek_HVHDI XwCyhr15 ZaLkd--T 4uKZfarD cC06lwv3 hkU0h2KD wf0q8ZlD p6yjIR1m 5MHb1TAX N-2qyrGr nYIYVJ1Y ih0_0fo0 HM-KUlcs M4JNq5h_ FpAD--Ap ay7ngt7K EUGh6Hcq CBDfnXb3 MRoXw0wN IKijHE5e sgQ_2lrr xUUQgI14 PSKTsppU scyzjR1f Arc5MciG PskeNye3 l1J4NX3r 9it_LvZZ E5Gf1pvU u-SrZ3YK a-pK4sQL 9wpLzL4K W3FQ6KhO qADWtuGJ pLeZo-e2 bcWuW-w2 WSqPVQKs C1wgU42q hfh7U3yL T-TElqpo V9ydeI8Q aDyReRtv FyiVjgEy CugN8ymZ ue0Lbp3j o0DF1BI4 LIKlkJD0 OPkZcmy5 zkWOWtsf Ka9dEyOG 8H2lDmcI TaQ1kqDv KBLsTau0 rWx1C5J1 G_69tEx4 XL4sOEHE cTBRFsG5 3x0f-g2t 1ncBzP14 FOhkPlGz kcnPEEXf zCqEK8Y6 lsnmpia2 ddM5Xj_L 5YZXPmUQ 5VwrJQeu OzhfFpIg 5LUHcMN- GaYPph7t -6J68e3- INefZs36 NEVM90v0 QrdyZyvV DSxCf5nQ a-Hh2o_r NB2g6R3B ijXC5kPe isr6R0pT B5oYtpPU bX3FtMYa uE9mSHMV b7nBtfLy MYyDvtTX boniImiy SCMLVppl sQclH0US jhQrJjDs XtsaFJBI",
+      "frames": "P5ufz3HN lmHQjar9 b4grU6Qt Ek_HVHDI XwCyhr15 ZaLkd--T 4uKZfarD cC06lwv3 hkU0h2KD wf0q8ZlD p6yjIR1m 5MHb1TAX N-2qyrGr nYIYVJ1Y ih0_0fo0 HM-KUlcs M4JNq5h_ FpAD--Ap ay7ngt7K EUGh6Hcq CBDfnXb3 MRoXw0wN IKijHE5e sgQ_2lrr xUUQgI14 PSKTsppU scyzjR1f Arc5MciG PskeNye3 l1J4NX3r 9it_LvZZ E5Gf1pvU u-SrZ3YK a-pK4sQL 9wpLzL4K W3FQ6KhO qADWtuGJ pLeZo-e2 bcWuW-w2 WSqPVQKs C1wgU42q hfh7U3yL T-TElqpo V9ydeI8Q aDyReRtv FyiVjgEy CugN8ymZ ue0Lbp3j o0DF1BI4 LIKlkJD0 OPkZcmy5 zkWOWtsf Ka9dEyOG 8H2lDmcI TaQ1kqDv KBLsTau0 rWx1C5J1 G_69tEx4 XL4sOEHE cTBRFsG5 3x0f-g2t 1ncBzP14 FOhkPlGz kcnPEEXf zCqEK8Y6 lsnmpia2 ddM5Xj_L 5YZXPmUQ 5VwrJQeu OzhfFpIg 5LUHcMN- GaYPph7t -6J68e3- INefZs36 NEVM90v0 3N2r1zQ6 xhzuGT7d bjK7jt6E pKcxRajI zbWeOaoC uFZLh8o9 CucwsZX_ 8nSTPm6J FU5hxzex 84-abd3J RBZu5J8h bJd96YRR Do3pssNn B8rAyVmZ vkMdhapw hNtYrVYa",
       "canopy": "rYwANb1a",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -994,7 +994,7 @@
       ]
     },
     "replay-regressions/astra-spanish-qr.json#/analyses/0": {
-      "frames": "nZ3MVCap sstzloTO heBTQlth dKBOfZvv ot9X_jDy l1PBABdv UinCpxmM Xr08ZuH2 XsXrkX8C 68c8LDXZ vHp1-4Rz x6GNPzsF HL6Fau3Z 3s3BvlPQ nzTpA4GN BggGw35f hIjcB3D9 Xo_nEkF1 JRhE-KrW RYRjYDja -jVQgeBP _0tawK_2 BiSuAqa- eD4_mBOx Zyb8H1mD XoCr8yyW P78jjxSG YF0iQ4t3 Lt02x8bk MoJkm8pM fKdA2rlz 4Ce6jLb7 6kHem7OP",
+      "frames": "nZ3MVCap sstzloTO heBTQlth dKBOfZvv ot9X_jDy l1PBABdv UinCpxmM Xr08ZuH2 XsXrkX8C 68c8LDXZ vHp1-4Rz x6GNPzsF HL6Fau3Z 3s3BvlPQ nzTpA4GN BggGw35f hIjcB3D9 Xo_nEkF1 JRhE-KrW RYRjYDja -jVQgeBP _0tawK_2 BiSuAqa- eD4_mBOx jrhGZj_2 _ka6RQZg xGtpquU0 pNUZE4zT VPRc31jJ 9euPJWuv A9aao2tf S0vkxI1h _s_gYpzd",
       "canopy": "sjeEaB1s",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -1017,7 +1017,7 @@
       ]
     },
     "replay-regressions/astra-spanish-qr.json#/analyses/1": {
-      "frames": "DtaUMhrZ wd04LtGW 8GDrsVjK 1J4h-IYJ 80vC0fr8 GZj5ZwDg DykK3pLs 31Giup9D HMIo1OgX z-xtjZ3f 74OA4YGs e4bIQ95a otRTOKbI pJrkLM_w 2s-XI9-d xwgqxHEx 7csJPRXR rJ4FX3uC kB3lFhwl AcITR6ga r0Ol4-Z6 rUB7yLn3 cXwB1sVF yoz-ehEX rnFfgp9S gtMyVhMT JnQEoCBg n0P9Xwyc aT3HHYyD KCQd1UkU kMXJ-od8 CSsIII4k rYkXAiLM",
+      "frames": "DtaUMhrZ wd04LtGW 8GDrsVjK 1J4h-IYJ 80vC0fr8 GZj5ZwDg DykK3pLs 31Giup9D HMIo1OgX z-xtjZ3f 74OA4YGs e4bIQ95a otRTOKbI pJrkLM_w 2s-XI9-d xwgqxHEx 7csJPRXR rJ4FX3uC kB3lFhwl AcITR6ga r0Ol4-Z6 rUB7yLn3 cXwB1sVF yoz-ehEX oVkxSYH5 Xttnc8fH RoIQl7hI HaB7uNij g1qNIQ4L Nb8dMOB1 GgMQR3Tx sRE0ZjTZ IIosHH1c",
       "canopy": "_uJjNEFl",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -1040,7 +1040,7 @@
       ]
     },
     "replay-regressions/astra-turkish-relative-2.json#": {
-      "frames": "SxIk2Oup yfgJ_djj s3XrhNCs w265Q5ap zTBDDsRL NEsODtbq -sH79z7a 9i863ydG 1HAzhhwX TNJxduzh kipf_oAY w78Ct061 -AsOK0VG OYjexJ49 nGXZqUy4 rqktjEtJ iPMEfvB2 viOt0_Ya QWvAthhm sbP69al1 4HxHZeNh 7vrd1w0B GMyuGumb g7K1zRnK 2zNu8VSN E_aEOpIY fx3n11JO EPRIe0Lb 9yINfq3a r3qC-A2L 6H4oFO8a Fsk8ZWWV L3h0xgfE X8bClC-R C7wf1S7K cfg0mPI4 yTKX8ZyN q8ld4p3p lOsecb4M Atb_A56h 1Qt427pm btx2f2Pc JVpJh0ti HN_aStWc n_E-kmQ7 5NDri_WL jERC1oGG ef7rbqq0",
+      "frames": "SxIk2Oup yfgJ_djj s3XrhNCs w265Q5ap zTBDDsRL NEsODtbq -sH79z7a 9i863ydG 1HAzhhwX TNJxduzh kipf_oAY w78Ct061 -AsOK0VG OYjexJ49 nGXZqUy4 rqktjEtJ iPMEfvB2 zx9LTVdq QRJn1iEr jkVkU0_9 P3_fwjC- nU6xn4_H qp9lEWEZ OMteWt9Y sqv3TzND k13Y7M83 VJSXb1x2 ysRF2d7Q ZEYRE4nn mEu6QqI0 LW_KYxlE e4ngjxA9 OQzQtozZ KgOKiiHe UK1iAkH5 b56M6tcW eNaepyqM o5JnE6S6 saOBdSzM 9JHER1YZ E26Z_aSy MZHEJWaf VwcUXAZv -Kun47AX TKD63nzB _nHxQsfm jmpZuk5T 97HOtJ5T",
       "canopy": "Yw76cP0E",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -1096,7 +1096,7 @@
       ]
     },
     "replay-regressions/case-source-transfer.json#": {
-      "frames": "-caPRh3s tqskEgmz 6bx1qPiO Jm2nNuP4 -R-z6BcO LS9K5Kl1 e9GMAr6k 5Mt8_Ld7 f8RUshJJ _MnXamVT OPcgYDP5 p_9sJfxd -ISgZ_bM anILlwvY mjkSsjea Lv7YpvYk Tado57In 1Ln__y9F CwrGP8Xe d41uqvZE yAijJokW GOVVPG6n jxOavh5h FrNPXCkD MXpi2ZDY 6alg6UUb uolotu9I BEQscQ8N DNwC-xgX U70PA6dO 9KVO3j_q 5qqmJUbP KBcb18Rs 290KJDdC 8_7uNhTy qqsFxGGU",
+      "frames": "-caPRh3s tqskEgmz 6bx1qPiO Jm2nNuP4 -R-z6BcO LS9K5Kl1 e9GMAr6k 5Mt8_Ld7 f8RUshJJ _MnXamVT OPcgYDP5 p_9sJfxd -ISgZ_bM anILlwvY mjkSsjea Lv7YpvYk Tado57In 1Ln__y9F CwrGP8Xe jlYDpWFZ -pCYJ9w1 Os5hsAWq LcIxbWb7 sk03oPAx jPJHiRfV lIs-ZvfT 7BWx64Pn zNMo8Gco qcEJKjd2 QbYlkGow 6GH0VQ6M jkQItlH5 066-5Xtl DEAQDBEL rgpE3lHp IcRpPkpj",
       "canopy": "Idw5c7N2",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -1293,7 +1293,7 @@
       ]
     },
     "replay-regressions/compact-current-root.json#/cases/1": {
-      "frames": "go6fMKR2 cpTi0v18 5f7_Ga4z 6GNhNwB2 UtWbuzxM QEviKOOx d4vPky4O YQ_QQ3uJ iN4fONT2 VfHwE6MH Thb4nz8B wJLiw8Ss eetVUa_Y RzT8tVLb xFhV6nZI CvAVX8Mx aZUGjuuh vLruKv13 RiYaIFJO -yUWX-lw iP1OMDci aK1ANGhr XxVVgbr5 IxoPit4P JydqNWif t9TEalG8 z5OTxr9B Cy6w3FlQ itHgLgd_ cfGwMNSY R86gLTpB wB5_W_HQ gj6zDCNo BXDhCttz Gc2LQkCC s9BMIbWz Xf8vrFjD kOpwRige",
+      "frames": "go6fMKR2 cpTi0v18 5f7_Ga4z 6GNhNwB2 UtWbuzxM QEviKOOx d4vPky4O YQ_QQ3uJ iN4fONT2 VfHwE6MH Thb4nz8B wJLiw8Ss eetVUa_Y RzT8tVLb xFhV6nZI CvAVX8Mx aZUGjuuh vLruKv13 RiYaIFJO -yUWX-lw iP1OMDci aK1ANGhr XxVVgbr5 IxoPit4P JydqNWif t9TEalG8 z5OTxr9B Cy6w3FlQ itHgLgd_ cfGwMNSY R86gLTpB wB5_W_HQ KR-kb5wT 7nInwGAK O7lBc2m1 blDz2cDs Tribcf0D udEJwD2Z",
       "canopy": "HMFr3agD",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -1501,7 +1501,7 @@
       ]
     },
     "replay-regressions/diverse-recovery.json#/examples/0/analysis": {
-      "frames": "h7cONg2W Vzecr-w_ M68t3duk 4MfY-O6A 7IMc5E2X KTiBqFeC k7obPjR6 iQ3zi7zH GNaHno-6 RcG9nZZu ZvAIJ1tn D2IlBe6F -IbATDjL IonwMXaq D5mzbqyj 3S9klGxk -b-MTFQr lq99vqOp Hv90_It8 DBcsZyqU Pv-5GHdy pzFqnFj3 2COST85v _E76JVml WfO5q5_S 680qnMnS wKdhnny9 unMEMGLY NLGkXTqU dPTPNVOi ml0HNLeo qM6r8zq7 1tLEhvUN __roG-TX y1Bb5dS1 P24_H8hp 96oKf9sG XzMy8MdM 2m-2lrEi A8P5vlad 5jsmzuT5 mkBV6uJj 4iU2dHuZ 2aHNjQRK BQQbLF0q",
+      "frames": "h7cONg2W Vzecr-w_ M68t3duk 4MfY-O6A 7IMc5E2X KTiBqFeC k7obPjR6 iQ3zi7zH GNaHno-6 RcG9nZZu ZvAIJ1tn D2IlBe6F -IbATDjL IonwMXaq D5mzbqyj 3S9klGxk -b-MTFQr lq99vqOp Hv90_It8 DBcsZyqU Pv-5GHdy pzFqnFj3 2COST85v _E76JVml WfO5q5_S 680qnMnS wKdhnny9 unMEMGLY NLGkXTqU dPTPNVOi ml0HNLeo qM6r8zq7 1tLEhvUN __roG-TX y1Bb5dS1 P24_H8hp 96oKf9sG XzMy8MdM i_zikzWY Yd-9sElt MElKctNo RO7Lx0WC 6Gm1s9UU Av5eet_7 JTUFHoPA",
       "canopy": "j97FQNgb",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -1568,7 +1568,7 @@
       ]
     },
     "replay-regressions/diverse-recovery.json#/examples/3/analysis": {
-      "frames": "wikB6Dc0 XzIDk9Hy Je_IHycR -4fO36uH AiIDbBlp jS_Q3-sj k9BHcY9K ZnX1n_e- CJVg7BXB AuRK74wk ITZiu9QG EMcBYU5r 9728VDWI I5E75Ie7 T2U4MXxT 1MRRJhLO f_XMtkd3 etnNBXF1 Xzb9LlpL 89OrT-Cx tmW28Eik TPf4Hgfq bKZzjEYq DT21yz0c uL4fqzFg P10whUNd 73-09HbQ nR_F6VtY KJhwEDym D4X28Dzm K_rwx3RM 2LU_rUO6 eXsVjxrD 9dZ8qlF4 LXKBZzQl YeZ_0RAY AYLYXE3n ZWiIWcvv n6p-TzMc kRYG8HFI B1u27Ota 5eErV5oH vJd8RiTy w4bOmIez M1zQZQI7 4sScP3H5 znuXvVBE PqV3QM4v xhdIVF73 EHy7_xmB TD9h3Sfv eg5k0Um- XfjTYjvG Yf1mxUwU wljhf52M 25lqmvRP _Dp_whv3 tQPOlt58 bcysCuW9 xmOYNENr F1CN-Aeq okYkaUnq",
+      "frames": "wikB6Dc0 XzIDk9Hy Je_IHycR -4fO36uH AiIDbBlp jS_Q3-sj k9BHcY9K ZnX1n_e- CJVg7BXB AuRK74wk ITZiu9QG EMcBYU5r 9728VDWI I5E75Ie7 T2U4MXxT 1MRRJhLO f_XMtkd3 etnNBXF1 Xzb9LlpL 89OrT-Cx tmW28Eik TPf4Hgfq bKZzjEYq DT21yz0c uL4fqzFg P10whUNd 73-09HbQ nR_F6VtY Ao_FUacT JkyDPcbd tEDXfxTA 37uweti1 kRk-jm-H FKVh9Gb3 1yW7pw_O a5sowiGN SudsOTLy yVXVvMpD SOPNe05x grKwn_9W lGF8627q 0dnEk82v nPAusOOb 93yy5Hkd z4aqtVMH qTUP6_sh V8N9ztyA xx8hDf6r HWRhtqUl 7YYXJ26q 8ldtvNwA 09sP_pCN h4n_8uon ffVU11Pv 5dvLzpuE ZUhTJ52H ArUCAbZd vcNF_BZz Kb8uAHeL Pj0c5I9l Ax4-gFjs 29QoZEhQ",
       "canopy": "sD6Ewtoq",
       "tiers": [
         "0:0 T2 directed-path tier2.feature-dependency feature.dependency",
@@ -1647,7 +1647,7 @@
       ]
     },
     "replay-regressions/diverse-recovery.json#/examples/6/analysis": {
-      "frames": "GPKbsZvF ymCdm2U9 z-4c5Voz -Sw7i2mK dq_lonUr upFezYoH C-VlxosM 7zd-SeU- vmY-cK3Y gAG6T0wM m8MYfr7w igWntpWV XLr8yUJd VZQinVEW 2hGVCaVN QMf7S07G 6vdjPyCJ vlXygZ_d CemdqO2H LVWm8NNL NwH6213G i2ncNR5Z RAtOUIjv Gx7VnjXl p38Bq4Ed 3D9Ic_yN Ail0A2Ol quo9Ornr FQRHC6Xw o3wkSSvC fAxongOx KSfO_2oI yctg9_h5 eyEoxDG6 1-w7B91a 8pvcB-Cc _jXYDk04 eUeavjwZ 4OY-rqu6 2tFpjCKk EVjaRr4T Ua1sCcl2 Du076M1S 1p0yI5Z3 fuPLdmbl rbq7l1tw _Y7hz5Yl QJlFHeMD pzkDB27Z",
+      "frames": "GPKbsZvF ymCdm2U9 z-4c5Voz -Sw7i2mK dq_lonUr upFezYoH C-VlxosM 7zd-SeU- vmY-cK3Y gAG6T0wM m8MYfr7w igWntpWV XLr8yUJd VZQinVEW 2hGVCaVN QMf7S07G 6vdjPyCJ vlXygZ_d CemdqO2H LVWm8NNL NwH6213G i2ncNR5Z RAtOUIjv Gx7VnjXl p38Bq4Ed 3D9Ic_yN Ail0A2Ol quo9Ornr FQRHC6Xw o3wkSSvC fAxongOx KSfO_2oI yctg9_h5 eyEoxDG6 1-w7B91a 8pvcB-Cc _jXYDk04 eUeavjwZ 4OY-rqu6 Tds4DQlu QSI0UKBr mG14nIqs LbfRxEwg 3JnR6O3A y8L56H9C uG9ww2R6 2eJ-TVnB 8_klMa_4 YW1lUaXG",
       "canopy": "n9MUHB8g",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -1732,7 +1732,7 @@
       ]
     },
     "replay-regressions/head-movement-ordinary-wrapper.json#": {
-      "frames": "FvdnzLDo Z9zTX205 pdPBK1V3 GXmMBCpZ oNL4fRJZ -0i6Cn-o bV12f8iP 5K1DswI7 PSzPv0YH wa7ZjEAS H-fiuyKo 7BCMdCro tyX_EMAA J2WCKs2R 9n9BVidb _YC-5lar 6HVomChw 3fKEO2U5 lGtyXn9k aBMmcOy7 HUXpFJSR 2c1kr4vX ZwUIrz9- X2ELTZoZ 63cEEO_z lZ7tPNQR D9F3akFp lzBZaR90 Doo7LqXw PjLpXbgL QoVdoga- THNdTYiU dDByYEwa w4CFJhJ5 fKquy5oJ IdeqJAe9",
+      "frames": "FvdnzLDo Z9zTX205 pdPBK1V3 GXmMBCpZ oNL4fRJZ -0i6Cn-o bV12f8iP 5K1DswI7 PSzPv0YH wa7ZjEAS H-fiuyKo 7BCMdCro tyX_EMAA J2WCKs2R 9n9BVidb _YC-5lar 6HVomChw 3fKEO2U5 lGtyXn9k aBMmcOy7 HUXpFJSR 2c1kr4vX ZwUIrz9- X2ELTZoZ 63cEEO_z lZ7tPNQR D9F3akFp 2ofMocjA ali2kIfx 0kUdrvxa 06zi1b-Y hv9P9z7x GY6W8aOZ aVRm2Adi JGMgC-CV rkqTTeXN",
       "canopy": "W3APuUlL",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -1798,7 +1798,7 @@
       ]
     },
     "replay-regressions/independent-clause-and-realization.json#": {
-      "frames": "CA6wFwzh MUwBvbJN 6dOZUnkX EoPhzW8n eMB4MlcI B_PwNk2k DgSDFAWq MxTsbBVP -46tL1-W -o2hQUzZ r6BC8iNG C8tJdIeB NDU79Cqn TPuK8LTm qedEHMDd -Thguj86 2BNb_IUS 1oq0f6xm TyZbsrfc DQgAFEzl nsM9Pbo6 BUwf4ypS ZQuvc5dL IeSA6vLa BNtPZoMS 6hjLC6j6 dOT2bygo zyew5MQR tWs--yCd xB2KRImZ gwIDmpqs 53z7ExIb Q8xrZ3Tb MnJzSlfy Dk9SPMK0 38-uWeoU HP4YWQtJ JGi0Fm1_ 3dkuh4nV NW2I_3f0 MXhkRitu cf40q6lz x7UX8NlQ qz51o5J_ 49GvUchi EbzJzn6T 6k5greQL WUVf9NAP LsAqWCB9 8Kr6Cvo7 e-0vOC82 kysSkVMI anYpZb25",
+      "frames": "CA6wFwzh MUwBvbJN 6dOZUnkX EoPhzW8n eMB4MlcI B_PwNk2k DgSDFAWq MxTsbBVP -46tL1-W -o2hQUzZ r6BC8iNG C8tJdIeB NDU79Cqn 0fn7T7m7 YfSg7kLE 27s-6vy- hgKakZ0E yssJAvUH FMiVW0uA pjftNTIu kVIAuuVd PBv7pTO8 1azyWieW TZ3MnYtE 5AoPDuYt 9xBf11iq TbuVcSjn u8crpB7P eduQBZ-W AO5MiH_e zuBMb2Za VZh_IiQ9 p5OoZU1V 8FlTi0NK ECA4jGuQ gVsEJ99N 6YYN0P9x gSbVaENo sJk4_Cmd qJnd9-DN DUCMrxvJ hbYVnSy0 zZuXZdGb kbzDjDoQ QFuOT3lM EBQYoEUn BByPdAO_ _su9Jfms UfBxYZBl uOmToWj5 j-TEHExz Fi9m2EwW Ioo5RwMD",
       "canopy": "mI8mv77u",
       "tiers": [
         "0:0 T2 coindex identity.occurrences identity.occurrences",
@@ -2210,7 +2210,7 @@
       ]
     },
     "replay-regressions/ordinary-receiving-width-control.json#": {
-      "frames": "kDKT5h3D svp1AWCI aeTD5uPl n15Uj4iS ARux-oV_ OeaRurmi wl0dKKYt jQNHeXwB b5JpuVD7 2_5D5PTG EStIPVE2 FJC8VuOI aTvJBTO_ B5HASln_ Dhm8OmgV FIoL6SsM k9LrLhHj HZzDk7Y0 XtbbSPLL PuWslHp7 WbOCf8SC YMm97jfJ IwLmXnIG o8S4pDMI xmiOysTl uH93l79j q8hW_gnU JSYPTJLz OlF2w2kn L3IXO2oY ahbqWrsr Ya_tt0dK Xtgc2pxw FCKiAWAT m_mg0Ppb tWRNMW7M jkZrMF7j 1FaIpyhm Oqq7NmTB papUkW17 37He2YWh",
+      "frames": "kDKT5h3D svp1AWCI aeTD5uPl n15Uj4iS ARux-oV_ OeaRurmi wl0dKKYt jQNHeXwB b5JpuVD7 2_5D5PTG EStIPVE2 FJC8VuOI aTvJBTO_ B5HASln_ Dhm8OmgV FIoL6SsM k9LrLhHj HZzDk7Y0 XtbbSPLL PuWslHp7 WbOCf8SC YMm97jfJ IwLmXnIG o8S4pDMI xmiOysTl uH93l79j q8hW_gnU 0o2Fj3qt J2uIyrTk YT7bRAth mesm34Qm vACeQg24 4AJHscvC RbCyWMak 9ENrLEbu WuwOPv7V WjEXHpJr Sbl1IOyi GrZyXec0 30gHXjHJ t0j-NIKL",
       "canopy": "7lVT9EJq",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -2414,7 +2414,7 @@
       ]
     },
     "replay-regressions/receiving-head-container.json#": {
-      "frames": "hDh1j685 gfUQLU5i 69r8mZvP Z7PNAqUi 880EG12S IT9cvfoV MB1BN72e H1UtTGSb 3ii-4EuY o_4ABZVZ yKnPK-hn UuDydeW5 BA-ZphMV udl_TTvc tWxrWgA- YhRc6Gy9 DvLftHD5 xH3U6Rp- cXomDdyf kJ9LV4vn N99ZGewr qv0jrT3J ih04y9Oz tQiFpIwZ BBH7O-Nv 1E4ko0NS 40mZ0nIJ xct8oH-D 0ojzwk1e 9q0fqdku sf4iiu1n _POpPc8_ cVfxWrOo KlnBQZub HfO-wmsM gvrJaSVg wa3scHn0 ch2eescx pWDz4eum BMDhXMPY Yetp3gWn yfcPg8R6",
+      "frames": "hDh1j685 gfUQLU5i 69r8mZvP Z7PNAqUi 880EG12S IT9cvfoV MB1BN72e H1UtTGSb 3ii-4EuY o_4ABZVZ yKnPK-hn UuDydeW5 BA-ZphMV udl_TTvc tWxrWgA- YhRc6Gy9 DvLftHD5 xH3U6Rp- cXomDdyf kJ9LV4vn N99ZGewr qv0jrT3J ih04y9Oz tQiFpIwZ BBH7O-Nv 1E4ko0NS 40mZ0nIJ xct8oH-D 0ojzwk1e 9q0fqdku sf4iiu1n _POpPc8_ cVfxWrOo Ry2DXG-f p2edq50K TNCoaasz Qi3df24Z yppS6SH4 zoAElSjY a9jEbHaq 8WtpYIfH TR-J49pN",
       "canopy": "v_TB7RG2",
       "tiers": [
         "0:0 T3 fallback",
@@ -2437,7 +2437,7 @@
       ]
     },
     "replay-regressions/receiving-head-material.json#": {
-      "frames": "rLF52iJD dqArfDlZ 8QgMXDzC JN7286a3 lvZU4fDW guOOARDB Ad91l9Kx M3XwKmT7 mq0ypLeH G3jo2MK6 qkhZenPU upfsnW53 JZ6XBr7B jZ45agRl 0ZVEi2he Hv16Ta4H ZLKKvk7_ 5_Rpqb0i yReb-rU0 noehwHx0 mCj70TWO FK7D16ON tbVScTqa 3a3CWtVS 4TThXNj7 tCvepZuC ZAFUV5S0 sySc07QJ z75VmJka 2f23gUBr gp1JdQDP",
+      "frames": "rLF52iJD dqArfDlZ 8QgMXDzC JN7286a3 lvZU4fDW guOOARDB Ad91l9Kx M3XwKmT7 mq0ypLeH G3jo2MK6 qkhZenPU upfsnW53 JZ6XBr7B jZ45agRl 0ZVEi2he Hv16Ta4H ZLKKvk7_ 5_Rpqb0i yReb-rU0 YkMHpa2K FstkmuAp mkhkfe7D k6B2YkXz 77d3c3XF RVOlcUvU QNRYNgDW imTmtZor TIAa5pTc XOerL72H xyA3rrza FIGsqszx",
       "canopy": "ebJ_57W2",
       "tiers": [
         "0:0 T2 coindex identity.occurrences identity.occurrences",
@@ -2513,7 +2513,7 @@
       ]
     },
     "replay-regressions/relative-clause-waiting-clearance.json#": {
-      "frames": "POTJhWUq oB4suSfQ F6V8e7X7 7d_guWC9 SSnr4SEZ 1LPWDDOv bJiyX2Tu ruSJnGyM 65SiWulg lZ47oTbV taeXPJXe MVKpMoEu k0Hnayee CQAOj2UN 93bpdW1S YgyAxETV xuTq6dwb d1nNhAOh wgkzSQHI tRNCJA9n 7QL7Uljb yHuWD_ka 3mJ53rwL IQT6JFrc SFT2zJaE qCaEFZVc nD-nSIRr yb72s2Dr iCL4PB27 57QtCv7I R_KurIbh iJ0-gomF GoFUQ0E5 I5GGVZUq wxk3zJJ8 KUTW5NjG 9xjN6lvJ 1D_En-tQ kXoDDgv0 QI3NgQ9q Y1-0tIaP mNpy_sW0 RBYyxX0c x8a3Up-o uXdLhGAP jwjz3v56 IZf7Y0Pi I9iRgfwV eENaqJqJ _z5vHfJx Uv889_8w e_Vre5w3 ab9-Oksm 5ezNj6-o 0h5zUK9p QkWO6Wnt HRc2X7jv B4kKb3tM uhtw6ajc N5nug1Wq 7Z0ckOpC lLH4kSU6 CgddVbX5 hf8ECHDA",
+      "frames": "POTJhWUq oB4suSfQ F6V8e7X7 7d_guWC9 SSnr4SEZ 1LPWDDOv bJiyX2Tu ruSJnGyM 65SiWulg lZ47oTbV taeXPJXe MVKpMoEu k0Hnayee CQAOj2UN 93bpdW1S YgyAxETV xuTq6dwb d1nNhAOh wgkzSQHI tRNCJA9n 7QL7Uljb yHuWD_ka 3mJ53rwL IQT6JFrc SFT2zJaE qCaEFZVc nD-nSIRr yb72s2Dr iCL4PB27 57QtCv7I R_KurIbh iJ0-gomF GoFUQ0E5 I5GGVZUq wxk3zJJ8 KUTW5NjG 9xjN6lvJ 1D_En-tQ kXoDDgv0 QI3NgQ9q Y1-0tIaP mNpy_sW0 RBYyxX0c x8a3Up-o uXdLhGAP jwjz3v56 IZf7Y0Pi I9iRgfwV eENaqJqJ _z5vHfJx Uv889_8w fYu3IkxK uRuf1Jo3 jrnBnpx5 WM1FfU7L eCcJ_81P cAwaLzw_ Z2kcJSNv 3wKfPIjs s7fIuZoY weX0MB8P Z_jOJI7V vbfYrWez xlv4mOfB",
       "canopy": "VEHQR7ra",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -2850,7 +2850,7 @@
       ]
     },
     "replay-regressions/review-workspace-boundaries.json#/cases/1": {
-      "frames": "NJn_Rvt5 uWnmgv6Z LBbO1UoZ kh6zZgxk IVmXUnHo ZNUygp5l lt8tjGoT pSZjcYT6 NFdUqYeS 36E8mxLa k6MP0GXp _be6-pV6 MzPgehYD Dn4ktB8b wfWEMSgp izwASDFT LqJV39t8 yzwXEkZQ QfA_DRV1 g6-DZe1P Gl9DUIFI UUEQ6fiN 3xRNdAij OWH723l7 v5oD3gjb _hN9fWot MnnOsNev 2-xivwFp bFo97iZ8 mmBU6Mkg WvZpR4Yw ld5G6oE2 g9rL_A16 uZ2aSnj9 mM4luyZn HUF-Ni96 ASPBSSy2 2UUEQ4x5 JrVvMu3O C1xW-lh1 Xwog0YXz HGDdMmz6 XtEbWi6H Cz0KDw9D F8gMqeu5 AqYco3kB ob8yvrxn xHRtssl1 yL8mga-e 3B95ntC3 lprD_92F mXZOom77 JK9R-yxq zjqttNN0 8zCJe884 YoUewlif ig_s1uP_ E3k-v3G7 Z3-ZwfxU SU9iKFZz",
+      "frames": "NJn_Rvt5 uWnmgv6Z LBbO1UoZ kh6zZgxk IVmXUnHo ZNUygp5l lt8tjGoT pSZjcYT6 NFdUqYeS 36E8mxLa k6MP0GXp _be6-pV6 MzPgehYD Dn4ktB8b wfWEMSgp izwASDFT LqJV39t8 yzwXEkZQ QfA_DRV1 g6-DZe1P Gl9DUIFI UUEQ6fiN 3xRNdAij OWH723l7 v5oD3gjb _hN9fWot MnnOsNev 2-xivwFp bFo97iZ8 mmBU6Mkg WvZpR4Yw ld5G6oE2 g9rL_A16 uZ2aSnj9 mM4luyZn HUF-Ni96 ASPBSSy2 2UUEQ4x5 JrVvMu3O C1xW-lh1 Xwog0YXz HGDdMmz6 XtEbWi6H Cz0KDw9D F8gMqeu5 AqYco3kB ob8yvrxn xHRtssl1 yL8mga-e 3B95ntC3 lprD_92F mXZOom77 JK9R-yxq zjqttNN0 5i_Kjhtc 7__Lrgl- 2k0pt4m- 8aK7KWDA Xq_iaFuO TyVjIvnU",
       "canopy": "Fs36ugPT",
       "tiers": [
         "0:0 T2 node-plaque pf.realization pf.structured",
@@ -2879,7 +2879,7 @@
       ]
     },
     "replay-regressions/review-workspace-boundaries.json#/cases/2": {
-      "frames": "nMekWy94 34bZn55t qlHeKM_k anqD32KE Jn3_xDSP V9m8HqsS DGc2XmGV kU0TzoFn xAXXeO8E 8zE8iEB8 q8KsAWhW ZZ7KxzZ1 lMCfaedJ 8n9srS35 NrqJWf_W FnXZWneE r7jY0b76 iQc9I0Pc wsBVswzI 6yh7ziW9 H1OxtJxB RKrcgfRB GLJHD8Uf 9KsbTMjU RcQjrMDv hgRwpHJ_ rVd65-bG _eRCb7vP IVpUerYJ 8GBzYpaS p6Yu5-c6 sKFGYaIV avysU2KB sumy3src RLu89mjp mBbUw1J_ tAqPL5y9 SXCm9qYl WYPcFRcD A3sD79Fg Edfi3o80 of2PU9qm N3jA1L31 cn3u8lGK qqWaUsqa 8wuNEjD5 hLBRdUkN 6svJmkyc shvlNqfX o_o51yPe YZL4AeTH Tk6yH8Ws oqFFz0kp Xtb4pLul 1rVC93GC u8dgUYzm xligensl Y4Wh7WLX o3SAo-qs 6BcOaWDr",
+      "frames": "nMekWy94 34bZn55t qlHeKM_k anqD32KE Jn3_xDSP V9m8HqsS DGc2XmGV kU0TzoFn xAXXeO8E 8zE8iEB8 q8KsAWhW ZZ7KxzZ1 lMCfaedJ 8n9srS35 NrqJWf_W FnXZWneE r7jY0b76 iQc9I0Pc wsBVswzI 6yh7ziW9 H1OxtJxB RKrcgfRB GLJHD8Uf 9KsbTMjU RcQjrMDv hgRwpHJ_ rVd65-bG _eRCb7vP IVpUerYJ 8GBzYpaS p6Yu5-c6 sKFGYaIV avysU2KB sumy3src RLu89mjp mBbUw1J_ tAqPL5y9 SXCm9qYl WYPcFRcD A3sD79Fg Edfi3o80 of2PU9qm FM0uxv9A hqP2DkAy Rl-lZatE w--2rQ4b IJn1rSAH GLpPVHi4 WjB_cd6U KFqhUgWQ QzGcMTd5 l-wMVILF dJGlQEj7 AQqX6LpB xUI_vvMe Oi6vRxSw gxGU-L6R V8VftBxF uSLo1pNO d-UU-c2a",
       "canopy": "AlsTCpuL",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -3113,7 +3113,7 @@
       ]
     },
     "replay-regressions/shared-landing-source.json#": {
-      "frames": "F_8mm9iK ayBQM3Di k8vOuo7T ORSgtMtq LKZDCKWO mTF_BgzD e_lzkb-n wS_rbWUp -sMH7kuV cvjUISp3 p8yQW3dM vHuepJXb gI_4QqOv HCpVuFjc 9YF32Tud 9Hownw7z SAm3iC28 XNxSyq2T Zg0L2AHG LAqFbFx8 57bA_F36 0N-GXqCy 4oQ6v6hJ 7Cpw0-f4 3_kXMu_3 HuWdcuwg FtDRSxsS BAnZEjxX e7vprvgR NkYpNQ0l S-qAuqtJ hl-CDchs os5BPDJo Oft7whOm 4SiTM_f9 oCIF1iNm gSyBrtdn zRbbreYv xTR_sPaz jHhEupu2 lfkNcVYf Lcp8BN-S UVQ3WLXh ahWTzEND -W3TSyCn XBuKovKz LL5weWXw YHqKq4E5 jCbsofx6 RcDTH3Ae L6HY93qf YHWHUsyN t1iuJWve",
+      "frames": "F_8mm9iK ayBQM3Di k8vOuo7T ORSgtMtq LKZDCKWO mTF_BgzD e_lzkb-n wS_rbWUp -sMH7kuV cvjUISp3 p8yQW3dM vHuepJXb gI_4QqOv HCpVuFjc 9YF32Tud 9Hownw7z SAm3iC28 XNxSyq2T Zg0L2AHG LAqFbFx8 57bA_F36 0N-GXqCy 4oQ6v6hJ 7Cpw0-f4 3_kXMu_3 HuWdcuwg FtDRSxsS BAnZEjxX e7vprvgR NkYpNQ0l S-qAuqtJ hl-CDchs os5BPDJo Oft7whOm 4SiTM_f9 oCIF1iNm gSyBrtdn zRbbreYv xTR_sPaz jHhEupu2 lfkNcVYf e_DzvWQK LVzSFvw_ UgyEhQNE -W3TSyCn VA3d_HS3 ZTCLVMoi CWbC-9iH C7ciEG0X jv16Y_xL 7UN_XpaF XsRVcVWU qENPj3-q",
       "canopy": "E-vIS8LZ",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -3150,7 +3150,7 @@
       ]
     },
     "replay-regressions/sol-spanish-qr.json#/analyses/0": {
-      "frames": "go6fMKR2 cpTi0v18 5f7_Ga4z 6GNhNwB2 UtWbuzxM QEviKOOx d4vPky4O YQ_QQ3uJ iN4fONT2 VfHwE6MH Thb4nz8B wJLiw8Ss eetVUa_Y RzT8tVLb xFhV6nZI CvAVX8Mx aZUGjuuh vLruKv13 RiYaIFJO -yUWX-lw iP1OMDci aK1ANGhr XxVVgbr5 IxoPit4P JydqNWif t9TEalG8 z5OTxr9B Cy6w3FlQ itHgLgd_ cfGwMNSY R86gLTpB wB5_W_HQ gj6zDCNo BXDhCttz Gc2LQkCC s9BMIbWz Xf8vrFjD kOpwRige",
+      "frames": "go6fMKR2 cpTi0v18 5f7_Ga4z 6GNhNwB2 UtWbuzxM QEviKOOx d4vPky4O YQ_QQ3uJ iN4fONT2 VfHwE6MH Thb4nz8B wJLiw8Ss eetVUa_Y RzT8tVLb xFhV6nZI CvAVX8Mx aZUGjuuh vLruKv13 RiYaIFJO -yUWX-lw iP1OMDci aK1ANGhr XxVVgbr5 IxoPit4P JydqNWif t9TEalG8 z5OTxr9B Cy6w3FlQ itHgLgd_ cfGwMNSY R86gLTpB wB5_W_HQ KR-kb5wT 7nInwGAK O7lBc2m1 blDz2cDs Tribcf0D udEJwD2Z",
       "canopy": "HMFr3agD",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -3174,7 +3174,7 @@
       ]
     },
     "replay-regressions/sol-spanish-qr.json#/analyses/1": {
-      "frames": "alYcRYPN vMVlSQxT AlID46Do CPfGObo_ rLiY_dMp YAL6ZYM- 33U3qZrY BZJUrX7X JbQMROqF 3fLN3qFa pBDh2uuB Bc5lOoIR CFJ2NI6a aoePhNda li8U4fq9 z6_oLIsl HA9iIyoQ vrcZts2j eryaLOrJ srnWXmIm l6puUFff baRqbp2Y DOU7b3-Y QDeIu-Jd k7UmPOQi fG8E_oVF x09NcXkh d05kkxJ8 kUH1RCDP sJOrQkjk RwLKBfCK hVVzLeB2 mucBav94 ckeFVO2L k0KCcyIN rh2SVNaB wJqPriEk z1S26usN",
+      "frames": "alYcRYPN vMVlSQxT AlID46Do CPfGObo_ rLiY_dMp YAL6ZYM- 33U3qZrY BZJUrX7X JbQMROqF 3fLN3qFa pBDh2uuB Bc5lOoIR CFJ2NI6a aoePhNda li8U4fq9 z6_oLIsl HA9iIyoQ vrcZts2j eryaLOrJ srnWXmIm l6puUFff baRqbp2Y DOU7b3-Y QDeIu-Jd k7UmPOQi fG8E_oVF x09NcXkh d05kkxJ8 kUH1RCDP sJOrQkjk RwLKBfCK hVVzLeB2 ucAIC65T lEyA6jmn YyvhHSHm S-8s11HG gO6nQ8O_ 7Xj6TVvA",
       "canopy": "KhGTQsRT",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -3703,7 +3703,7 @@
       ]
     },
     "replay-regressions/visual-human-catalog.json#/cases/2/analyses/0": {
-      "frames": "vqd8JTzd kMvQ1qdJ gydEwf3_ 4TUhbdQZ OkmLuCp4 o9xwzNFF HgNKy5y1 y6bIYz74 n6UqOtDY eJDG42Pb yR-xWKCc cmbyY8FA MokRvss- st9R9l4j 01svbCXL lHGQLq6u eoewVme9 5sOM-duV qJyhM3E3 pGcAu61u 4idRIB_x m0F-9LHH 945WbELU HYvhO9GQ 83NX6x_M CcsSsk_K pYDaZ7nf L5uEZOe8 b77glvCr yewDYVN4 xVRkzf4g vRf4-FQx -VetJxyS VIyGrJkS P7m_vwg5 vUAzaj-Q bq_IX53k PlxsFOUb tkeTEg8y pwFOxlMq 2wzIG2-X VBkeW4GU CXJYfCpf 9nvo8Pph ov_KaHGA pvbi_VJc r5UTu6zX rN452Fl0 datjditR 4adX9E7l 0MtOjIAg wEcDsizT gcbTroco mh5ujtk2 cnXcPoLM GpYkxeam r-ANQLlM PbjlGR_8 A0gWKy8L t5qwBvG2 ZMhRCKPB 7m3JdJe- xf8RTAl_ Gb5pe9Iz UWv8Gx2f",
+      "frames": "vqd8JTzd kMvQ1qdJ gydEwf3_ 4TUhbdQZ OkmLuCp4 o9xwzNFF HgNKy5y1 y6bIYz74 n6UqOtDY eJDG42Pb yR-xWKCc cmbyY8FA MokRvss- st9R9l4j 01svbCXL lHGQLq6u eoewVme9 5sOM-duV qJyhM3E3 pGcAu61u 4idRIB_x m0F-9LHH 945WbELU HYvhO9GQ 83NX6x_M CcsSsk_K pYDaZ7nf L5uEZOe8 b77glvCr yewDYVN4 xVRkzf4g vRf4-FQx -VetJxyS VIyGrJkS P7m_vwg5 vUAzaj-Q bq_IX53k PlxsFOUb tkeTEg8y pwFOxlMq 2wzIG2-X VBkeW4GU CXJYfCpf 9nvo8Pph ov_KaHGA pvbi_VJc r5UTu6zX rN452Fl0 datjditR 4adX9E7l 0MtOjIAg wEcDsizT gcbTroco mh5ujtk2 cnXcPoLM GpYkxeam r-ANQLlM PbjlGR_8 A0gWKy8L t5qwBvG2 ZMhRCKPB 7m3JdJe- WrRmsrLL 959TH-Hq 2anHozC9",
       "canopy": "v8ZO-w3V",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -4211,7 +4211,7 @@
       ]
     },
     "replay-regressions/workspace-component-lifetime.json#/cases/2": {
-      "frames": "POTJhWUq oB4suSfQ F6V8e7X7 7d_guWC9 SSnr4SEZ 1LPWDDOv bJiyX2Tu ruSJnGyM 65SiWulg lZ47oTbV taeXPJXe MVKpMoEu k0Hnayee CQAOj2UN 93bpdW1S YgyAxETV xuTq6dwb d1nNhAOh wgkzSQHI tRNCJA9n 7QL7Uljb yHuWD_ka 3mJ53rwL IQT6JFrc SFT2zJaE qCaEFZVc nD-nSIRr yb72s2Dr iCL4PB27 57QtCv7I R_KurIbh iJ0-gomF GoFUQ0E5 I5GGVZUq wxk3zJJ8 KUTW5NjG 9xjN6lvJ 1D_En-tQ kXoDDgv0 QI3NgQ9q Y1-0tIaP mNpy_sW0 RBYyxX0c x8a3Up-o uXdLhGAP jwjz3v56 IZf7Y0Pi I9iRgfwV eENaqJqJ _z5vHfJx Uv889_8w e_Vre5w3 ab9-Oksm 5ezNj6-o 0h5zUK9p QkWO6Wnt HRc2X7jv B4kKb3tM uhtw6ajc N5nug1Wq 7Z0ckOpC lLH4kSU6 CgddVbX5 hf8ECHDA",
+      "frames": "POTJhWUq oB4suSfQ F6V8e7X7 7d_guWC9 SSnr4SEZ 1LPWDDOv bJiyX2Tu ruSJnGyM 65SiWulg lZ47oTbV taeXPJXe MVKpMoEu k0Hnayee CQAOj2UN 93bpdW1S YgyAxETV xuTq6dwb d1nNhAOh wgkzSQHI tRNCJA9n 7QL7Uljb yHuWD_ka 3mJ53rwL IQT6JFrc SFT2zJaE qCaEFZVc nD-nSIRr yb72s2Dr iCL4PB27 57QtCv7I R_KurIbh iJ0-gomF GoFUQ0E5 I5GGVZUq wxk3zJJ8 KUTW5NjG 9xjN6lvJ 1D_En-tQ kXoDDgv0 QI3NgQ9q Y1-0tIaP mNpy_sW0 RBYyxX0c x8a3Up-o uXdLhGAP jwjz3v56 IZf7Y0Pi I9iRgfwV eENaqJqJ _z5vHfJx Uv889_8w fYu3IkxK uRuf1Jo3 jrnBnpx5 WM1FfU7L eCcJ_81P cAwaLzw_ Z2kcJSNv 3wKfPIjs s7fIuZoY weX0MB8P Z_jOJI7V vbfYrWez xlv4mOfB",
       "canopy": "VEHQR7ra",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -4299,7 +4299,7 @@
       ]
     },
     "replay-regressions/workspace-historical-continuity.json#/cases/1": {
-      "frames": "nMekWy94 34bZn55t qlHeKM_k anqD32KE Jn3_xDSP V9m8HqsS DGc2XmGV kU0TzoFn xAXXeO8E 8zE8iEB8 q8KsAWhW ZZ7KxzZ1 lMCfaedJ 8n9srS35 NrqJWf_W FnXZWneE r7jY0b76 iQc9I0Pc wsBVswzI 6yh7ziW9 H1OxtJxB RKrcgfRB GLJHD8Uf 9KsbTMjU RcQjrMDv hgRwpHJ_ rVd65-bG _eRCb7vP IVpUerYJ 8GBzYpaS p6Yu5-c6 sKFGYaIV avysU2KB sumy3src RLu89mjp mBbUw1J_ tAqPL5y9 SXCm9qYl WYPcFRcD A3sD79Fg Edfi3o80 of2PU9qm N3jA1L31 cn3u8lGK qqWaUsqa 8wuNEjD5 hLBRdUkN 6svJmkyc shvlNqfX o_o51yPe YZL4AeTH Tk6yH8Ws oqFFz0kp Xtb4pLul 1rVC93GC u8dgUYzm xligensl Y4Wh7WLX o3SAo-qs 6BcOaWDr",
+      "frames": "nMekWy94 34bZn55t qlHeKM_k anqD32KE Jn3_xDSP V9m8HqsS DGc2XmGV kU0TzoFn xAXXeO8E 8zE8iEB8 q8KsAWhW ZZ7KxzZ1 lMCfaedJ 8n9srS35 NrqJWf_W FnXZWneE r7jY0b76 iQc9I0Pc wsBVswzI 6yh7ziW9 H1OxtJxB RKrcgfRB GLJHD8Uf 9KsbTMjU RcQjrMDv hgRwpHJ_ rVd65-bG _eRCb7vP IVpUerYJ 8GBzYpaS p6Yu5-c6 sKFGYaIV avysU2KB sumy3src RLu89mjp mBbUw1J_ tAqPL5y9 SXCm9qYl WYPcFRcD A3sD79Fg Edfi3o80 of2PU9qm FM0uxv9A hqP2DkAy Rl-lZatE w--2rQ4b IJn1rSAH GLpPVHi4 WjB_cd6U KFqhUgWQ QzGcMTd5 l-wMVILF dJGlQEj7 AQqX6LpB xUI_vvMe Oi6vRxSw gxGU-L6R V8VftBxF uSLo1pNO d-UU-c2a",
       "canopy": "AlsTCpuL",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -4375,7 +4375,7 @@
       ]
     },
     "replay-regressions/workspace-historical-continuity.json#/cases/3": {
-      "frames": "is--o8ZS sMjRrWyc XNQ5nky9 xbXWz2lk f3PwpySv YD4ZPngG mfwYgjLC VGGmu53h IxEHarzY JmUOIJk0 TAUz_8K6 rIw-rZ-H w8WzTD8t KHLtqjBb eS28WShg G2dIQKQN dMFdQosw osgq-Kd- FsoKjaHl GzCZILa_ kq7vMoaw yFbwURdP HP_7lIpA H_rP2hDS -crGWHAe Af98dToD G1jRcPt2 Cq6uh0FX xLmU2BLy EMiMtdad n0CgwVkw NskYYziy 8jpReZLM hn3jAJ5o YRqa0KL9 xUbayyld rX_wRket sf_LT2Rn pAk3rEG9 lxaxnf6z jHiRJoZK wvun0ShV TTshGgCT 4I8l0c-r uZC_JiDp bSbJUFw0 OyTpGcln IxUd4b5i h7-bFM9I Yf5e2TY0 2M7GyQ-k M9ta_s6d omVK0K0d oWMedbPp ctlBFZSU 3ZlNMK-m YBjTD2I2 HZBt03BZ UfnnKHX9 obMTTCkD JqUhRyvc dEDFjFNH kGwkF_WR Aci50SBi v8QjPpR0 -TQoVonT WvPI2Ucp",
+      "frames": "is--o8ZS sMjRrWyc XNQ5nky9 xbXWz2lk f3PwpySv YD4ZPngG mfwYgjLC VGGmu53h IxEHarzY JmUOIJk0 TAUz_8K6 rIw-rZ-H w8WzTD8t KHLtqjBb eS28WShg G2dIQKQN dMFdQosw osgq-Kd- FsoKjaHl GzCZILa_ kq7vMoaw yFbwURdP HP_7lIpA H_rP2hDS -crGWHAe 8A7sP4ht 2rvUD7S3 3V0K4cdT wfMgKIVj pV2EGi_b zNgex9hs AEDAB0GO zSlV6VmQ reSGGl6u 2p3GRpA1 lIKbEM0S -s3wsL33 6Y2GZ4U4 DjykxSsi kWQsHZtG 04kRsNGO xMQ9KMBU WdTPq_qt MSrZ6pTm LT9SiCfP vLzjI8D_ nffQpm0v r1sI58lD _wQFw1jF 0TCJuMDA zJmJ0QI9 bETcFXJp 1UWR5s9K 8vDssZyq BzD1nA6l -6gL73_o XvJ4pM4I CCi_Ztw9 FulCEN2C aKCibplm Gy7TJ80d tbO-eD6j jngDObNz lVypZLTJ laKBZM3C lZIsPAR8 zhpc-bor",
       "canopy": "JhCPkqHE",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -4627,7 +4627,7 @@
       ]
     },
     "replay-regressions/workspace-source-continuity.json#/cases/0": {
-      "frames": "AOMbqcwI fVDXzdxN KPJOG2Ej JK0utV3M Oar8CkYT b6mdNvhD NQ-UR0jG b9De3rxv gZdkRYF0 636pTBTg _XHmDDR1 JPB5_LyS dv5xkJL0 EqDEqjdq dq9wTXDY VcZxyIP8 62uwyICe YVi1Kowx uidovrBu AnYWXT6i TOsdzFeM aNnqWgqo YRqvJ8j_ wCtxKy7P NyeEQS90 BaRqbwL4 ts42AIuP PBVi_CqV HnEv6pp4 EVthUNoM fm1_AZVZ 9cVkFoNR -xNMFwJO 1hq_FFFg -xQpiMOM DgrxZ1j- YyuGjRGv 4NJ6TXff eHqtmlDJ 7F80D3Fs fll3PE9r a8Gpj3S1 QOp2hozG i5x-0rC6 7PrwC_ww UAYaaLRx Ka9Ukkf6 h6JACBte QcWe3KHV cZVHTxxy gZOU_CUR a5dzxG9R Y-ab7-c7 3VYsq4lY S-3kGWYX njPfaCHO -vNGO5t8 bn91lPNV 0fxyFNq0 qJPLlgL4 K0zyAVo4 Ot3XyASh",
+      "frames": "AOMbqcwI fVDXzdxN KPJOG2Ej JK0utV3M Oar8CkYT b6mdNvhD NQ-UR0jG b9De3rxv gZdkRYF0 636pTBTg _XHmDDR1 JPB5_LyS dv5xkJL0 EqDEqjdq dq9wTXDY VcZxyIP8 62uwyICe YVi1Kowx uidovrBu AnYWXT6i TOsdzFeM aNnqWgqo YRqvJ8j_ wCtxKy7P NyeEQS90 BaRqbwL4 ts42AIuP PBVi_CqV HnEv6pp4 EVthUNoM fm1_AZVZ 9cVkFoNR -xNMFwJO 1hq_FFFg -xQpiMOM DgrxZ1j- YyuGjRGv 4NJ6TXff eHqtmlDJ 7F80D3Fs fll3PE9r a8Gpj3S1 QOp2hozG i5x-0rC6 7PrwC_ww UAYaaLRx Ka9Ukkf6 h6JACBte QcWe3KHV cZVHTxxy gZOU_CUR a5dzxG9R Y-ab7-c7 3VYsq4lY S-3kGWYX oGR3CVwG -g44moad WwSWMPt_ kfqx5p4z 2oM6p9Bq tHJKegul mncN-nMv",
       "canopy": "JDI8fW9d",
       "tiers": [
         "0:0 T2 directed-path tier2.feature-dependency feature.dependency",
@@ -4693,7 +4693,7 @@
       ]
     },
     "replay-regressions/workspace-source-continuity.json#/cases/2": {
-      "frames": "55XtSKDp aguzvkh5 tXlMgUXa GP5_b3FJ GVu2MbFk BjM249Cm NdrNDH3w t5OuZ7gg 1w9MbHeL RIQWe_4U NbvYVLRx Q0qN-Qpn JlgTcZUq j5e0MngN ODWCOUs7 vyC9gT2o MNOoOvkU X38oiUW7 0sEC9Ibf ZQVNOb5f PirfKkEO DFFkIp4x I72rqMTJ Xn_5pinX v77HFcEV _aZQ8DXW HLLJgw7I nbAB8TL1 NNmaxaWW 4oB8JiAz A-1U7w28 n53jy2fD pMaippNi V2i8bNnK QBdLs5JR 2E4gzl7m 1DsZ6q5u tXOSS1iB q6QLArQz yW1eFk-M OjBROTbC h_dMJ553 B5xLOwgv z6whLn4E -I2agkKU qAhrVXlz nfzhJTXh SrtYuLwU",
+      "frames": "55XtSKDp aguzvkh5 tXlMgUXa GP5_b3FJ GVu2MbFk BjM249Cm NdrNDH3w t5OuZ7gg 1w9MbHeL RIQWe_4U NbvYVLRx Q0qN-Qpn JlgTcZUq j5e0MngN ODWCOUs7 vyC9gT2o MNOoOvkU X38oiUW7 0sEC9Ibf ZQVNOb5f PirfKkEO DFFkIp4x I72rqMTJ Xn_5pinX v77HFcEV _aZQ8DXW HLLJgw7I nbAB8TL1 NNmaxaWW 4oB8JiAz A-1U7w28 n53jy2fD pMaippNi V2i8bNnK QBdLs5JR 2E4gzl7m 1DsZ6q5u CzyLyvgu 3tKsq0wD dx2DQnaa tZFtB8AV emh1gM1k bm_19spz RYASCAim WRLaFczx cExahGsN -5ooNcM5 QyST5gLM",
       "canopy": "ebJ_57W2",
       "tiers": [
         "0:0 T2 node-plaque feature-bundle.plaque plaque.structured",
@@ -5053,7 +5053,7 @@
       ]
     },
     "showcase/movement.json#/cases/2": {
-      "frames": "J8-LcLdF B5loxl3e bAuoFTLz cjQdaUwc yfQ0-vAQ zS_yrpTG oIaaOGml f3ckvc65 dzDKUz9G 0b9xeBMf qro309Sg sC9EGmKG F3hD6_OY RwpR3Gtq _gKdh2DQ 56f1XtMz YOEIbPNS 42VbVE9f Uprxij_6 K8ikTO82 S7LgniAw x2s8jsQa 8gbvFWq- qC3J-qpt ke2TjQQw B0XbJoLa _v6Sf-8I cRvmliqh dpOVizLV ZOEUh9F0 iz7TWbhz IMaT4qHI q423mf7x MKo_P8TC zxxi6FTO PmVNmrkp K-vb8u2V E-2ZfL3s H34PfZT8 PtXY7nXh y97iSg_A J1RBoOpU YWXQegH1 3QOCBucv vTcKvC8e 4H1yp8q_ 7wEuaEv5 2RMYqXSt LqhwCS5G AF4T_g3S IYuFmcyr XFWxduuD FQabTozk nLLmy4wv upY-e-0v Pbq2TLiK bOYSnm-0 VK3LVoRb SBbsOySQ 9b_zHRTd jwJla93L VwGwXzIs x8mfkXWg PZXW0mZC i_6OC1f2 Rsi46wPO TdWfp2Gz 9KNtWa9c 38wah17t rA7W0knQ IyQJKAL1 cAmjD6M4 nnfhITDT g0LfvL6T neuZ2GJh LjK2Jz5B 3PkwDZgQ C4nXvm5k IOVIFwgV WiZIdWjj uFtH-3wH _2cKc8Fu t7mQuI-5 GSLeVyPm 1e_3me9x OaJDO-J4 lcz9XLby YYFsZeZZ MTaHL7a8 3I2RHmOw 7e6jOXpE ikBjmIZH l9WV975N ZvhcLqMA SxkB0WQx Xwp2_FX_ KREVBFm1 ZfIV4ypl 8Mp9Fgig WF_JqmpJ E5cXBvTg",
+      "frames": "J8-LcLdF B5loxl3e bAuoFTLz cjQdaUwc yfQ0-vAQ zS_yrpTG oIaaOGml f3ckvc65 dzDKUz9G 0b9xeBMf qro309Sg sC9EGmKG F3hD6_OY RwpR3Gtq _gKdh2DQ 56f1XtMz YOEIbPNS 42VbVE9f Uprxij_6 K8ikTO82 S7LgniAw x2s8jsQa 8gbvFWq- qC3J-qpt ke2TjQQw B0XbJoLa _v6Sf-8I cRvmliqh dpOVizLV ZOEUh9F0 iz7TWbhz IMaT4qHI q423mf7x MKo_P8TC zxxi6FTO PmVNmrkp K-vb8u2V E-2ZfL3s H34PfZT8 PtXY7nXh y97iSg_A J1RBoOpU YWXQegH1 3QOCBucv vTcKvC8e 4H1yp8q_ 7wEuaEv5 2RMYqXSt LqhwCS5G AF4T_g3S IYuFmcyr XFWxduuD FQabTozk nLLmy4wv upY-e-0v Pbq2TLiK bOYSnm-0 VK3LVoRb SBbsOySQ 9b_zHRTd jwJla93L VwGwXzIs x8mfkXWg PZXW0mZC i_6OC1f2 Rsi46wPO TdWfp2Gz 9KNtWa9c 38wah17t rA7W0knQ IyQJKAL1 cAmjD6M4 nnfhITDT g0LfvL6T neuZ2GJh LjK2Jz5B 3PkwDZgQ C4nXvm5k IOVIFwgV WiZIdWjj uFtH-3wH _2cKc8Fu t7mQuI-5 GSLeVyPm 1e_3me9x OaJDO-J4 lcz9XLby YYFsZeZZ MTaHL7a8 3I2RHmOw 7NTtUgWf Erf5bR-c hTFc_Jy1 hE5jN9U0 dITXoKQ_ SL281J95 bIBxjKGo 9chYLEtq Ny7UOAG_ 5KdQ_DLa YTvjYkuE",
       "canopy": "tIxsWwu3",
       "tiers": [
         "0:0 T2 node-plaque feature-bundle.plaque plaque.structured",
@@ -5142,7 +5142,7 @@
       ]
     },
     "showcase/movement.json#/cases/5": {
-      "frames": "UqyeTz54 aJjTvDMu fgEI3BKr HTndamNx Mnha284g 4EIhW5FJ HT8niigG sFvII5WR o7Zxd8Tz 3eaZ2qIO ochrC9ot -sm11jH6 IHmG6Ov5 JhSgkUmk A-Zzr-LH UTbS6Kcl Gy011pot -HBfQsJz rw_Gq7hN zxM6Y92U NtWoLGGC -ZstiYbC UfDpRtKa kJ0GDM6N QaIpdZwk Hsa4vbL9 7yzERIGm NzTl8TWh LYmSuexm s3Ql7wd7 IdNwRLd4 TmWDXA9v iaMUImAw",
+      "frames": "UqyeTz54 aJjTvDMu fgEI3BKr HTndamNx Mnha284g 4EIhW5FJ HT8niigG sFvII5WR o7Zxd8Tz 3eaZ2qIO ochrC9ot -sm11jH6 IHmG6Ov5 JhSgkUmk A-Zzr-LH UTbS6Kcl Gy011pot -HBfQsJz rw_Gq7hN zxM6Y92U NtWoLGGC -ZstiYbC UfDpRtKa kJ0GDM6N QaIpdZwk Hsa4vbL9 7yzERIGm ohN0F-EH WFL8lJc4 o7TKUOty zGO4CF3U -6BdjNYI 6C-EAHaV",
       "canopy": "LSjVX4T-",
       "tiers": [
         "0:0 T2 node-plaque feature-bundle.plaque plaque.structured",
@@ -5808,7 +5808,7 @@
       ]
     },
     "showcase/scope-ellipsis-coordination.json#/cases/4": {
-      "frames": "eylkKJY1 -q9nx3kn Qftc8c4R qs54KbR7 s1OWMw79 Rr4v8DOU oAWTG2EO bERY4GJJ RprbNJv3 x6xHiO_A YaUnbQrW L2gQKqzn LoVc0vJC MVjZAdWy ND0s3Qfz 48g-Tj4p o4ja1T4u XDFD7kZN korfYPxz xPGCzdYA HNXzLdm5 mAuKrEFO lcGFOm9s t5X-7aIg uifUXylH 7_UK5Hia 01DYQ940 1DtsvGbq 9kuy631F XH7wYzaO SqvT8veI QGMhR2WV u-tFnpLP OyJyfF3S Fb3mx0XZ k7TpFhAI f2EVxGdm Dt5zw9Mo giYRGNYq MFsBDX6H 4wldHtr5 tcJB9FK2 nlefzEu2 1rD2Md2G 59nCOXV6 uT7wwSKs 2KRAhc1l 4bLVDiIw KkACUvLi CfdlONkp",
+      "frames": "eylkKJY1 -q9nx3kn Qftc8c4R qs54KbR7 s1OWMw79 Rr4v8DOU oAWTG2EO bERY4GJJ RprbNJv3 x6xHiO_A YaUnbQrW L2gQKqzn LoVc0vJC MVjZAdWy ND0s3Qfz 48g-Tj4p o4ja1T4u XDFD7kZN korfYPxz xPGCzdYA HNXzLdm5 mAuKrEFO lcGFOm9s EOiRKbwH kY4-nlQE 4blgU8Wl PgEPcb5j tSkKBlv1 X4sOHxwv wtbNDyia HR5pxlFW w1SBcxI7 lOzU7lGA J7zxt6tm t8gD4c9A NDJ4pNie 61w1F8i7 8tVa0rRj HKWhQ9BB d6uK0FNA B0h5fsoJ mDCeTdoJ B-cPXts_ k7pfL2QD mwgK-YwH IgWDe-7h PX1-C2xe YSYfcCPf 3k_ZmtbK _WU6F0EQ",
       "canopy": "7cKPNcHG",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -5838,7 +5838,7 @@
       ]
     },
     "visual-relations/case-collection-growth.json#": {
-      "frames": "hmMDmGEp b8xNtN1M NudR0GzI 2cyfNYNE 5FFBY5ul CjAH0v3Q 2wbELfGZ hI-sqc_J ZbG6tEEO UOtZ3OJ5 1qlyyh9u TRylhRCS V9tXhNbx DiHCMa-a 3DHc4kai _uV2vdVE vmOcNwdN RymRyqVt 1eoBhRjj _HtcnJRV TTSkK94Z cs84g3SS 8oLrC7bg oGqzh7Hr 1UTJYHeP pbOWEnmR 2teKEWXc 6_GQZ6eW TCKSUXNi ZzYfNd14 _PhfQGHR RIbqSO6f",
+      "frames": "hmMDmGEp b8xNtN1M NudR0GzI 2cyfNYNE 5FFBY5ul CjAH0v3Q 2wbELfGZ hI-sqc_J ZbG6tEEO UOtZ3OJ5 1qlyyh9u TRylhRCS V9tXhNbx DiHCMa-a 3DHc4kai _uV2vdVE vmOcNwdN RymRyqVt 1eoBhRjj _HtcnJRV TTSkK94Z cs84g3SS 8oLrC7bg oGqzh7Hr EB1U_yZ2 n7hf00EK WVQZQhAI HiYB_yby JMWw7ELe _Y2BAUn6 MiduZ5dx rcOkSno2",
       "canopy": "u5fbItHb",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
