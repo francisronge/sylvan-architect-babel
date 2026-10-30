@@ -94,16 +94,20 @@ test('an agreement restatement shares one plaque and keeps both Replay moments a
       assert(index >= 0);
       await page.locator('input[type=range]').fill(String(index));
       await page.waitForFunction(i => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === String(i), index);
+      // The Agree values its goal's Case, so its plaque is the Case/agreement composition
+      // (Francis, 30 Oct 2026): it carries its owners on its frame, as in featureComposition.test.mjs.
       const plaque = page.locator('svg .babel-feature-plaque');
       await plaque.waitFor({ state: 'attached' });
       assert.equal(await plaque.count(), 1);
-      const owner = await plaque.evaluate(e => e.closest('.vr-item').getAttribute('data-vr-owner-refs'));
+      assert.equal(await plaque.evaluate(e => e.classList.contains('babel-case-feature-plaque')), true);
+      const frame = plaque.locator('.babel-feature-plaque-frame');
+      const owner = await frame.evaluate(e => e.closest('.vr-item').getAttribute('data-vr-owner-refs'));
       assert.equal(owner, si === 0 ? '0:0' : '0:0 1:0');
-      assert.equal(await plaque.evaluate(e => getComputedStyle(e.closest('.vr-item')).opacity), ri === 0 ? '1' : '0.3');
+      assert.equal(await frame.evaluate(e => getComputedStyle(e.closest('.vr-item')).opacity), ri === 0 ? '1' : '0.3');
       if (ri === 1) {
         const measure = e => ({ rect: e.querySelector('rect').outerHTML, text: e.textContent, transform: e.getAttribute('transform') });
         const before = await plaque.evaluate(measure);
-        await plaque.dispatchEvent('mousemove', { clientX: 200, clientY: 250 });
+        await frame.dispatchEvent('mousemove', { clientX: 200, clientY: 250 });
         await page.waitForFunction(() => document.querySelector('svg .vr-relation-hovered'));
         assert.deepEqual(await plaque.evaluate(measure), before);
       }
