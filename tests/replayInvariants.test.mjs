@@ -459,7 +459,7 @@ const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 
   'no-early-reveal', 'relation-construction', 'parent-after-children', 'whole-parent', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
   'movement-landing-parent', 'movement-shown-as-movement', 'existing-not-remerged',
   'visible-in-canvas',
-  'marks-at-owning-moment', 'one-letter-per-label', 'label-index-owned', 'restated-letters-kept'];
+  'marks-at-owning-moment', 'one-letter-per-label', 'label-index-owned', 'restated-letters-kept', 'gap-label-on-silence'];
 let sweep;
 before(() => {
   sweep = corpus.records.map(({ id, record, contract }) => {

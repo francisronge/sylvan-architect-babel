@@ -21,14 +21,13 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const safeJson = value => JSON.stringify(value).replaceAll('<', '\\u003c');
 
 /** Plain-words notes for one tree: movement diagnostics and Replay rule violations,
- * then every distinct visual and camera finding above a small size, grouped by rule
+ * then every distinct visual and camera finding, grouped by rule
  * (their measures have different units) and largest first within a rule. */
 export function reviewNotes({ violations = [], visual = [], movementDiagnostics = [] }) {
   const notes = [...new Set(movementDiagnostics.map(({ step, detail }) => `Babel could not draw a movement at step ${step}: ${detail}`))];
   notes.push(...violations.map(v => `Replay check ${v.rule}${v.frame === null || v.frame === undefined ? '' : ` at step ${v.frame}`}: ${v.detail}`));
   const worst = new Map();
   for (const f of visual) {
-    if (f.rule === 'mark-distance' && f.measure < 1.4) continue;
     const key = `${f.rule}|${f.subtype}|${f.subject ?? ''}`, seen = worst.get(key);
     if (!seen || f.measure > seen.measure) worst.set(key, f);
   }

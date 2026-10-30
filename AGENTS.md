@@ -240,19 +240,21 @@ once its mistake can no longer happen.
 
 | Rule | Enforced by |
 |---|---|
-| Recognition never keys on relation names, role names or wording. | `tests/recognitionVocabularyFrozen.test.mjs` |
+| Recognition never keys on relation names, role names or wording. | `tests/recognitionVocabularyFrozen.test.mjs` fails when the vocabulary grows; the name checks it still lists are retained, not enforced away |
 | A fault becomes an exception only with Francis's approval, quoting where he gave it. Growth within 5% of a bound needs none. | `npm run verify:exceptions` (CI); `BOUND_TOLERANCE` in `tests/helpers/findings.mjs` |
-| A step moves only the syntax it owns; nothing jumps noticeably (20 tree units, or an existing jump growing by 20 units or 10%). | CI job `corpus-motion`; approved faults in `tests/helpers/motionExceptions.mjs` |
+| A step moves only the syntax it owns; nothing jumps noticeably (20 tree units, or an existing jump growing by at least the larger of 20 units and 10%). | CI job `corpus-motion`; approved faults in `tests/helpers/motionExceptions.mjs` |
 | Babel puts its own gap label (t₁, pg₁) only on a silent occurrence; the model's trace notation stays as written. | `gap-label-on-silence` in `tests/helpers/replayInvariants.mjs` |
 | A movement is shown as movement at its own moment. | `movement-shown-as-movement` in `tests/helpers/replayInvariants.mjs`; `verify:corpus` |
 | Construction never merges an existing constituent again: one that left a parent its stage keeps moved. | `existing-not-remerged` in `tests/helpers/replayInvariants.mjs` |
 | Branches span one row, sisters share a row, parents stand centred. | `branch-geometry`, `parent-centring` in `verify:replay-offline` (CI) |
 | A plaque does not jump while its anchor holds. | `plaque-teleport` in `verify:replay-offline` (CI) |
+| A restated claim shares its plaque; one node never shows two plaques with the same content. | `duplicate-plaque` in `verify:replay-offline` (CI) |
+| A label shows each index letter once, every letter comes from its own chain or grid, and a shared restated plaque keeps each claim's letters. | `one-letter-per-label`, `label-index-owned`, `restated-letters-kept` in `tests/replayInvariants.test.mjs` (`verify:all`) |
 | Every layout change is reviewed, never regenerated blind. | Layout fingerprint in `verify:replay-offline` |
 | A check judges the layout the browser paints, not another plan. | Shared camera fit; measured-layout test in `tests/replayCorpusComparator.test.mjs` |
 | Painted frames and motion stay clean. | `verify:browser-visual` before merge, on macOS |
 | A batch review page prints every known fault on its tree. | `scripts/buildReplayReview.mjs`; `tests/buildReplayReview.test.mjs` |
-| A review page compares the change with current main. | `scripts/buildReplayComparison.mjs` refuses otherwise |
+| A review page compares the change with current main. | `scripts/buildReplayComparison.mjs` refuses a candidate that lacks the baseline commit; building the baseline from current main is judgment |
 | A review page shows at most 4 cases, each with one short line. | `checkCaseList` in `scripts/buildReplayComparison.mjs`; `tests/replayComparisonPage.test.mjs` |
 | Before saying a PR's checks pass, read its CI result (`gh pr checks`); local gates do not cover CI's corpus records. | Judgment |
 | Before describing an outside tool or product Francis names (Jev is TypeSafe AI's model), look it up; never assume what it is. | Judgment |

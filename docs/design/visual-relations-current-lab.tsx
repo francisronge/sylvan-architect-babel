@@ -25,7 +25,7 @@ const FINAL_REPLAY_STEP = Number.MAX_SAFE_INTEGER;
 /**
  * Derived once at module scope. These must keep a stable identity: handing
  * TreeVisualizer a fresh `derivationStages` array on every render restarts its
- * replay, which the lab's auto-advance then chases in a loop.
+ * replay and prepares it again.
  */
 type LabCaseView = LabCase & {
   rendererStages: ReturnType<typeof toRendererStages>;

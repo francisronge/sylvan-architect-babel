@@ -7,8 +7,9 @@ import { createSvgDom, select } from './helpers/svgDom.mjs';
 
 // A quadratic trajectory whose ends share a column used to dip below its
 // departure and climb back up one straight line. It now bows sideways, away
-// from the departure's parent branch, in the binder and the painter alike;
-// every leaning trajectory keeps its exact path.
+// from the departure's parent branch, in the binder and the painter alike.
+// A route whose horizontal offset is at least 0.40 of its rise keeps its exact
+// path; steeper routes bow fully at 0.30 or less, blending in between.
 
 const item = (kind = 'phrasal') => ({ kind: 'trajectory', trajectoryKind: kind, sourceNodeId: 'lower',
   targetNodeId: 'landing', sourceAttachment: 'shell-bottom', targetAttachment: 'shell-bottom',
