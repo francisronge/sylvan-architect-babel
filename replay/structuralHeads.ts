@@ -11,7 +11,7 @@
  * never matter: Voice, Appl, Foc, Fin and K are read exactly like T. */
 import type { SyntaxNode } from '../types.ts';
 import { readCategoryLabel } from './categoryLabel.ts';
-import { readBareProjections } from './projectionStructure.ts';
+import { readStructuralProjections, writesProjectionLevels } from './projectionStructure.ts';
 
 type ShapeNode = Pick<SyntaxNode, 'label' | 'children' | 'lineageId'>;
 
@@ -55,7 +55,9 @@ export interface StructuralHeads {
 
 /** Read heads for one forest. Every node passed in later must belong to it. */
 export const readStructuralHeads = (roots: readonly ShapeNode[]): StructuralHeads => {
-  const bare = readBareProjections(roots);
+  // Only a forest that writes no level at all is left to structure here: once
+  // labels write XP, a label without P is the author's head level.
+  const bare = writesProjectionLevels(roots) ? undefined : readStructuralProjections(roots);
   const parents = new Map<ShapeNode, ShapeNode>();
   const index = (node: ShapeNode): void => childrenOf(node).forEach(child => { parents.set(child, node); index(child); });
   roots.forEach(index);
