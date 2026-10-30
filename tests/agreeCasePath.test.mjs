@@ -107,3 +107,24 @@ test('two exact Agree claims valuing one goal\'s Case in a stage draw one path',
   assert.deepEqual(planItemRelationRefs(paths[0]).map(ref => ref.relationIndex), [0]);
   assert.deepEqual(plaqueRows(list, 'agree.plaque').sort(), ['case: nominative', 'number: plural', 'phi: 3pl']);
 });
+
+// Sol review of 927a9b5: Case-state notation (a label prefix, brackets, a u-prefixed
+// feature name, an underscore, "?" or nothing) does not hide an unvalued Case.
+test('an Agree whose Case is written unvalued in feature notation draws no Case path and keeps its row', () => {
+  for (const written of ['Case: unvalued', '[uCase: _]', '[uCase:]', 'uCase', '[uCase]', 'u-Case', '_', '?', 'Case: ?',
+    'Case = _', '[Case: ?]', 'case: not yet valued', '   ']) {
+    const list = items([agree({ phi: '3pl', case: written })]);
+    assert.equal(casePaths(list).length, 0, JSON.stringify(written));
+    assert.equal(list.some(item => item.pathStyle === 'case-agree'), false, JSON.stringify(written));
+    assert.deepEqual(plaqueRows(list, 'agree.plaque'), ['phi: 3pl', `case: ${written}`], JSON.stringify(written));
+    // Recovered agreement reads Case state through the same check.
+    assert.equal(casePaths(items([agree({ phi: '3pl', case: written }, 'An authored agreement')])).length, 0, JSON.stringify(written));
+  }
+});
+
+test('an Agree whose Case is written valued in feature notation keeps that notation on its path', () => {
+  for (const written of ['Case: nominative', '[uCase: NOM]', 'uCase = nom', 'NOM']) {
+    const paths = casePaths(items([agree({ phi: '3pl', case: written })]));
+    assert.deepEqual(paths.map(path => [path.fromNodeId, path.toNodeId, path.label]), [['probe', 'goal', written]], written);
+  }
+});

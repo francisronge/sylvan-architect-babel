@@ -5,11 +5,17 @@ import { buildTier2SynonymIndex, normalizeTier2Synonym, relationRoleConcepts } f
 const synonyms = buildTier2SynonymIndex();
 
 /** An unvalued or pending Case state supplies no assigned Case value. Match
- * complete state expressions only; unfamiliar Case names remain literal. */
+ * complete state expressions only; unfamiliar Case names remain literal.
+ * Feature notation names the feature before its value ("[uCase: _]",
+ * "Case = ?"): the value decides. A bare Case feature name, with or without its
+ * u/i prefix, an underscore, "?" or nothing states no value. */
 export function isUnestablishedCaseValue(literal: string): boolean {
-  const state = normalizeOutcomeLiteral(literal)
-    .replace(/^(?:case(?: value)? (?:is )?)?(?:(?:still|currently) )?/u, '');
-  return isUnestablishedOutcomeLiteral(state)
+  const written = String(literal ?? '').normalize('NFKC').trim().replace(/^\[([^[\]]*)\]$/u, '$1').trim();
+  const value = /^[^\s:=]+\s*[:=](.*)$/su.exec(written)?.[1] ?? written;
+  if (/^[\s_?]*$/u.test(value)) return true;
+  const state = normalizeOutcomeLiteral(value)
+    .replace(/^(?:(?:[ui] ?)?case(?: value)?(?: |$)(?:is )?)?(?:(?:still|currently) )?/u, '');
+  return !state || isUnestablishedOutcomeLiteral(state)
     || /^(?:unvalued|unassigned|not (?:yet )?(?:valued|assigned|licensed))$/u.test(state);
 }
 
