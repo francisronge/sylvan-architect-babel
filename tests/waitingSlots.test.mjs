@@ -9,6 +9,7 @@ import { applyVizIds } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { overlapsKept } from '../replay/waitingSlots.ts';
 import { collisionAreas } from '../replay/workspaceComponentLifetime.ts';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 test('a slot that resolves one overlap but introduces a smaller one is rejected', () => {
   assert.equal(overlapsKept(new Map([['A|B', 5904]]), new Map([['A|C', 1428]])), false);
@@ -61,7 +62,7 @@ test('the aligned plan may translate the whole final tree, which the camera abso
 test('repeated identical layout requests reuse one slot pass', () => {
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/waiting-root-continuity.json', import.meta.url)));
   const steps = prepareReplay({ ...record, includePlayback: true }).playbackSteps;
-  const groups = buildStageLayoutGroups(steps, record.derivationStages);
+  const groups = buildStageLayoutGroups(steps, replayStages(record));
   const sizeFor = stage => stageTreeLayoutSize(steps, stage, 1440, 900, groups);
   const first = buildStageCoordinateReservations(steps, 1, sizeFor(1), sizeFor);
   const second = buildStageCoordinateReservations(steps, 1, sizeFor(1), sizeFor);

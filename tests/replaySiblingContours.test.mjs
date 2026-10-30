@@ -12,6 +12,7 @@ import * as layout from '../replay/treeLayout.ts';
 import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
 import { directionsFor } from './helpers/rtlMirror.mjs';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const read = name => JSON.parse(readFileSync(new URL(`../fixtures/replay-regressions/${name}`, import.meta.url), 'utf8'));
 const phaseEdge = read('es-wh-phase-edge-contour.json');
@@ -23,7 +24,7 @@ function layoutRecord(record, [width, height], direction) {
   const input = { sentence: record.sentence, inputTokens: record.inputTokens,
     derivationStages: (record.analysis ?? record).derivationStages, includePlayback: true };
   const steps = prepareReplay(structuredClone(input)).playbackSteps;
-  return { steps, scenes: layoutReplayFrames({ steps, stages: input.derivationStages, width, height, direction },
+  return { steps, scenes: layoutReplayFrames({ steps, stages: replayStages(input), width, height, direction },
     { coordinates, camera, layout, display, d3 }).scenes };
 }
 const frames = (...args) => layoutRecord(...args).scenes;

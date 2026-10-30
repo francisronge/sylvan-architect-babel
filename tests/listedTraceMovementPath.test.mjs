@@ -4,6 +4,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { checkRelationMoments, frameStructure } from './helpers/replayInvariants.mjs';
 import { checkMovementUnrendered } from './helpers/replayContractWarnings.mjs';
 import { checkMarkPersistence, checkStepSemantics } from './helpers/replayStepInvariants.mjs';
+import { canonicalId, canonicalIds } from './helpers/canonicalIds.mjs';
 
 // GPT-6.1 Sol (Codex qualification batch sol-120-20261026, n4-24) moved a relative
 // operator a second time and named both its traces in one list field
@@ -34,17 +35,21 @@ const record = { sentence: 'who left', derivationStages: stages };
 
 test('a claim listing its new and its older trace draws the stage\'s hop at its own moment', () => {
   const replay = prepareReplay({ ...structuredClone(record), includePlayback: true }), steps = replay.playbackSteps;
+  // Ids below are the authored ones; Replay renames each hop so its source keeps the id.
+  const id = name => canonicalId(replay, name, 2);
   const items = replay.relationRenderPlan.frames[2].items.filter(item => item.relationRef.stageIndex === 2);
-  assert.deepEqual(items.filter(item => item.kind === 'trajectory').map(item => [item.sourceNodeId, item.targetNodeId]), [['highTrace', 'op']],
+  assert.deepEqual(items.filter(item => item.kind === 'trajectory').map(item => [item.sourceNodeId, item.targetNodeId]), [[id('highTrace'), id('op')]],
     'the second hop draws its path');
   // The coindex and its forest light keep the whole chain, and no field is left to a neutral mark.
   assert.deepEqual(items.filter(item => item.kind === 'coindex').map(item => [item.familyId, item.tier2OutputPieces, item.nodeIds]),
-    [['identity.occurrences', ['Coindex', 'Forest light'], ['op', 'highTrace', 'lowTrace']]]);
+    [['identity.occurrences', ['Coindex', 'Forest light'], canonicalIds(replay, ['op', 'highTrace', 'lowTrace'], 2)]]);
   assert.deepEqual(items.filter(item => item.kind === 'fallback'), [], 'no neutral leftover');
   const moment = steps.findIndex(step => step.replayKind === 'relation' && step.replayRelationIdentity?.stageIndex === 2);
-  assert.equal(frameStructure(steps[moment - 1]).parent.get('op'), 'tp', 'the operator keeps its preceding place until its moment');
-  assert.equal(frameStructure(steps[moment]).parent.get('op'), 'cp', 'the operator lands at its moment');
-  assert(steps.slice(0, moment).every(step => !step.replayVisibleNodeIds.includes('highTrace')), 'the new trace waits for its moment');
+  // Before its moment the operator is its preceding occurrence (stage 2's id); then the landing.
+  assert.equal(frameStructure(steps[moment - 1]).parent.get(canonicalId(replay, 'op', 1)), 'tp', 'the operator keeps its preceding place until its moment');
+  assert.equal(frameStructure(steps[moment]).parent.get(id('op')), 'cp', 'the operator lands at its moment');
+  const fresh = canonicalIds(replay, ['op', 'highTrace', 'lowTrace'], 2).find(name => !canonicalIds(replay, ['op', 'lowTrace'], 1).includes(name));
+  assert(steps.slice(0, moment).every(step => !step.replayVisibleNodeIds.includes(fresh)), 'the stage\'s new occurrence waits for its moment');
   assert.deepEqual([...checkRelationMoments(replay, record), ...checkStepSemantics(replay, record), ...checkMarkPersistence(replay, record),
     ...checkMovementUnrendered(replay, record)], []);
 });
@@ -59,8 +64,9 @@ test('a chain claim naming only the hop under open fields draws the path beside 
   const replay = prepareReplay({ ...structuredClone(headTail), includePlayback: true });
   for (const [stage, lower] of [[1, 'lowTrace'], [2, 'highTrace']]) {
     const items = replay.relationRenderPlan.frames[stage].items.filter(item => item.relationRef.stageIndex === stage);
-    assert.deepEqual(items.filter(item => item.kind === 'trajectory').map(item => [item.sourceNodeId, item.targetNodeId]), [[lower, 'op']]);
-    assert.deepEqual(items.filter(item => item.kind === 'coindex').map(item => item.nodeIds), [['op', lower]]);
+    const [source, landing] = canonicalIds(replay, [lower, 'op'], stage);
+    assert.deepEqual(items.filter(item => item.kind === 'trajectory').map(item => [item.sourceNodeId, item.targetNodeId]), [[source, landing]]);
+    assert.deepEqual(items.filter(item => item.kind === 'coindex').map(item => item.nodeIds), [[landing, source]]);
     assert.deepEqual(items.filter(item => item.kind === 'fallback' && Object.keys(item.relationRef.anchors).length), [], 'no field is left to a neutral mark');
   }
   assert.deepEqual([...checkRelationMoments(replay, headTail), ...checkStepSemantics(replay, headTail), ...checkMarkPersistence(replay, headTail),

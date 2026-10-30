@@ -7,6 +7,7 @@ import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompile
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 import { checkNoEarlyReveal, frameStructure } from './helpers/replayInvariants.mjs';
 import { checkMarkPersistence, checkStepSemantics } from './helpers/replayStepInvariants.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const corpus = loadFixtureAnalyses().records;
 const prepared = id => {
@@ -74,7 +75,8 @@ test('a movement shows its complete landing, including a restated descendant tha
   const { record, replay } = replayOf(raising(dp('N [valued]'), { relation: 'Case context', anchors: { nominal: 'n', assigner: 't' } }));
   const steps = replay.playbackSteps, moves = moment(steps, 1, 0);
   assert.equal(shown(steps[moves - 1], 'n').label, 'N [unvalued]');
-  assert.equal(frameStructure(steps[moves]).parent.get('dp'), 'tp');
+  // The landing the model let keep "dp", under Replay's ids.
+  assert.equal(frameStructure(steps[moves]).parent.get(canonicalId(replay, 'dp', 1)), 'tp');
   assert.deepEqual(shown(steps[moves], 'n'), { label: 'N [valued]', word: 'dog', words: ['dog'] });
   assert.deepEqual(checkStepSemantics(replay, record), []);
 });
@@ -92,7 +94,7 @@ test('a movement keeps a landing word that a relation pronouncing its ancestor r
   for (const label of ['N [unvalued]', 'N [valued]']) {
     const { record, replay } = replayOf(raising(dp(label, 'dogs'), { relation: 'VocabularyInsertion', anchors: { terminal: 'dp' } }));
     const steps = replay.playbackSteps, moves = moment(steps, 1, 0), inserts = moment(steps, 1, 1);
-    assert.equal(frameStructure(steps[moves]).parent.get('dp'), 'tp');
+    assert.equal(frameStructure(steps[moves]).parent.get(canonicalId(replay, 'dp', 1)), 'tp');
     assert.deepEqual(shown(steps[moves], 'n'), { label, word: 'dog', words: ['dog'] }, label);
     assert.deepEqual(shown(steps[inserts], 'n'), { label, word: 'dogs', words: ['dogs'] }, label);
     assert.deepEqual([...checkStepSemantics(replay, record), ...checkNoEarlyReveal(replay)], []);

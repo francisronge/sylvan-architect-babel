@@ -4,6 +4,7 @@ import test from 'node:test';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const cases = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/clause-context.json', import.meta.url))).cases;
 const expected = [
@@ -39,14 +40,16 @@ for (const [index, record] of cases.entries()) {
       && step.replayRelationIdentity.relationIndex === record.relationIndex);
     assert.ok(momentIndex > 0);
     const before = replay.playbackSteps[momentIndex - 1], moment = replay.playbackSteps[momentIndex];
+    // Replay names the stage's occurrences canonically: the source keeps the continuing id.
+    const sourceId = canonicalId(replay, movement.sourceNodeId, 1), targetId = canonicalId(replay, movement.targetNodeId, 1);
     const priorSource = find(previous.workspaceForest, movement.priorSourceNodeId);
     assert.equal(parent([before.replayCanvasData], movement.priorSourceNodeId)?.id,
       parent(previous.workspaceForest, movement.priorSourceNodeId)?.id);
     assert.deepEqual(find([before.replayCanvasData], movement.priorSourceNodeId)?.children?.map(node => node.id), priorSource.children?.map(node => node.id));
-    assert.equal(parent([moment.replayCanvasData], movement.targetNodeId)?.id,
+    assert.equal(parent([moment.replayCanvasData], targetId)?.id,
       parent(current.workspaceForest, movement.targetNodeId)?.id);
     assert.equal(moment.replayRelationLinks.filter(link => link.authoredRelationKey === `1:${record.relationIndex}`
-      && link.trajectoryKind === 'phrasal' && link.sourceNodeId === movement.sourceNodeId && link.targetNodeId === movement.targetNodeId).length, 1);
+      && link.trajectoryKind === 'phrasal' && link.sourceNodeId === sourceId && link.targetNodeId === targetId).length, 1);
     assert.deepEqual(record, original);
   });
 }
@@ -59,8 +62,9 @@ test('the island verdict follows the completed attempted movement without owning
   assert.ok(move && verdict);
   assert.deepEqual(move.replayCanvasData, verdict.replayCanvasData);
   assert.deepEqual(move.replayVisibleNodeIds, verdict.replayVisibleNodeIds);
+  const [source, target] = ['cpTrace', 'whNP'].map(id => canonicalId(replay, id, 1));
   assert.equal(verdict.replayRelationLinks.filter(link => link.trajectoryKind === 'phrasal'
-    && link.sourceNodeId === 'cpTrace' && link.targetNodeId === 'whNP').length, 1);
+    && link.sourceNodeId === source && link.targetNodeId === target).length, 1);
   assert.ok(verdict.replayRelationLinks.some(link => link.authoredRelationKey === '1:1'
-    && link.sourceNodeId === 'cpTrace' && link.targetNodeId === 'whNP'));
+    && link.sourceNodeId === source && link.targetNodeId === target));
 });

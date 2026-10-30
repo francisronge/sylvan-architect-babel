@@ -3,6 +3,7 @@ import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import * as invariants from './helpers/replayInvariants.mjs';
 import { checkMarkPersistence, checkStepSemantics } from './helpers/replayStepInvariants.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 // A receiving head that keeps its id while a new inner head re-wraps its old
 // daughters: I⁰ 'inflection' [agreement, present] becomes
@@ -39,8 +40,10 @@ const record = {
 test('a re-wrapped receiving head shows its new inner head at the movement', () => {
   const replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
   const steps = replay.playbackSteps;
+  // The verb's lower occurrence, authored verbTrace, as Replay names it (the source keeps "verb").
+  const lower = canonicalId(replay, 'verbTrace', 1);
   const moment = steps.findIndex(step => step.replayKind === 'relation' && (step.replayRelationLinks ?? [])
-    .some(link => link.renderFamily === 'trajectory' && link.priorSourceNodeId === 'verb' && link.witnessNodeId === 'verbTrace'));
+    .some(link => link.renderFamily === 'trajectory' && link.priorSourceNodeId === 'verb' && link.witnessNodeId === lower));
   assert.ok(moment > 0, 'the head movement has its moment');
   assert.ok(!steps[moment - 1].replayVisibleNodeIds.includes('inflectionBase'), 'the inner head waits for the movement');
   assert.ok(steps[moment].replayVisibleNodeIds.includes('inflectionBase'), 'the movement shows the inner head');

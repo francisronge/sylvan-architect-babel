@@ -10,6 +10,7 @@ import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { resolveFallbackTreeTransitionOwnership } from '../replay/treeTransitions.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const atom = (id, label, extra = {}) => ({ id, label, ...extra });
 const tree = (id, label, ...children) => ({ id, label, children });
@@ -159,7 +160,7 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
   test(`${width}px ${direction}: an unrecognized copy graph has finite geometry through completion`, () => {
     const input = deferredCopy(), original = structuredClone(input);
     const steps = prepareReplay({ ...input, includePlayback: true }).playbackSteps;
-    const groups = buildStageLayoutGroups(steps, input.derivationStages);
+    const groups = buildStageLayoutGroups(steps, replayStages(input));
     const sizes = new Map(input.derivationStages.map((_, i) => [i, stageTreeLayoutSize(steps, i, width, height, groups)]));
     const positions = new Map([...sizes].flatMap(([i, size]) => [...buildStageCoordinateReservations(steps, i, size, i => sizes.get(i), direction)]));
     for (const step of steps) {

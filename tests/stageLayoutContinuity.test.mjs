@@ -6,11 +6,12 @@ import { buildStageLayoutGroups, stageTreeLayoutSize, buildStageCameraBounds, bu
 import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
 const astra = records.find(record => record.name === 'astra-xbar');
 const steps = buildReplayPlayback({ sentence: astra.sentence, analyses: [astra] }).steps;
-const layoutGroups = buildStageLayoutGroups(steps, astra.derivationStages);
+const layoutGroups = buildStageLayoutGroups(steps, replayStages(astra));
 const beforeDoSupport = steps.find(step => step.replayFrameIndex === 4 && step.replayKind === 'macro');
 const doSupport = steps.find(step => step.replayFrameIndex === 5 && step.replayKind === 'relation');
 const tree = (step, size) => d3.tree().size(size).separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(d3.hierarchy(step.replayCanvasData));
@@ -33,7 +34,7 @@ test('saved do-support keeps every existing node at its exact preceding coordina
     assert(!tree(before, oldSize).descendants().some(node => node.data.id === 'raisedI::__leaf'), 'did never appears early');
   }
   assert.equal(JSON.stringify(steps), original);
-  assert.deepEqual(buildStageLayoutGroups([...steps].reverse(), astra.derivationStages), layoutGroups);
+  assert.deepEqual(buildStageLayoutGroups([...steps].reverse(), replayStages(astra)), layoutGroups);
 });
 
 test('do-support preserves the preceding fit with either overlay policy and in either traversal direction', () => {
@@ -84,7 +85,7 @@ test('the rule depends on exact structure and geometry, never relation names or 
 
 test('compatible stages retain their original layout dimensions', () => {
   const pair = [beforeDoSupport, doSupport].map((step, replayFrameIndex) => ({ ...step, replayFrameIndex }));
-  const groups = buildStageLayoutGroups(pair, astra.derivationStages.slice(4));
+  const groups = buildStageLayoutGroups(pair, replayStages(astra).slice(4));
   assert.deepEqual(groups, [[0, 1]]);
   const original = stageTreeLayoutSize(pair, 0, 1596, 1016);
   assert.notDeepEqual(stageTreeLayoutSize(pair, 1, 1596, 1016), original, 'the new leaf increases the independent stage size');
@@ -118,5 +119,5 @@ test('unchanged authored topology cannot bypass incompatible rendered positions 
 
 for (const record of records.filter(record => record !== astra)) test(`${record.name}: other saved layouts remain independent`, () => {
   const playback = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
-  assert.deepEqual(buildStageLayoutGroups(playback, record.derivationStages), record.derivationStages.map((_, index) => [index]));
+  assert.deepEqual(buildStageLayoutGroups(playback, replayStages(record)), record.derivationStages.map((_, index) => [index]));
 });

@@ -5,6 +5,7 @@ import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatc
 import * as invariants from './helpers/replayInvariants.mjs';
 import { checkMarkPersistence, checkStepSemantics } from './helpers/replayStepInvariants.mjs';
 import { checkContractWarnings } from './helpers/replayContractWarnings.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 // Claude Opus 5.5 (n4-10-en-quantifier-scope-long, 26 Oct 2026) authors LF
 // Quantifier Raising in an overt-shaped tree: the raised QP keeps its ID and
@@ -59,13 +60,18 @@ for (const [spelling, anchors] of Object.entries(spellings)) {
     const items = replay.relationRenderPlan.frames[1].items.filter(item => item.relationRef.relationIndex === 0);
     const qr = items.filter(item => item.kind === 'quantifier-raising');
     assert.equal(qr.length, 1);
-    assert.deepEqual([qr[0].pronouncedNodeId, qr[0].lfNodeId, qr[0].claimTier], ['t', 'qp', 1]);
+    // The authored pronounced trace and LF QP, as Replay names them once the source keeps "qp".
+    assert.deepEqual([qr[0].pronouncedNodeId, qr[0].lfNodeId, qr[0].claimTier], [canonicalId(replay, 't', 1), canonicalId(replay, 'qp', 1), 1]);
     assert(!items.some(item => item.kind === 'trajectory'), 'QR is not also drawn as an ordinary movement arrow');
     const steps = replay.playbackSteps;
     const moment = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1 && step.replayRelationIdentity.relationIndex === 0);
     assert(moment > 0);
+    // The stage's new occurrences: the new IP segment and the one QR adds.
+    const earlier = new Set(nodes(replay.derivationStages[0].workspaceForest).map(node => node.id));
+    const fresh = nodes(replay.derivationStages[1].workspaceForest).map(node => node.id).filter(id => !earlier.has(id));
+    assert.deepEqual(fresh.sort(), ['ipSeg', 't']);
     for (const step of steps.slice(0, moment)) {
-      assert(!['t', 'ipSeg'].some(id => step.replayVisibleNodeIds.includes(id)), 'the trace and new segment wait for the QR moment');
+      assert(!fresh.some(id => step.replayVisibleNodeIds.includes(id)), 'the new occurrence and new segment wait for the QR moment');
     }
     assert(steps[moment - 1].replayVisibleNodeIds.includes('qp'), 'the QP stays in its preceding position until its moment');
     assert(['t', 'ipSeg', 'qp', 'd', 'n'].every(id => steps[moment].replayVisibleNodeIds.includes(id)), 'the QR moment introduces trace and landing together');

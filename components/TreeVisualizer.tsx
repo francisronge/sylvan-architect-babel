@@ -158,7 +158,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   // The Canopy lays out the last Replay frame, so both views prepare Replay's playback.
   // `replayStages` are the stages Replay read (canonical movement identity);
   // the panel resolves the steps' node ids against them.
-  const { derivationStages: replayStages, finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
+  const { derivationStages: replayStages, idRenamesByStage, finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
     committedDerivationVisualLinks, movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps } = useMemo(
       () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: true }),
       [preparedReplay, derivationStages, sentence, inputTokens]
@@ -168,10 +168,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   // Only Replay plays its steps; the Canopy paints the completed tree.
   const playbackSteps = animated ? layoutPlaybackSteps : NO_PLAYBACK_STEPS;
   const treeLabelRuns = useMemo(() => settledFontText === fontText ? prepareTreeLabelRuns({
-    derivationStages: replayStages, finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
+    derivationStages: replayStages, idRenamesByStage, finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
     committedDerivationVisualLinks, movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps
   }, measureCategoryText) : undefined,
-    [replayStages, finalStageIdRenames, layoutPlaybackSteps, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
+    [replayStages, idRenamesByStage, finalStageIdRenames, layoutPlaybackSteps, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
       committedDerivationVisualLinks, movementChainIndexCatalogue, measureCategoryText, settledFontText, fontText]);
   const initialStepIndex = initialReplayStepIndex(playbackSteps, initialReplayMoment, initialReplayStep);
   const [activeStepIndex, setActiveStepIndex] = useState(initialStepIndex);
@@ -654,7 +654,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         activeRelationMoment,
         acceptedCompositionIsTreeFirst,
         stepLabelRuns: animated ? () => treeLabelRunsForStep({
-          derivationStages: replayStages, finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
+          derivationStages: replayStages, idRenamesByStage, finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
           committedDerivationVisualLinks, movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps
         }, activeStepIndex, measureCategoryText, { includeRelationIndices: true }) : undefined
       }, camera: { zoomBehavior, cameraAnimationRef, manualCameraRef, data, derivationStagesSignature, autoCameraRef, fitRevision }, lifecycle: {

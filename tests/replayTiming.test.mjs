@@ -7,6 +7,7 @@ import { getFrameRelations } from '../replay/frameRelations.ts';
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { checkStableConstruction } from './helpers/replayInvariants.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
 const copy = name => structuredClone(saved.find(record => record.name === name));
@@ -63,10 +64,13 @@ test('neutral structural timing is independent of an incomplete registered name'
     const moment = moments(steps, 1)[0];
     const before = steps[steps.indexOf(moment) - 1];
     const parent = (step, id) => nodes(step.replayCanvasData).find(n => n.children?.some(c => c.id === id))?.id;
+    // The authored landing and trace of stage 2, as Replay names them (the source keeps "phrase").
+    const renames = prepareReplay({ derivationStages: structuredClone(record.derivationStages), sentence: '', includePlayback: false });
+    const [landing, trace] = ['phrase', 'trace'].map(id => canonicalId(renames, id, 1));
     assert.equal(parent(before, 'phrase'), 'origin', 'the phrase remains at its prior position until the relation');
-    assert.ok(!visible(before, 'trace'));
-    assert.equal(parent(moment, 'phrase'), 'root');
-    assert.ok(visible(moment, 'trace'));
+    assert.ok(!visible(before, landing), 'the new occurrence waits for the relation');
+    assert.equal(parent(moment, landing), 'root');
+    assert.ok(visible(moment, trace));
     const items = compileRelationRenderPlan(record.derivationStages).frames.at(-1).items;
     assert.ok(items.some(i => i.kind === 'fallback'));
     assert.ok(!items.some(i => i.kind === 'trajectory'), 'correct timing does not earn an arrow');

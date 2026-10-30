@@ -6,6 +6,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlan.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/successive-cyclic-source.json', import.meta.url), 'utf8'));
 const prepared = new Map();
@@ -28,9 +29,11 @@ const arrows = (steps, stageIndex, relationIndex) => {
 
 test('each hop starts at the new trace in the moved operator\'s preceding slot, not an older trace', () => {
   const tough = replay('tough-relative').playbackSteps;
-  assert.deepEqual(arrows(tough, 2, 0), ['toughEdgeTrace->toughOp']);
-  assert.deepEqual(arrows(tough, 4, 0), ['firstEdgeTrace->firstRelOp']);
-  assert.deepEqual(arrows(tough, 9, 0), ['secondUpperEdgeTrace->secondRelOp']);
+  // Authored ends of each hop, named as Replay names them at the hop's stage.
+  const hop = (stageIndex, source, target) => [source, target].map(id => canonicalId(replay('tough-relative'), id, stageIndex)).join('->');
+  assert.deepEqual(arrows(tough, 2, 0), [hop(2, 'toughEdgeTrace', 'toughOp')]);
+  assert.deepEqual(arrows(tough, 4, 0), [hop(4, 'firstEdgeTrace', 'firstRelOp')]);
+  assert.deepEqual(arrows(tough, 9, 0), [hop(9, 'secondUpperEdgeTrace', 'secondRelOp')]);
   for (const [stageIndex, relationIndex] of [[2, 0], [4, 0], [9, 0]])
     assert.deepEqual(tough[moment(tough, stageIndex, relationIndex)].movementDiagnostics ?? [], []);
 });

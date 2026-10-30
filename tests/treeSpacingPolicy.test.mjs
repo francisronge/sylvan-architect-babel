@@ -11,6 +11,7 @@ import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCame
 import { getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { directionsFor } from './helpers/rtlMirror.mjs';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const leaf = (id, word) => ({ id, label: 'N', word, children: [] });
 const nominal = () => ({ id: 'nominal', label: 'N', children: [
@@ -122,7 +123,7 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
   test(`${width}px ${direction}: a waiting relative clause clears existing words without losing continuity`, () => {
     const authored = JSON.stringify(waitingRelative);
     const steps = prepareReplay({ ...waitingRelative, includePlayback: true }).playbackSteps;
-    const groups = buildStageLayoutGroups(steps, waitingRelative.derivationStages);
+    const groups = buildStageLayoutGroups(steps, replayStages(waitingRelative));
     const sizes = new Map(waitingRelative.derivationStages.map((_, i) => [i, stageTreeLayoutSize(steps, i, width, height, groups)]));
     const coordinates = new Map([...sizes].flatMap(([i, size]) =>
       [...buildStageCoordinateReservations(steps, i, size, i => sizes.get(i), direction)]));

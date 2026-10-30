@@ -11,6 +11,7 @@ import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import { plaqueIdentity } from '../replay/relations/plaquePlacement.ts';
 import { checkOneLetterPerLabel, checkPlanIdentityUnique } from './helpers/replayInvariants.mjs';
 import { checkMovementUnrendered } from './helpers/replayContractWarnings.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 /* Defects of the 29 October 2026 held-out batch and the 30 October confirmation
  * batch, each reproduced from its saved analysis (tests/helpers/heldoutDefectRecords.json). */
@@ -35,11 +36,13 @@ test('Opus h1-014: the words of a moved wh-phrase carry no operator-variable lin
   const replay = prepare('opus-h1-014-a1');
   assert.equal(replay.playbackSteps.length, 114);
   for (const step of [113, 114]) for (const includeRelationIndices of [true, false]) {
+    // The fronted phrase the model let keep "DP_wh", under Replay's ids.
     const runs = treeLabelRunsForStep(replay, step - 1, undefined, { includeRelationIndices });
-    assert.deepEqual([...new Set(runs.get('D_which::__leaf').map(run => run.text))], ['Which'], `step ${step}`);
-    assert.deepEqual([...new Set(runs.get('N_cake::__leaf').map(run => run.text))], ['cake'], `step ${step}`);
-    assert.deepEqual([...new Set(runs.get('DP_wh').map(run => run.text))], ['DP₂'], `step ${step}`);
-    assert.deepEqual([...new Set(runs.get('I1::__leaf').map(run => run.text))], ['did₃'], `step ${step}`);
+    const texts = id => [...new Set(runs.get(canonicalId(replay, id)).map(run => run.text))];
+    assert.deepEqual(texts('D_which::__leaf'), ['Which'], `step ${step}`);
+    assert.deepEqual(texts('N_cake::__leaf'), ['cake'], `step ${step}`);
+    assert.deepEqual(texts('DP_wh'), ['DP₂'], `step ${step}`);
+    assert.deepEqual(texts('I1::__leaf'), ['did₃'], `step ${step}`);
   }
 });
 

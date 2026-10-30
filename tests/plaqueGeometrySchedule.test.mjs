@@ -20,6 +20,7 @@ import {
   plaquesOverlap,
   projectPlaqueLayout
 } from '../replay/relations/plaquePlacement.ts';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const capturedMetrics = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/workspace-font-metrics.json', import.meta.url)));
 const obsoletePocket = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/obsolete-plaque-pockets.json', import.meta.url)));
@@ -85,7 +86,7 @@ test('persistent Case has a pocket before, during and after an exact occurrence 
     const replay = prepareReplay({ ...input, includePlayback: true }), steps = replay.playbackSteps;
     const schedule = buildReplayPlaqueSchedule({ steps, stageIndex: 0, plan: replay.relationRenderPlan,
       completedCanvas: steps.at(-1).replayCanvasData, width: 1200, height: 900, direction,
-      layoutGroups: buildStageLayoutGroups(steps, input.derivationStages) });
+      layoutGroups: buildStageLayoutGroups(steps, replayStages(input)) });
     const moment = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1);
     const waiting = steps.flatMap((step, index) => step.replayFrameIndex === 1 && index < moment ? [index] : []);
     assert(waiting.length > 0, 'ordinary C construction precedes movement');
@@ -122,7 +123,7 @@ for (const [width, direction] of [[1600, 'ltr'], [390, 'rtl']]) {
     const steps = replay.playbackSteps;
     const input = { steps, stageIndex: 0, completedCanvas: steps.at(-1).replayCanvasData,
       plan: replay.relationRenderPlan, width, height: 1000, direction,
-      layoutGroups: buildStageLayoutGroups(steps, obsoletePocket.derivationStages) };
+      layoutGroups: buildStageLayoutGroups(steps, replayStages(obsoletePocket)) };
     const original = JSON.stringify(input);
     const schedule = buildReplayPlaqueSchedule(input);
     const caseBox = stageIndex => {
@@ -246,7 +247,7 @@ test('a merged scene cannot expose its later parent at the stage boundary', () =
   assert.ok(!steps[selection].replayVisibleNodeIds.includes('aNegP'));
   const input = { steps, stageIndex: 0, completedCanvas: steps.at(-1).replayCanvasData,
     plan: replay.relationRenderPlan, width: 1200, height: 900,
-    layoutGroups: buildStageLayoutGroups(steps, fixture.derivationStages) };
+    layoutGroups: buildStageLayoutGroups(steps, replayStages(fixture)) };
   const merged = sceneAt(input, selection);
   assert.ok(merged.stepIndices.length > 1, 'equivalent canvases share geometry');
   assert.ok(positions(merged).has('aNegP'), 'the shared scene includes the later revealed parent');
@@ -272,7 +273,7 @@ test('a collection prepass cannot replace an accepted pocket before its attachme
   assert.equal(steps[selection - 1].replayKind, 'macro');
   const input = { steps, stageIndex: 0, completedCanvas: steps.at(-1).replayCanvasData,
     plan: replay.relationRenderPlan, width: 1200, height: 900,
-    layoutGroups: buildStageLayoutGroups(steps, fixture.derivationStages) };
+    layoutGroups: buildStageLayoutGroups(steps, replayStages(fixture)) };
   const original = JSON.stringify(input);
   const schedule = buildReplayPlaqueSchedule(input);
   const at = index => {

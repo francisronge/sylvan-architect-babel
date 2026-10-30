@@ -4,6 +4,7 @@ import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildReplayPanelContent } from '../replay/replayPanel.ts';
 import { isPlanItemRevealed, planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 // A later claim of a stage that names a movement an earlier claim of that stage
 // already owns (same moved phrase, source and landing) keeps its own moment and
@@ -12,8 +13,10 @@ import { isPlanItemRevealed, planItemRelationRefs } from '../replay/relations/re
 const load = (file, pointer) => pointer.split('/').filter(Boolean)
   .reduce((value, key) => value[key], JSON.parse(readFileSync(new URL(`../fixtures/${file}`, import.meta.url))));
 const prepare = record => prepareReplay({ sentence: record.sentence, derivationStages: structuredClone(record.derivationStages), includePlayback: true });
+// Source and target are the authored ids of the stage; Replay may rename them.
 const trajectories = (replay, stageIndex, source, target) => replay.relationRenderPlan.frames[stageIndex].items
-  .filter(item => item.kind === 'trajectory' && item.sourceNodeId === source && item.targetNodeId === target);
+  .filter(item => item.kind === 'trajectory' && item.sourceNodeId === canonicalId(replay, source, stageIndex)
+    && item.targetNodeId === canonicalId(replay, target, stageIndex));
 const sameStageOwners = (item, stageIndex) => planItemRelationRefs(item)
   .filter(ref => ref.stageIndex === stageIndex).map(ref => ref.relationIndex);
 const momentOf = (replay, stageIndex, relationIndex) => replay.playbackSteps.findIndex(step =>
@@ -51,8 +54,9 @@ for (const { name, file, pointer, stage, movements } of cases) test(`${name}: on
       const step = replay.playbackSteps[momentOf(replay, stage, relationIndex)];
       assert(!step.replayRelationLinks?.some(link => link.authoredRelationKey === `${stage}:${relationIndex}`
         && link.renderFamily === 'trajectory'), 'its Replay moment adds no trajectory');
-      const panel = buildReplayPanelContent(step, record.derivationStages);
-      assert.equal(panel.authoredRelation, record.derivationStages[stage].relations[relationIndex]);
+      // The panel reads the stages Replay prepared, as the app gives it.
+      const panel = buildReplayPanelContent(step, replay.derivationStages);
+      assert.equal(panel.authoredRelation, replay.derivationStages[stage].relations[relationIndex]);
       const anchors = Object.keys(record.derivationStages[stage].relations[relationIndex].anchors);
       assert(anchors.length > 0 && panel.supportLines.length >= anchors.length, 'the panel still lists the claim\'s own anchors');
     }

@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 import { checkMarkPersistence, stepMarks } from './helpers/replayStepInvariants.mjs';
+import { canonicalIds } from './helpers/canonicalIds.mjs';
 
 // A relative operator moves to Spec-CP; the next claim restates the verb's
 // inventory with the trace and names the earlier inventory in `priorAnchors`,
@@ -62,8 +63,9 @@ for (const [shape, authored] of Object.entries(shapes)) {
       assert.deepEqual(painted.filter(isGrid).map(refs), [['1:1']]);
       assert(painted.every(item => !refs(item).includes('0:0')), 'the earlier grid\'s badges yield with it');
     }
+    // The restated grid's arguments, as Replay names the occurrences the claim authors.
     assert.deepEqual(marks.at(-1).find(isGrid).thetaRoles.map(role => role.nodeId).sort(),
-      Object.values(authored.derivationStages[1].relations[1].anchors).flat().filter(id => id !== 'v').sort());
+      canonicalIds(replay, Object.values(authored.derivationStages[1].relations[1].anchors).flat().filter(id => id !== 'v'), 1).sort());
     assert(!replay.relationRenderPlan.frames[1].items.some(item => item.kind === 'fallback' && refs(item).includes('1:1')),
       'the prior block is the grid\'s own replacement evidence, not a neutral remainder');
     assert.deepEqual(checkMarkPersistence(replay, authored), []);

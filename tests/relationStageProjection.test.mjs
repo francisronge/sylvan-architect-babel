@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 // Normalization keeps authored node keys outside the contract, authored key
 // order and padded relation names. Replay reads the contract projection, so
@@ -54,8 +55,9 @@ for (const [name, claim, mapStage] of cases) {
     assert.deepEqual(prepared.relationRenderPlan, original.relationRenderPlan);
     assert.deepEqual(prepared.playbackSteps, original.playbackSteps);
     // Realized-form plates join the prepared plan from Replay's association
-    // state (realizationDisplay.ts); the compiled relation claims are the rest.
-    assert.deepEqual(compileRelationRenderPlan(stages), { ...original.relationRenderPlan,
+    // state (realizationDisplay.ts); the compiled relation claims are the rest,
+    // compiled from the stages Replay reads (canonical movement identity).
+    assert.deepEqual(compileRelationRenderPlan(replayStages({ derivationStages: stages })), { ...original.relationRenderPlan,
       frames: original.relationRenderPlan.frames.map(frame => ({ ...frame, items: frame.items.filter(item => !item.realization) })) });
   });
 }

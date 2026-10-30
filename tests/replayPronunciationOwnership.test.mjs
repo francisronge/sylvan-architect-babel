@@ -4,6 +4,7 @@ import test from 'node:test';
 import { hierarchy } from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { collectPronouncedLeafNodeIdsInOrder, hasSilentOrGhostAncestor } from '../replay/syntaxForest.ts';
+import { canonicalIds } from './helpers/canonicalIds.mjs';
 
 const load = name => JSON.parse(fs.readFileSync(new URL(`../fixtures/replay-regressions/${name}.json`, import.meta.url)));
 const nodes = root => [root, ...(root.children ?? []).flatMap(nodes)];
@@ -94,12 +95,13 @@ test('receiving-container word and token fields wait for an independent later re
     relation: 'VocabularyInsertion', anchors: { terminal: 'i' }, priorAnchors: { terminal: 'i' },
     values: { input: 'prior', output: 'final' }
   });
-  const original = structuredClone(record), steps = play(record);
+  const original = structuredClone(record), replay = prepareReplay({ ...record, includePlayback: true }), steps = replay.playbackSteps;
   const moments = steps.filter(step => step.replayRelationIdentity?.stageIndex === 1);
   const receiving = find(moments[0], 'i');
   assert.equal(receiving.label, 'I⁰');
   assert.equal(receiving.silent, undefined);
-  assert.deepEqual(receiving.children.map(node => node.id), ['v', 'iFeatures']);
+  // The raised head (authored v, which its landing kept) and the features, as Replay names them.
+  assert.deepEqual(receiving.children.map(node => node.id), canonicalIds(replay, ['v', 'iFeatures'], 1));
   assert.equal(receiving.word, 'prior');
   assert.equal(receiving.tokenIndex, undefined);
   assert.equal(find(moments[1], 'i').word, 'final');

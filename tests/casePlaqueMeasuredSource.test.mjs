@@ -88,9 +88,12 @@ test('an arrow that already bends on main keeps main\'s pocket and curve', () =>
   const arrow = paintedCaseArrows('showcase/agreement-and-case.json#/cases/7')
     .find(({ frame, claim }) => frame === 31 && claim === '1:1');
   assert(arrow, 'frame 31 shows claim 1:1');
-  assert.deepEqual([arrow.box.x, arrow.box.y].map(value => Math.round(value * 100) / 100), [5025.86, 2019]);
+  // Since Replay reads every hop source-kept, this stage's frame sits at another
+  // origin: box and curve are main's, translated rigidly by (-1651.41, -880)
+  // together with vSend and its VP (reviewed with explainLayoutChange).
+  assert.deepEqual([arrow.box.x, arrow.box.y].map(value => Math.round(value * 100) / 100), [3374.45, 1139]);
   assert.equal(arrow.box.caseRoute, undefined, 'the plaque keeps main\'s plain route');
   assert.deepEqual([arrow.curve.source, arrow.curve.control1, arrow.curve.control2, arrow.curve.target]
     .map(point => [Math.round(point.x * 10) / 10, Math.round(point.y * 10) / 10]),
-  [[5921.2, 2074], [5845.2, 1998], [5593.9, 2055], [5517.9, 2131]]);
+  [[4269.8, 1194], [4193.8, 1118], [3942.5, 1175], [3866.5, 1251]]);
 });

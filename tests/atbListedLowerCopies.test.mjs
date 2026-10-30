@@ -5,6 +5,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import * as invariants from './helpers/replayInvariants.mjs';
 import { checkStepSemantics } from './helpers/replayStepInvariants.mjs';
 import { checkMovementUnrendered } from './helpers/replayContractWarnings.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 // Opus s03 (John likes and Mary hates the new mayor, claude-final2
 // opus-stress, stage 8): right node raising moves the shared object across
@@ -32,7 +33,10 @@ test('lower copies listed as traces beside prior sources move to the one shared 
   const at = steps.findIndex(step => step.replayKind === 'relation' && step.replayRelationIdentity?.stageIndex === 1);
   assert.ok(at > 0);
   const paths = replay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory' && item.relationRef.stageIndex === 1);
-  assert.deepEqual(paths.map(item => `${item.sourceNodeId}->${item.targetNodeId}`).sort(), ['dp2->dp1', 't1->dp1']);
+  // The authored lower copies and landing, as Replay names them (each source keeps its id).
+  const id = name => canonicalId(replay, name, 1);
+  assert.deepEqual(paths.map(item => `${item.sourceNodeId}->${item.targetNodeId}`).sort(),
+    [`${id('dp2')}->${id('dp1')}`, `${id('t1')}->${id('dp1')}`].sort());
   assert.equal(steps.findIndex(step => step.replayVisibleNodeIds?.includes('conjp2')), at, 'the new adjunction segment appears at the moment');
   const findings = [invariants.checkNoEarlyReveal(replay), invariants.checkMovementShownAsMovement(replay, authored),
     invariants.checkAttachAtMerge(replay), checkStepSemantics(replay, authored), checkMovementUnrendered(replay, authored)].flat();

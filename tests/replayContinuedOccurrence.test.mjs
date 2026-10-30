@@ -11,6 +11,7 @@ import * as coordinates from '../replay/stageCoordinates.ts';
 import * as layout from '../replay/treeLayout.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
 import { checkAttachAtMerge, checkContinuedOccurrences, checkStableConstruction, frameStructure } from './helpers/replayInvariants.mjs';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 // Stage 2 authors catsDP as restrictedDP and numberP as restrictedNum: the same
 // D over Num over three and cats, with a new N inserted above cats to hold the PP.
@@ -82,7 +83,7 @@ test('a word follows its owner through successive renames', () => {
 
 for (const [width, height] of [[1600, 948], [390, 844]]) {
   test(`at ${width}px the DP neither jumps when the stage begins nor shifts while it builds`, () => {
-    const { scenes } = layoutReplayFrames({ steps, stages: fixture.derivationStages, width, height, direction: 'ltr' },
+    const { scenes } = layoutReplayFrames({ steps, stages: replayStages(fixture), width, height, direction: 'ltr' },
       { coordinates, camera, layout, display, d3 });
     const painted = index => new Map([...scenes[index].nodes].map(([id, node]) => [id, { x: node.x, y: node.y,
       parentId: node.parent && scenes[index].nodes.has(display.getNodeId(node.parent)) ? display.getNodeId(node.parent) : null }]));

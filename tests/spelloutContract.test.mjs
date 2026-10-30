@@ -8,6 +8,8 @@ import { normalizeParseBundle } from '../server/babelParser/parseNormalization.j
 import { resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { canonicalizeMovementIdentity, stageIdRenames } from '../server/babelParser/movementIdentity.js';
+import { canonicalId, canonicalIds } from './helpers/canonicalIds.mjs';
 import { convertSpelloutPayload } from '../server/babelParser/spellout.js';
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
@@ -159,17 +161,22 @@ test('a spelling group the conversion makes stands from its word\'s first stage 
     const stages = normalize(result.analysis, sentence, result.inputTokens, record.framework).analyses[0].derivationStages;
     const replay = prepareReplay({ sentence, inputTokens: result.inputTokens, derivationStages: stages, includePlayback: true });
     groups += 1;
-    const held = stages.map(stage => (stage.realizations ?? []).some(entry => key(entry) === key(group)));
+    // The group names authored ids; normalization stores each stage with canonical
+    // movement identity, so read the group as each stage names its occurrences.
+    const { renames } = canonicalizeMovementIdentity(result.analysis.derivationStages);
+    const authored = { idRenamesByStage: stages.map((_stage, index) => stageIdRenames(renames, index)) };
+    const keyAt = stageIndex => key({ nodeIds: canonicalIds(authored, group.nodeIds, stageIndex), tokenIndices: group.tokenIndices });
+    const held = stages.map((stage, index) => (stage.realizations ?? []).some(entry => key(entry) === keyAt(index)));
     const first = held.indexOf(true);
     assert.ok(first >= 0 && held.slice(first).every(Boolean), `${record.label}: ${key(group)} stands in every stage from ${first + 1}`);
     if (first < stages.length - 1) earlier += 1;
-    const steps = replay.playbackSteps, shown = steps.map(step => (step.replayRealizations ?? []).some(entry => key(entry) === key(group)));
+    const steps = replay.playbackSteps, shown = steps.map(step => (step.replayRealizations ?? []).some(entry => key(entry) === keyAt(step.replayFrameIndex)));
     steps.forEach((step, index) => {
       if (shown[index]) assert.ok(held[step.replayFrameIndex], `${record.label}: ${key(group)} at step ${index + 1}`);
       if (!shown[index] || shown[index - 1] && steps[index - 1].replayFrameIndex === step.replayFrameIndex) return;
       if (steps[index - 1]?.replayFrameIndex !== step.replayFrameIndex) { unowned += 1; return; }
       const relation = stages[step.replayFrameIndex].relations[step.replayRelationIdentity?.relationIndex];
-      assert.ok(step.replayKind === 'relation' && Object.values(relation?.anchors ?? {}).flat().includes(unit.nodeId),
+      assert.ok(step.replayKind === 'relation' && Object.values(relation?.anchors ?? {}).flat().includes(canonicalId(authored, unit.nodeId, step.replayFrameIndex)),
         `${record.label}: ${key(group)} turns on at step ${index + 1}, a moment that does not cover ${unit.nodeId}`);
     });
     assert.deepEqual(steps.flatMap(step => step.replayRealizationDiagnostics ?? [])

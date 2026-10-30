@@ -6,6 +6,7 @@ import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { getFrameRelations } from '../replay/frameRelations.ts';
 import { currentWorkspaceMovements } from '../replay/currentWorkspaceMovements.ts';
 import { checkAttachAtMerge, checkNoEarlyReveal, checkRelationConstruction, checkStableConstruction } from './helpers/replayInvariants.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const leaf = (id, label, word, extra = {}) => ({ id, label, word, ...extra });
 const node = (id, label, children, extra = {}) => ({ id, label, children, ...extra });
@@ -81,33 +82,39 @@ for (const [relation, drawingKind] of [
   }, { prior: 'phrase', source: 'lower', target: 'phrase', witness: 'trace',
     kind: 'phrasal', transition: true, draw: true });
 
+  // Replay reads the hop with its source keeping the continuing id, so stage 1's
+  // authored "phrase" (the landing) and "lower" (the new lower copy) are looked
+  // up through canonicalId; the preceding occurrence keeps its stage-0 id.
   const prepared = prepareReplay(record), { step, before, link, index } = movementMoment(prepared);
+  const id = name => canonicalId(prepared, name, 1);
   assert.equal(link.priorSourceNodeId, 'phrase');
-  assert.equal(link.sourceNodeId, 'lower');
-  assert.equal(link.targetNodeId, 'phrase');
-  assert.equal(link.witnessNodeId, 'trace');
+  assert.equal(link.sourceNodeId, id('lower'));
+  assert.equal(link.targetNodeId, id('phrase'));
+  assert.equal(link.witnessNodeId, id('trace'));
   assert.equal(link.movementTransition, true);
   assert.equal(link.renderFamily, 'trajectory');
   assert.equal(link.trajectoryKind, 'phrasal');
-  assert.deepEqual(step.sourceNodeIds, ['lower']);
-  assert.equal(step.targetNodeId, 'phrase');
+  assert.deepEqual(step.sourceNodeIds, [id('lower')]);
+  assert.equal(step.targetNodeId, id('phrase'));
   assert.deepEqual(find(before.replayCanvasData, 'vp').children.map(child => child.id), ['v', 'phrase']);
-  assert.deepEqual(find(step.replayCanvasData, 'cp').children.map(child => child.id), ['phrase', 'cbar']);
-  assert.deepEqual(find(step.replayCanvasData, 'phrase').children.map(child => child.id), ['determiner', 'nominal']);
-  assert.deepEqual(find(step.replayCanvasData, 'vp').children.map(child => child.id), ['v', 'lower']);
+  assert.deepEqual(find(step.replayCanvasData, 'cp').children.map(child => child.id), [id('phrase'), 'cbar']);
+  assert.deepEqual(find(step.replayCanvasData, id('phrase')).children.map(child => child.id), ['determiner', 'nominal']);
+  assert.deepEqual(find(step.replayCanvasData, 'vp').children.map(child => child.id), ['v', id('lower')]);
+  // The new parent and the stage's one new occurrence (the landing, under
+  // Replay's ids) wait for the moment; before it the source shows its old form.
   for (const prior of prepared.playbackSteps.slice(0, index)) {
     assert.ok(!prior.replayVisibleNodeIds.includes('cp'));
-    assert.ok(!prior.replayVisibleNodeIds.includes('lower'));
+    assert.ok(!prior.replayVisibleNodeIds.includes(id('phrase')));
   }
-  for (const id of ['phrase', 'determiner', 'nominal', 'noun', 'lower', 'trace', 'cp']) {
-    assert.ok(step.replayVisibleNodeIds.includes(id), id);
+  for (const name of ['phrase', 'determiner', 'nominal', 'noun', 'lower', 'trace', 'cp']) {
+    assert.ok(step.replayVisibleNodeIds.includes(id(name)), name);
   }
   assert.equal(find(before.replayCanvasData, 'noun').word, 'book');
   assert.equal(find(step.replayCanvasData, 'trace').silent, true);
   const drawings = prepared.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory');
   assert.deepEqual(drawings.map(item => item.trajectoryKind), [drawingKind]);
-  assert.equal(drawings[0].sourceNodeId, 'lower');
-  assert.equal(drawings[0].targetNodeId, 'phrase');
+  assert.equal(drawings[0].sourceNodeId, id('lower'));
+  assert.equal(drawings[0].targetNodeId, id('phrase'));
   assert.deepEqual(record, original);
 });
 
@@ -272,9 +279,10 @@ test('specialized movement defers only the unused shell across earlier completed
     && link.priorSourceNodeId === 'v' && link.targetNodeId === 'raisedVerb' && link.movementTransition === true));
   const outer = steps[outerIndex];
   assert.ok(outer.replayVisibleNodeIds.includes('top'));
-  assert.deepEqual(find(outer.replayCanvasData, 'top').children.map(child => child.id), ['phrase', 'cbar']);
+  // Stage 2's landing kept "phrase"; Replay names it canonically.
+  assert.deepEqual(find(outer.replayCanvasData, 'top').children.map(child => child.id), [canonicalId(prepared, 'phrase', 2), 'cbar']);
   assert.ok(outer.replayRelationLinks.some(link => link.authoredRelationKey === '2:0'
-    && link.priorSourceNodeId === 'phrase' && link.sourceNodeId === 'lower' && link.movementTransition === true));
+    && link.priorSourceNodeId === 'phrase' && link.sourceNodeId === canonicalId(prepared, 'lower', 2) && link.movementTransition === true));
   assert.deepEqual(record, original);
 });
 

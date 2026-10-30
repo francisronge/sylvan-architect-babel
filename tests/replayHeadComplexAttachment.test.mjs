@@ -10,6 +10,7 @@ import * as coordinates from '../replay/stageCoordinates.ts';
 import * as layout from '../replay/treeLayout.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
 import { frameStructure } from './helpers/replayInvariants.mjs';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const record = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/unrendered-head-movement.json', import.meta.url), 'utf8'));
 
@@ -23,7 +24,7 @@ test('a head movement moment attaches the host head under the new complex head, 
   const structure = frameStructure(steps[at]);
   assert.equal(structure.parent.get('declarativeComplex'), 'complementizerBar');
   assert.equal(structure.parent.get('complementizer'), 'declarativeComplex', 'the host head joins the complex at its moment');
-  const { scenes } = layoutReplayFrames({ steps, stages: record.derivationStages, width: 1600, height: 948, direction: 'ltr' },
+  const { scenes } = layoutReplayFrames({ steps, stages: replayStages(record), width: 1600, height: 948, direction: 'ltr' },
     { coordinates, camera, layout, display, d3 });
   const rows = [...new Set([...scenes[at].nodes.values()].map(node => node.y))].sort((a, b) => a - b);
   const row = rows[1] - rows[0];

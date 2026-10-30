@@ -4,6 +4,8 @@ import test from 'node:test';
 import { dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
+import { prepareReplay } from '../replay/prepareReplay.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/shared-landing.json', import.meta.url)));
 const nodes = forest => {
@@ -164,17 +166,21 @@ test('one source may retain its ID at the shared landing while both prior positi
   assert.equal(movements.length, 2);
   assert(movements.every(f => f.evidence.movement.transition && f.evidence.movement.targetNodeId === 'objectN'));
   const playback = buildReplayPlayback(response);
+  // Replay reads the hop source-kept: the authored landing's objectN names the lower copy there.
+  const renamed = prepareReplay({ derivationStages: stages, sentence: response.sentence, includePlayback: false });
+  const landing = canonicalId(renamed, 'objectN', 1), lower = canonicalId(renamed, 'freshLowerN', 1);
+  const fresh = landing === 'objectN' ? lower : landing;
   const at = playback.steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1 && s.replayRelationIdentity.relationIndex === 0);
   const before = nodes([playback.steps[at - 1].replayCanvasData]);
   const after = nodes([playback.steps[at].replayCanvasData]);
   assert.equal(before.get('predicateN').children[1].id, 'objectN');
   assert.equal(before.get('objectN').silent, undefined);
   assert.equal(before.get('objectE').silent, undefined);
-  assert(!playback.steps[at - 1].replayVisibleNodeIds.includes('freshLowerN'));
-  assert.equal(after.get('predicateN').children[1].id, 'freshLowerN');
-  assert.equal(after.get('freshLowerN').silent, true);
+  assert(!playback.steps[at - 1].replayVisibleNodeIds.includes(fresh));
+  assert.equal(after.get('predicateN').children[1].id, lower);
+  assert.equal(after.get(lower).silent, true);
   assert.equal(after.get('objectE').silent, true);
-  assert.equal(after.get('raisedCoordination').children[1].id, 'objectN');
+  assert.equal(after.get('raisedCoordination').children[1].id, landing);
   assert.equal(playback.steps[at].replayRelationLinks.filter(l => l.renderFamily === 'trajectory').length, 2);
 });
 

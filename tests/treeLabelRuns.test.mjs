@@ -14,6 +14,7 @@ import {
 import { readFileSync } from 'node:fs';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 const context=(trace={},aliases={})=>({traceIndices:new Map(Object.entries(trace)),rawTraceAliases:new Map(Object.entries(aliases))});
 const leaf=(word,extras={})=>{const root=d3.hierarchy({id:'w',label:'N',word,...extras});applyVizIds(root);return root;};
 
@@ -62,7 +63,8 @@ test('a theta grid on a moved head keeps its chain index beside the theta letter
  // workspace-source-continuity: the moved head wird is a chain occurrence (wird₁) that a theta grid also indexes.
  const {cases}=JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/workspace-source-continuity.json',import.meta.url),'utf8'));
  const replay=prepareReplay({...cases[0],includePlayback:true});
- const runs=replay.playbackSteps.flatMap((_step,index)=>treeLabelRunsForStep(replay,index).get('wirdV::__leaf')??[])
+ // Each step's id for the authored head wird, which Replay may rename once it moves.
+ const runs=replay.playbackSteps.flatMap((step,index)=>treeLabelRunsForStep(replay,index).get(canonicalId(replay,'wirdV::__leaf',step.replayFrameIndex))??[])
    .filter(run=>run.indices.some(index=>index.mode==='theta'));
  assert(runs.some(run=>run.text==='wird₁'),'a theta letter follows wird₁ once wird is a chain occurrence');
 });
@@ -70,10 +72,12 @@ test('a theta grid on a moved one-word phrase keeps the chain index on its label
  // french-relative: the DP Jean is a chain occurrence (D₂) that a theta grid also indexes.
  const {derivationStages,sentence,inputTokens}=JSON.parse(readFileSync(new URL('../fixtures/performance/french-relative.json',import.meta.url),'utf8'));
  const replay=prepareReplay({derivationStages,sentence,inputTokens,includePlayback:true});
- const steps=replay.playbackSteps.map((_step,index)=>treeLabelRunsForStep(replay,index))
-   .filter(runs=>runs.get('jean::__leaf')?.some(run=>run.indices.some(index=>index.mode==='theta')));
- assert(steps.some(runs=>runs.get('jean').some(run=>run.kind==='category'&&run.text==='D₂')
-   && runs.get('jean::__leaf').some(run=>run.text==='Jean'&&run.indices.some(index=>index.mode==='theta'))),
+ // Each step's id for the authored DP Jean, which Replay may rename once it moves.
+ const jean=(step,suffix='')=>canonicalId(replay,`jean${suffix}`,step.replayFrameIndex);
+ const steps=replay.playbackSteps.map((step,index)=>({step,runs:treeLabelRunsForStep(replay,index)}))
+   .filter(({step,runs})=>runs.get(jean(step,'::__leaf'))?.some(run=>run.indices.some(index=>index.mode==='theta')));
+ assert(steps.some(({step,runs})=>runs.get(jean(step)).some(run=>run.kind==='category'&&run.text==='D₂')
+   && runs.get(jean(step,'::__leaf')).some(run=>run.text==='Jean'&&run.indices.some(index=>index.mode==='theta'))),
    'D₂ stands over Jean once Jean is a chain occurrence, and its theta letter stays on the word');
 });
 test('a word that is an argument of two theta grids keeps both letters in grid order, each once',()=>{

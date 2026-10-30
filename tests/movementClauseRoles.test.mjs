@@ -3,6 +3,7 @@ import test from 'node:test';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const nodes = node => [node, ...(node.children ?? []).flatMap(nodes)];
 const find = (forest, id) => forest.flatMap(nodes).find(node => node.id === id);
@@ -78,21 +79,25 @@ test('clause movement introduces the lower occurrence, landing parent and trajec
     && step.replayRelationIdentity.relationIndex === 1);
   assert.ok(momentIndex > 0);
   const priorSteps = steps.slice(0, momentIndex).filter(step => step.replayFrameIndex === 1);
+  // Replay keeps "clause" on the source and gives the landing the new id: the
+  // authored landing and lower occurrence are renamed.
+  const landing = canonicalId(prepared, 'clause', 1), lower = canonicalId(prepared, 'lower', 1);
   assert.ok(priorSteps.length);
   for (const step of priorSteps) {
-    assert.equal(parent([step.replayCanvasData], 'clause')?.id, 'base');
-    assert.ok(step.replayVisibleNodeIds.includes('clause'));
-    assert.ok(!step.replayVisibleNodeIds.includes('lower'));
+    // Before its moment the clause stands at its source and the landing is not shown.
+    assert.equal(parent([step.replayCanvasData], lower)?.id, 'base');
+    assert.ok(step.replayVisibleNodeIds.includes(lower));
+    assert.ok(!step.replayVisibleNodeIds.includes(landing));
     assert.ok(!step.replayVisibleNodeIds.includes('landing'));
     assert.ok(!step.replayRelationLinks.some(link => link.authoredRelationKey === '1:1'));
   }
   const moment = steps[momentIndex];
-  assert.equal(parent([moment.replayCanvasData], 'clause')?.id, 'landing');
-  assert.ok(moment.replayVisibleNodeIds.includes('lower'));
+  assert.equal(parent([moment.replayCanvasData], landing)?.id, 'landing');
+  assert.ok(moment.replayVisibleNodeIds.includes(lower));
   assert.ok(moment.replayVisibleNodeIds.includes('landing'));
   assert.ok(moment.replayRelationLinks.some(link => link.authoredRelationKey === '1:1'
     && link.renderFamily === 'trajectory' && link.trajectoryKind === 'phrasal'
-    && link.sourceNodeId === 'lower' && link.targetNodeId === 'clause'));
+    && link.sourceNodeId === lower && link.targetNodeId === landing));
   assert.ok(!steps.some(step => step.replayKind === 'micro' && step.targetNodeId === 'landing'));
   assert.deepEqual(input, original);
 });

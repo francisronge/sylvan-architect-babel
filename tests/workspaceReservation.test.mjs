@@ -8,6 +8,7 @@ import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { stageTreeLayoutSize, buildStageLayoutGroups, buildStageCameraBounds } from '../replay/stageCamera.ts';
 import { directionsFor } from './helpers/rtlMirror.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/workspace-reservation.json', import.meta.url))).cases;
 function setup(key, width, height, direction) {
@@ -30,7 +31,7 @@ function setup(key, width, height, direction) {
       completedCanvas: step.replayCanvasData, plan: null, width, height, direction,
       layoutGroups: groups, includeOverlays: false });
   };
-  return { frame, steps, immutable, bounds };
+  return { frame, steps, immutable, bounds, replay };
 }
 const point = node => ({ x: node.x, y: node.y });
 
@@ -129,14 +130,17 @@ for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of
   });
 
   if (runs('arabic-relative-predicate/1', direction)) test(`${width}px ${direction}: Arabic builds the clause in its attachment position and keeps its lower witness there`, () => {
-    const { frame, immutable } = setup('arabic-relative-predicate/1', width, height, direction);
+    const { frame, immutable, replay, steps } = setup('arabic-relative-predicate/1', width, height, direction);
+    // From frame 50 the subject's lower witness is the occurrence the model
+    // named matrix-pro-trace; Replay keeps matrix-pro on it.
+    const lowerWitness = canonicalId(replay, 'matrix-pro-trace', steps[49].replayFrameIndex);
     const completed = frame(49), clause = completed.nodes.get('matrix-t-complement');
     const members = clause.descendants().map(getNodeId);
     assert(!frame(36).nodes.has('matrix-pro'), 'the reservation cannot reveal the clause early');
     for (const number of [...Array.from({ length: 22 }, (_, i) => i + 37), 50, 49, 37]) {
       const current = frame(number);
       for (const id of members) {
-        const visibleId = number >= 50 && id === 'matrix-pro' ? 'matrix-pro-trace' : id;
+        const visibleId = number >= 50 && id === 'matrix-pro' ? lowerWitness : id;
         const actual = current.nodes.get(visibleId);
         if (!actual) continue;
         const expected = completed.nodes.get(id);
@@ -150,7 +154,7 @@ for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of
     assert.notDeepEqual(point(movement.nodes.get('matrix-pro')), point(movement.nodes.get('matrix-pro-trace')),
       'the actual landing and lower occurrence still occupy separate positions');
     assert(movement.step.replayRelationLinks.some(link => link.priorSourceNodeId === 'matrix-pro'
-      && link.witnessNodeId === 'matrix-pro-trace'), 'the owning trajectory remains at frame 50');
+      && link.witnessNodeId === lowerWitness), 'the owning trajectory remains at frame 50');
     immutable();
   });
 }

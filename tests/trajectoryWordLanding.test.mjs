@@ -9,6 +9,7 @@ import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlan.ts';
 import { createSvgDom, select } from './helpers/svgDom.mjs';
 import { layoutVisualFrames, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 /* An arrow ends just below the visible text of its landing. A wordless landing
  * painted only as a word, such as the trace t, used to keep its shell
@@ -33,11 +34,12 @@ const endsBelow = (point, cell) => point.y >= cell.y + cell.height && point.y <=
   && point.x >= cell.x - 12 && point.x <= cell.x + cell.width + 12;
 
 test('Opus n3-24 step 35: the head arrow ends just below the painted t of its retained landing', () => {
-  const [frame] = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: [35] });
+  const visual = prepareVisualRecord(record), [frame] = layoutVisualFrames(visual, [VIEWPORTS[0]], { steps: [35] });
   const arrow = frame.marks.find(mark => mark.id === 'trajectory-path(3:0)#1');
   assert(arrow, 'the head arrow from tV is shown');
-  const landing = frame.texts.find(text => text.id === 'tI:word').cell;
-  const departure = frame.texts.find(text => text.id === 'tV:word').cell;
+  // The landing and departure traces, as Replay names them at step 35's stage.
+  const word = name => frame.texts.find(text => text.id === `${canonicalId(visual.prepared, name, visual.prepared.playbackSteps[34].replayFrameIndex)}:word`).cell;
+  const landing = word('tI'), departure = word('tV');
   assert(endsBelow(arrow.end, landing), `the arrow ends just below t: ${JSON.stringify(arrow.end)} under ${JSON.stringify(landing)}`);
   assert(!crosses(arrow.d, landing), `the arrow does not cross the t it points at: ${arrow.d}`);
   assert(endsBelow(arrow.start, departure), 'it still leaves from just below the lower t');

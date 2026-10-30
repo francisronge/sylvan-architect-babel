@@ -4,12 +4,16 @@ import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import { checkMovementUnrendered } from './helpers/replayContractWarnings.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const node = (id, label, children = [], extra = {}) => ({ id, label, children, ...extra });
 const word = (id, label, text, extra = {}) => node(id, label, [], { word: text, ...extra });
 const stage = (workspaceForest, relations = []) => ({ statement: 'State', stageRecord: 'Authored state.', relations, workspaceForest });
 const moment = (replay, stageIndex, relationIndex) => replay.playbackSteps.find(step => step.replayKind === 'relation'
   && step.replayRelationIdentity?.stageIndex === stageIndex && step.replayRelationIdentity.relationIndex === relationIndex);
+// An arrow between two authored occurrences of stage 1, named as Replay names them.
+const drawsArrow = (replay, item, source, target) => item.kind === 'trajectory'
+  && item.sourceNodeId === canonicalId(replay, source, 1) && item.targetNodeId === canonicalId(replay, target, 1);
 const movementCodes = step => (step?.movementDiagnostics ?? []).filter(text => /^MOVEMENT_/u.test(text));
 
 // Sol n4-26 and n4-28 (sol-120-20261026) name the thematic Source of an
@@ -61,8 +65,8 @@ test('a claim restating a head chain an earlier claim draws, beside another chai
   const record = headChain(), replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
   assert.deepEqual(movementCodes(moment(replay, 1, 1)), []);
   assert.deepEqual(checkMovementUnrendered(replay, record), []);
-  assert.equal(replay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory'
-    && item.sourceNodeId === 'verbTrace' && item.targetNodeId === 'readV').length, 1, 'the chain is drawn once');
+  assert.equal(replay.relationRenderPlan.frames[1].items.filter(item => drawsArrow(replay, item, 'verbTrace', 'readV')).length, 1,
+    'the chain is drawn once');
 });
 
 test('without the earlier movement claim the restating claim keeps its refusal and the audit reports it', () => {
@@ -124,8 +128,8 @@ test('a claim naming only the landing an earlier claim of its stage moves assert
   const record = piedPiping(), replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
   assert.deepEqual(movementCodes(moment(replay, 1, 1)), []);
   assert.deepEqual(checkMovementUnrendered(replay, record), []);
-  assert.equal(replay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory'
-    && item.sourceNodeId === 'subjTrace' && item.targetNodeId === 'subj').length, 1, 'the movement is drawn once');
+  assert.equal(replay.relationRenderPlan.frames[1].items.filter(item => drawsArrow(replay, item, 'subjTrace', 'subj')).length, 1,
+    'the movement is drawn once');
 });
 
 test('without the earlier movement claim the landing-only claim keeps its refusal and the audit reports it', () => {
@@ -151,8 +155,7 @@ const government = (withMovement = true) => {
 
 test('a government claim citing the head beside a hop an earlier claim draws asserts no second movement', () => {
   const record = government(), replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
-  assert.ok(replay.relationRenderPlan.frames[1].items.some(item => item.kind === 'trajectory'
-    && item.sourceNodeId === 'tOp2' && item.targetNodeId === 'op'), 'the earlier claim draws the hop');
+  assert.ok(replay.relationRenderPlan.frames[1].items.some(item => drawsArrow(replay, item, 'tOp2', 'op')), 'the earlier claim draws the hop');
   assert.deepEqual(movementCodes(moment(replay, 1, 1)), []);
   assert(!checkMovementUnrendered(replay, record).some(found => found.subject === '1:1'));
 });
@@ -162,7 +165,8 @@ test('a government claim citing the head beside a hop an earlier claim draws ass
 test('without the earlier movement claim the government claim draws the hop its structure proves', () => {
   const record = government(false), replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
   assert.deepEqual(replay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory')
-    .map(item => [item.relationRef.relationIndex, item.sourceNodeId, item.targetNodeId]), [[0, 'tOp2', 'op']]);
+    .map(item => [item.relationRef.relationIndex, item.sourceNodeId, item.targetNodeId]),
+  [[0, canonicalId(replay, 'tOp2', 1), canonicalId(replay, 'op', 1)]]);
   assert.deepEqual(movementCodes(moment(replay, 1, 0)), []);
   assert.deepEqual(checkMovementUnrendered(replay, record), []);
 });
@@ -185,16 +189,15 @@ const chainSummary = (withMovement = true, { strandedCopy = false } = {}) => {
 
 test('a chain inventory listing lower copies of hops already drawn asserts no movement', () => {
   const record = chainSummary(), replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
-  assert.ok(replay.relationRenderPlan.frames[1].items.some(item => item.kind === 'trajectory'
-    && item.sourceNodeId === 't3' && item.targetNodeId === 'book'), 'the stage\'s first claim draws the new hop');
+  assert.ok(replay.relationRenderPlan.frames[1].items.some(item => drawsArrow(replay, item, 't3', 'book')),
+    'the stage\'s first claim draws the new hop');
   assert.deepEqual(movementCodes(moment(replay, 1, 1)), []);
   assert(!checkMovementUnrendered(replay, record).some(found => found.subject === '1:1'));
 });
 
 test('alone, the chain inventory draws its proven new hop at its own moment', () => {
   const record = chainSummary(false), replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
-  assert.equal(replay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory'
-    && item.sourceNodeId === 't3' && item.targetNodeId === 'book').length, 1);
+  assert.equal(replay.relationRenderPlan.frames[1].items.filter(item => drawsArrow(replay, item, 't3', 'book')).length, 1);
   assert.deepEqual(movementCodes(moment(replay, 1, 0)), []);
   assert.deepEqual(checkMovementUnrendered(replay, record), []);
 });

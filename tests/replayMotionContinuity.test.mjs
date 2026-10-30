@@ -12,6 +12,7 @@ import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
 import { motionFrame, replayMotionFaults } from '../scripts/replayMotionContinuity.mjs';
 import { carryCamera } from '../components/treeViewport.ts';
 import { directionsFor } from './helpers/rtlMirror.mjs';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const point = (id, x, y, parent = null) => ({ id, x, y, parent });
 const frame = (operation, target, points, kind = 'micro', links = []) => ({ kind, operation, target, links, points });
@@ -149,7 +150,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of
   test(`${width}px ${direction}: defects 19–21 — 我 and 昨天 keep their place in the tree from their first frame`, () => {
     const authored = JSON.stringify(waitingRoots);
     const { playbackSteps: steps } = prepareReplay({ ...waitingRoots, includePlayback: true });
-    const { scenes } = layoutReplayFrames({ steps, stages: waitingRoots.derivationStages, width, height, direction },
+    const { scenes } = layoutReplayFrames({ steps, stages: replayStages(waitingRoots), width, height, direction },
       { coordinates, camera, layout, display, d3 });
     const frames = scenes.map(scene => motionFrame(scene.step, scene.nodes, display.getNodeId));
     const faults = replayMotionFaults({ frames });
@@ -178,7 +179,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of
 
 test('stage alignment offsets follow every later stage, not only the next stage size', () => {
   const sizesFor = (steps, extra) => {
-    const groups = camera.buildStageLayoutGroups(steps, waitingRoots.derivationStages);
+    const groups = camera.buildStageLayoutGroups(steps, replayStages(waitingRoots));
     const sizes = waitingRoots.derivationStages.map((_, stage) => camera.stageTreeLayoutSize(steps, stage, 1440, 900, groups));
     sizes[2] = [sizes[2][0] + extra, sizes[2][1]];
     return stage => sizes[stage];

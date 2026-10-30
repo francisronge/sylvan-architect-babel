@@ -10,6 +10,7 @@ import * as coordinates from '../replay/stageCoordinates.ts';
 import * as layout from '../replay/treeLayout.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
 import { checkAttachAtMerge, frameStructure } from './helpers/replayInvariants.mjs';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 // Each stage gives a retained node new daughters, `child` built last; the merge
 // into that node attaches them. A retained bare head can become a head complex
@@ -40,7 +41,7 @@ for (const { file, child, parent, before, after, mergeMoves } of cases) {
 
   for (const [width, height] of [[1600, 948], [390, 844]]) {
     test(`${file} at ${width}px: ${child} waits at its reserved slot, and only the merge can move ${parent}`, () => {
-      const { scenes } = layoutReplayFrames({ steps, stages: fixture.derivationStages, width, height, direction: 'ltr' },
+      const { scenes } = layoutReplayFrames({ steps, stages: replayStages(fixture), width, height, direction: 'ltr' },
         { coordinates, camera, layout, display, d3 });
       const merged = scenes[merge].nodes, stage = steps[merge].replayFrameIndex;
       const held = after.filter(id => !before.includes(id))

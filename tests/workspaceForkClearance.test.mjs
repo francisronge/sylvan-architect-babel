@@ -9,6 +9,7 @@ import { TREE_ROW_HEIGHT } from '../replay/treeSpacing.ts';
 import { categoryTextLayout } from '../replay/categoryTextLayout.ts';
 import { layoutCanopyVisualFrame, layoutVisualFrames, prepareVisualRecord, TEXT_METRICS, VIEWPORTS } from './helpers/visualFrames.mjs';
 import { checkBranchGeometry } from './helpers/visualRules.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const atom = id => ({ id, label: id });
 const fork = (id, ...children) => ({ id, label: 'IP', children });
@@ -213,7 +214,9 @@ test('head movement out of a three-way V′ under a four-line inner label keeps 
   assert.equal(categoryTextLayout('NP [pro, accusative, masculine singular]', TEXT_METRICS.measureCategoryText).lines.length, 4);
   const desktop = VIEWPORTS.filter(viewport => viewport.name === 'desktop');
   const frames = [...layoutVisualFrames(visual, desktop), layoutCanopyVisualFrame(visual, desktop[0])];
-  assert.ok(frames.some(frame => frame.lines.some(line => line.kind === 'branch' && line.nodes[0] === 'eVbar' && line.nodes[1] === 'eTrace')),
+  // The authored landing kept eV; Replay gives the trace that id.
+  const trace = canonicalId(visual.prepared, 'eTrace', 1);
+  assert.ok(frames.some(frame => frame.lines.some(line => line.kind === 'branch' && line.nodes[0] === 'eVbar' && line.nodes[1] === trace)),
     'the moved V leaves its trace in the V′');
   for (const frame of frames) assert.deepEqual(checkBranchGeometry(frame).map(finding => finding.detail), [], `frame ${frame.frame}`);
 });

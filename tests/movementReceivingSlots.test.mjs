@@ -11,24 +11,25 @@ import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { constructionReceivingAttachments, movementReceivingAttachments, movementReceivingHosts } from '../replay/workspaceReceivingHost.ts';
 import { directionsFor } from './helpers/rtlMirror.mjs';
 import { withStructuralMovement } from './helpers/structuralMovementSwitch.mjs';
+import { canonicalId, replayStages } from './helpers/canonicalIds.mjs';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/receiving-head-slot.json', import.meta.url)));
 const close = (a,b,message) => assert(Math.abs(a-b)<1e-6,`${message}: ${a} vs ${b}`);
 function setup(input,width,height,direction) {
-  const steps=prepareReplay({...input,includePlayback:true}).playbackSteps;
-  const groups=buildStageLayoutGroups(steps,input.derivationStages);
+  const replay=prepareReplay({...input,includePlayback:true}),steps=replay.playbackSteps;
+  const groups=buildStageLayoutGroups(steps,replayStages(input));
   const sizes=new Map(input.derivationStages.map((_,i)=>[i,stageTreeLayoutSize(steps,i,width,height,groups)]));
   const points=new Map([...sizes].flatMap(([i,size])=>[...buildStageCoordinateReservations(steps,i,size,i=>sizes.get(i),direction)]));
   const render=(step,p)=>{const root=d3.hierarchy(step.replayCanvasData);applyVizIds(root);const v=new Set(step.replayVisibleNodeIds);return layoutSyntaxTree(root,sizes.get(step.replayFrameIndex),direction,p,v).descendants().filter(n=>v.has(getNodeId(n))&&!n.data.replayLayoutOnly&&n.data.replayOrigin?.kind!=='workspace');};
   const scenes=steps.map(step=>({step,canvas:step.replayCanvasData,nodes:new Map(render(step,points.get(step.replayCanvasData)).map(n=>[getNodeId(n),n]))}));
   assert.deepEqual(workspaceContinuityReflows(scenes,points,(s,p)=>render(s.step,p)),[]);
-  return {steps,scenes};
+  return {replay,steps,scenes};
 }
 // Right to left this runs only for a record whose layout is not the reflection of
 // its left-to-right layout (tests/helpers/rtlMirror.mjs).
 for(const [width,height]of [[1600,948],[390,844]])for(const direction of directionsFor('replay-regressions/receiving-head-slot.json#'))test(`${width}px ${direction}: successive movement wrappers retain the same outer attachment slot`,()=>{
-  const original=JSON.stringify(record),{steps,scenes}=setup(record,width,height,direction);
-  const before=scenes[29].nodes,after=scenes[30].nodes;
+  const original=JSON.stringify(record),{replay,steps,scenes}=setup(record,width,height,direction);
+  const before=scenes[29].nodes,after=scenes[30].nodes,id=name=>canonicalId(replay,name,steps[30].replayFrameIndex);
   assert.equal(steps[30].replayKind,'relation');
   assert(!before.has('cliticizedI'));assert(after.has('cliticizedI'));
   close(before.get('finiteHost').x,after.get('cliticizedI').x,'the existing host occupies the new outer parent slot');
@@ -37,9 +38,10 @@ for(const [width,height]of [[1600,948],[390,844]])for(const direction of directi
     close(scenes[frame].nodes.get(id).x,after.get(id).x,`${id} does not reserve a later horizontal gap`);
     close(scenes[frame].nodes.get(id).y,after.get(id).y,`${id} keeps its row`);
   }
-  for(const id of ['want','finiteI','want::__leaf'])for(const zoom of [0.4,1,2]){
-    close((before.get(id).x-before.get('finiteHost').x)*zoom,(after.get(id).x-after.get('finiteHost').x)*zoom,'the compound keeps its whole interior under zoom');
-    close(before.get(id).y-before.get('finiteHost').y,after.get(id).y-after.get('finiteHost').y,'the compound translates rigidly');
+  // The raised verb inside the compound: authored "want", which its landing kept.
+  for(const name of ['want','finiteI','want::__leaf'])for(const zoom of [0.4,1,2]){
+    close((before.get(id(name)).x-before.get('finiteHost').x)*zoom,(after.get(id(name)).x-after.get('finiteHost').x)*zoom,'the compound keeps its whole interior under zoom');
+    close(before.get(id(name)).y-before.get('finiteHost').y,after.get(id(name)).y-after.get('finiteHost').y,'the compound translates rigidly');
   }
   assert.equal(before.get('object').data.word,'lo','source pronunciation is retained');
   assert(!before.has('objectTrace'));assert(after.has('objectTrace'));
@@ -58,8 +60,9 @@ const ordinaryWrapper = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-r
 // its left-to-right layout (tests/helpers/rtlMirror.mjs).
 for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of directionsFor('replay-regressions/head-movement-ordinary-wrapper.json#')) {
   test(`${width}px ${direction}: movement followed by an ordinary wrapper uses one outer receiving slot`, () => {
-    const original = JSON.stringify(ordinaryWrapper), { steps, scenes } = setup(ordinaryWrapper, width, height, direction);
+    const original = JSON.stringify(ordinaryWrapper), { replay, steps, scenes } = setup(ordinaryWrapper, width, height, direction);
     const before = scenes[26].nodes, movement = scenes[27].nodes, merge = scenes[28].nodes;
+    const inComplex = name => canonicalId(replay, name, steps[27].replayFrameIndex);
     assert.equal(steps[27].replayKind, 'relation');
     assert.equal(steps[28].operation, 'ExternalMerge');
     for (const axis of ['x', 'y']) {
@@ -70,7 +73,9 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
     assert.equal(before.get('i_v').data.word, 'vive');
     assert(!before.has('i_finite') && !before.has('i_complex') && !before.has('i_vtrace'));
     assert(movement.has('i_finite') && movement.has('i_vtrace') && !movement.has('i_complex'));
-    for (const id of ['i_v', 'i_infl', 'i_v::__leaf']) for (const zoom of [0.4, 1, 2]) {
+    // The raised verb inside the compound: authored "i_v", which its landing kept.
+    for (const name of ['i_v', 'i_infl', 'i_v::__leaf']) for (const zoom of [0.4, 1, 2]) {
+      const id = inComplex(name);
       close((movement.get(id).x - movement.get('i_finite').x) * zoom,
         (merge.get(id).x - merge.get('i_finite').x) * zoom, 'ordinary merge translates the complete compound rigidly');
       close(movement.get(id).y - movement.get('i_finite').y,
@@ -208,7 +213,7 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
   test(`${width}px ${direction}: a head landing whose receiver keeps its identity reserves the room of its neutral reading`, () => {
     const laid = input => {
       const steps = prepareReplay({ ...structuredClone(input), includePlayback: true }).playbackSteps;
-      const groups = buildStageLayoutGroups(steps, input.derivationStages);
+      const groups = buildStageLayoutGroups(steps, replayStages(input));
       const sizes = new Map(input.derivationStages.map((_, i) => [i, stageTreeLayoutSize(steps, i, width, height, groups)]));
       const points = new Map([...sizes].flatMap(([i, size]) => [...buildStageCoordinateReservations(steps, i, size, i => sizes.get(i), direction)]));
       return { steps, scenes: steps.map(step => {

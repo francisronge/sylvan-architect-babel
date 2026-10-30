@@ -12,11 +12,12 @@ import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { compactCurrentRootForks } from '../replay/currentRootCompaction.ts';
 import { TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
 import { directionsFor } from './helpers/rtlMirror.mjs';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/compact-current-root.json', import.meta.url))).cases;
 function setup(record, width, height, direction) {
   const replay = prepareReplay({ ...record, includePlayback: true }), steps = replay.playbackSteps;
-  const groups = buildStageLayoutGroups(steps, record.derivationStages);
+  const groups = buildStageLayoutGroups(steps, replayStages(record));
   const sizes = new Map(record.derivationStages.map((_, stage) => [stage, stageTreeLayoutSize(steps, stage, width, height, groups)]));
   const points = new Map();
   for (const [stage, size] of sizes) for (const [canvas, coords] of buildStageCoordinateReservations(steps, stage, size,

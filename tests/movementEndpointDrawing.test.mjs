@@ -9,6 +9,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { isPlanItemRevealed, resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlan.ts';
 import { createSvgDom, select } from './helpers/svgDom.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const records = JSON.parse(readFileSync(new URL('../fixtures/movement/source-occurrence-ownership.json', import.meta.url)));
 
@@ -136,25 +137,29 @@ for (const [id, identity, sourceId, targetId, sourceAttachment] of [
 ]) test(`${id}: exact endpoints draw from their moment through later movement and rewind`, () => {
   const record = endpointRecords.find(r => r.id === id), original = structuredClone(record);
   const prepared = prepareReplay({ ...record, includePlayback: true });
+  // The ids each endpoint has in Replay, at the stage it is named for.
+  const at = (name, stageIndex) => canonicalId(prepared, name, stageIndex);
+  const [source, target] = [sourceId, targetId].map(name => at(name, identity.stageIndex));
   const start = momentIndex(prepared, identity);
   assert(start > 0);
   assert.equal(drawReplayRelation(prepared, start - 1, identity), null, 'no early arrow');
   const first = drawReplayRelation(prepared, start, identity);
-  assert.equal(first.displayed.targetNodeId, targetId);
+  assert.equal(first.displayed.targetNodeId, target);
   for (let index = start; index < prepared.playbackSteps.length; index++) {
     const result = drawReplayRelation(prepared, index, identity);
     assert(result, `Replay ${index + 1} retains the claim`);
     assert.deepEqual(result.bound.failed, [], `Replay ${index + 1}`);
     assert.equal(result.path?.['marker-end'], 'url(#arrow)', `Replay ${index + 1} paints an arrow`);
     assert.doesNotMatch(result.path.d, /NaN|Infinity/);
-    assert.deepEqual(result.requested[0], [sourceId, sourceAttachment]);
+    assert.deepEqual(result.requested[0], [source, sourceAttachment]);
     assert.deepEqual(result.displayed.relationRef, first.displayed.relationRef, 'authored ownership remains exact');
     if (id.startsWith('sol-') && index >= momentIndex(prepared, { stageIndex: 4, relationIndex: 0 })) {
-      assert.equal(result.displayed.targetNodeId, 'h_appl_head_lower');
-      assert.deepEqual(result.requested[1], ['h_appl_head_lower', 'shell-bottom']);
+      assert.equal(result.displayed.targetNodeId, at('h_appl_head_lower', 4));
+      assert.deepEqual(result.requested[1], [at('h_appl_head_lower', 4), 'shell-bottom']);
     }
+    // After the next hop the arrow ends where the first landing now stands.
     if (id.includes('swedish') && index >= momentIndex(prepared, { stageIndex: 3, relationIndex: 1 })) {
-      assert.equal(result.displayed.targetNodeId, 'bookSubjectTrace');
+      assert.equal(result.displayed.targetNodeId, at('bookSubjectTrace', 3));
     }
   }
   assert.deepEqual(drawReplayRelation(prepared, start, identity), first, 'rewind restores the original endpoint');
@@ -273,8 +278,9 @@ for (const [caseIndex, identity, tier, kind, sourceId, targetId, site] of [
     && i.relationRef.stageIndex === identity.stageIndex && i.relationRef.relationIndex === identity.relationIndex);
   assert(item, 'the claim keeps its arrow');
   assert.equal(item.claimTier, tier);
+  const [source, target] = [sourceId, targetId].map(name => canonicalId(prepared, name, identity.stageIndex));
   assert.deepEqual([item.trajectoryKind, item.sourceNodeId, item.targetNodeId, item.headLandingSite?.nodeId],
-    [kind, sourceId, targetId, site]);
+    [kind, source, target, site]);
   const start = momentIndex(prepared, identity);
   assert(start > 0);
   assert.equal(prepared.playbackSteps[start].movementDiagnostics, undefined);
@@ -284,6 +290,6 @@ for (const [caseIndex, identity, tier, kind, sourceId, targetId, site] of [
   assert.equal(result.bound.primitives.length, 1);
   assert.equal(result.path?.['marker-end'], 'url(#arrow)');
   assert.doesNotMatch(result.path.d, /NaN|Infinity/);
-  assert.deepEqual(result.requested.map(([id]) => id), [sourceId, targetId]);
+  assert.deepEqual(result.requested.map(([id]) => id), [source, target]);
   assert.deepEqual(record, original, 'authored records are unchanged');
 });

@@ -5,6 +5,8 @@ import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatc
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { getFrameRelations } from '../replay/frameRelations.ts';
+import { prepareReplay } from '../replay/prepareReplay.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const example = () => ({
   relation: { relation: 'Open dependency', anchors: { lowerCopy: 'lower', traceWitness: 'lower', higherCopy: 'upper' } },
@@ -147,15 +149,17 @@ test('exact authored structure binds unfamiliar movement roles through both tier
     assert.equal(trajectory?.sourceNodeId, 'lower');
     assert.equal(trajectory?.targetNodeId, 'higher');
     assert.equal(trajectory?.witnessNodeId, 'lower');
-    const { steps } = buildReplayPlayback({ sentence: 'book', analyses: [{ derivationStages: [
-      stage(input.priorForest), stage(input.currentForest, [input.relation])
-    ] }] });
+    const derivationStages = [stage(input.priorForest), stage(input.currentForest, [input.relation])];
+    const { steps } = buildReplayPlayback({ sentence: 'book', analyses: [{ derivationStages }] });
+    // The authored lower occurrence and landing as Replay names them (the source keeps "higher").
+    const replay = prepareReplay({ derivationStages: structuredClone(derivationStages), sentence: 'book', includePlayback: false });
+    const [lower, higher] = ['lower', 'higher'].map(id => canonicalId(replay, id, 1));
     const moment = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1);
     assert.ok(moment > 0);
     assert.ok(!steps.slice(0, moment).some(step => step.replayVisibleNodeIds.includes('landing-parent')));
     assert.ok(steps[moment].replayVisibleNodeIds.includes('landing-parent'));
     assert.ok(steps[moment].replayRelationLinks.some(link => link.renderFamily === 'trajectory'
-      && link.sourceNodeId === 'lower' && link.targetNodeId === 'higher'));
+      && link.sourceNodeId === lower && link.targetNodeId === higher));
     assert.deepEqual(input, original);
   }
 });

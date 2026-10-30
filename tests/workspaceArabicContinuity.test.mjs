@@ -9,6 +9,7 @@ import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts'
 import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCamera.ts';
 import { visibleComponentNodes } from '../replay/visibleComponent.ts';
 import { directionsFor } from './helpers/rtlMirror.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const cases = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/workspace-arabic-continuity.json', import.meta.url))).cases;
 const cache = new Map();
@@ -43,7 +44,7 @@ function setup(record, width, height, direction) {
       && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace').map(node => [getNodeId(node), node]));
     return { step, nodes };
   });
-  const result = { frames, immutable: () => assert.equal(JSON.stringify(record), original) };
+  const result = { replay, frames, immutable: () => assert.equal(JSON.stringify(record), original) };
   cache.set(key, result); return result;
 }
 
@@ -126,19 +127,23 @@ for (const record of cases) {
   test(`${record.key}: actual head movement retains pronunciation and introduces its own trace atomically`, () => {
     const run = setup(record, 1600, 1100, 'ltr');
     for (const relation of record.derivationStages[1].relations.filter(relation => relation.relation === 'V-to-I head movement')) {
+      // The authored landing kept the raised head's id; Replay gives it to the
+      // lower occurrence, so the occurrence new at the movement is the other one.
       const { raisedHead, landingHead, trace } = relation.anchors;
+      const landing = canonicalId(run.replay, raisedHead, 1), lower = canonicalId(run.replay, trace, 1);
+      const fresh = landing === raisedHead ? lower : landing;
       const index = run.frames.findIndex(frame => frame.step.replayKind === 'relation'
-        && frame.step.operation === relation.relation && frame.step.targetNodeId === raisedHead);
+        && frame.step.operation === relation.relation && frame.step.targetNodeId === landing);
       assert(index > 0, `finds movement of ${raisedHead}`);
       const before = run.frames[index - 1].nodes, after = run.frames[index].nodes;
       assert(before.has(raisedHead));
-      assert(!before.has(trace), 'the lower occurrence is absent before movement');
-      assert(after.has(trace));
+      assert(!before.has(fresh), 'the new occurrence is absent before movement');
+      assert(after.has(lower));
       assert(after.has(landingHead));
-      assert.equal(parent(after.get(raisedHead), after), landingHead);
-      assert.equal(after.get(`${raisedHead}::__leaf`).data.word, before.get(`${raisedHead}::__leaf`).data.word);
-      assert(Math.hypot(after.get(raisedHead).x - before.get(raisedHead).x,
-        after.get(raisedHead).y - before.get(raisedHead).y) > 1, 'the real head movement is not frozen');
+      assert.equal(parent(after.get(landing), after), landingHead);
+      assert.equal(after.get(`${landing}::__leaf`).data.word, before.get(`${raisedHead}::__leaf`).data.word);
+      assert(Math.hypot(after.get(landing).x - before.get(raisedHead).x,
+        after.get(landing).y - before.get(raisedHead).y) > 1, 'the real head movement is not frozen');
     }
     run.immutable();
   });

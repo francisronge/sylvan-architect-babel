@@ -5,6 +5,7 @@ import { readCategoryLabel } from '../replay/categoryLabel.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/qualified-contexts.json', import.meta.url)));
 const flatten = forest => forest.flatMap(node => [node, ...flatten(node.children ?? [])]);
@@ -31,15 +32,17 @@ for (const record of records) {
     const prepared = prepare(r), steps = prepared.playbackSteps;
     const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
     assert(moment > 0);
-    const landing = flatten([find(r.currentForest, r.targetNodeId)]).map(node => node.id);
+    // The authored source and landing, as Replay names them in the stage it reads.
+    const [source, target] = [r.sourceNodeId, r.targetNodeId].map(id => canonicalId(prepared, id, 1));
+    const landing = flatten([find(prepared.derivationStages[1].workspaceForest, target)]).map(node => node.id);
     const precedingIds = new Set(flatten(r.priorForest).map(node => node.id));
     for (const id of landing) {
       assert(steps[moment].replayVisibleNodeIds.includes(id), `landing member ${id}`);
       if (!precedingIds.has(id)) assert(steps.slice(0, moment).every(s => !s.replayVisibleNodeIds.includes(id)), `early ${id}`);
     }
-    assert(steps[moment].replayVisibleNodeIds.includes(r.sourceNodeId));
+    assert(steps[moment].replayVisibleNodeIds.includes(source));
     assert(steps[moment].replayRelationLinks.some(link => link.renderFamily === 'trajectory'
-      && link.sourceNodeId === r.sourceNodeId && link.targetNodeId === r.targetNodeId));
+      && link.sourceNodeId === source && link.targetNodeId === target));
     assert.equal(prepared.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory').length, 1);
     assert.deepEqual(r, original);
   });

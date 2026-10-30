@@ -27,13 +27,16 @@ export interface ReplayPreparationInput {
  * occurrence of a moved constituent the model let keep its id. The result
  * returns those stages: whatever pairs stage ids with Replay's steps (the
  * panel, checks) reads them, never the stages as passed in, and
- * `finalStageIdRenames` for a final tree built from the authored stages.
+ * `idRenamesByStage`, whose last entry (`finalStageIdRenames`) renames a final
+ * tree built from the authored stages.
  */
 export const prepareReplay = ({ derivationStages: inputStages, sentence, inputTokens, includePlayback }: ReplayPreparationInput) => {
   const canonical = canonicalizeMovementIdentity(inputStages);
   const derivationStages = canonical.stages as DerivationStage[] | undefined;
-  // The final tree a caller holds keeps the authored ids; these rename it.
-  const finalStageIdRenames = stageIdRenames(canonical.renames, (inputStages?.length ?? 0) - 1);
+  // Each stage's renamed ids ({ authoredId: canonicalId }); the final tree a
+  // caller holds keeps the authored ids, and the last entry renames it.
+  const idRenamesByStage = (inputStages ?? []).map((_stage, index) => stageIdRenames(canonical.renames, index));
+  const finalStageIdRenames = idRenamesByStage.at(-1) ?? {};
   if (!String(sentence || '').trim() && derivationStages?.some(stage => stage.realizations?.length)) {
     throw new Error('Replay with realization groups requires the original input sentence.');
   }
@@ -84,7 +87,7 @@ export const prepareReplay = ({ derivationStages: inputStages, sentence, inputTo
   // Realized forms join the plan once Replay has decided when each association is active.
   const relationRenderPlan = relationPlan && withRealizationDisplays(relationPlan, replayDerivationFrames,
     { sentence, inputTokens, ...(includePlayback ? { steps: playbackSteps } : {}) });
-  return { derivationStages: derivationStages ?? [], finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
+  return { derivationStages: derivationStages ?? [], idRenamesByStage, finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
     committedDerivationVisualLinks, movementChainIndexCatalogue, playbackSteps };
 };
 

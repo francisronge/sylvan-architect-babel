@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
+import { prepareReplay } from '../replay/prepareReplay.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
+// buildReplayPlayback reads the stages as prepareReplay does; its renames
+// translate an authored id to the one its steps use.
+const renamesOf = derivationStages => prepareReplay({ derivationStages, sentence: '', includePlayback: false });
 import { buildRenderableCommittedCanvasData } from '../replay/replayCanvas.ts';
 import { isWordlessCategoryLeaf, isDisplayTerminalNode } from '../replay/replaySurfaceNotation.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
@@ -95,8 +100,10 @@ test('future layout keeps the source attached until a retained-ID movement occur
     assert.ok(step.replayVisibleNodeIds.includes('person'));
     assert.ok(!step.replayVisibleNodeIds.includes('trace'));
   }
-  assert.equal(nodes(transition[moment].replayCanvasData).find(n => n.children?.some(c => c.id === 'person'))?.id, 'tp');
-  assert.ok(transition[moment].replayVisibleNodeIds.includes('trace'));
+  // At its moment the landing, which the model let keep "person", takes its place.
+  const renames = renamesOf(stages), landing = canonicalId(renames, 'person', 1);
+  assert.equal(nodes(transition[moment].replayCanvasData).find(n => n.children?.some(c => c.id === landing))?.id, 'tp');
+  assert.ok(transition[moment].replayVisibleNodeIds.includes(canonicalId(renames, 'trace', 1)));
   for (const step of transition) {
     assert.ok(!nodes(step.replayCanvasData).some(n => n.id === 'outer'),
       'future context unusable before movement cannot enter midway through the stage and stretch its earlier frames');
@@ -300,13 +307,15 @@ test('movement distinguishes the preceding occurrence from either current ID-ret
     const index = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
     const before = steps[index - 1];
     const moment = steps[index];
+    const renames = renamesOf(c.record.derivationStages);
+    const [source, target] = [c.source, c.target].map(id => canonicalId(renames, id, 1));
     const material = step => nodes(step.replayCanvasData).filter(n => !n.replayLayoutOnly);
     assert.equal(material(before).find(n => n.children?.some(c => c.id === 'original'))?.id, 'site', `${kind}: retain landing ${retainLanding}`);
     assert.equal(material(before).filter(n => n.id === 'original').length, 1);
     assert.ok(before.replayVisibleNodeIds.includes('original'), 'the original remains visible at its source');
-    assert.equal(find([moment.replayCanvasData], c.source).silent, true);
-    assert.ok(moment.replayVisibleNodeIds.includes(c.target));
-    assert.ok(moment.replayRelationLinks.some(l => l.renderFamily === 'trajectory' && l.sourceNodeId === c.source && l.targetNodeId === c.target));
+    assert.equal(find([moment.replayCanvasData], source).silent, true);
+    assert.ok(moment.replayVisibleNodeIds.includes(target));
+    assert.ok(moment.replayRelationLinks.some(l => l.renderFamily === 'trajectory' && l.sourceNodeId === source && l.targetNodeId === target));
     assert.deepEqual(c.record, original);
   }
 });
@@ -423,10 +432,12 @@ test('a retained landing ID can move again while earlier lower occurrences remai
   const index = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 2);
   const before = steps[index - 1];
   const after = steps[index];
-  assert.equal(nodes(before.replayCanvasData).find(n => n.children?.some(c => c.id === 'original'))?.id, 'root');
-  assert.ok(before.replayVisibleNodeIds.includes('original'));
-  assert.equal(nodes(after.replayCanvasData).find(n => n.children?.some(c => c.id === 'original'))?.id, 'outer');
-  for (const id of ['lower', 'intermediate']) {
+  // The phrase the model let keep "original" at each landing: stage 1's before the hop, stage 2's after it.
+  const renames = renamesOf(c.record.derivationStages), [atFirst, atSecond] = [1, 2].map(stage => canonicalId(renames, 'original', stage));
+  assert.equal(nodes(before.replayCanvasData).find(n => n.children?.some(c => c.id === atFirst))?.id, 'root');
+  assert.ok(before.replayVisibleNodeIds.includes(atFirst));
+  assert.equal(nodes(after.replayCanvasData).find(n => n.children?.some(c => c.id === atSecond))?.id, 'outer');
+  for (const id of ['lower', 'intermediate'].map(name => canonicalId(renames, name, 2))) {
     assert.ok(after.replayVisibleNodeIds.includes(id));
     assert.equal(find([after.replayCanvasData], id).silent, true);
   }

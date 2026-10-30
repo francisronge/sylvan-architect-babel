@@ -5,6 +5,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import { checkMovementUnrendered } from './helpers/replayContractWarnings.mjs';
 import { checkMovementShownAsMovement } from './helpers/replayInvariants.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 // Claude Opus 5.5 (held-out batch heldout-20261029, h1-023) names each phrasal
 // movement {mover, trace, target}: `mover` is an open field, `trace` the lower
@@ -37,7 +38,9 @@ test('a kept-ID landing beside the head a target field names is the landing, and
     const stageIndex = Number(key.split(':')[0]);
     const paths = replay.relationRenderPlan.frames[stageIndex].items.filter(item => item.kind === 'trajectory'
       && `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}` === key);
-    assert.deepEqual(paths.map(item => [item.sourceNodeId, item.targetNodeId]), [[trace, landing]], `${key} draws its arrow`);
+    // Replay reads the hop source-kept: the same occurrences under the other ids.
+    assert.deepEqual(paths.map(item => [item.sourceNodeId, item.targetNodeId]),
+      [[canonicalId(replay, trace, stageIndex), canonicalId(replay, landing, stageIndex)]], `${key} draws its arrow`);
   }
   assert.deepEqual(checkMovementUnrendered(replay, record), []);
   assert.deepEqual(checkMovementShownAsMovement(replay, record), []);

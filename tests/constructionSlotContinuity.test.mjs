@@ -9,12 +9,13 @@ import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { directionsFor } from './helpers/rtlMirror.mjs';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/construction-slot-continuity.json', import.meta.url))).cases;
 const close = (a, b, message) => assert(Math.abs(a - b) < 1e-6, `${message}: ${a} vs ${b}`);
 function setup(record, width, height, direction) {
   const steps = prepareReplay({ ...record, includePlayback: true }).playbackSteps;
-  const groups = buildStageLayoutGroups(steps, record.derivationStages);
+  const groups = buildStageLayoutGroups(steps, replayStages(record));
   const sizes = new Map(record.derivationStages.map((_, i) => [i, stageTreeLayoutSize(steps, i, width, height, groups)]));
   const points = new Map([...sizes].flatMap(([i, size]) => [...buildStageCoordinateReservations(steps, i, size, i => sizes.get(i), direction)]));
   const render = (step, coordinates = points.get(step.replayCanvasData)) => {

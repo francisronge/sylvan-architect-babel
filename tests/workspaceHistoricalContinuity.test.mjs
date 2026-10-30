@@ -11,6 +11,7 @@ import { visibleComponentNodes } from '../replay/visibleComponent.ts';
 import { prepareTreeInkSubtrees } from '../replay/treeInkGeometry.ts';
 import { currentForkBranchesClear } from '../replay/workspaceForkClearance.ts';
 import { directionsFor } from './helpers/rtlMirror.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const { cases } = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/workspace-historical-continuity.json', import.meta.url)));
 // Right to left this runs only for a record whose layout is not the reflection of
@@ -80,7 +81,8 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
       // an upper bound; current ranks, order and painted clearance remain strict.
       const final = frame(steps.length), root = [...final.values()].find(node => !node.parent || !final.has(getNodeId(node.parent)));
       const key = width === 1600 ? (direction === 'ltr' ? 'desktop' : 'rtl') : (direction === 'ltr' ? 'phone' : 'phone-rtl');
-      const expected = new Map(record.expectedFinalRelative[key].map(([id, x, y]) => [id, { x, y }]));
+      // The reviewed geometry names the authored final ids.
+      const expected = new Map(record.expectedFinalRelative[key].map(([id, x, y]) => [canonicalId(replay, id), { x, y }]));
       const ink = prepareTreeInkSubtrees(final);
       for (const [id, point] of expected) {
         const node = final.get(id); assert(node);

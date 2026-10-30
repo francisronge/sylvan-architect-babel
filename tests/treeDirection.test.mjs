@@ -15,6 +15,7 @@ import { motionFrame, replayMotionFaults } from '../scripts/replayMotionContinui
 import wrapperContour from '../fixtures/replay-regressions/wrapper-contour-reservation.json' with { type: 'json' };
 import receivingWidth from '../fixtures/replay-regressions/receiving-slot-width-control.json' with { type: 'json' };
 import laterOccupant from '../fixtures/replay-regressions/later-occupant-intermediate-landing.json' with { type: 'json' };
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const forest = [{ id: 'ip', label: 'IP', children: [
   { id: 'v', label: 'V', word: 'قرأت' },
@@ -77,7 +78,7 @@ for (const [name, record] of [['wrapper-contour-reservation', wrapperContour],
   ['receiving-slot-width-control', receivingWidth], ['later-occupant-intermediate-landing', laterOccupant]]) {
   test(`${name}: right-to-left Replay is the left-to-right Replay reflected about the completed stage`, () => {
     const replay = direction => layoutReplayFrames({ steps: prepareReplay({ ...structuredClone(record), includePlayback: true }).playbackSteps,
-      stages: record.derivationStages, width: 1440, height: 900, direction }, { coordinates, camera, layout, display, d3 });
+      stages: replayStages(record), width: 1440, height: 900, direction }, { coordinates, camera, layout, display, d3 });
     const ltr = replay('ltr'), rtl = replay('rtl'), widths = new Set([...ltr.sizes.values()].map(([width]) => width));
     assert(widths.size > 1, 'the record keeps stages of different widths');
     const axis = ltr.sizes.get(record.derivationStages.length - 1)[0];

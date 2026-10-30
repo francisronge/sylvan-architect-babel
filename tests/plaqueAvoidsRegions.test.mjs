@@ -4,6 +4,7 @@ import test from 'node:test';
 import { layoutVisualFrames, markMotionFindings, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
 import { checkRegionOverlap } from './helpers/visualRules.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 /* Plaque allocation keeps plaques off region marks of other claims: an enclosure's
  * shaded box, and the outline of a domain box. Francis, 27 October 2026, on Sol
@@ -12,10 +13,12 @@ import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
  * covered its right edge from frame 34 on. */
 
 const record = JSON.parse(readFileSync(new URL('./helpers/regionOverlapRecord.json', import.meta.url), 'utf8'));
-const subject = 'plaque(3:1 subjectCase: nominative)@who';
+// The claim anchors stage 4's "who", which Replay names as it reads that stage.
+const subjectOf = visual => `plaque(3:1 subjectCase: nominative)@${canonicalId(visual.prepared, 'who', 3)}`;
 
 test('a feature plaque keeps clear of the remnant enclosure its stage draws later, without moving when it appears', () => {
-  const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: Array.from({ length: 14 }, (_, i) => 27 + i) });
+  const visual = prepareVisualRecord(record), subject = subjectOf(visual);
+  const frames = layoutVisualFrames(visual, [VIEWPORTS[0]], { steps: Array.from({ length: 14 }, (_, i) => 27 + i) });
   const enclosed = frames.filter(frame => frame.marks.some(mark => mark.type === 'enclosure'));
   assert(enclosed.length && enclosed.every(frame => frame.plaques.some(plaque => plaque.id === subject)), 'the plaque shows beside the enclosure');
   assert.deepEqual(frames.flatMap(frame => checkRegionOverlap(frame)).map(found => `${found.frame} ${found.subject}`), []);

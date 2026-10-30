@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 import {
   checkAttachAtMerge, checkLandingAttached, checkNoEarlyReveal, checkParentAfterChildren, checkRelationConstruction,
   checkRelationMoments, checkStableConstruction, checkStageCompletion
@@ -117,7 +118,8 @@ test('a phrase that keeps its id at its landing stays in place until its movemen
     assert.ok(step.replayVisibleNodeIds.includes('teacherDP'), `the subject stays visible at ${step.replayKind} ${step.operation}`);
     assert.equal(parentOf(step.replayCanvasData, 'teacherDP'), 'expectvP');
   });
-  assert.equal(parentOf(steps[movement].replayCanvasData, 'teacherDP'), 'expectTP');
+  // The landing the model let keep teacherDP carries the authored trace's id in Replay.
+  assert.equal(parentOf(steps[movement].replayCanvasData, canonicalId(prepare(record), 'teacherDP', 8)), 'expectTP');
 });
 
 test('a receiving head selected for a later head movement stands alone until that movement', () => {

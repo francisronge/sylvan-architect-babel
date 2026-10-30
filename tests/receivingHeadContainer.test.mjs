@@ -6,6 +6,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { motionFrame, replayMotionFaults } from '../scripts/replayMotionContinuity.mjs';
 import { checkAttachAtMerge, checkNoEarlyReveal, checkStageCompletion } from './helpers/replayInvariants.mjs';
 import { layoutMeasuredScenes, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 // A receiving head that keeps its id as the new head complex's container gains
 // a new inner head at the movement (Sol, Cantonese 佢食咗飯未呀？: Asp⁰
@@ -15,9 +16,9 @@ const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regression
 
 test('receiving-head-container.json: a retained receiving head shows its new inner head at the movement', () => {
   const replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
-  const steps = replay.playbackSteps;
+  const steps = replay.playbackSteps, lower = canonicalId(replay, 'verb-trace', 1);
   const moment = steps.findIndex(step => step.replayKind === 'relation' && (step.replayRelationLinks ?? [])
-    .some(link => link.renderFamily === 'trajectory' && link.priorSourceNodeId === 'v' && link.witnessNodeId === 'verb-trace'));
+    .some(link => link.renderFamily === 'trajectory' && link.priorSourceNodeId === 'v' && link.witnessNodeId === lower));
   assert.ok(moment > 0, 'the head movement has its moment');
   assert.ok(!steps[moment - 1].replayVisibleNodeIds.includes('aspect-suffix'), 'the inner head waits for the movement');
   assert.ok(steps[moment].replayVisibleNodeIds.includes('aspect-suffix'), 'the movement shows the inner head');

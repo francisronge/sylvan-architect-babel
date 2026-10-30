@@ -3,6 +3,7 @@ import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { checkRelationMoments, frameStructure } from './helpers/replayInvariants.mjs';
 import { checkMarkPersistence, checkStepSemantics } from './helpers/replayStepInvariants.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 // GPT-6.1 Sol (Codex qualification batch sol-120-20261026, n4-24) moved a relative
 // operator to Spec-IP inside the subject, and in the same stage raised that
@@ -39,11 +40,13 @@ test('a movement landing inside a phrase that a later movement of its stage relo
   const operatorMoment = momentOf(0), subjectMoment = momentOf(1);
   assert(subjectMoment > 0 && operatorMoment === subjectMoment + 1, `the operator chain (${operatorMoment}) plays right after the subject chain (${subjectMoment})`);
   const parentOf = (index, id) => frameStructure(steps[index]).parent.get(id);
-  assert.equal(parentOf(subjectMoment, 'dp'), 'tp', 'the subject lands at its own moment');
+  // Both landings kept their phrase's id as authored; Replay gives it to the lower occurrences.
+  const landing = id => canonicalId(replay, id, 1), operatorFresh = landing('op') === 'op' ? landing('optrace') : landing('op');
+  assert.equal(parentOf(subjectMoment, landing('dp')), 'tp', 'the subject lands at its own moment');
   assert.equal(parentOf(subjectMoment, 'op'), 'vp2', 'the operator keeps its preceding position inside the moved subject');
-  assert.equal(parentOf(operatorMoment, 'op'), 'tp2', 'the operator lands at its own moment');
-  assert(!steps[subjectMoment].replayVisibleNodeIds.includes('optrace') && steps[operatorMoment].replayVisibleNodeIds.includes('optrace'),
-    'the operator chain introduces its lower occurrence');
+  assert.equal(parentOf(operatorMoment, landing('op')), 'tp2', 'the operator lands at its own moment');
+  assert(!steps[subjectMoment].replayVisibleNodeIds.includes(operatorFresh) && steps[operatorMoment].replayVisibleNodeIds.includes(operatorFresh),
+    'the operator chain introduces its new occurrence');
   for (const relationIndex of [0, 1]) assert(replay.relationRenderPlan.frames[1].items.some(item => item.kind === 'trajectory'
     && item.relationRef.relationIndex === relationIndex), `relation 1:${relationIndex} draws its path`);
   assert.deepEqual([...checkRelationMoments(replay, record), ...checkStepSemantics(replay, record), ...checkMarkPersistence(replay, record)], []);

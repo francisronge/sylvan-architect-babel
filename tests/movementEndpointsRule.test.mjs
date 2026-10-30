@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { checkMovementEndpoints } from './helpers/replayContractWarnings.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 // Subject raising whose claim names the landing's site beside the moved
 // subject, as Opus wrote {mover, trace, landingSite} (opus-parts n3-76 5:0,
@@ -18,6 +19,8 @@ const record = {
   ]
 };
 const replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
+// The authored lower occurrence and landing, as Replay names them.
+const [lower, landing] = ['kimTrace', 'kimHigh'].map(id => canonicalId(replay, id, 1));
 const redrawn = edit => {
   const plan = structuredClone(replay.relationRenderPlan);
   plan.frames[1].items.filter(item => item.kind === 'trajectory').forEach(edit);
@@ -26,7 +29,7 @@ const redrawn = edit => {
 
 test('movement-endpoints control: a movement drawn between its proven endpoints is clean', () => {
   assert.ok(replay.relationRenderPlan.frames[1].items.some(item => item.kind === 'trajectory'
-    && item.sourceNodeId === 'kimTrace' && item.targetNodeId === 'kimHigh'));
+    && item.sourceNodeId === lower && item.targetNodeId === landing));
   assert.deepEqual(checkMovementEndpoints(replay, record), []);
 });
 
@@ -34,7 +37,7 @@ test('movement-endpoints reports an arrow that ends at the landing\'s site inste
   const found = checkMovementEndpoints(redrawn(item => { item.targetNodeId = 'tp'; }), record);
   assert.deepEqual(found.map(({ rule, subtype, subject: key }) => [rule, subtype, key]),
     [['movement-unrendered', 'PATH_OFF_PROVEN_ENDPOINTS', '1:0']]);
-  assert.match(found[0].detail, /draws kimTrace->tp while its movement proves kimTrace->kimHigh/);
+  assert.match(found[0].detail, new RegExp(`draws ${lower}->tp while its movement proves ${lower}->${landing}`));
   assert.equal(checkMovementEndpoints(redrawn(item => { item.sourceNodeId = 'v'; }), record).length, 1);
 });
 

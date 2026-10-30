@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { checkNoEarlyReveal, checkRelationConstruction, frameStructure } from './helpers/replayInvariants.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 /* A head movement can keep the moved head's id at its landing and rename the
  * lower copy. In GPT-6.1 Sol's Catalan partitive clitic (sol-final batch,
@@ -51,8 +52,9 @@ test('a kept-id head landing leaves the stage\'s new head to its own selection s
   const moved = frameStructure(stage[movement].step), before = frameStructure(stage[movement - 1].step);
   assert.equal(before.parent.get('vHead'), 'vInner', 'before the movement v stays in vP');
   assert(!before.displayed.has('finiteHead') && !before.displayed.has('tInner'));
-  assert.equal(moved.parent.get('vHead'), 'finiteHead', 'the movement moment lands v in the complex head');
-  assert(moved.displayed.has('vHeadLower') && moved.displayed.has('tInner'));
+  // Replay gives the authored landing's vHead to the lower copy, and vHeadLower to the landing.
+  assert.equal(moved.parent.get(canonicalId(replay, 'vHead', 1)), 'finiteHead', 'the movement moment lands v in the complex head');
+  assert(moved.displayed.has(canonicalId(replay, 'vHeadLower', 1)) && moved.displayed.has('tInner'));
   assert.deepEqual(checkNoEarlyReveal(replay, record), []);
   assert.deepEqual(checkRelationConstruction(replay, record), []);
   assert(!JSON.stringify(steps).includes('RELATION_TIMING_CONFLICT'));

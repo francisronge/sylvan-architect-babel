@@ -4,6 +4,7 @@ import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const { fixtures } = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/clitic-displacement.json', import.meta.url)));
 const walk = forest => forest.flatMap(n => [n, ...walk(n.children ?? [])]);
@@ -35,18 +36,21 @@ for (const fixture of fixtures) {
     assert.equal(movement.trajectoryKind, fixture.model === 'astra' ? 'phrasal' : 'head');
     const replay = prepareReplay({ ...fixture, derivationStages: fixture.analysis.derivationStages, includePlayback: true });
     const stageIndex = value.stages.length - 1;
+    // The authored landing keeps the carrier's id; Replay gives it to the lower occurrence.
+    const landing = canonicalId(replay, carrier, stageIndex), lower = canonicalId(replay, 'objectTrace', stageIndex);
+    const fresh = landing === carrier ? lower : landing;
     const n = replay.playbackSteps.findIndex(s => s.replayRelationIdentity?.stageIndex === stageIndex
       && s.replayRelationIdentity.relationIndex === 0);
     assert(n > 0);
     const before = replay.playbackSteps[n - 1], moment = replay.playbackSteps[n];
     assert.equal(parent([before.replayCanvasData], carrier)?.id, parent(value.before, carrier)?.id);
-    assert(!before.replayVisibleNodeIds.includes('objectTrace'));
+    assert(!before.replayVisibleNodeIds.includes(fresh));
     const host = parent(value.after, carrier).id;
-    assert.equal(parent([moment.replayCanvasData], carrier)?.id, host);
+    assert.equal(parent([moment.replayCanvasData], landing)?.id, host);
     assert(moment.replayVisibleNodeIds.includes(host));
-    assert(moment.replayVisibleNodeIds.includes('objectTrace'));
+    assert(moment.replayVisibleNodeIds.includes(lower));
     assert(moment.replayRelationLinks.some(l => l.authoredRelationKey === `${stageIndex}:0`
-      && l.sourceNodeId === 'objectTrace' && l.targetNodeId === carrier));
+      && l.sourceNodeId === lower && l.targetNodeId === landing));
     assert.deepEqual(fixture, original);
   });
 

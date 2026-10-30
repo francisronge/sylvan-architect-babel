@@ -5,6 +5,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { getFrameRelations } from '../replay/frameRelations.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const load = name => JSON.parse(readFileSync(new URL(`../fixtures/replay-regressions/${name}.json`, import.meta.url)));
 const prior = load('pf-correspondence-evidence').examples.filter(example => example.id.startsWith('old/sol-spanish-scope/'));
@@ -31,19 +32,24 @@ for (const [index, after] of current.entries()) {
     const stageSteps = replay.playbackSteps.filter(step => step.replayFrameIndex === 1);
     assert.deepEqual(stageSteps.map(step => step.replayKind), ['relation', 'relation', 'macro'],
       'the trace and landing attachment belong to QR, not ordinary selection or merge');
+    // Replay reads QR with its source keeping the continuing id: the LF landing
+    // the model let keep "lobj" and its new lower copy "lto" are looked up
+    // through canonicalId; the preceding object keeps its stage-0 id.
+    const id = name => canonicalId(replay, name, 1);
     const moment = stageSteps[0], preceding = replay.playbackSteps[replay.playbackSteps.indexOf(moment) - 1];
-    assert(!preceding.replayVisibleNodeIds.includes('lto'));
-    assert(moment.replayVisibleNodeIds.includes('lto'));
+    // The stage's one new occurrence, the landing under Replay's ids, waits for QR.
+    assert(!preceding.replayVisibleNodeIds.includes(id('lobj')));
+    assert(moment.replayVisibleNodeIds.includes(id('lobj')));
     const beforeNodes = nodes([preceding.replayCanvasData]), afterNodes = nodes([moment.replayCanvasData]);
     assert.deepEqual(beforeNodes.find(node => node.id === 'lvbar').children.map(node => node.id), ['ltv', 'lobj']);
-    assert.deepEqual(afterNodes.find(node => node.id === 'lvbar').children.map(node => node.id), ['ltv', 'lto']);
+    assert.deepEqual(afterNodes.find(node => node.id === 'lvbar').children.map(node => node.id), ['ltv', id('lto')]);
     const landing = afterNodes.find(node => node.id === after.relations[0].anchors.adjunction_site);
-    assert(landing.children.some(node => node.id === 'lobj'));
+    assert(landing.children.some(node => node.id === id('lobj')));
     const pfIds = nodes([before.workspaceForest[0]]).map(node => node.id);
     assert(pfIds.every(id => moment.replayVisibleNodeIds.includes(id)), 'the independently pronounced PF forest remains visible');
     const qr = replay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'quantifier-raising');
     assert.equal(qr.length, 1);
-    assert.deepEqual([qr[0].pronouncedNodeId, qr[0].lfNodeId], ['lto', 'lobj']);
+    assert.deepEqual([qr[0].pronouncedNodeId, qr[0].lfNodeId], [id('lto'), id('lobj')]);
     assert.deepEqual(stages, original, 'authored PF and LF stages are unchanged');
   });
 }

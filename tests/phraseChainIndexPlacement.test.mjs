@@ -8,6 +8,7 @@ import * as movementIndices from '../replay/movementIndices.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import { createSvgDom, descendants, select } from './helpers/svgDom.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 // A moved phrase carries its chain index once, on the category label of each
 // occurrence; the words inside it carry none unless they head a chain of their
@@ -20,11 +21,15 @@ const finalLabels = prepared => {
   const runs = treeLabelRunsForStep(prepared, index, undefined, { includeRelationIndices: true });
   const tree = hierarchy(step.replayCanvasData);
   applyVizIds(tree);
-  const node = id => tree.descendants().find(candidate => getNodeId(candidate) === id);
-  const text = (id, kind) => runs.get(id)?.find(run => run.kind === kind)?.text;
-  const letters = id => runs.get(id)?.find(run => run.kind === 'terminal')?.indices.map(run => run.text) ?? [];
-  const wordsUnder = id => node(id).leaves().map(getNodeId).map(nodeId => text(nodeId, 'terminal')).filter(Boolean);
-  return { step, index, node, text, letters, wordsUnder };
+  // Tests name the final stage's nodes by their authored ids; Replay may rename a moved occurrence.
+  const id = name => canonicalId(prepared, name);
+  const node = name => tree.descendants().find(candidate => getNodeId(candidate) === id(name));
+  const runsOf = nodeId => runs.get(nodeId);
+  const text = (name, kind) => runsOf(id(name))?.find(run => run.kind === kind)?.text;
+  const letters = name => runsOf(id(name))?.find(run => run.kind === 'terminal')?.indices.map(run => run.text) ?? [];
+  const wordsUnder = name => node(name).leaves().map(getNodeId)
+    .map(nodeId => runsOf(nodeId)?.find(run => run.kind === 'terminal')?.text).filter(Boolean);
+  return { step, index, node, text, letters, wordsUnder, id, runsOf };
 };
 const CHAIN_DIGIT = /[₀-₉]/;
 
@@ -64,8 +69,10 @@ test('a phrase inside a moved phrase keeps the index of its own chain', () => {
   const words = labels.wordsUnder('womanDP');
   assert(words.includes('whose') && words.includes('stolen'));
   assert(words.every(word => !CHAIN_DIGIT.test(word)), words.join(' '));
-  const car = labels.node('carDP').leaves().map(getNodeId).find(id => labels.text(id, 'terminal') === 'car');
-  assert.deepEqual(labels.letters(car), ['i']);
+  // The leaf of carDP that shows "car", under whatever id Replay gives it.
+  const car = labels.node('carDP').leaves().map(getNodeId).map(id => labels.runsOf(id)?.find(run => run.kind === 'terminal'))
+    .find(run => run?.text === 'car');
+  assert.deepEqual(car.indices.map(run => run.text), ['i']);
 });
 
 const { Element, restore } = createSvgDom();
@@ -73,7 +80,7 @@ after(restore);
 
 test('the painter draws the same category and word texts as the label runs', () => {
   const prepared = prepare(fixture('movement/clause-context.json').cases[2]);
-  const { step, index, text } = finalLabels(prepared);
+  const { step, index, text, id: canonical } = finalLabels(prepared);
   assert.equal(typeof movementIndices.buildResolvedLinkChainIndices, 'function');
   const frame = prepared.replayDerivationFrames[step.replayFrameIndex];
   const chain = movementIndices.buildResolvedLinkChainIndices(frame.workspaceForest, step.replayRelationLinks,
@@ -89,8 +96,8 @@ test('the painter draws the same category and word texts as the label runs', () 
     firstSentenceReplayToken: '', firstSentenceReplayDisplayToken: '', relationRenderPlan: null,
     measureCategoryText: value => [...value].length * 25, currentReplayStep: step,
     pendingPhraseFrontingSourceNodeIds: new Set(), hasDerivationFrames: true });
-  const painted = (kind, id) => descendants(root).find(element => element.attrs.class === `${kind}-label`
-    && element.attrs[kind === 'category' ? 'data-category-node-id' : 'data-node-id'] === id);
+  const painted = (kind, name) => descendants(root).find(element => element.attrs.class === `${kind}-label`
+    && element.attrs[kind === 'category' ? 'data-category-node-id' : 'data-node-id'] === canonical(name));
   const content = element => element.children.length ? element.children.map(child => child.text).join('') : element.text;
   for (const id of ['embeddedCP', 'contentTrace', 'embeddedC'])
     assert.equal(content(painted('category', id)), text(id, 'category'), id);

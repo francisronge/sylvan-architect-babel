@@ -14,13 +14,14 @@ import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { earlierWorkspaceForks, prepareWorkspaceHistoryGuard, WORKSPACE_HISTORY_EVALUATION_LIMIT } from '../replay/workspaceHistoryRefinement.ts';
 import { TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
 import { directionsFor } from './helpers/rtlMirror.mjs';
+import { replayStages } from './helpers/canonicalIds.mjs';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/nested-premovement-width.json', import.meta.url)));
 const close = (a, b, message) => assert(Math.abs(a - b) <= 1e-6, `${message}: ${a} vs ${b}`);
 const widthOf = nodes => Math.max(...nodes.map(node => node.x)) - Math.min(...nodes.map(node => node.x));
 function setup(input, width, height, direction) {
   const steps = prepareReplay({ ...input, includePlayback: true }).playbackSteps;
-  const groups = buildStageLayoutGroups(steps, input.derivationStages);
+  const groups = buildStageLayoutGroups(steps, replayStages(input));
   const sizes = new Map(input.derivationStages.map((_, stage) => [stage, stageTreeLayoutSize(steps, stage, width, height, groups)]));
   const points = new Map();
   for (const [stage, size] of sizes) for (const [canvas, coords] of buildStageCoordinateReservations(steps, stage, size,

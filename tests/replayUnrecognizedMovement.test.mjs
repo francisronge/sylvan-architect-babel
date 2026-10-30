@@ -6,6 +6,7 @@ import { getFrameRelations } from '../replay/frameRelations.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { frameStructure } from './helpers/replayInvariants.mjs';
 import { withStructuralMovement } from './helpers/structuralMovementSwitch.mjs';
+import { canonicalId } from './helpers/canonicalIds.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/unrecognized-movement.json', import.meta.url), 'utf8'));
 const prepared = new Map();
@@ -96,10 +97,12 @@ test('a shared occurrence in the other conjunct keeps its own construction, and 
 
 test('an occurrence that keeps its id reaches its landing at the rewrite moment, inside a root merged by construction', () => {
   const steps = play(5), at = moment(steps, 1, 1);
+  // Replay gives the authored landing's bObject to the lower occurrence and bObjectTrace to the landing.
+  const landing = canonicalId(replay(5), 'bObject', 1), fresh = landing === 'bObject' ? canonicalId(replay(5), 'bObjectTrace', 1) : landing;
   for (const step of steps.slice(0, at).filter(step => step.replayFrameIndex === 1))
     assert.equal(frameStructure(step).parent.get('bObject'), 'bVBar', 'the object stays at its source until the moment');
-  assert.equal(frameStructure(steps[at]).parent.get('bObject'), 'bVP');
-  assertIntroducedAt(steps, at, ['bObjectTrace']);
+  assert.equal(frameStructure(steps[at]).parent.get(landing), 'bVP');
+  assertIntroducedAt(steps, at, [fresh]);
   ['bBaBar', 'bBaP'].forEach(id => assertBuiltByOwnStep(steps, id));
   assertStageRecordAddsNothing(steps, 1);
 });

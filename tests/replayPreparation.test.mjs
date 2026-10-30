@@ -98,6 +98,7 @@ test('Canopy preparation keeps its plan without preparing playback, and empty in
   const replay = prepareReplay({ ...input, includePlayback: true });
   assert.deepEqual(canopy, { ...replay, playbackSteps: [] });
   assert.deepEqual(prepareReplay({ sentence: '', includePlayback: true }), {
+    derivationStages: [], idRenamesByStage: [], finalStageIdRenames: {},
     replayDerivationFrames: [], derivationReplayPlan: null, relationRenderPlan: null,
     committedDerivationVisualLinks: [],
     movementChainIndexCatalogue: { forest: [], links: [], authoredIndicesByNodeId: new Map() }, playbackSteps: []
