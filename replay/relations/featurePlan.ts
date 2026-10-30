@@ -43,7 +43,7 @@ function goalCaseRow(
 export const featurePlan = {
   'feature-plaque': (context) => {
     const { anchors, values, authoredValues, familyId, relationIndex, base, claimDispatch } = context.claim;
-    const { pushDiagnostic, requireResolved, afterCaseCoalescence, items, pushNeutralFallback } = context.output;
+    const { pushDiagnostic, requireResolved, beforeCaseCoalescence, afterCaseCoalescence, items, pushNeutralFallback } = context.output;
     const { caseAgreementRow } = context.lookup;
     const { stageIndex, nodes } = context.workspace;
     const anchorEntries = Object.entries(anchors);
@@ -61,7 +61,7 @@ export const featurePlan = {
       const collectionRow = caseAgreementRow(stageIndex, relationIndex);
       const caseRow = goalCaseRow(claimDispatch.evidence, rows, anchors);
       let standalone: NodePlaquePlanItem | NodeBadgesPlanItem | undefined;
-      afterCaseCoalescence(caseItems => {
+      beforeCaseCoalescence(() => {
         if (caseRow && standalone?.kind === 'node-plaque' && nodes.has(goal)) {
           const casePath: DirectedPathPlanItem = {
             ...base,
@@ -74,9 +74,9 @@ export const featurePlan = {
           };
           // Another claim of this stage that already draws Case to this goal
           // keeps its path, and this Agree keeps its row, as before.
-          if (!caseItems.some(item => item.toNodeId === goal && planItemsShareAuthoredStage(item, casePath))) {
+          if (!items.some(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment'
+            && item.toNodeId === goal && planItemsShareAuthoredStage(item, casePath))) {
             items.push(casePath);
-            caseItems.push(casePath);
             standalone.rows = standalone.rows.filter(row => row !== caseRow);
             if (!standalone.rows.length) {
               items.splice(items.indexOf(standalone), 1);
@@ -84,6 +84,8 @@ export const featurePlan = {
             }
           }
         }
+      });
+      afterCaseCoalescence(caseItems => {
         if (!standalone || !nodes.has(goal)) return;
         const path: DirectedPathPlanItem = {
           ...base,

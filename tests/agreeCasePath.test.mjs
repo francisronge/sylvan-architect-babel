@@ -156,3 +156,21 @@ test('an Agree whose Case is written valued in feature notation keeps that notat
     assert.equal(casePaths(items([agree({ phi: '3pl', case: written }, 'An authored agreement')])).length, 1, written);
   }
 });
+
+// Codex review of 95d6fa5: a stage registers every Case path it derives before it
+// composes agreement collections, so equivalent claims draw the same marks in any
+// order and either tier.
+test('a phi-only Agree beside an Agree valuing Case draws the same marks in either order and tier', () => {
+  const shape = list => ({
+    paths: list.filter(item => item.kind === 'directed-path')
+      .map(item => JSON.stringify([item.pathStyle, item.fromNodeId, item.toNodeId, item.label ?? null, item.featureRow ?? null])).sort(),
+    plaques: list.filter(item => item.kind === 'node-plaque' || item.kind === 'node-badges')
+      .map(item => JSON.stringify([item.kind, item.anchorNodeIds ?? null, item.rows ?? null, Boolean(item.title)])).sort()
+  });
+  const phi = agree({ phi: '3pl' }), valued = agree({ case: 'nominative' });
+  const shapes = [[phi, valued], [valued, phi], [phi, agree({ case: 'nominative' }, 'An authored agreement')]]
+    .map(relations => shape(items(relations)));
+  assert(shapes[0].paths.some(path => path.includes('"case-agree"')), JSON.stringify(shapes[0]));
+  assert.deepEqual(shapes[1], shapes[0]);
+  assert.deepEqual(shapes[2], shapes[0]);
+});
