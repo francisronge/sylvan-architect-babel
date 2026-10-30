@@ -380,6 +380,9 @@ export const getFrameRelations = (
       ...[movement!.sourceNodeId, movement!.targetNodeId].flatMap(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(currentForest, id))),
       ...collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement!.priorSourceNodeId))
     ]))];
+  const movementLowerOccurrenceNodeIds = [...new Set(recovered.flatMap(step => (step.recoveredMovements ?? [step.recoveredMovement]))
+    .filter(movement => movement?.transition)
+    .flatMap(movement => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(currentForest, movement!.sourceNodeId))))];
   const claimedNodeIds = new Set(movementOccurrenceNodeIds);
   // What the stage's recovered movements own at their moments: their current
   // landing and lower-occurrence subtrees, the earlier material of a moved
@@ -406,7 +409,7 @@ export const getFrameRelations = (
       ...step,
       ...(witnessWrapperNodeIds.length ? { witnessWrapperNodeIds } : {}),
       ...(movementOccurrenceNodeIds.length && !(step.recoveredMovements ?? [step.recoveredMovement]).some(movement => movement?.transition)
-        ? { movementOccurrenceNodeIds } : {})
+        ? { movementOccurrenceNodeIds, movementLowerOccurrenceNodeIds } : {})
     };
     const displaced = anchoredCopy ? { ...wrapping, anchoredCopyDisplacement: anchoredCopy, ...(ambiguous.length ? { movementDiagnostics: [
       ...(step.movementDiagnostics ?? []),

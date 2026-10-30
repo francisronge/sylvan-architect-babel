@@ -315,7 +315,10 @@ export const buildPreMovementStructuralForest = (
       const currentSource = findNode(sourceId);
       if (!previousSource || !currentSource)
         return;
-      const restoredSource = restoreCurrentSourceState(currentSource, previousSource);
+      // A recovered movement whose lower occurrence keeps the source's id has
+      // proved that occurrence, as for one whose landing keeps it.
+      const proven = movements.some(item => item.sourceNodeId === sourceId && item.priorSourceNodeId === sourceId);
+      const restoredSource = restoreCurrentSourceState(currentSource, previousSource, proven);
       if (restoredSource && replaceStructuralNode(sourceId, restoredSource)) {
         restoredFromPreviousStage.add(sourceId);
       }
@@ -442,7 +445,8 @@ const displacedInStage = (
 /**
  * `displacedInStage`, apart from what the stage's recovered movements change.
  * An occurrence they relate (`moved`) that keeps its subtree and only leaves its
- * parent moves with them, an earlier one they replace is theirs, and a slot
+ * parent moves with them, an earlier one they replace is theirs, so is the
+ * change to a lower occurrence (`lower`) that keeps its id and slot, and a slot
  * whose earlier and current children are both their occurrences holds the copy
  * they exchanged. Any other change displaces the node.
  */
@@ -450,13 +454,18 @@ const displacedOutsideMovements = (
   node: SyntaxNode,
   previous: ForestLocations,
   current: ForestLocations,
-  moved: ReadonlySet<string>
+  moved: ReadonlySet<string>,
+  lower: ReadonlySet<string> = new Set()
 ): boolean => {
   if (!moved.size)
     return displacedInStage(node, previous, current);
   const before = previous.get(String(node.id || '')), after = current.get(String(node.id || ''));
   if (!after)
     return !moved.has(String(node.id || ''));
+  // A lower occurrence that keeps the source's id and slot holds whatever the
+  // movement leaves there, such as a trace: that change is the movement's.
+  if (lower.has(String(node.id || '')) && (before?.parentId || '') === (after.parentId || ''))
+    return false;
   const unchanged = (left: SyntaxNode, right: SyntaxNode): boolean => ownNodeContent(left) === ownNodeContent(right)
     && (left.children || []).length === (right.children || []).length
     && (left.children || []).every((child, index) => moved.has(String(child.id || '')) && moved.has(String(right.children![index].id || ''))
@@ -745,9 +754,10 @@ const resolvePriorWitnessTreeTransitionOwnership = (
     .filter(([, location]) => location?.node.lineageId && copiedLineages.has(location.node.lineageId)).map(([id]) => id)]
     .filter(id => previousLocations.has(id)));
   const movementOccurrences = new Set(relation.movementOccurrenceNodeIds ?? []);
+  const lowerOccurrences = new Set(relation.movementLowerOccurrenceNodeIds ?? []);
   const rewritesWitness = !retainedPriorAnchors || [...coveredEarlierIds].some(id => {
     const earlier = previousLocations.get(id);
-    return !earlier || displacedOutsideMovements(earlier.node, previousLocations, currentLocations, movementOccurrences);
+    return !earlier || displacedOutsideMovements(earlier.node, previousLocations, currentLocations, movementOccurrences, lowerOccurrences);
   });
   // When the preceding witnesses still exist, they identify the material
   // being updated. Other current anchors can supply its newly built context

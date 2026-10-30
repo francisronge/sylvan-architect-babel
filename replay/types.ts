@@ -178,6 +178,8 @@ export interface DerivationReplayPlanStep {
   /** On a claim without a movement of its own: the occurrences the stage's recovered movements relate (their current
    * landing and lower-occurrence subtrees and the earlier source subtree). The claim's displacement is judged outside them. */
   movementOccurrenceNodeIds?: string[];
+  /** The lower-occurrence subtrees among `movementOccurrenceNodeIds`: whatever the movement leaves at its source is its change. */
+  movementLowerOccurrenceNodeIds?: string[];
   preserveMovementLanding?: boolean;
   pronunciationNodeIds?: string[];
   movementDiagnostics?: string[];
