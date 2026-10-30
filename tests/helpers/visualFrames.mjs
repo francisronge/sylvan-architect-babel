@@ -40,7 +40,7 @@ import {
 import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts';
 import { resolveUniqueDisplayTerminal } from '../../replay/relations/trajectoryAttachment.ts';
 import {
-  isDisplayTerminalNode, isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf
+  isDisplayTerminalNode, isOwnNodeNotation, isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf
 } from '../../replay/replaySurfaceNotation.ts';
 import { categoryLabelLines, chainIndicesForStep, treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
 import { buildMovementProtectedNodeIds, isUnderTriangulation } from '../../replay/triangulation.ts';
@@ -390,7 +390,9 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   const markerScale = markerScaleAtZoom(fitted.k), maxY = d3.max(all, node => node.y) ?? 0;
   const textTop = d3.min(painted.texts, text => text.cell.y) ?? TRAJECTORY_ROUTES.textTopFallbackY;
   const lanes = RELATION_LANES_BELOW_DEEPEST_NODE;
-  const runText = (id, text) => (runs.get(id) ?? []).some(run => run.text + run.indices.map(index => index.text).join('') === text);
+  // hasTreeGapNotation: the painted label, or the node's own authored label or word.
+  const runText = (id, text) => isOwnNodeNotation(laidOut.get(id)?.data, text)
+    || (runs.get(id) ?? []).some(run => run.text + run.indices.map(index => index.text).join('') === text);
   // paintRelationScene's badge obstacles: painted label cells and displayed plaque shells.
   const badgeObstacles = items.some(item => item.kind === 'anchor-set')
     ? { badgeObstacles: [...painted.labelCells, ...visiblePlacements.map(([, box]) => drawnPlaque(box))] } : {};
