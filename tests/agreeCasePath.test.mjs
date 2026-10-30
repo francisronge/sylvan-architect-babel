@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { plaqueIdentity } from '../replay/relations/plaquePlacement.ts';
@@ -110,24 +111,46 @@ test('two exact Agree claims valuing one goal\'s Case in a stage draw one path',
 
 // Sol review of 927a9b5: Case-state notation (a label prefix, brackets, a u-prefixed
 // feature name, an underscore, "?" or nothing) does not hide an unvalued Case.
+const unvaluedCaseDrawsNothing = written => {
+  const list = items([agree({ phi: '3pl', case: written })]);
+  assert.equal(casePaths(list).length, 0, JSON.stringify(written));
+  assert.equal(list.some(item => item.pathStyle === 'case-agree'), false, JSON.stringify(written));
+  assert.deepEqual(plaqueRows(list, 'agree.plaque'), ['phi: 3pl', `case: ${written}`], JSON.stringify(written));
+  // Recovered agreement reads Case state through the same check.
+  assert.equal(casePaths(items([agree({ phi: '3pl', case: written }, 'An authored agreement')])).length, 0, JSON.stringify(written));
+};
+
 test('an Agree whose Case is written unvalued in feature notation draws no Case path and keeps its row', () => {
   for (const written of ['Case: unvalued', '[uCase: _]', '[uCase:]', 'uCase', '[uCase]', 'u-Case', '_', '?', 'Case: ?',
     'Case = _', '[Case: ?]', 'case: not yet valued', '   ',
     // Sol round 2: complete state expressions and dash or empty-set placeholders.
     'unvalued Case', 'Case value: unvalued', 'Case: -', '[Case: —]', 'Case: –', '[uCase: ∅]', '∅', 'Case (unvalued)',
     'uCase[ ]', 'Case: none', 'Case: pending', 'Case value is still unassigned', 'Case: undetermined', 'Case: not determined']) {
-    const list = items([agree({ phi: '3pl', case: written })]);
-    assert.equal(casePaths(list).length, 0, JSON.stringify(written));
-    assert.equal(list.some(item => item.pathStyle === 'case-agree'), false, JSON.stringify(written));
-    assert.deepEqual(plaqueRows(list, 'agree.plaque'), ['phi: 3pl', `case: ${written}`], JSON.stringify(written));
-    // Recovered agreement reads Case state through the same check.
-    assert.equal(casePaths(items([agree({ phi: '3pl', case: written }, 'An authored agreement')])).length, 0, JSON.stringify(written));
+    unvaluedCaseDrawsNothing(written);
   }
+});
+
+// Sol round 3 and the lead's decision (30 Oct 2026): Babel does not parse prose. A Case
+// value with any deny, withhold, pending or unvalued word, or a placeholder, anywhere
+// in it draws no Case path, even beside a Case name. This includes prose such as
+// "abstract object Case without overt accusative marking" (the Turkish fixture
+// astra-turkish-relative-2, stage 2), whose object Case is in fact assigned.
+test('a Case value with a state or denial word anywhere draws no Case path', () => {
+  for (const written of ['Case: not nominative', 'nominative, unvalued', 'Case: nominative not assigned', 'nominative?',
+    'abstract object Case without overt accusative marking', 'nominative, with no overt suffix', 'nominative (pending)']) {
+    unvaluedCaseDrawsNothing(written);
+  }
+});
+
+test('the negative Case values of saved analyses draw no Case path in either tier', () => {
+  const { values } = JSON.parse(readFileSync(new URL('./data/negative-case-values.json', import.meta.url), 'utf8'));
+  assert(values.length >= 20);
+  for (const { value } of values) unvaluedCaseDrawsNothing(value);
 });
 
 test('an Agree whose Case is written valued in feature notation keeps that notation on its path', () => {
   for (const written of ['Case: nominative', '[uCase: NOM]', 'uCase = nom', 'NOM', 'valued Case: nominative', 'Case value: dative',
-    'nominative-accusative', 'abstract object Case without overt accusative marking']) {
+    'nominative-accusative', 'Case: nominative (assigned by T)']) {
     const paths = casePaths(items([agree({ phi: '3pl', case: written })]));
     assert.deepEqual(paths.map(path => [path.fromNodeId, path.toNodeId, path.label]), [['probe', 'goal', written]], written);
     assert.equal(casePaths(items([agree({ phi: '3pl', case: written }, 'An authored agreement')])).length, 1, written);
