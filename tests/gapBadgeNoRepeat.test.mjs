@@ -5,6 +5,7 @@ import { select } from 'd3';
 import { hasTreeGapNotation } from '../components/renderer/treeNotation.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { isOwnNodeNotation } from '../replay/replaySurfaceNotation.ts';
 import { createSvgDom } from './helpers/svgDom.mjs';
 import { layoutVisualFrames, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
 
@@ -27,9 +28,10 @@ test('a gap label that is the node\'s own indexed label is not drawn again besid
 
 const { Element, restore } = createSvgDom();
 after(restore);
-const paintedLabel = (painted, data) => {
+const paintedLabel = (painted, data, kind = 'category') => {
   const root = new Element('g');
-  const label = new Element('text', { class: 'category-label', 'data-category-node-id': 'low' }, { data: { id: 'low', ...data } });
+  const label = new Element('text', { class: `${kind}-label`, [kind === 'category' ? 'data-category-node-id' : 'data-node-id']: 'low' },
+    { data: { id: 'low', ...data } });
   label.text = painted;
   root.children.push(label);
   return select(root);
@@ -60,4 +62,25 @@ test('control: a gap label the model wrote apart from the node\'s label is still
   });
   const badges = bound.primitives.filter(primitive => primitive.type === 'text-badge' && primitive.badgeStyle === 'gap-notation');
   assert.deepEqual(badges.map(badge => [badge.nodeId, badge.text, badge.reuseExistingNotation]), [['low', 'e', undefined]]);
+});
+
+/* Sol, reviewing ecf4c9e: the tree paints only one of a leaf's label and word
+ * unless Replay expands it into a category above its word. For {label: "t",
+ * word: "t_i"} only "t_i" is painted, so a model-written gap label "t" is new
+ * text and must be drawn. */
+test('only the authored text the tree paints counts as the node\'s own', () => {
+  const traceWord = { label: 't', word: 't_i' };
+  assert.equal(isOwnNodeNotation(traceWord, 't'), false, 'a trace-like label above a word is not painted');
+  assert.equal(isOwnNodeNotation(traceWord, 't_i'), true);
+  assert.equal(hasTreeGapNotation(paintedLabel('t_i', traceWord, 'terminal'), 'low', 't'), false);
+  assert.equal(hasTreeGapNotation(paintedLabel('t_i', traceWord, 'terminal'), 'low', 't_i'), true);
+  // An expanded preterminal paints its category and its word.
+  const preterminal = { label: 'V⁰', word: 't' };
+  assert.equal(isOwnNodeNotation(preterminal, 'V⁰'), true);
+  assert.equal(isOwnNodeNotation(preterminal, 't'), true);
+  const expanded = { id: 'low', ...preterminal, children: [{ id: 'low::__leaf', label: 't', word: 't', replayOrigin: { kind: 'word', ownerId: 'low' } }] };
+  assert.equal(isOwnNodeNotation(expanded, 'V⁰'), true, 'Replay\'s display word does not hide the category\'s word');
+  assert.equal(isOwnNodeNotation(expanded, 't'), true);
+  // A phrase paints its category label, never a word field.
+  assert.equal(isOwnNodeNotation({ label: 'NP', word: 'x', children: [{ id: 'n', label: 'N', word: 'x' }] }, 'x'), false);
 });
