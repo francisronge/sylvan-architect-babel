@@ -8,6 +8,7 @@ import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { planSpelloutAttempts } from '../contractQualification/spelloutArtifacts.js';
 import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
+import { plaqueIdentity } from '../replay/relations/plaquePlacement.ts';
 import { checkOneLetterPerLabel, checkPlanIdentityUnique } from './helpers/replayInvariants.mjs';
 
 /* Defects of the 29 October 2026 held-out batch and the 30 October confirmation
@@ -100,4 +101,15 @@ test('Sol c1-013: a relation recovered as Case and as agreement with the same Ca
     .map(item => `${item.pathStyle} ${item.toNodeId}`);
   assert.deepEqual(paths(3, 'wil').filter(path => path.startsWith('case-assignment')), ['case-assignment jan']);
   assert.deepEqual(paths(8, 'mt').filter(path => path.startsWith('case-assignment')), ['case-assignment ik']);
+});
+
+test('marks that request no plaque may share an identity, as two trajectories to one shared landing do', () => {
+  const { sentence, inputTokens, analyses } = JSON.parse(readFileSync(new URL('../fixtures/movement/shared-landing.json', import.meta.url), 'utf8'));
+  const replay = prepareReplay({ sentence, inputTokens, derivationStages: structuredClone(analyses[0].derivationStages), includePlayback: true });
+  const shared = replay.relationRenderPlan.frames.some(frame => {
+    const identities = frame.items.map(plaqueIdentity);
+    return identities.length !== new Set(identities).size;
+  });
+  assert.equal(shared, true, 'the fixture still has marks sharing an identity');
+  assert.deepEqual(checkPlanIdentityUnique(replay), []);
 });

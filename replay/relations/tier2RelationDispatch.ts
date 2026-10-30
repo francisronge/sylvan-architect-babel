@@ -272,8 +272,8 @@ const attachFacetIdentities = (
 };
 
 /** Whether `owner` claims every authored anchor and value item `part` claims. */
-const ownsItemsOf = (owner: Tier2EvaluatedFacet, part: Tier2EvaluatedFacet) => (['anchors', 'values'] as const).every(field =>
-  Object.entries(part.origins?.[field] ?? {}).every(([key, indices]) => indices.every(index => owner.origins?.[field]?.[key]?.includes(index))));
+const ownsItemsOf = (owner: Tier2EvaluatedFacet, part: Tier2EvaluatedFacet) => Object.entries(part.origins ?? {}).every(([field, entries]) =>
+  Object.entries(entries).every(([key, indices]) => indices.every(index => owner.origins?.[field as keyof typeof entries]?.[key]?.includes(index))));
 
 /** A recovered feature path is a partial view of another recovered path that
  * joins the same endpoints with the same outcome and claims all of its authored

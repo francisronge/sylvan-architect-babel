@@ -1267,14 +1267,18 @@ export function checkRestatedLettersKept(replay) {
   return out;
 }
 
-/** Each mark of a plan frame has its own identity. Allocation keeps a plaque's
- * pocket by `plaqueIdentity` (replay/stageCamera.ts), so two marks sharing one
- * would trade places: the Dutch c1-013 Case plaque jumped onto its twin. */
+/** Each plaque of a plan frame has its own identity. Allocation keeps a plaque's
+ * pocket by `plaqueIdentity` (replay/stageCamera.ts), so two plaques sharing one
+ * trade places: the Dutch c1-013 Case plaque jumped onto its twin. Only marks
+ * that request a plaque count (`prepareStagePlaqueRequests`): node plaques and
+ * Case-assignment paths. Other marks, such as two trajectories to one shared
+ * landing, may share an identity. */
+const requestsPlaque = item => item.kind === 'node-plaque' || (item.kind === 'directed-path' && item.pathStyle === 'case-assignment');
 export function checkPlanIdentityUnique(replay) {
   const out = [];
   (replay.relationRenderPlan?.frames ?? []).forEach((frame, stageIndex) => {
     const seen = new Set();
-    for (const item of frame?.items ?? []) {
+    for (const item of (frame?.items ?? []).filter(requestsPlaque)) {
       const identity = plaqueIdentity(item);
       if (seen.has(identity)) out.push(violation('plan-identity-unique', null,
         `${item.kind} of relation ${item.relationRef?.stageIndex + 1}:${item.relationRef?.relationIndex + 1} appears twice in stage ${stageIndex + 1}`));
