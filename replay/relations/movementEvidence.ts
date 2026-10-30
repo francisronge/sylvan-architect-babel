@@ -679,6 +679,30 @@ function recoverAnchoredMovement(
     structurallyBound = true;
   }
 
+  // A preceding occurrence c-commanded by another of its chain was already a
+  // lower copy before the stage; the chain's head is the one no other commands.
+  const priorCommands = (id: string, other: string): boolean => {
+    const parent = prior.parents.get(id);
+    return Boolean(parent && contains(parent, other) && !contains(prior.nodes.get(id)!, other));
+  };
+  const chainBefore = (id: string) => {
+    const lineage = prior.nodes.get(id)?.lineageId;
+    return lineage ? [...prior.nodes.values()].filter(node => node.lineageId === lineage && !prior.duplicates.has(node.id)) : [];
+  };
+  const lowerCopyBefore = (id: string): boolean => chainBefore(id).some(node => node.id !== id && priorCommands(node.id, id));
+  // The mirror of the kept-landing rebinding above, when the lower occurrence
+  // keeps its ID: a named source that was already a lower copy stands for its
+  // chain's head, which the stage moves, when the claim anchors that head, the
+  // head keeps its slot and the landing is new.
+  if (!priorSource && sources.length === 1 && targets.length === 1 && !prior.nodes.has(targets[0])
+    && lowerCopyBefore(sources[0])) {
+    const heads = chainBefore(sources[0]).filter(node => !chainBefore(sources[0]).some(other => priorCommands(other.id, node.id)));
+    if (heads.length === 1 && anchored.includes(heads[0].id) && samePriorSlot(heads[0].id, heads[0].id)) {
+      sources = [heads[0].id];
+      structurallyBound = true;
+    }
+  }
+
   // An asserted covert operation permits structural endpoint recovery without
   // prescribed participant names. The checks below still require shared root
   // lineage, an exact preceding source slot and a distinct new landing.
@@ -878,6 +902,10 @@ function recoverAnchoredMovement(
           || explicitPriorSources.some(id => id !== priorId)) continue;
         if (!samePriorSlot(sourceId, priorId)) continue;
         if (priorId === sourceId && prior.nodes.has(targetId)) continue;
+        // A kept occurrence that was already a lower copy of its chain before
+        // the stage, below a higher preceding occurrence, is not what the stage
+        // moves; pairing it with the new landing would skip the hop's source.
+        if (priorId === sourceId && lowerCopyBefore(sourceId)) continue;
         // An earlier copy retained in its exact slot is not a second landing
         // for this step. Keep it as authored evidence without letting it make
         // a unique, explicitly witnessed successive movement ambiguous.

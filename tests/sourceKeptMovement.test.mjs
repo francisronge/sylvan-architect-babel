@@ -44,3 +44,22 @@ test('a source-kept hop is recognized when its landing field is not a landing ro
       [{ landing, shown: true, trajectory: true }], `case ${index}`);
   }
 });
+
+// A claim naming a chain's old foot beside its new top restates the chain: it
+// proves the stage's hop only through the chain's head, as when the landing
+// keeps the id (both fixtures were authored that way; Replay reads them source-kept).
+const fixture = (file, pointer = '') => {
+  const document = JSON.parse(readFileSync(new URL(`../fixtures/${file}`, import.meta.url), 'utf8'));
+  return pointer.split('/').filter(Boolean).reduce((value, key) => value[key], document);
+};
+const arrowClaims = (replay, stageIndex) => [...new Set(replay.relationRenderPlan.frames[stageIndex].items
+  .filter(item => item.kind === 'trajectory').map(item => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`))];
+
+test('a claim pairing an earlier lower copy with the new landing draws no hop of its own', () => {
+  // "proper government of wh-traces" names the object trace and the new top; only the A′-movement draws.
+  assert.deepEqual(arrowClaims(prepare(fixture('movement/holdout-transitions.json', '/0')), 1), ['1:0']);
+  // "interrogative operator licensing and scope" restates the stage-4 hop the A-bar movement owns.
+  const replay = prepare(fixture('replay-regressions/successive-cyclic-source.json', '/cases/1'));
+  assert.deepEqual(arrowClaims(replay, 3), ['1:1', '3:0']);
+  assert.deepEqual(arrowClaims(replay, 5), ['1:1', '3:0', '5:0', '5:1']);
+});
