@@ -9,7 +9,7 @@ const stage = (workspaceForest, relations = []) => ({ statement: '', stageRecord
 const overlaps = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x
   && a.y < b.y + b.height && a.y + a.height > b.y;
 
-test('an authored trace index inside its category is not repeated as another gap label', () => {
+test('a gap label is the model\'s own category text, never one with an index Babel wrote', () => {
   const compile = (label, index = 'i') => {
     const low = { id: 'low', label: 'NP', lineageId: 'chain' };
     const verb = { id: 'verb', label: 'V', word: 'wrote' };
@@ -34,9 +34,9 @@ test('an authored trace index inside its category is not repeated as another gap
     });
     assert(bound.primitives.some(p => p.type === 'text-badge' && p.nodeId === 'low' && p.reuseExistingNotation));
   }
-  assert.equal(compile('NP[t_j]').text, 'NP[t_j]_i', 'distinct authored indices are not equated');
-  assert.equal(compile('NP[feature_i]').text, 'NP[feature_i]_i', 'ordinary feature text is not trace notation');
-  assert.equal(compile('NP[t]').text, 'NP[t]_i', 'an absent index remains available');
+  for (const label of ['NP[t_j]', 'NP[feature_i]', 'NP[t]']) {
+    assert.equal(compile(label).text, label, 'the authored index is never appended to the model\'s label');
+  }
 });
 
 test('compound head movement attaches to its exact head, without choosing one of its terminals', () => {

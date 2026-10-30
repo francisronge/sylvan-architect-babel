@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createPlaqueDrawing } from '../components/renderer/plaqueDrawing.ts';
-import { createSvgDom, descendants, select } from './helpers/svgDom.mjs';
 
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
@@ -495,11 +493,7 @@ test('ATB with three paired gaps compiles one trajectory per pair, all preserved
   const traceBadges = plan.frames[0].items
     .filter((item) => item.kind === 'node-badges' && item.badgeStyle === 'gap-notation')
     .flatMap((item) => item.badges);
-  assert.deepEqual(
-    traceBadges,
-    sources.map((nodeId) => ({ nodeId, text: 'tᵢ', shape: 'plain' })),
-    'every lower occurrence receives the accepted trace notation in authored order'
-  );
+  assert.deepEqual(traceBadges, [], 'Babel adds no trace label of its own; the model wrote its lower copies as t');
   assert.equal(
     plan.frames[0].items.filter((item) => item.kind === 'coindex').length,
     0,
@@ -533,13 +527,8 @@ test('sideward movement compiles the accepted cross-workspace arch and source-co
   assert.equal(trajectory.trajectoryKind, 'sideward');
   assert.equal(trajectory.sourceAttachment, 'shell-top');
   assert.equal(trajectory.targetAttachment, 'shell-top');
-  const copyBadge = plan.frames[0].items.find((item) =>
-    item.kind === 'node-badges' && item.badgeStyle === 'gap-notation');
-  assert.deepEqual(copyBadge?.badges, [{
-    nodeId: 'dp_sideward_source',
-    text: 't₁',
-    shape: 'plain'
-  }]);
+  assert.deepEqual(plan.frames[0].items.filter((item) => item.kind === 'node-badges' && item.badgeStyle === 'gap-notation'), [],
+    'Babel adds no trace label of its own to the silent source');
 
   const bound = bindRelationPlanFrame(
     plan,
@@ -701,30 +690,8 @@ test('Phillips parasitic-gap topology binds its terminal departure to the author
   const gapBadges = plan.frames[0].items
     .filter((item) => item.kind === 'node-badges' && item.badgeStyle === 'gap-notation')
     .flatMap((item) => item.badges);
-  assert.deepEqual(gapBadges, [
-    { nodeId: 'dp_pg_secondary', text: 'pgᵢ', shape: 'plain' }
-  ], 'only the parasitic site receives a relation-owned pg side label');
-  const { Element, restore } = createSvgDom();
-  try {
-    const root = new Element('g');
-    const terminal = new Element('text', { class: 'terminal-label', 'data-node-id': 'd_pg_secondary' });
-    terminal.textContent = 'gap';
-    root.appendChild(terminal);
-    const { drawTextBadge } = createPlaqueDrawing({
-      parasiticGapCoindexLayers: new Map(),
-      acceptedLayerInHost: (_layers, _item, className, host) => host.append('g').attr('class', className)
-    });
-    const item = plan.frames[0].items.find(item => item.kind === 'node-badges' && item.badgeStyle === 'gap-notation');
-    const primitive = bound.primitives.find(mark => mark.type === 'text-badge' && mark.badgeStyle === 'gap-notation');
-    drawTextBadge(primitive, item, select(root), null);
-    const labels = descendants(root).filter(element => element.classList.contains('babel-pg-gap-label'));
-    assert.equal(labels.length, 1);
-    assert.equal(labels[0].getAttribute('data-gap-label-anchor'), 'dp_pg_secondary');
-    assert.equal(labels[0].textContent, 'pgᵢ');
-    assert.equal(terminal.textContent, 'gap', 'a relation-owned label must not rewrite the authored terminal');
-  } finally {
-    restore();
-  }
+  assert.deepEqual(gapBadges, [], 'Babel adds no pg label of its own; the parasitic gap keeps the model\'s word "gap"');
+  assert.deepEqual(bound.primitives.filter(mark => mark.type === 'text-badge'), []);
 });
 
 test('Phillips path rings and blocked-edge slashes are post-fit marks', () => {

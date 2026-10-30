@@ -693,10 +693,13 @@ clear nothing.
 
 ## Camera input ownership
 
-Gap notation reuses an existing category or terminal belonging to the exact
-authored occurrence. Generated terminal ownership is explicit metadata; an ID's
-spelling never proves ownership. A distinct authored annotation remains visible.
-Generic gap labels, coindices and complete Tier-3 role labels retain their
+Babel writes no gap or trace notation of its own: no `t`, `t₁` or `pg` label on
+across-the-board, sideward or parasitic-gap sources, and no index appended to a
+label. A gap label carries only the model's text: the label it authored for the
+gap, or else the gap's own word or category label. It reuses an existing
+category or terminal belonging to the exact authored occurrence. Generated
+terminal ownership is explicit metadata; an ID's spelling never proves
+ownership. A distinct authored annotation remains visible. Gap labels, coindices and complete Tier-3 role labels retain their
 accepted size at automatic Fit, then share the tree's scale during manual zoom.
 Their size and stacked offsets use that same Fit reference when redrawn under a
 retained manual camera. Each role label and its array position stay in one coordinate group. Fan connectors follow the fitted marks;

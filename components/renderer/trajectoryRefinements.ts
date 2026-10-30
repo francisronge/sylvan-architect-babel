@@ -224,15 +224,6 @@ export function createTrajectoryRefinements({
       .attr('y', (labelRect.y + labelRect.height / 2 + 30).toFixed(1))
       .attr('data-coindex-anchor', null);
   };
-  const refineParasiticGapLabel = function refineParasiticGapLabel() {
-    const badge = d3.select(this);
-    const labelRect = measuredTerminalSubtreesRect([badge.attr('data-gap-label-anchor')]);
-    if (!labelRect) return;
-    badge
-      .attr('x', (labelRect.x + labelRect.width + 12).toFixed(1))
-      .attr('y', (labelRect.y + labelRect.height / 2 + 10).toFixed(1))
-      .attr('data-gap-label-anchor', null);
-  };
   const refineSidewardPath = function refineSidewardPath() {
     const path = d3.select(this);
     const sourceRect = measuredTrajectoryShellRect(path.attr('data-trajectory-from'));
@@ -403,7 +394,6 @@ export function createTrajectoryRefinements({
     refinePhillipsPathNode,
     refinePhillipsBlockedEdge,
     refineParasiticGapCoindex,
-    refineParasiticGapLabel,
     refineSidewardPath,
     refineOrthogonalTrajectory,
     refinePhrasalPath,

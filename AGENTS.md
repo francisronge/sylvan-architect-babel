@@ -243,7 +243,7 @@ once its mistake can no longer happen.
 | Recognition never keys on relation names, role names or wording. | `tests/recognitionVocabularyFrozen.test.mjs` fails when the vocabulary grows; the name checks it still lists are retained, not enforced away |
 | A fault becomes an exception only with Francis's approval, quoting where he gave it. Growth within 5% of a bound needs none. | `npm run verify:exceptions` (CI); `BOUND_TOLERANCE` in `tests/helpers/findings.mjs` |
 | A step moves only the syntax it owns; nothing jumps noticeably (20 tree units, or an existing jump growing by at least the larger of 20 units and 10%). | CI job `corpus-motion`; approved faults in `tests/helpers/motionExceptions.mjs` |
-| Babel puts its own gap label (t₁, pg₁) only on a silent occurrence; the model's trace notation stays as written. | `gap-label-on-silence` in `tests/helpers/replayInvariants.mjs` |
+| Babel never adds its own gap or trace label; the model's notation stays as written. | `no-generated-gap-label` in `tests/helpers/replayInvariants.mjs` |
 | A movement is shown as movement at its own moment. | `movement-shown-as-movement` in `tests/helpers/replayInvariants.mjs`; `verify:corpus` |
 | Construction never merges an existing constituent again: one that left a parent its stage keeps moved. | `existing-not-remerged` in `tests/helpers/replayInvariants.mjs` |
 | Branches span one row, sisters share a row, parents stand centred. | `branch-geometry`, `parent-centring` in `verify:replay-offline` (CI) |
