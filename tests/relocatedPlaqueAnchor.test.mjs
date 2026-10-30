@@ -86,6 +86,28 @@ test('a relocated plaque leaves its pocket only for a nearby or clearly nearer o
   assert(Math.abs(place(-312, -450) - nearby) < 1e-6, 'a nearby pocket replaces it');
 });
 
+test('a plaque keeping its incumbent still takes a clearly nearer pocket beyond the fixed candidates', () => {
+  // Every fixed candidate nearer than 341 units is blocked; the one at 341 is clear but
+  // not clearly nearer than the incumbent at 400, which main therefore kept without
+  // looking past the fixed candidates. The pocket up and to the left, at about 283
+  // units, is clear.
+  const nodes = d3.tree().nodeSize([600, 300])(d3.hierarchy({ id: 'cp', label: 'CP', children: [
+    { id: 'subject', label: 'DP', children: [{ id: 'd', label: 'D', word: 'Ingen' }] }] })).descendants();
+  const anchor = plaqueAnchorPoint(nodes.find(node => node.data.id === 'subject'));
+  const feature = { kind: 'node-plaque', plaqueStyle: 'feature', anchorNodeIds: ['subject'], title: 'Features',
+    rows: [{ label: 'case', value: 'nominative' }], relationRef: { stageIndex: 0, relationIndex: 0 } };
+  const width = 360, height = 129, at = (x, y, w, h) => ({ x: anchor.x + x, y: anchor.y + y, width: w, height: h });
+  const obstacles = [at(10, -300, 50, 1300), at(-500, -100, 400, 300), at(100, 20, 380, 40), at(100, -150, 380, 30)];
+  const incumbent = { ...at(-width / 2, -400 - height / 2, width, height),
+    location: 'local', domainId: 'cp', attachmentNodeId: 'subject', attachmentX: anchor.x, attachmentY: anchor.y };
+  const box = placeStagePlaques([feature], nodes, obstacles, new Map(), undefined, {
+    sizes: new Map([[plaqueIdentity(feature), { width, height }]]), incumbents: new Map([[0, incumbent]]),
+    spaceFor: () => ({ obstacles, acceptsConnector: () => true }) }).get(0);
+  const distance = Math.hypot(box.x + width / 2 - anchor.x, box.y + height / 2 - anchor.y);
+  assert(distance <= MIN_RELOCATION_GAIN * 400, `${Math.round(distance)} units from its anchor`);
+  assert(obstacles.every(obstacle => !plaquesOverlap(box, obstacle)), 'the pocket keeps its gap');
+});
+
 test('a head carried into the complex head that head movement forms stays near at each position', () => {
   const { record } = loadFixtureAnalyses().records
     .find(entry => entry.id === 'replay-regressions/diverse-recovery.json#/examples/7/analysis');

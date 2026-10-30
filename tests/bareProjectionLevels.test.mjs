@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { inferHeadLikeTrajectoryKindFromForest } from '../replay/movementLinks.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { readBareProjections } from '../replay/projectionStructure.ts';
+import { readStructuralProjections } from '../replay/projectionStructure.ts';
 import { normalizeReplaySentenceInitialCasing } from '../replay/replayCasing.ts';
 import { describeReplayNodePosition } from '../replay/replayNodeDescription.ts';
 import { toBareForest } from './helpers/bareLabels.mjs';
@@ -27,9 +27,9 @@ const question = () => [node('cp', 'CP', [
           node('npLow', 'NP', [word('thingLow', 'N', 'thing', { silent: true })])], { lineageId: 'wh', silent: true })])])])])])])];
 
 test('bare labels read levels from structure; X-bar labels keep their notation', () => {
-  assert.equal(readBareProjections(question()), undefined);
-  assert.equal(readBareProjections([node('tp', 'T-projection', [node('t', 'T')])]), undefined, 'prose names a level too');
-  const forest = toBareForest(question()), bare = readBareProjections(forest), at = id => find(forest, id);
+  assert.equal(readStructuralProjections(question()), undefined);
+  assert.equal(readStructuralProjections([node('tp', 'T-projection', [node('t', 'T')])]), undefined, 'prose names a level too');
+  const forest = toBareForest(question()), bare = readStructuralProjections(forest), at = id => find(forest, id);
   const level = id => `${bare.minimal(at(id)) ? 'min' : ''}${bare.maximal(at(id)) ? 'max' : ''}` || 'bar';
   assert.deepEqual(['cp', 'cbar', 'c', 'didHigh', 'q', 'tp', 'tbar', 'didLow', 'mia', 'whHigh', 'what'].map(level),
     ['max', 'bar', 'min', 'minmax', 'min', 'max', 'bar', 'min', 'minmax', 'max', 'min']);
@@ -43,13 +43,13 @@ test('a head pair is complex only when structure shows head movement', () => {
     node('inner', 'T⁰', [word('lo', 'D', 'lo', { lineageId: 'lo' }), node('t', 'T⁰')])]),
   node('vp', 'VP', [word('verb', 'V', 'dare'), node('objects', 'VP', [word('gliLow', 'D', 'gli', { lineageId: 'gli' }),
     word('loLow', 'D', 'lo', { lineageId: 'lo' })])])])]);
-  const cliticReader = readBareProjections(clitics);
+  const cliticReader = readStructuralProjections(clitics);
   assert(cliticReader.minimal(find(clitics, 'inner')) && cliticReader.minimal(find(clitics, 'cluster')),
     'each clitic has its lower occurrence in the domain its cluster c-commands');
   // Object shift: the copy beside VP is a phrase moved out, not a head.
   const shifted = toBareForest([node('vp', 'VP', [word('object', 'DP', 'it', { lineageId: 'it' }),
     node('lower', 'VP', [word('eat', 'V', 'eat'), word('objectLow', 'DP', 'it', { lineageId: 'it', silent: true })])])]);
-  const shiftedReader = readBareProjections(shifted);
+  const shiftedReader = readStructuralProjections(shifted);
   assert(!shiftedReader.minimal(find(shifted, 'lower')));
   assert.equal(shiftedReader.positionKind(find(shifted, 'object')), 'phrasal');
 });
@@ -58,7 +58,8 @@ test('panel positions use the X-bar names with the authored bare label', () => {
   const xbar = question()[0], bare = toBareForest(question())[0];
   const positions = root => ['whHigh', 'mia', 'tp', 'didLow', 'didHigh', 'whLow'].map(id => describeReplayNodePosition(root, id));
   assert.deepEqual(positions(xbar), ['Spec,CP', 'Spec,TP', 'complement of C', 'T⁰ in T′', 'T⁰ in C⁰', 'complement of V']);
-  assert.deepEqual(positions(bare), ['Spec,C', 'Spec,T', 'complement of C', 'T in T', 'T in C', 'complement of V']);
+  // Bare labels cannot tell a specifier from an adjunct, so that position stays neutral.
+  assert.deepEqual(positions(bare), ['D in C', 'D in T', 'complement of C', 'T in T', 'T in C', 'complement of V']);
   // X-bar's plain P is the preposition head, so its sister NP is a complement.
   const pp = node('pp', 'PP', [node('pbar', 'P′', [word('p', 'P', 'with'), node('np', 'NP', [word('n', 'N', 'Mia')])])]);
   assert.equal(describeReplayNodePosition(pp, 'np'), 'complement of P');

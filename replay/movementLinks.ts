@@ -7,8 +7,8 @@ import {
   isRegisteredTrajectoryRelation,
   movementIdentityKind
 } from './relations/movementIdentities.ts';
-import { readBareProjections } from './projectionStructure.ts';
-import { isHeadShellLabel, isPhraseShellLabel, isTraceLike } from './replaySurfaceNotation.ts';
+import { isTraceLike } from './replaySurfaceNotation.ts';
+import { readStructuralHeads } from './structuralHeads.ts';
 import { collectForestNodesById, findNodePathInForest, getNodeAtForestPath } from './syntaxForest.ts';
 import {
   type HierNode,
@@ -50,24 +50,13 @@ export const isFrontingLikeOperationLabel = (operation?: string): boolean => isF
 
 const isPhrasalTrajectoryOperationLabel = (operation?: string): boolean => movementIdentityKind(operation) === 'phrasal';
 
-const isNodeOrImmediateParentHeadShellInForest = (forest: SyntaxNode[], nodeId?: string): boolean => {
-  const normalizedNodeId = String(nodeId || '');
-  if (!normalizedNodeId)
-    return false;
-  const nodePath = findNodePathInForest(forest, normalizedNodeId);
-  const node = getNodeAtForestPath(forest, nodePath);
-  // Bare labels (T for TP) name no level, so structure decides where it can.
-  const structural = node ? readBareProjections(forest)?.positionKind(node) : undefined;
-  if (structural)
-    return structural === 'head';
-  if (node && isPhraseShellLabel(node.label))
-    return false;
-  if (node && isHeadShellLabel(node.label))
-    return true;
-  if (!Array.isArray(nodePath) || nodePath.length < 2)
-    return false;
-  const parent = getNodeAtForestPath(forest, nodePath.slice(0, -1));
-  return Boolean(parent && isHeadShellLabel(parent.label));
+// Whether each node is a head, read from shape whatever its category is called.
+const headPositionsInForest = (forest: SyntaxNode[]) => {
+  const heads = readStructuralHeads(forest);
+  return (nodeId?: string): boolean => {
+    const node = nodeId ? getNodeAtForestPath(forest, findNodePathInForest(forest, nodeId)) : undefined;
+    return Boolean(node) && heads.isHeadPosition(node!);
+  };
 };
 
 export const inferHeadLikeTrajectoryKindFromForest = ({ forest, operation, sourceNodeId, targetNodeId, traceNodeId }: {
@@ -81,9 +70,9 @@ export const inferHeadLikeTrajectoryKindFromForest = ({ forest, operation, sourc
     return 'head';
   if (isPhrasalTrajectoryOperationLabel(operation))
     return 'phrasal';
-  const targetLooksHeadLike = isNodeOrImmediateParentHeadShellInForest(forest, targetNodeId);
-  const sourceLooksHeadLike = isNodeOrImmediateParentHeadShellInForest(forest, sourceNodeId)
-    || isNodeOrImmediateParentHeadShellInForest(forest, traceNodeId);
+  const isHeadAt = headPositionsInForest(forest);
+  const targetLooksHeadLike = isHeadAt(targetNodeId);
+  const sourceLooksHeadLike = isHeadAt(sourceNodeId) || isHeadAt(traceNodeId);
   return targetLooksHeadLike && sourceLooksHeadLike ? 'head' : 'phrasal';
 };
 
@@ -102,17 +91,10 @@ const inferHeadLikeTrajectoryKindFromVisibleNodes = (nodeById: Map<string, HierN
   const sourceNode = sourceId ? nodeById.get(sourceId) : undefined;
   const traceNode = traceId ? nodeById.get(traceId) : undefined;
   const root = (targetNode ?? sourceNode ?? traceNode)?.ancestors().at(-1);
-  const bare = root ? readBareProjections([root.data]) : undefined;
-  // Bare labels (T for TP) name no level, so structure decides where it can.
-  const looksHeadLike = (node: HierNode | undefined, withParent: boolean) => {
-    if (!node)
-      return false;
-    const structural = bare?.positionKind(node.data);
-    return structural ? structural === 'head'
-      : isHeadShellLabel(node.data?.label) || withParent && Boolean(node.parent && isHeadShellLabel(node.parent.data?.label));
-  };
-  const targetLooksHeadLike = looksHeadLike(targetNode, false);
-  const sourceLooksHeadLike = looksHeadLike(sourceNode, true) || looksHeadLike(traceNode, true);
+  const heads = root ? readStructuralHeads([root.data]) : undefined;
+  const looksHeadLike = (node: HierNode | undefined) => Boolean(node && heads?.isHeadPosition(node.data));
+  const targetLooksHeadLike = looksHeadLike(targetNode);
+  const sourceLooksHeadLike = looksHeadLike(sourceNode) || looksHeadLike(traceNode);
   if (targetLooksHeadLike && sourceLooksHeadLike)
     return 'head';
   return '';

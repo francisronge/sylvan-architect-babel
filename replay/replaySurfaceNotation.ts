@@ -6,26 +6,30 @@ import { categoryLabel as normalizeStructuralLabel } from './categoryLabel.ts';
 /** Surface and index notation only; this does not infer movement or pronunciation. */
 const PRIME_CATEGORY_LABEL_RE = /[′’'](?:\s*\[[^\[\]]*\])*$/u;
 
-const HEAD_LIKE_LABEL_RE = /^(?:C|Q|WH|T|INFL|I|V|D|N|A|P|AUX)$/i;
+/* Text only: whether a written surface (a wordless leaf's label, "⟨T⟩") spells
+ * a category name rather than a word or trace. A string has no shape, so this
+ * keeps a short list of single-head category names. It never decides whether a
+ * tree node is a head; structuralHeads.ts reads that from shape. */
+const CATEGORY_NAME_SURFACE_RE = /^(?:C|Q|WH|T|INFL|I|V|D|N|A|P|AUX)$/i;
 
-export const isPhraseShellLabel = (label?: string): boolean => {
+const isPhraseShellLabel = (label?: string): boolean => {
   const normalized = normalizeStructuralLabel(label);
   if (!normalized) return false;
   return /P$/i.test(normalized);
 };
 
-export const isHeadShellLabel = (label?: string): boolean => {
+const isHeadCategorySurface = (label?: string): boolean => {
   const raw = String(label || '').trim();
   if (!raw || PRIME_CATEGORY_LABEL_RE.test(raw)) return false;
   const normalized = normalizeStructuralLabel(raw);
   if (!normalized) return false;
-  return HEAD_LIKE_LABEL_RE.test(normalized);
+  return CATEGORY_NAME_SURFACE_RE.test(normalized);
 };
 
 export const isStructuralCategorySurface = (surface?: string): boolean => {
   const normalized = normalizeStructuralLabel(surface);
   if (!normalized) return false;
-  return isHeadShellLabel(normalized) || isPhraseShellLabel(normalized);
+  return isHeadCategorySurface(normalized) || isPhraseShellLabel(normalized);
 };
 
 const SUBSCRIPT_MAP: Record<string, string> = {
@@ -163,6 +167,26 @@ export const isDisplayTerminalNode = (node: SyntaxNode): boolean =>
   !node.children?.length && !isWordlessCategoryLeaf(node);
 
 export const resolveLeafSurface = (node: d3.HierarchyNode<SyntaxNode>): string => (node.data.word || node.data.label || '').trim();
+
+/** The authored text the tree paints for a node, before any index runs: a
+ * phrase's category label; a leaf's word, with its category label too when
+ * Replay expands it into a category above that word; or a wordless leaf's label.
+ * Replay's own display word child (replayOrigin) still counts as a leaf. */
+const paintedAuthoredTexts = (node: SyntaxNode): string[] => {
+  const label = String(node.label || '').trim();
+  const word = typeof node.word === 'string' ? node.word.trim() : '';
+  const ownWord = (child: SyntaxNode) => child?.replayOrigin?.kind === 'word' && Boolean(node.id) && child.replayOrigin.ownerId === node.id;
+  const children = (node.children ?? []).filter(child => !ownWord(child));
+  if (children.length || !word) return label ? [label] : [];
+  return shouldExpandPreterminalLeaf({ ...node, children: [] }) ? [label, word] : [word];
+};
+
+/** A gap label that is authored text the tree already paints for its node
+ * restates it, whatever index runs the renderer appends to that text. */
+export const isOwnNodeNotation = (node: SyntaxNode | undefined, text: string): boolean => {
+  const notation = text.trim();
+  return Boolean(notation && node) && paintedAuthoredTexts(node!).includes(notation);
+};
 
 
 /**

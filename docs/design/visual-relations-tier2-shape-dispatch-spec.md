@@ -177,9 +177,18 @@ remain ambiguous. Independently denied or pending sibling operations do not
 erase an asserted property or dependency in another clause.
 
 Case assignment requires its own proven giver and recipient. An Agree source
-does not automatically become a Case giver. Role-qualified values may still
-annotate their exact participant without an assignment arrow. Context roles
-retain context status unless the local claim establishes their operation.
+does not automatically become a Case giver. One exception (Francis, 30 Oct
+2026): structural Case is a reflex of Agree, so an exact Agree claim whose own
+values give its one goal one established Case literal draws that Case on its
+own probe→goal path with the Case-assignment primitive, in place of the probe
+plaque's Case row, as recovered agreement carrying its goal's Case already
+does. A failed or pending Agree, an unvalued Case, a Case qualified for
+another participant or an Agree without a Case value draws no Case path. When
+another claim of the same stage already draws a Case path to that goal, that
+path stays the only one and the Agree keeps its Case row. Role-qualified
+values may still annotate their exact participant without an assignment arrow.
+Context roles retain context status unless the local claim establishes their
+operation.
 
 Participant-qualified properties bind to that exact participant. Properties on
 one host compose one plaque; a property already owned by an assignment or other
@@ -1656,7 +1665,12 @@ lower occupant is converted into a trace. Derived chain identities still bind
 movement paths without replacing the authored trace label or index. A
 `Gap label` shows only the model's text: the `label` value it authored for that
 gap, or else the gap's own word or category label. An authored `index` value is
-never appended to it; Babel writes no gap notation of its own.
+never appended to it; Babel writes no gap notation of its own. A label that is
+authored text the tree paints for the gap (its category label, its word, or
+both for a preterminal Replay expands) is already in the tree and draws nothing
+more, even where the tree paints a chain index after it. Any other `label`
+value, such as a trace-like label `t` above the word `t_i` that the tree does
+not paint, is drawn beside the gap.
 
 ### Silence And Deletion
 

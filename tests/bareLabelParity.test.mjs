@@ -6,16 +6,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readCategoryLabel } from '../replay/categoryLabel.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { readBareProjections, writesProjectionLevels } from '../replay/projectionStructure.ts';
+import { readStructuralProjections } from '../replay/projectionStructure.ts';
 import { buildReplayPanelContent } from '../replay/replayPanel.ts';
 import { buildReplayDisplayDetailBlocks } from '../replay/replayPanelFormatting.ts';
 import { describeReplayNodePosition } from '../replay/replayNodeDescription.ts';
-import { isStructureFaithfulXbar, toBarePanelValue, toBarePosition, toBareStages } from './helpers/bareLabels.mjs';
+import { isStructureFaithfulXbar, toBarePanelPattern, toBarePositionPattern, toBareStages, writesLevelNotation } from './helpers/bareLabels.mjs';
+import { formatReplaySupportValue } from '../replay/replayPanelFormatting.ts';
 import { panelText, tierLines } from './helpers/layoutSnapshot.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
 const xbar = loadFixtureAnalyses().records
-  .filter(({ record }) => record.derivationStages.every(stage => writesProjectionLevels(stage.workspaceForest)));
+  .filter(({ record }) => record.derivationStages.every(stage => writesLevelNotation(stage.workspaceForest)));
 const prepare = record => prepareReplay({ ...structuredClone(record), includePlayback: true });
 const pairs = xbar.map(({ id, record }) => {
   const bareRecord = { ...record, derivationStages: toBareStages(record.derivationStages) };
@@ -46,7 +47,7 @@ test('every phrase and head position reads the same in bare labels', () => {
   for (const { id, xbar: authored, bare } of pairs) {
     const bareEnds = stageEnds(bare.playbackSteps);
     for (const [stage, step] of stageEnds(authored.playbackSteps)) {
-      const bareCanvas = bareEnds.get(stage)?.replayCanvasData, reader = bareCanvas && readBareProjections([bareCanvas]);
+      const bareCanvas = bareEnds.get(stage)?.replayCanvasData, reader = bareCanvas && readStructuralProjections([bareCanvas]);
       if (!step.replayCanvasData || !reader) continue;
       const bareNodes = new Map(nodes(bareCanvas).map(([node]) => [node.id, node]));
       // Only a label whose level its bare structure also shows makes a claim
@@ -69,10 +70,15 @@ test('every phrase and head position reads the same in bare labels', () => {
         compared++;
         const expected = describeReplayNodePosition(step.replayCanvasData, node.id);
         const actual = describeReplayNodePosition(bareCanvas, node.id);
-        if (/^Spec,/.test(actual)) specifiers.add(id);
+        // Only X′ tells a specifier from an adjunct: bare labels name the
+        // same position neutrally, as the phrase in its parent.
+        const bareParent = reader.parent(rewritten), [nodeLabel, parentLabel] = [rewritten, bareParent].map(item => formatReplaySupportValue(item.label));
+        const want = /^Spec,/.test(expected) ? new RegExp(`^${RegExp.escape(nodeLabel === parentLabel ? nodeLabel : `${nodeLabel} in ${parentLabel}`)}$`, 'u')
+          : toBarePositionPattern(expected);
+        if (/^Spec,/.test(expected)) specifiers.add(id);
         if (/^complement of /.test(actual)) complements.add(id);
         if (actual === 'complement of P') complementsOfP++;
-        if (toBarePosition(expected) !== actual) differences.push({ id, stage, node: node.id, expected, actual, parent: parent.label });
+        if (!want.test(actual)) differences.push({ id, stage, node: node.id, expected, actual, parent: parent.label });
       }
     }
   }
@@ -97,14 +103,15 @@ test('Source and Landing panel lines name the same positions in bare labels', ()
       const prior = bareRecord.derivationStages[step.replayFrameIndex - 1]?.workspaceForest ?? [];
       const described = [step.targetNodeId, ...(step.sourceNodeIds ?? []),
         ...(step.replayRelationLinks ?? []).map(link => link.priorSourceNodeId)].filter(Boolean);
-      const readers = [readBareProjections([step.replayCanvasData]), readBareProjections(prior)].filter(Boolean);
+      const readers = [readStructuralProjections([step.replayCanvasData]), readStructuralProjections(prior)].filter(Boolean);
       const forestNodes = [step.replayCanvasData, ...prior].flatMap(root => nodes(root).map(([node]) => node));
       if (described.some(nodeId => forestNodes.filter(node => node.id === nodeId)
         .some(node => readers.some(reader => nonBranchingProjection(reader, node))))) continue;
       const position = ([label]) => label === 'Source' || label === 'Landing';
-      const want = expected[index].lines.filter(position).map(([label, value]) => [label, toBarePanelValue(value)]);
-      const got = actual[bareSteps.get(key)].lines.filter(position).map(([label, value]) => [label, value]);
-      assert.deepEqual(got, want, `${id} relation ${key}`);
+      const want = expected[index].lines.filter(position);
+      const got = actual[bareSteps.get(key)].lines.filter(position);
+      assert.deepEqual(got.map(([label]) => label), want.map(([label]) => label), `${id} relation ${key}`);
+      want.forEach(([, value], line) => assert.match(got[line][1], toBarePanelPattern(value), `${id} relation ${key}`));
       lines += want.length;
     }
   }

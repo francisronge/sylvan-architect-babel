@@ -3,7 +3,7 @@ import { categoryLabel } from './categoryLabel.ts';
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { type SyntaxNode } from '../types.ts';
 import { replayOwnerId } from './displayIdentity.ts';
-import { readBareProjections } from './projectionStructure.ts';
+import { readStructuralProjections } from './projectionStructure.ts';
 import { isResolvedMovementLink } from './movementLinks.ts';
 import { buildStructuralReplayFallback } from './playbackFormatting.ts';
 import {
@@ -110,10 +110,10 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
         detachedForest && node === clonedCanvas ? child : workspace));
     };
     visit(clonedCanvas, null, false, false, clonedCanvas);
-    // In bare labels a phrase dominating a word directly (C over a raw 'Who')
+    // Read from structure, a phrase dominating a word directly (C over a raw 'Who')
     // names its projection, not the word's head; X-bar writes it as CP.
-    const bare = readBareProjections([clonedCanvas]);
-    const headsWord = (parent?: SyntaxNode | null) => !bare || !parent || bare.minimal(parent);
+    const levels = readStructuralProjections([clonedCanvas]);
+    const headsWord = (parent?: SyntaxNode | null) => !levels || !parent || levels.minimal(parent);
     const currentLeaves = leafIds.map(leafId => {
       const info = exactNodes.get(leafId)!;
       const leaf = nodesByName.get(leafId);

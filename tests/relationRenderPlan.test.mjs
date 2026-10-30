@@ -88,10 +88,14 @@ test('registered agreement restatements share their plaque across equivalent rol
     const stages = relations.map(relation => stage([relation], forest));
     const original = structuredClone(stages);
     const plan = compileRelationRenderPlan(stages);
-    const plaques = plan.frames[1].items.filter(item => item.familyId === 'agree.plaque');
+    const plaques = plan.frames[1].items.filter(item => item.familyId === 'agree.plaque' && item.kind === 'node-plaque');
     assert.equal(plaques.length, 1);
     assert.equal(plan.frames[0].items[0].coalescedRefs, undefined);
     for (const si of [0, 1]) assert(planItemOwnsRelationMoment(plaques[0], si, 0));
+    // The Case both restatements value is one path owned by both moments.
+    const casePaths = plan.frames[1].items.filter(item => item.pathStyle === 'case-assignment');
+    assert.equal(casePaths.length, 1);
+    for (const si of [0, 1]) assert(planItemOwnsRelationMoment(casePaths[0], si, 0));
     assert.deepEqual(plaques[0].relationRef.anchors, relations[0].anchors);
     assert.deepEqual(plaques[0].coalescedRefs[0].anchors, relations[1].anchors);
     assert.deepEqual(stages, original);

@@ -1,6 +1,6 @@
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
-import { type BareProjections, readBareProjections } from '../projectionStructure.ts';
+import { type StructuralProjections, readStructuralProjections, writesProjectionLevels } from '../projectionStructure.ts';
 import { isMovementIdentity, movementIdentityKind } from './movementIdentities.ts';
 import {
   containsOccurrence as contains,
@@ -158,21 +158,28 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
 type MovementOccurrences = ReturnType<typeof indexMovementOccurrences>;
 export type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
 
-const bareReaders = new WeakMap<MovementOccurrences, BareProjections | null>();
-const bareProjectionsOf = (occurrences: MovementOccurrences): BareProjections | undefined => {
-  if (!bareReaders.has(occurrences)) bareReaders.set(occurrences, readBareProjections(
-    [...occurrences.nodes.values()].filter(node => !occurrences.parents.has(node.id))) ?? null);
-  return bareReaders.get(occurrences) ?? undefined;
+// Head evidence reads structure only where no label writes a level. Once a
+// forest writes XP, a label without P is the author's head level, and the
+// readings below would override it exactly where structure is ambiguous: a
+// head adjoined to a complex host structure cannot prove to be a head, or a
+// head adjoined in a separate workspace before that workspace merges.
+const structuralReaders = new WeakMap<MovementOccurrences, StructuralProjections | null>();
+const structuralProjectionsOf = (occurrences: MovementOccurrences): StructuralProjections | undefined => {
+  if (!structuralReaders.has(occurrences)) {
+    const roots = [...occurrences.nodes.values()].filter(node => !occurrences.parents.has(node.id));
+    structuralReaders.set(occurrences, writesProjectionLevels(roots) ? null : readStructuralProjections(roots) ?? null);
+  }
+  return structuralReaders.get(occurrences) ?? undefined;
 };
 /** Bare labels (T for TP, T′ and T) leave the landing's level to structure.
  * A landing beside a branching projection of its parent's head, a specifier,
  * moved as a phrase; any other landing is left to the head evidence below.
- * X-bar notation states the level instead, so this reads nothing there. */
+ * Labels that write levels state them instead, so this reads nothing there. */
 // A terminal spelling only its word, as X-bar writes under a head ("did").
 const isWordTerminal = (node: SyntaxNode): boolean => !node.children?.length
   && Boolean(node.word?.trim()) && node.word!.trim() === String(node.label ?? '').trim();
 const isBareSpecifier = (target: SyntaxNode, workspaces?: MovementWorkspaces): boolean => {
-  const bare = workspaces && bareProjectionsOf(workspaces.current), parent = bare?.parent(target);
+  const bare = workspaces && structuralProjectionsOf(workspaces.current), parent = bare?.parent(target);
   if (!bare || !parent || workspaces!.current.nodes.get(target.id) !== target) return false;
   const sisters = (parent.children ?? []).filter(child => child !== target);
   return bare.maximal(target) && sisters.length === 1 && bare.projects(sisters[0], parent) && !bare.minimal(sisters[0]);
@@ -183,7 +190,7 @@ const isBareSpecifier = (target: SyntaxNode, workspaces?: MovementWorkspaces): b
  * every other occurrence lies in another workspace moved sideward into this
  * one, and the head selected it as a phrase. */
 const isSidewardComplement = (target: SyntaxNode, workspaces?: MovementWorkspaces): boolean => {
-  const bare = workspaces && bareProjectionsOf(workspaces.current), parent = bare?.parent(target);
+  const bare = workspaces && structuralProjectionsOf(workspaces.current), parent = bare?.parent(target);
   const { current } = workspaces ?? {};
   if (!bare || !parent || !current || current.nodes.get(target.id) !== target || target.children?.length
     || !target.lineageId || current.duplicates.has(target.id)) return false;
@@ -213,7 +220,7 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
   // separate roots, which stay unchanged as before.
   // The head carries its word itself or, in a forest written wholly in bare
   // labels, over a single terminal ("C" over "did").
-  const preterminals = Boolean(workspaces && bareProjectionsOf(workspaces.current) && bareProjectionsOf(workspaces.prior));
+  const preterminals = Boolean(workspaces && structuralProjectionsOf(workspaces.current) && structuralProjectionsOf(workspaces.prior));
   const lexical = (node: SyntaxNode) => !node.children?.length ? Boolean(node.word?.trim())
     : preterminals && node.children.length === 1 && isWordTerminal(node.children[0]);
   if (!workspaces || !before || parentCategory.compound || sisters.length !== 1

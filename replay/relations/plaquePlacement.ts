@@ -1238,14 +1238,14 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       /** A scanned pocket slides flush against what blocks it. Nudged by up to
        * twice PLAQUE_SCAN_TEXT_EXTRA, it keeps that much more than the gap from tree
        * text, when such a pocket is clear, nearby and nearer than the prior pocket. */
-      const roomier = (box: PlaqueRect) => {
+      const roomier = (box: PlaqueRect, within = priorDistance) => {
         // Every obstacle that can block a nudge also blocks the area they cover, at the wider gap.
         const reach = NUDGES[NUDGES.length - 1], area = { x: box.x - reach, y: box.y - reach, width: width + 2 * reach, height: height + 2 * reach };
         const roomy = searched.filter(obstacle => plaquesOverlap(area, obstacle, gap + PLAQUE_SCAN_TEXT_EXTRA))
           .map(obstacle => isTreeText(obstacle) ? grownObstacle(obstacle, PLAQUE_SCAN_TEXT_EXTRA) : obstacle);
         const blocked = (candidate: PlaqueRect) => roomy.some(obstacle => plaquesOverlap(candidate, obstacle, gap));
         if (!blocked(box)) return box;
-        let best: PlaqueRect | undefined, bestDistance = priorDistance;
+        let best: PlaqueRect | undefined, bestDistance = within;
         for (const dx of NUDGES) for (const dy of NUDGES) {
           if (!dx && !dy) continue;
           const nudged = clear({ x: box.x + dx, y: box.y + dy, width, height }, blocked), distance = nudged && placementDistance(nudged);
@@ -1255,9 +1255,10 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         }
         return best ?? box;
       };
-      /** The nearest clear pocket beyond the fixed candidates. */
-      const scan = () => {
-        let placement: PlaqueRect | undefined = priorCandidate;
+      /** The nearest clear pocket beyond the fixed candidates whose squared distance is
+       * below `within`, else `start`. */
+      const scan = (within: number, start: PlaqueRect | undefined) => {
+        let placement: PlaqueRect | undefined = start;
         // Search the nearest clear pocket, including one just beyond the initial
         // candidates. A radius cutoff would send a local claim below its subtree.
         const scanGap = gap + 1e-6;
@@ -1273,7 +1274,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         const xs = [...new Set([...candidates.map(box => box.x), ...connectorColumns, ...searched.flatMap(box =>
           [box.x - width - scanGap, box.x + box.width + scanGap])])]
           .sort((a, b) => horizontalGap(a) - horizontalGap(b));
-        const columnIntervals = preparePlaqueColumnIntervals(searched, height, scanGap);
+        // Columns stand scanGap beside their obstacles; the plain gap absorbs the rounding of that sum.
+        const columnIntervals = preparePlaqueColumnIntervals(searched, height, scanGap, gap);
         const idealY = request.caseAssignment ? anchorY + 163 - (request.caseRowY ?? 93) : anchorY - height / 2;
         /** A closed range holding every height in column `x` whose squared
          * distance can be below `bound`: that distance is at least the vertical
@@ -1390,16 +1392,16 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         for (;;) {
           for (let nearest = columns.peek(); opened < xs.length; opened++) {
             const dx = horizontalGap(xs[opened]), gap = dx * dx;
-            if (gap >= priorDistance) { opened = xs.length; break; }
+            if (gap >= within) { opened = xs.length; break; }
             if (nearest && gap > nearest.key) break;
             columns.push({ index: opened, x: xs[opened], dx, gap, key: gap, lanes: [], listed: 0, next: 0, arrows: new Map() });
             nearest = columns.peek();
           }
           const column = columns.pop();
-          if (!column || column.key >= priorDistance) break;
+          if (!column || column.key >= within) break;
           if (column.next === column.lanes.length) {
             // A longer list repeats the lanes already checked first.
-            const bound = Math.min(priorDistance, Math.max(4 * column.key, column.key + POCKET_LANE_REACH ** 2));
+            const bound = Math.min(within, Math.max(4 * column.key, column.key + POCKET_LANE_REACH ** 2));
             const { lanes, complete } = columnLanes(column, bound);
             column.lanes = lanes; column.listed = complete ? Infinity : bound;
           } else {
@@ -1409,14 +1411,14 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
             if (box) { placement = box; break; }
           }
           if (column.next < column.lanes.length) column.key = Math.max(column.gap, column.lanes[column.next].distance);
-          else if (column.listed < priorDistance) column.key = Math.max(column.gap, column.listed);
+          else if (column.listed < within) column.key = Math.max(column.gap, column.listed);
           else continue;
           columns.push(column);
         }
         return placement;
       };
       if (!placement && local) {
-        const scanned = scan();
+        const scanned = scan(priorDistance, priorCandidate);
         placement = scanned && scanned !== priorCandidate ? roomier(scanned) : scanned;
       }
       placement ??= priorCandidate;
@@ -1426,6 +1428,16 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         const fresh = Math.sqrt(placementDistance(placement)), kept = Math.sqrt(placementDistance(incumbent));
         if (fresh > MIN_RELOCATION_GAIN * kept && (beyondNearbyReach(fresh, request) || !beyondNearbyReach(kept, request)))
           placement = incumbent;
+      }
+      // A clear fixed candidate that is not clearly nearer leaves the incumbent in place;
+      // the scan may still find a pocket clearly nearer than the incumbent.
+      if (incumbent && placement === incumbent && local) {
+        const within = (MIN_RELOCATION_GAIN * Math.sqrt(placementDistance(incumbent))) ** 2;
+        const nearer = scan(within, undefined);
+        if (nearer) {
+          const roomy = roomier(nearer, within);
+          placement = placementDistance(roomy) < within ? roomy : nearer;
+        }
       }
       const kept = [priorCandidate, incumbent].find(box => box && box === placement);
       const location = placement ? kept ? kept.location : 'local' : 'below';

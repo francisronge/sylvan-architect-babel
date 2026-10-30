@@ -50,6 +50,9 @@ export type RegisteredPlanContext = {
     pushCompositeTrajectory: (trajectoryKind: 'phrasal' | 'head') => boolean;
     pushNeutralFallback: (anchorSource: Record<string, string | string[]>, includePriorCue: boolean, fallbackRelation?: PlanRelationRef, claimIdentity?: string) => void;
     resolvedIds: (role: string, value: string | string[] | undefined) => string[];
+    /** Adds a Case path a claim derives. Every one in this stage runs before any
+     * agreement collection composes, so claim order cannot change the result. */
+    beforeCaseCoalescence: (derive: () => void) => void;
     /** Completes agreement collections after all Case paths in this stage are known. */
     afterCaseCoalescence: (complete: (cases: DirectedPathPlanItem[]) => void) => void;
   };
