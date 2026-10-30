@@ -77,7 +77,9 @@ test('an exact new extraction wrapper owns its retained host, never its outside 
 
 test('a movement daughter on an existing projection releases the same syntax whichever occurrence keeps the source ID', () => {
   // The same movement written three ways: fresh IDs at both occurrences, the
-  // landing keeping the source ID, and the lower occurrence keeping it.
+  // landing keeping the source ID, and the lower occurrence keeping it. None
+  // releases the receiving interior (lead decision 30 Oct 2026: reserved during
+  // construction; the 8 Oct expectation was an unowned-motion shape).
   const before = view(fork('clause', atom('head'), fork('host', fork('bar', atom('source'), atom('object')))));
   const forms = [
     [view(fork('clause', atom('head'), fork('host', atom('landing'), fork('bar', atom('witness'), atom('object'))))), relation()],
