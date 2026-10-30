@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import { attachmentShapeChanges } from './attachmentShapeChanges.ts';
+import { carriedShift } from './cameraCarry.ts';
 import { categoryMetricKey } from './categoryMetricKey.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
@@ -284,6 +285,16 @@ export function reserveWorkspaceAttachments({
     if ([...currentAttachments].some(([pair, change]) => change > (priorAttachments.get(pair) ?? 0) + 1e-6)) return false;
     const lowerWitnesses = movementParticipants(before, scene);
     const joiningHosts = mode === 'lifetime' ? rigidMovementHosts(scene.step, before.nodes, scene.nodes, previous, currentPositions) : new Set<string>();
+    // Each stage has its own coordinates. A component lifetime travels with
+    // its stage across a crossing (workspaceComponentLifetime crossingCarry), so
+    // there its motion is what remains after the carry (carriedShift) of the
+    // syntax both plans place alike, one reference for both plans.
+    const same = (a: ReadonlyMap<string, Node>, b: ReadonlyMap<string, Node>) => new Map([...a].filter(([id, node]) => {
+      const other = b.get(id);
+      return other && Math.abs(other.x - node.x) <= 1e-6 && Math.abs(other.y - node.y) <= 1e-6;
+    }));
+    const carry = mode === 'lifetime' && before.step.replayFrameIndex !== scene.step.replayFrameIndex
+      ? carriedShift(same(previous, baselineBefore), same(currentPositions, baselineAfter)) : { x: 0, y: 0 };
     return [...currentPositions.values()].every(node => {
       const id = getNodeId(node), moved = previous.get(id);
       if (!moved) return true;
@@ -293,12 +304,12 @@ export function reserveWorkspaceAttachments({
         // The exact lower occurrence participates in its movement moment even
         // when it remains pronounced. Earlier trajectories grant no exception.
         if (lowerWitnesses.has(id) || joiningHosts.has(id) || mergeParticipant) return true;
-        if (regrown && Math.abs(node.y - moved.y) < 1e-6) return true;
+        if (regrown && Math.abs(node.y - carry.y - moved.y) < 1e-6) return true;
       }
-      const priorMotion = Math.hypot(baselineAfter.get(id)!.x - baselineBefore.get(id)!.x,
-        baselineAfter.get(id)!.y - baselineBefore.get(id)!.y);
+      const priorMotion = Math.hypot(baselineAfter.get(id)!.x - carry.x - baselineBefore.get(id)!.x,
+        baselineAfter.get(id)!.y - carry.y - baselineBefore.get(id)!.y);
       return !includeRelationReflow && scene.step.replayKind === 'relation' && priorMotion > 1e-6
-        || Math.hypot(node.x - moved.x, node.y - moved.y) <= priorMotion + 1e-6;
+        || Math.hypot(node.x - carry.x - moved.x, node.y - carry.y - moved.y) <= priorMotion + 1e-6;
     });
   });
   // Validate the assembled cohort, including labels, words and native branches.
@@ -440,6 +451,7 @@ export function reserveWorkspaceAttachments({
   baseline = candidate = direct.coordinates;
   for (const seed of seeds) {
     const before = scenes[seed.index - 1], after = scenes[seed.index];
+    const crossing = before.step.replayFrameIndex !== after.step.replayFrameIndex;
     const earlier = new Map(rendered(before, baseline.get(before.canvas)!).map(node => [getNodeId(node), node]));
     const later = new Map(rendered(after, baseline.get(after.canvas)!).map(node => [getNodeId(node), node]));
     const resolved = (before: ReadonlyMap<string, Node>, after: ReadonlyMap<string, Node>) => {
@@ -449,7 +461,7 @@ export function reserveWorkspaceAttachments({
           visibleComponentNodes(before.get(getNodeId(child))!, before).every(member =>
             Math.abs(after.get(getNodeId(member))!.x - member.x) <= 1e-6));
       }
-      if (seed.attachment !== 'shape') return workspaceComponentIsStationary(before, after, seed.rootId);
+      if (seed.attachment !== 'shape') return workspaceComponentIsStationary(before, after, seed.rootId, crossing);
       const old = before.get(seed.rootId)!, current = after.get(seed.rootId)!;
       return visibleComponentNodes(old, before).every(member => {
         const next = after.get(getNodeId(member))!;

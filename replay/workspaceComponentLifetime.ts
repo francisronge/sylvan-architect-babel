@@ -1,5 +1,6 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
+import { carriedShift } from './cameraCarry.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { getNodeId } from './displayIdentity.ts';
 import { authoredDisplayWord } from './displayWordMaterial.ts';
@@ -61,6 +62,43 @@ const signature = (node: Node, nodes: ReadonlyMap<string, Node>): string => {
 
 function positioned(scene: WorkspacePlacementScene, coordinates: WorkspaceReservations, render: Render): Map<string, Node> {
   return new Map(render(scene, coordinates.get(scene.canvas)!).map(node => [getNodeId(node), node]));
+}
+
+/** The camera carry across a stage crossing from `before` to `after` of the
+ * syntax other than `placed`, which a plan is about to reserve: the
+ * shared-syntax carry (carriedShift, which stage alignment and the camera carry
+ * share). Where that rest is under a quarter of the syntax the two frames share
+ * (the share carriedMedian calls a block), `placed` is itself what the camera
+ * carries there, and the carry is none. */
+export function crossingCarry(before: ReadonlyMap<string, Node>, after: ReadonlyMap<string, Node>, placed: ReadonlySet<string>): Position {
+  const shared = [...before.keys()].filter(id => after.has(id)), rest = shared.filter(id => !placed.has(id));
+  if (4 * rest.length < shared.length) return { x: 0, y: 0 };
+  const without = (nodes: ReadonlyMap<string, Node>) => new Map([...nodes].filter(([id]) => !placed.has(id)));
+  return carriedShift(without(before), without(after));
+}
+
+/** Each stage lays out its own coordinates. A reservation copied from one scene
+ * into a scene of another stage travels with the rest of the tree, by the
+ * crossingCarry of every crossing between them under `coordinates`. Returns the
+ * translation from the coordinates of `scenes[from]` to those of
+ * `scenes[index]`; none within a stage. */
+function crossingShifts(scenes: readonly WorkspacePlacementScene[], coordinates: WorkspaceReservations, render: Render,
+  from: number, placed: ReadonlySet<string>): (index: number) => Position {
+  const carries = new Map<number, Position>();
+  const carry = (k: number) => {
+    let value = carries.get(k);
+    if (!value) carries.set(k, value = crossingCarry(positioned(scenes[k - 1], coordinates, render), positioned(scenes[k], coordinates, render), placed));
+    return value;
+  };
+  return index => {
+    const shift = { x: 0, y: 0 }, sign = index < from ? -1 : 1;
+    for (let k = Math.min(index, from) + 1; k <= Math.max(index, from); k++) {
+      if (scenes[k - 1].step.replayFrameIndex === scenes[k].step.replayFrameIndex) continue;
+      const { x, y } = carry(k);
+      shift.x += sign * x; shift.y += sign * y;
+    }
+    return shift;
+  };
 }
 
 /** Horizontal translations that would overlap ink at a shared vertical range. */
@@ -538,15 +576,20 @@ function clearReservedLifetime(
   for (const [canvas, affected] of shiftedMembers) translateReservation(output, canvas, affected, dx, direction);
 }
 
-/** Check every current member, not just the root, of an unchanged component. */
+/** Check every current member, not just the root, of an unchanged component.
+ * Across a stage crossing (`crossing`) it stands still when it keeps its place
+ * after the crossingCarry of the rest of the tree. */
 export function workspaceComponentIsStationary(
-  before: ReadonlyMap<string, Node>, after: ReadonlyMap<string, Node>, rootId: string
+  before: ReadonlyMap<string, Node>, after: ReadonlyMap<string, Node>, rootId: string, crossing = false
 ): boolean {
   const root = before.get(rootId);
-  return Boolean(root && visibleComponentNodes(root, before).every(node => {
+  if (!root) return false;
+  const members = visibleComponentNodes(root, before);
+  const carry = crossing ? crossingCarry(before, after, new Set(members.map(getNodeId))) : { x: 0, y: 0 };
+  return members.every(node => {
     const next = after.get(getNodeId(node));
-    return next && Math.hypot(next.x - node.x, next.y - node.y) <= 1e-6;
-  }));
+    return next && Math.hypot(next.x - carry.x - node.x, next.y - carry.y - node.y) <= 1e-6;
+  });
 }
 
 /** Find unchanged components whose shape, stationary lifetime or ordinary
@@ -717,6 +760,9 @@ function reserveComponentLifetime(
     last++;
   }
   const final = positioned(scenes[last], base, render);
+  // Every reference below stands in the coordinates of scenes[last].
+  const shiftTo = crossingShifts(scenes, base, render, last,
+    new Set(visibleComponentNodes(final.get(rootId)!, final).map(getNodeId)));
   const output = new Map(base);
   const reservedMembers = new Map<SyntaxNode, Set<string>>();
   let first = last;
@@ -733,7 +779,7 @@ function reserveComponentLifetime(
     first = Math.min(first, start);
     const members = visibleComponentNodes(node, scenes[end].nodes);
     for (let index = start; index <= end; index++) {
-      const scene = scenes[index], coordinates = new Map(output.get(scene.canvas)!);
+      const scene = scenes[index], coordinates = new Map(output.get(scene.canvas)!), shift = shiftTo(index);
       const owned = reservedMembers.get(scene.canvas) ?? new Set<string>();
       for (const member of members) owned.add(getNodeId(member));
       reservedMembers.set(scene.canvas, owned);
@@ -743,9 +789,9 @@ function reserveComponentLifetime(
         group.set(scene.canvas, sourceOwned);
       }
       for (const member of members) {
-        const point = reference.get(getNodeId(member))!;
+        const point = reference.get(getNodeId(member))!, x = point.x + shift.x;
         coordinates.set(getNodeId(member), {
-          x: direction === 'rtl' ? scene.size[0] - point.x : point.x, y: point.y
+          x: direction === 'rtl' ? scene.size[0] - x : x, y: point.y + shift.y
         });
       }
       output.set(scene.canvas, coordinates);
@@ -943,15 +989,16 @@ export function retainUnchangedComponentLifetime(
   const prior = scenes[boundary - 1], root = prior.nodes.get(rootId)!;
   const shape = signature(root, prior.nodes), owner = parent(root, prior.nodes);
   const points = positioned(prior, base, render), members = visibleComponentNodes(root, prior.nodes);
+  const shiftTo = crossingShifts(scenes, base, render, boundary - 1, new Set(members.map(getNodeId)));
   const output = new Map(base);
   let last = boundary - 1;
   for (let index = boundary; index < scenes.length; index++) {
     const scene = scenes[index], current = scene.nodes.get(rootId);
     if (!current || parent(current, scene.nodes) !== owner || signature(current, scene.nodes) !== shape) break;
-    const coordinates = new Map(output.get(scene.canvas)!);
+    const coordinates = new Map(output.get(scene.canvas)!), shift = shiftTo(index);
     for (const member of members) {
-      const id = getNodeId(member), point = points.get(id)!;
-      coordinates.set(id, { x: direction === 'rtl' ? scene.size[0] - point.x : point.x, y: point.y });
+      const id = getNodeId(member), point = points.get(id)!, x = point.x + shift.x;
+      coordinates.set(id, { x: direction === 'rtl' ? scene.size[0] - x : x, y: point.y + shift.y });
     }
     output.set(scene.canvas, coordinates);
     last = index;

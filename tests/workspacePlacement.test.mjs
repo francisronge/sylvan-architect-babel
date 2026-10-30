@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import { reserveWorkspaceAttachments } from '../replay/workspacePlacement.ts';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
+import { paintedShift } from '../replay/cameraCarry.ts';
 
 const node = (id, children = []) => ({ id, label: id, ...(children.length ? { children } : {}) });
 const forest = (...children) => ({ ...node('workspace', children), replayOrigin: { kind: 'workspace' } });
@@ -39,11 +40,28 @@ function scenario({ changedChild = false, ambiguous = false, attached = true, re
     return new Map(layoutSyntaxTree(root, sizes.get(step.replayFrameIndex), direction, maps.get(step.replayCanvasData), visible)
       .descendants().filter(n => visible.has(getNodeId(n))).map(n => [getNodeId(n), { x: n.x, y: n.y }]));
   };
-  return { steps, sizes, originals, baseline, positions };
+  // Whether a node holds its place into step `index`: at the same coordinates,
+  // or across a stage crossing carried with the rest of the tree (each stage
+  // lays out its own coordinates, and the camera carries the shared syntax).
+  const stillInto = (index, maps, direction, id) => {
+    const painted = at => {
+      const step = steps[at], root = d3.hierarchy(step.replayCanvasData); applyVizIds(root);
+      const visible = new Set(step.replayVisibleNodeIds);
+      const nodes = layoutSyntaxTree(root, sizes.get(step.replayFrameIndex), direction, maps.get(step.replayCanvasData), visible)
+        .descendants().filter(n => visible.has(getNodeId(n)));
+      return new Map(nodes.map(n => [getNodeId(n), { x: n.x, y: n.y,
+        parentId: n.parent && visible.has(getNodeId(n.parent)) ? getNodeId(n.parent) : null }]));
+    };
+    const before = painted(index - 1), after = painted(index);
+    const moved = carry => Math.hypot(after.get(id).x - carry.x - before.get(id).x, after.get(id).y - carry.y - before.get(id).y);
+    return moved({ x: 0, y: 0 }) <= 1e-6 || (steps[index - 1].replayFrameIndex !== steps[index].replayFrameIndex
+      && moved(paintedShift(before, after)) <= 1e-6);
+  };
+  return { steps, sizes, originals, baseline, positions, stillInto };
 }
 
 for (const direction of ['ltr', 'rtl']) test(`${direction}: reservation translates the component's own geometry from first selection through attachment`, () => {
-  const { steps, sizes, originals, baseline, positions } = scenario();
+  const { steps, sizes, originals, baseline, positions, stillInto } = scenario();
   const unchanged = JSON.stringify(steps), oldCoordinates = structuredClone(originals);
   const plan = reserveWorkspaceAttachments({ steps, sizes, direction, coordinatesForStage: baseline });
   const selection = positions(0, plan, direction), before = positions(1, plan, direction), after = positions(2, plan, direction);
@@ -57,7 +75,7 @@ for (const direction of ['ltr', 'rtl']) test(`${direction}: reservation translat
   assert.deepEqual(attachmentPoints(plan.get(steps[3].replayCanvasData)),
     attachmentPoints(originals.get(steps[3].replayCanvasData)), 'a changed attachment ends its component reservation');
   for (let index = 1; index < steps.length; index++) {
-    assert.deepEqual(positions(index, plan, direction).get('loose'), selection.get('loose'),
+    assert.ok(stillInto(index, plan, direction, 'loose'),
       'the separate unchanged workspace remains fixed throughout its lifetime');
   }
   assert.deepEqual(originals, oldCoordinates, 'baseline maps are immutable');
@@ -72,7 +90,7 @@ for (const [name, options] of [
   ['still independent workspace', { attached: false }],
   ['ordinary construction boundary', { relation: false }]
 ]) test(`${name} rejects attachment reservation while keeping the independent workspace stable`, () => {
-  const { steps, sizes, originals, baseline, positions } = scenario(options);
+  const { steps, sizes, originals, baseline, positions, stillInto } = scenario(options);
   const originalSteps = JSON.stringify(steps), originalCoordinates = structuredClone(originals);
   const plan = reserveWorkspaceAttachments({ steps, sizes, direction: 'ltr', coordinatesForStage: baseline });
   const before = positions(1, plan, 'ltr'), after = positions(2, plan, 'ltr');
@@ -90,9 +108,8 @@ for (const [name, options] of [
       }
     }
   }
-  const source = positions(0, plan, 'ltr').get('loose');
   for (let index = 1; index < steps.length; index++) {
-    assert.deepEqual(positions(index, plan, 'ltr').get('loose'), source,
+    assert.ok(stillInto(index, plan, 'ltr', 'loose'),
       'unrelated selection and topology changes cannot teleport the independent workspace');
   }
   assert.deepEqual(originals, originalCoordinates);

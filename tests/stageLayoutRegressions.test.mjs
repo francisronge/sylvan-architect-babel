@@ -11,7 +11,7 @@ import { replayMotionFaults } from '../scripts/replayMotionContinuity.mjs';
 // coordinates at 1600x948), each at the step where the stage layout failed.
 const root = fileURLToPath(new URL('../', import.meta.url));
 const { analyses } = JSON.parse(await readFile(new URL('./data/stage-layout-regressions.json', import.meta.url), 'utf8'));
-const { records } = await buildCorpusSnapshot(root, Object.entries(analyses).map(([bug, { source, ...input }]) =>
+const { records } = await buildCorpusSnapshot(root, Object.entries(analyses).map(([bug, { source, provenance, ...input }]) =>
   ({ id: bug, input: { ...input, includePlayback: true }, expect: {} })), { width: 1600, height: 948, direction: 'ltr' });
 const measured = Object.fromEntries(records.map(record => [record.id, record]));
 // Frame numbers are 1-based, as Replay shows them.
@@ -71,4 +71,11 @@ test('Opus n4-21: closing the room 本を leaves does not jump the clause it sta
 
 test('Sol n4-36: the book NP waits near where the relative clause merges with it', () => {
   assert.ok(faultsAt(32, 60).every(fault => fault.distance < 1000), 'the book NP jumps when it merges');
+});
+
+// The same analysis with the lower occurrence keeping the source ID: each stage
+// lays out its own coordinates, so a piece reserved across a crossing must
+// travel with its stage.
+test('Sol n4-14, source ID kept at the lower occurrence: the parked temporal PP waits where it merges', () => {
+  assert.ok(motion('27-source-kept', 101, 'temporalPP') <= 1, 'the PP travels when it merges');
 });
