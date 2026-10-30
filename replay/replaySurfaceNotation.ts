@@ -168,6 +168,13 @@ export const isDisplayTerminalNode = (node: SyntaxNode): boolean =>
 
 export const resolveLeafSurface = (node: d3.HierarchyNode<SyntaxNode>): string => (node.data.word || node.data.label || '').trim();
 
+/** A gap label that is the node's own authored word or label restates what the
+ * tree already shows, whatever index runs the renderer appends to that label. */
+export const isOwnNodeNotation = (node: SyntaxNode | undefined, text: string): boolean => {
+  const notation = text.trim();
+  return Boolean(notation) && [node?.word, node?.label].some(own => own?.trim() === notation);
+};
+
 
 /**
  * Pronunciation is decided by authored fields (nodePronunciation.js). The
