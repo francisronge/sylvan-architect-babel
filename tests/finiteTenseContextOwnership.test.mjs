@@ -241,3 +241,27 @@ test('an Infl projection is a clause boundary like I and T', () => {
     assert.equal(contextOwned(data), false, label);
   }
 });
+
+test('a pronounced nonverbal head between T and the verb keeps the residual', () => {
+  for (const bare of [false, true]) {
+    const phrase = category => bare ? category : `${category}P`;
+    const gerund = { id: 'ger', label: phrase('Ger'), children: [head('gerund', 'Ger'), lexicalVP(phrase)] };
+    const cases = [
+      ['PP over a gerund', { id: 'pp', label: phrase('P'), children: [head('after', 'P', 'after'), gerund] }],
+      ['KP over a gerund', { id: 'kp', label: phrase('K'), children: [head('case', 'K', 'o'), gerund] }]
+    ];
+    for (const [label, sister] of cases)
+      assert.equal(contextOwned(clauseOver(bare, sister)), false, `${bare ? 'bare' : 'phrasal'}: ${label}`);
+  }
+});
+
+test('a complex head daughter with a pronounced verb keeps the residual; a silent one does not', () => {
+  for (const bare of [false, true]) {
+    const phrase = category => bare ? category : `${category}P`;
+    const shell = upper => ({ id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), {
+      id: 'shell', label: phrase('V'), children: [
+        { id: 'complex', label: 'V', children: [upper, head('affix', 'Aff')] }, lexicalVP(phrase)] }] });
+    assert.equal(contextOwned(clauseOver(bare, shell(head('saw', 'V', 'saw')))), false, `${bare ? 'bare' : 'phrasal'}: pronounced complex head`);
+    assert.equal(contextOwned(clauseOver(bare, shell(head('upper-v', 'V')))), true, `${bare ? 'bare' : 'phrasal'}: silent complex shell`);
+  }
+});

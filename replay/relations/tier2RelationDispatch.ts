@@ -340,21 +340,25 @@ const ownFiniteTenseContext = (
   // detour, not part of the verb's projection line. Structure alone cannot
   // tell a D over VP from a v over VP, so the nominal heads are named.
   const nominalHeads = ['D', 'N'];
+  const pronounced = (node: SyntaxNode): boolean => Boolean(node.silent !== true && node.word?.trim())
+    || Boolean(node.children?.some(pronounced));
   // T's sister must reach the verb along the verb's own projection line. Each
   // node either projects the child below it (V′ over V, vP over v′) or is built
-  // by a head daughter taking that child as complement (v over VP, Voice over
-  // vP); that head is never another pronounced verb. No node on the line is
-  // nominal or projects a clause head (C or a finite head, in any notation).
+  // by a head daughter, simple or complex, taking that child as complement
+  // (v over VP, Voice over vP). That head is wholly silent: the verb's own
+  // functional heads add no word between T and the verb, while a pronounced
+  // head (P "after", a Case marker, another verb) starts a different
+  // projection. No node on the line is nominal or projects a clause head
+  // (C or a finite head, in any notation).
   const onVerbLine = (node: SyntaxNode): boolean => {
     if (node.id === verb.id) return true;
     const category = headOf(node);
     if (!category || ['C', ...finiteHeads, ...nominalHeads].includes(category)) return false;
     const below = node.children?.filter(holdsVerb) ?? [];
     if (below.length !== 1) return false;
-    const headDaughter = node.children!.find(other => other !== below[0] && !other.children?.length
+    const headDaughter = node.children!.find(other => other !== below[0]
       && readCategoryLabel(other.label)?.kind === 'head' && headOf(other) === category);
-    if (headDaughter) return !(category === 'V' && headDaughter.silent !== true && headDaughter.word?.trim())
-      && onVerbLine(below[0]);
+    if (headDaughter) return !pronounced(headDaughter) && onVerbLine(below[0]);
     return headOf(below[0]) === category && onVerbLine(below[0]);
   };
   // The head's mother is its projection in any notation (I′, TP over TP, a
