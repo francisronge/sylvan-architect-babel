@@ -32,7 +32,10 @@ test('a landing-kept hop gives the continuing id to its source, and only ids cha
   const { stages, swappedHops, renames } = canonicalizeMovementIdentity(input);
   assert.equal(JSON.stringify(input), before, 'the input is never changed');
   assert.equal(swappedHops, 1);
-  assert.deepEqual(renames.map(rename => [rename.stageIndex, Object.fromEntries(rename.map)]), [[1, { what: 'whatT', whatT: 'what' }]]);
+  // The source keeps "what"; the landing is new, and so is everything it holds.
+  assert.deepEqual(renames.map(rename => [rename.stageIndex, Object.fromEntries(rename.map)]),
+    [[1, { what: 'whatT', whatT: 'what', whatD: 'whatT/whatD' }]]);
+  assert.deepEqual(ids(stages[1].workspaceForest[0].children[0].children), ['whatT/whatD']);
   const [, landingRoot] = [stages[1].workspaceForest[0], stages[1].workspaceForest[0].children[0]];
   assert.equal(landingRoot.id, 'whatT');
   assert.equal(stages[1].workspaceForest[0].children[1].children[1].children[1].id, 'what', 'the source keeps "what"');
@@ -75,8 +78,9 @@ test('a chain renames each hop, and later priorAnchors follow the renamed stage'
   const { stages, swappedHops } = canonicalizeMovementIdentity([s0, s1, s2]);
   assert.equal(swappedHops, 2);
   // Stage 1: the source keeps "who"; the landing is t1. Stage 2: the intermediate (t1) stays, the landing is t2.
-  assert.deepEqual(ids(stages[1].workspaceForest), ['vP', 't1', 'whoD', 'vp', 'see', 'who']);
-  assert.deepEqual(ids(stages[2].workspaceForest), ['cp', 't2', 'whoD', 'vP', 't1', 'vp', 'see', 'who']);
+  // Each landing's subtree is new: whoD at the first landing, then a copy of it at the second.
+  assert.deepEqual(ids(stages[1].workspaceForest), ['vP', 't1', 't1/whoD', 'vp', 'see', 'who']);
+  assert.deepEqual(ids(stages[2].workspaceForest), ['cp', 't2', 't2/t1/whoD', 'vP', 't1', 'vp', 'see', 'who']);
   assert.deepEqual(stages[1].relations[0], { relation: 'edge movement', anchors: { landing: 't1', source: 'who' }, priorAnchors: { from: 'who' } });
   // Stage 2's priorAnchors name stage 1, where the moving occurrence is now t1.
   assert.deepEqual(stages[2].relations[0], { relation: 'wh-movement', anchors: { landing: 't2', source: 't1', foot: 'who' }, priorAnchors: { from: 't1' } });
@@ -129,7 +133,7 @@ test('normalization stores canonical ids, renames the final tree with them, and 
 test('prepareReplay reads canonical stages and renames a final tree built from the authored ones', () => {
   const input = whLandingKept(), prepared = prepareReplay({ derivationStages: input, sentence: 'What Mia see', includePlayback: true });
   assert.deepEqual(prepared.derivationStages, canonicalizeMovementIdentity(input).stages);
-  assert.deepEqual(prepared.finalStageIdRenames, { what: 'whatT', whatT: 'what' });
+  assert.deepEqual(prepared.finalStageIdRenames, { what: 'whatT', whatT: 'what', whatD: 'whatT/whatD' });
   const tree = renameTreeIds(input[1].workspaceForest[0], prepared.finalStageIdRenames);
   assert.deepEqual(ids([tree]), ids(prepared.derivationStages[1].workspaceForest));
   assert.deepEqual(stageIdRenames([], 3), {});

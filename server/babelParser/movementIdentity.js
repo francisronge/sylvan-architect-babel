@@ -8,7 +8,7 @@
  * renames every hop to one form: the occurrence at the source keeps the
  * continuing id and the landing takes the new one.
  *
- * The renaming is a lossless permutation of id strings. Only which string
+ * The renaming is lossless: it changes id strings only. Only which string
  * names which occurrence changes; labels, words, silence, lineage, relations
  * and realizations stay as authored. A hop at stage k renames stage k and every
  * later stage: forests, relation anchors and realization node ids, and the
@@ -19,7 +19,11 @@
  * occurrence is the landing is decided by position, never by id: the
  * continuing occurrence whose parent changed has moved. The two moved subtrees
  * are paired node by node when they have the same shape (a full copy), and
- * otherwise by their roots and the lineages each holds once (a trace).
+ * otherwise by their roots and the lineages each holds once (a trace). As
+ * models write a source-kept copy, the source keeps its ids and the landing's
+ * whole subtree is new: a landing node that still carries an earlier id (a
+ * landing-kept trace hop moves its descendants with it) takes one derived from
+ * the landing's id, `landing/earlier`.
  *
  * The module is pure and reads the nested workspace forest, so normalization
  * and Replay preparation share it.
@@ -169,6 +173,14 @@ export const canonicalizeMovementIdentity = (inputStages, { keep = 'source' } = 
   if (inputStages.some(stage => repeatsId(stage?.workspaceForest))) return { stages: inputStages, swappedHops: 0, renames: [], undecided: [] };
   let stages = inputStages;
   const renames = [], undecided = [];
+  const usedIds = new Set(inputStages.flatMap(stage => preorder(stage?.workspaceForest).map(nodeId).filter(Boolean)));
+  // A new id no stage uses; reserved once its rename is applied.
+  const freshId = (base, map) => {
+    const taken = new Set(map.values());
+    let id = base;
+    for (let n = 2; usedIds.has(id) || taken.has(id); n += 1) id = `${base}#${n}`;
+    return id;
+  };
   const born = new Map();
   const chainHead = new Map();
   preorder(stages[0]?.workspaceForest).forEach(node => { if (nodeId(node)) born.set(node.id, 0); });
@@ -193,6 +205,16 @@ export const canonicalizeMovementIdentity = (inputStages, { keep = 'source' } = 
         if (!sourceId || !landingId || prev.has(take) || !prev.has(give)) continue;
         map.set(sourceId, landingId).set(landingId, sourceId);
       }
+      if (keep === 'source') {
+        // The landing is a new occurrence, as models write a copy whose source
+        // keeps the id: everything it contains takes a new id too, derived from
+        // the landing's id. Lineage stays as authored.
+        const landingNode = cur.get(ends.landing).node, landingId = map.get(landingNode.id) ?? landingNode.id;
+        for (const node of subtree(landingNode).slice(1)) {
+          const id = nodeId(node);
+          if (id && !map.has(id) && prev.has(id)) map.set(id, freshId(`${landingId}/${id}`, map));
+        }
+      }
       if (map.size && stages === inputStages) {
         // Copy on the first rename and read the hop again from the copy. Each
         // stage is copied alone: a caller may share one node object between
@@ -208,6 +230,7 @@ export const canonicalizeMovementIdentity = (inputStages, { keep = 'source' } = 
       for (const [, atLanding] of pairs) if (atLanding.lineageId && nodeId(atLanding)) chainHead.set(String(atLanding.lineageId), atLanding.id);
       if (!map.size) continue;
       renameFrom(stages, k, map);
+      map.forEach(id => usedIds.add(id));
       renames.push({ stageIndex: k, map });
       for (const [lineage, id] of chainHead) if (map.has(id)) chainHead.set(lineage, map.get(id));
       for (const [a, b] of map) if (handled.has(a)) handled.add(b);
