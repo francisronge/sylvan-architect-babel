@@ -1040,7 +1040,7 @@
       ]
     },
     "replay-regressions/astra-turkish-relative-2.json#": {
-      "frames": "SxIk2Oup yfgJ_djj s3XrhNCs w265Q5ap zTBDDsRL NEsODtbq -sH79z7a 9i863ydG 1HAzhhwX TNJxduzh kipf_oAY w78Ct061 -AsOK0VG OYjexJ49 nGXZqUy4 rqktjEtJ iPMEfvB2 zx9LTVdq QRJn1iEr jkVkU0_9 P3_fwjC- nU6xn4_H qp9lEWEZ OMteWt9Y sqv3TzND k13Y7M83 VJSXb1x2 ysRF2d7Q ZEYRE4nn mEu6QqI0 LW_KYxlE e4ngjxA9 OQzQtozZ KgOKiiHe UK1iAkH5 b56M6tcW eNaepyqM o5JnE6S6 saOBdSzM 9JHER1YZ E26Z_aSy MZHEJWaf VwcUXAZv -Kun47AX TKD63nzB _nHxQsfm jmpZuk5T 97HOtJ5T",
+      "frames": "SxIk2Oup yfgJ_djj s3XrhNCs w265Q5ap zTBDDsRL NEsODtbq -sH79z7a 9i863ydG 1HAzhhwX TNJxduzh kipf_oAY w78Ct061 -AsOK0VG OYjexJ49 nGXZqUy4 -gWJjyyR RgGrsldU EjoVioiy _Y0v8zOV 2VC0YXpV cJfFMlJR O_8gFbdQ VLLmzt4y YHX4JDCY iAaUF6mH tpjn0e5j ugzRZLnZ Zr2uL6uT xBPd_WsJ xOnnkXjg Fv3pi_9c hBuok2B2 RjVxqvnL nqI_2nX2 cm5xtbFl TCoUPlse fFrxPzMA KQKRrc-l xebwvYaK T69wThWH 1E15SZW- P9ve9u6k Rca9_FFf aiK6RMdP QTt4CSUk Sur8MuVE HbZKCHlE RObYZW-U",
       "canopy": "Yw76cP0E",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -1057,6 +1057,8 @@
         "1:3 T2 node-badges theta.grid theta-grid",
         "1:3 T2 node-plaque theta.grid theta-grid",
         "1:4 T2 directed-path tier2.feature-dependency feature.dependency",
+        "1:4 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "1:4 T3 fallback",
         "1:5 T3 fallback",
         "2:0 T2 node-badges tier2.gap-notation gap.notation",
         "2:0 T3 fallback"
@@ -2814,7 +2816,7 @@
       ]
     },
     "replay-regressions/review-workspace-boundaries.json#/cases/0": {
-      "frames": "jcrM6SqQ RsrtuCoF aKmsuRj0 5e_le2Cg EV7a8XX4 Hb4KiDyr UVVlxv8s NS3E_D-X SNSM0hSR OM3RDyvt ZQuvPiwG fFUao1Ja zwNG1fEr BGJQOqlY cGPHzhXx xi5TJsz7 0yKZuNeC 106Us3ym Z8fLFFeS F_etYD8d cedv7dBb TVxYBJln wAIy8Gqm 38zUpw62 37eRk8sk a-C_H8FP Gm3ZnCQY v4ITulkC txmVRULv BQeYI39y tLikFlRJ 1IRvRasj XwIP2rk1 LTy-roqD apV8RMuX R8beWVE- ziuF76SG xwAI_K73 hK7ptFXo Gol1UzZj q89Qeroz HsoOURDi EjmPci4l Bf9G7MSl cIIJOuRK 2tWRs-3y Ag2wVOME h-P6rzev K_TrsHp4 DxgJMq3L DCwYl3DQ YO1TqPXY -_cb-SnT imNKhgCs dKqUmQNS sUm-Xeh0 DGxHKww_ c5kkJpIR",
+      "frames": "jcrM6SqQ RsrtuCoF aKmsuRj0 5e_le2Cg EV7a8XX4 Hb4KiDyr UVVlxv8s NS3E_D-X SNSM0hSR OM3RDyvt ZQuvPiwG fFUao1Ja zwNG1fEr BGJQOqlY cGPHzhXx xi5TJsz7 0yKZuNeC 106Us3ym Z8fLFFeS F_etYD8d cedv7dBb TVxYBJln wAIy8Gqm 38zUpw62 37eRk8sk a-C_H8FP Gm3ZnCQY v4ITulkC txmVRULv BQeYI39y tLikFlRJ 1IRvRasj WtqjC15z bmQgf4kI QnAHZ1sW d4qr39vB aWFPI8Mb kz2Ccqcj HBBikdye EKq7dVM6 fYKKnIJK Asp0QxiG ty_wgHKP YnQplEHN 7LHe6Pls ekbm1LU2 T90TzqHM ZL52czRr ROuGmtf- VUiX14bQ Q44DLk-i HOR6VyTh jTyLHkSi hVYu75VN g29G6fUH EgwIHe_E K9d_fOG8 3HhCcGq1",
       "canopy": "LFEIRQiM",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -2828,6 +2830,7 @@
         "2:1 T2 trajectory tier2.movement-path movement.path",
         "2:1 T3 fallback",
         "3:0 T1 trajectory trajectory.head",
+        "3:1 T1 directed-path agree.plaque",
         "3:1 T1 node-plaque agree.plaque",
         "3:2 T2 trajectory tier2.movement-path movement.path",
         "3:2 T3 fallback",
@@ -2842,6 +2845,7 @@
         "6:0 T3 fallback",
         "7:0 T1 trajectory trajectory.head",
         "8:0 T1 trajectory trajectory.head",
+        "8:1 T1 directed-path agree.plaque",
         "8:1 T1 node-plaque agree.plaque",
         "8:2 T2 trajectory tier2.movement-path movement.path",
         "8:2 T3 fallback",
@@ -4728,17 +4732,19 @@
       ]
     },
     "replay-regressions/workspace-spanish-continuity.json#": {
-      "frames": "ISfc4lBI Q8CNWTwt H0l4iN-T IuUT835H fGGfz4-F -0mDq-uB TOCQngBd 0FCMud1O u_FFacsf mzqUXDXq D-X93Nm0 z6XgvjXb Bydp1Eol UZj0q3rj sHcLB6gb 2kD8VdCm A7sVzAQN XmGEpBD2 j8x74RhQ ojfQstxZ 5yl6XJAT JoDH5Nhk 1i3QbUPu 7jixUBFH yY2biqb4 4ZDZT7iq E1C_9KQY WoC4Pm_D N48MW-H_ O6QE9MZt pr0YS-qJ TMB8lQ3w 3dIl2JED XVL67v6R SbqQO7NT GNu53ccc Olf2UnMO pBeJHDSD OxNH2E2_ q4qa4jZp",
+      "frames": "ISfc4lBI Q8CNWTwt H0l4iN-T IuUT835H fGGfz4-F -0mDq-uB TOCQngBd 0FCMud1O u_FFacsf mzqUXDXq D-X93Nm0 z6XgvjXb Bydp1Eol UZj0q3rj sHcLB6gb 2kD8VdCm A7sVzAQN XmGEpBD2 j8x74RhQ rMeaYPeg SmEu3_Rp Ry8fZ4Em snO_OmW5 mpcwYF8B 1acLIH-V AGHEZVhl IdfaQNVj nqlmsBB4 TytlrECa UlsPAIVy GCM3TYGT 6sUxBaW0 L_2r6se7 wS7oi_Q4 jszylrAH g13PNLWR xFvnHVe_ lIVv4Xfo 8N6luPpe 6-_nmyL-",
       "canopy": "_ozaybyV",
       "tiers": [
         "1:0 T1 trajectory trajectory.head",
         "2:0 T1 trajectory trajectory.head",
+        "2:1 T1 directed-path agree.plaque",
         "2:1 T1 node-plaque agree.plaque",
         "2:2 T2 trajectory tier2.movement-path movement.path",
         "2:2 T3 fallback",
         "2:3 T3 fallback",
         "3:0 T1 trajectory trajectory.head",
         "4:0 T1 trajectory trajectory.head",
+        "4:1 T1 directed-path agree.plaque",
         "4:1 T1 node-plaque agree.plaque",
         "4:2 T2 trajectory tier2.movement-path movement.path",
         "4:2 T3 fallback",

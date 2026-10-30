@@ -187,6 +187,7 @@ export const compileDispatchedRelationRenderPlan = (
       ? stageNodeMaps[stageIndex - 1]
       : null;
     const relations = Array.isArray(stage?.relations) ? stage.relations : [];
+    const pendingCaseDerivations: Array<() => void> = [];
     const pendingAgreementCollections: Array<(cases: DirectedPathPlanItem[]) => void> = [];
     /*
      * PF composition provenance: a VocabularyInsertion row joins a
@@ -588,6 +589,7 @@ export const compileDispatchedRelationRenderPlan = (
           output: {
             requireResolved, pushDiagnostic, items, dependencyIndexFor,
             pushCompositeTrajectory, pushNeutralFallback, resolvedIds,
+            beforeCaseCoalescence: derive => { pendingCaseDerivations.push(derive); },
             afterCaseCoalescence: complete => { pendingAgreementCollections.push(complete); }
           }
         });
@@ -605,6 +607,7 @@ export const compileDispatchedRelationRenderPlan = (
         }
       }
     });
+    pendingCaseDerivations.forEach(derive => derive());
     const caseItems = coalescedCaseItems(items);
     pendingAgreementCollections.forEach(complete => complete(caseItems));
     pendingNeutralFallbacks.forEach((presentFallbackIfStillNeeded) => {

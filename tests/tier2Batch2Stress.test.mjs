@@ -64,9 +64,13 @@ for (const blank of ['', ' ']) {
 }
 
 test('Case preserves repeated recipient occurrences without inferring their meaning', () => {
-  const result = inspect(relation({ assigner: 'v', recipient: ['a', 'a'] }, { recipient: ['NOM', 'not-a-restriction'] }));
+  const result = inspect(relation({ assigner: 'v', recipient: ['a', 'a'] }, { recipient: ['NOM', 'opaque-literal'] }));
   assert.deepEqual(result.items.filter(item => item.pathStyle === 'case-assignment').map(item => [item.fromNodeId, item.toNodeId, item.label]),
-    [['v', 'a', 'NOM'], ['v', 'a', 'not-a-restriction']]);
+    [['v', 'a', 'NOM'], ['v', 'a', 'opaque-literal']]);
+  // Babel does not parse prose (lead decision, 30 Oct 2026): a Case literal holding a
+  // denial word anywhere ("not") draws no Case path, so neither occurrence draws.
+  const denied = inspect(relation({ assigner: 'v', recipient: ['a', 'a'] }, { recipient: ['NOM', 'not-a-restriction'] }));
+  assert.equal(denied.items.filter(item => item.pathStyle === 'case-assignment').length, 0);
   assert(!inspect(relation({ assigner: 'a', recipient: ['a', 'b'] }, { case: ['NOM', 'ACC'] })).facets.includes('feature.dependency'));
 });
 

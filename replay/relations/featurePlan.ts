@@ -2,7 +2,8 @@ import { nativeThetaAssignments } from './compoundAssignments.ts';
 import type { FacetPlanCompilers, FacetPlanContext } from './facetPlanContext.ts';
 import { collectionAssignment } from './featureComposition.ts';
 import { prepareNativeDependentCaseStep } from './nativeDrawingContent.ts';
-import { authoredPathOutcome } from './outcomeResolver.ts';
+import { isUnestablishedCaseValue } from './featureEvidence.ts';
+import { authoredPathOutcome, establishesAssignment } from './outcomeResolver.ts';
 import { collectSubtreeLeafIds, flattenAnchorIds } from './planSyntax.ts';
 import { scalarValue, verbatimRows } from './planValues.ts';
 import type { RegisteredPlanCompilers } from './registeredPlanContext.ts';
@@ -13,13 +14,36 @@ import {
   type NodeBadgesPlanItem,
   type NodePlaquePlanItem
 } from './renderPlan.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { literalThetaRoles, notationFeatureLabel, pairedLiterals } from './tier2EvidenceQueries.ts';
 import { featureDependencyRows, singleValue, valueItems } from './tier2PlanValues.ts';
 
+/** In Minimalism, structural Case is a reflex of Agree: an exact Agree that
+ * values its goal's Case shows that Case on its own probe→goal path, with the
+ * pixels of a Case assignment (Francis, 30 Oct 2026). The probe does not become
+ * a separate giver. The claim must establish its outcome and supply one
+ * established literal paired with its one goal; the row it came from is the
+ * plaque row that path replaces. */
+function goalCaseRow(
+  evidence: Tier2FacetEvidence,
+  rows: Array<{ label: string; value: string }>,
+  anchors: Record<string, string | string[]>
+) {
+  const fields = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('case.literal'));
+  const literals = pairedLiterals(evidence, 'feature.target', 'case.literal');
+  const probes = flattenAnchorIds(anchors.probe), goals = flattenAnchorIds(anchors.goal);
+  if (probes.length !== 1 || goals.length !== 1 || fields.length !== 1 || fields[0].items.length !== 1
+    || literals?.length !== 1 || literals[0] !== fields[0].items[0] || !literals[0].trim()
+    || JSON.stringify(evidence.currentAnchors['feature.target']) !== JSON.stringify(goals)
+    || isUnestablishedCaseValue(literals[0]) || !establishesAssignment(evidence)) return undefined;
+  const matches = rows.filter(row => row.label === fields[0].key && row.value === literals[0]);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
 export const featurePlan = {
   'feature-plaque': (context) => {
-    const { anchors, values, familyId, relationIndex, base, claimDispatch } = context.claim;
-    const { pushDiagnostic, requireResolved, afterCaseCoalescence, items, pushNeutralFallback } = context.output;
+    const { anchors, values, authoredValues, familyId, relationIndex, base, claimDispatch } = context.claim;
+    const { pushDiagnostic, requireResolved, beforeCaseCoalescence, afterCaseCoalescence, items, pushNeutralFallback } = context.output;
     const { caseAgreementRow } = context.lookup;
     const { stageIndex, nodes } = context.workspace;
     const anchorEntries = Object.entries(anchors);
@@ -35,7 +59,32 @@ export const featurePlan = {
       const probe = flattenAnchorIds(anchors.probe)[0];
       const goal = flattenAnchorIds(anchors.goal)[0];
       const collectionRow = caseAgreementRow(stageIndex, relationIndex);
+      const caseRow = goalCaseRow(claimDispatch.evidence, rows, anchors);
       let standalone: NodePlaquePlanItem | NodeBadgesPlanItem | undefined;
+      beforeCaseCoalescence(() => {
+        if (caseRow && standalone?.kind === 'node-plaque' && nodes.has(goal)) {
+          const casePath: DirectedPathPlanItem = {
+            ...base,
+            kind: 'directed-path',
+            fromNodeId: probe,
+            toNodeId: goal,
+            pathStyle: 'case-assignment',
+            label: caseRow.value,
+            ...(authoredPathOutcome(authoredValues) ? { outcome: authoredPathOutcome(authoredValues) } : {})
+          };
+          // Another claim of this stage that already draws Case to this goal
+          // keeps its path, and this Agree keeps its row, as before.
+          if (!items.some(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment'
+            && item.toNodeId === goal && planItemsShareAuthoredStage(item, casePath))) {
+            items.push(casePath);
+            standalone.rows = standalone.rows.filter(row => row !== caseRow);
+            if (!standalone.rows.length) {
+              items.splice(items.indexOf(standalone), 1);
+              standalone = undefined;
+            }
+          }
+        }
+      });
       afterCaseCoalescence(caseItems => {
         if (!standalone || !nodes.has(goal)) return;
         const path: DirectedPathPlanItem = {
