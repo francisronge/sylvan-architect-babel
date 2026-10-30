@@ -131,15 +131,16 @@ test('every complete fixture restated as spell-out reaches the same parse and Re
   assert.ok(resegmented >= 5, `only ${resegmented} resegmented fixtures`);
 });
 
-test('a spelling group the conversion makes holds from its word\'s first stage and is never shown at a relation moment', () => {
+test('a spelling group the conversion makes stands from its word\'s first stage and never turns on at an unrelated relation', () => {
   // A word that spells its stretch across a space (inw for "in w", Opus
   // h1-093) becomes a single-leaf group of the conversion's own. Each fixture,
   // restated as spell-out, is read once more with a space inside one of its
-  // final words. Its group must stand in every stage from the word's first one
-  // and Replay must hold it from each such stage's first step: it never
-  // switches on at a relation moment.
+  // final words. Its group must stand in every stage from the word's first one.
+  // Replay turns it on only where a stage starts or at the moment of a relation
+  // that covers its word; several covering relations stay ambiguous as for any
+  // group, but none is never guessed at.
   const key = group => JSON.stringify([group.nodeIds, group.tokenIndices]);
-  let groups = 0, earlier = 0;
+  let groups = 0, earlier = 0, unowned = 0;
   for (const record of fixtureRecords()) {
     if (record.payload.analyses) continue;
     const tokens = resolveSavedInputTokens(record.sentence, record.inputTokens);
@@ -155,26 +156,29 @@ test('a spelling group the conversion makes holds from its word\'s first stage a
     assert.ok(result.ok, `${record.label}: ${JSON.stringify(result.diagnostics)}`);
     const group = result.spellingGroups.find(entry => entry.nodeIds[0] === unit.nodeId);
     assert.ok(group, `${record.label}: ${unit.nodeId} spells "${unit.token}" across a space`);
-    // As a live parse does: the conversion's groups are recorded in provenance and Replay reads them there.
-    const [analysis] = normalizeParseBundle(structuredClone(spellout), record.framework, sentence, 'gpt', true, { spellout: true }).analyses;
-    assert.deepEqual(analysis.provenance.spellingGroups, result.spellingGroups, record.label);
-    const stages = analysis.derivationStages;
-    const replay = prepareReplay({ sentence, inputTokens: result.inputTokens, derivationStages: stages,
-      spellingGroups: analysis.provenance.spellingGroups, includePlayback: true });
+    const stages = normalize(result.analysis, sentence, result.inputTokens, record.framework).analyses[0].derivationStages;
+    const replay = prepareReplay({ sentence, inputTokens: result.inputTokens, derivationStages: stages, includePlayback: true });
     groups += 1;
     const held = stages.map(stage => (stage.realizations ?? []).some(entry => key(entry) === key(group)));
     const first = held.indexOf(true);
     assert.ok(first >= 0 && held.slice(first).every(Boolean), `${record.label}: ${key(group)} stands in every stage from ${first + 1}`);
     if (first < stages.length - 1) earlier += 1;
-    replay.playbackSteps.forEach((step, stepIndex) => {
-      const shown = (step.replayRealizations ?? []).some(entry => key(entry) === key(group));
-      assert.equal(shown, held[step.replayFrameIndex], `${record.label}: ${key(group)} at step ${stepIndex + 1}`);
+    const steps = replay.playbackSteps, shown = steps.map(step => (step.replayRealizations ?? []).some(entry => key(entry) === key(group)));
+    steps.forEach((step, index) => {
+      if (shown[index]) assert.ok(held[step.replayFrameIndex], `${record.label}: ${key(group)} at step ${index + 1}`);
+      if (!shown[index] || shown[index - 1] && steps[index - 1].replayFrameIndex === step.replayFrameIndex) return;
+      if (steps[index - 1]?.replayFrameIndex !== step.replayFrameIndex) { unowned += 1; return; }
+      const relation = stages[step.replayFrameIndex].relations[step.replayRelationIdentity?.relationIndex];
+      assert.ok(step.replayKind === 'relation' && Object.values(relation?.anchors ?? {}).flat().includes(unit.nodeId),
+        `${record.label}: ${key(group)} turns on at step ${index + 1}, a moment that does not cover ${unit.nodeId}`);
     });
-    assert.deepEqual(replay.playbackSteps.flatMap(step => step.replayRealizationDiagnostics ?? [])
-      .filter(diagnostic => diagnostic.includes(`positions ${group.tokenIndices.join(', ')}.`)), [], record.label);
+    assert.deepEqual(steps.flatMap(step => step.replayRealizationDiagnostics ?? [])
+      .filter(diagnostic => /REALIZATION_MISSING_OWNER/.test(diagnostic) && diagnostic.includes(`positions ${group.tokenIndices.join(', ')}.`)),
+    [], record.label);
   }
   assert.ok(groups >= 50, `only ${groups} spelling groups checked`);
   assert.ok(earlier >= 25, `only ${earlier} spelling groups stand before the final stage`);
+  assert.ok(unowned >= 25, `only ${unowned} spelling groups hold from a stage's start`);
 });
 
 test('a group spells its text once, at its first pronounced terminal', () => {

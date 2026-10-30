@@ -113,23 +113,21 @@ test('missing or ambiguous timing shows at the last covering or last relation mo
   }
 });
 
-test('an authored group that spells its own word keeps the relation that covers it; only a conversion-made one holds unasked', () => {
-  // Sol's review of #318: an authored root group for walk was taken for a
-  // spelling association and switched on before its owner. The conversion's own
-  // groups (Provenance.spellingGroups) hold from the stage's first step.
+test('a group that spells its own word keeps the relation that covers it; one no relation covers holds from its stage\'s start', () => {
+  // Sol's review of #318: an authored root group for walk was switched on
+  // before the relation that covers it. Only one no relation covers, such as
+  // the spelling conversion's inw for "in w", holds without an owner.
   const walkForest = [node('domain', [{ id: 'root', label: 'V', word: 'walk', children: [] }, node('other')])];
-  const stages = [stage(), stage([group(['root'], [0])], [relation(['other']), relation(['root'])], walkForest)];
-  const frames = adaptDerivationStagesForReplay(stages);
+  const play = relations => buildReplayPlayback({ sentence: 'walk', inputTokens: ['walk'],
+    analyses: [{ tree: walkForest[0], derivationStages: [stage(), stage([group(['root'], [0])], relations, walkForest)] }] }).steps;
+  const frames = adaptDerivationStagesForReplay([stage(), stage([group(['root'], [0])], [relation(['other']), relation(['root'])], walkForest)]);
   assert.equal(resolveRealizationChanges(frames[0], frames[1], 1, ['walk'])[0].relationIndex, 1);
-  const authored = buildReplayPlayback({ sentence: 'walk', inputTokens: ['walk'],
-    analyses: [{ tree: walkForest[0], derivationStages: stages }] }).steps;
-  const [unrelated, owner] = moments(authored, 1);
+  const [unrelated, owner] = moments(play([relation(['other']), relation(['root'])]), 1);
   assert.deepEqual(unrelated.replayRealizations, []);
   assert.deepEqual(owner.replayRealizations, [group(['root'], [0])]);
-  const converted = buildReplayPlayback({ sentence: 'walk', inputTokens: ['walk'], analyses: [{ tree: walkForest[0],
-    derivationStages: stages, provenance: { spellingGroups: [group(['root'], [0])] } }] }).steps;
-  for (const step of converted.filter(step => step.replayFrameIndex === 1)) assert.deepEqual(step.replayRealizations, [group(['root'], [0])]);
-  assert(converted.every(step => !step.replayRealizationDiagnostics?.length));
+  const unowned = play([relation(['other'])]);
+  for (const step of unowned.filter(step => step.replayFrameIndex === 1)) assert.deepEqual(step.replayRealizations, [group(['root'], [0])]);
+  assert(unowned.every(step => !step.replayRealizationDiagnostics?.length));
 });
 
 test('ambiguous realization descriptions never win by wording or list order', () => {

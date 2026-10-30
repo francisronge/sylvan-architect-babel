@@ -4,6 +4,9 @@ import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { convertSpelloutPayload } from '../server/babelParser/spellout.js';
+import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
+import { planSpelloutAttempts } from '../contractQualification/spelloutArtifacts.js';
+import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import { checkOneLetterPerLabel } from './helpers/replayInvariants.mjs';
 
@@ -46,7 +49,7 @@ test('Sol h1-070: a theta letter and an equal binding letter on one trace show t
   for (const key of ['sol-h1-070-a1', 'sol-h1-070-a2']) assert.deepEqual(checkOneLetterPerLabel(prepare(key)), [], key);
 });
 
-test('Opus h1-093: a word that spells its token across a space is associated from its own first stage, never at a relation', () => {
+test('Opus h1-093: a word that spells its token across a space times alike on every load path, never at an unrelated relation', () => {
   // Erg1's word inw spells the token "in w". The spelling conversion records
   // that as a single-leaf group; it used to add it to the final stage only, so
   // Replay reported REALIZATION_MISSING_OWNER and activated it at the stage's
@@ -54,29 +57,33 @@ test('Opus h1-093: a word that spells its token across a space is associated fro
   const { sentence, authoredPayload } = records['opus-h1-093-a1'];
   const [converted] = convertSpelloutPayload(structuredClone(authoredPayload), sentence);
   assert.ok(converted.ok, JSON.stringify(converted.diagnostics));
-  const group = { nodeIds: ['Erg1'], tokenIndices: [1] };
+  const group = { nodeIds: ['Erg1'], tokenIndices: [1] }, key = JSON.stringify(group);
   assert.deepEqual(converted.spellingGroups, [group]);
-  const stages = converted.analysis.derivationStages;
-  const present = stages.map(stage => (stage.realizations ?? []).some(entry => JSON.stringify(entry) === JSON.stringify(group)));
   // Erg1 first stands, pronounced inw, in stage 7.
-  assert.deepEqual(present, [false, false, false, false, false, false, true, true]);
-  // The live parse records the conversion's groups in provenance; the saved record predates that.
-  const bundle = normalizeParseBundle(structuredClone(authoredPayload), 'minimalism', sentence, 'claude', true, { spellout: true });
-  const [analysis] = bundle.analyses;
-  assert.deepEqual(analysis.provenance.spellingGroups, [group]);
-  for (const replay of [
-    prepareReplay({ sentence, inputTokens: bundle.inputTokens, derivationStages: analysis.derivationStages,
-      spellingGroups: analysis.provenance.spellingGroups, includePlayback: true }),
-    prepare('opus-h1-093-a1')
-  ]) {
-    const steps = replay.playbackSteps;
-    assert.deepEqual(steps.flatMap(step => step.replayRealizationDiagnostics ?? []), []);
-    // From the first step of each stage that holds it, never switched on at a moment.
-    steps.forEach((step, index) => {
-      const holds = (step.replayRealizations ?? []).some(entry => JSON.stringify(entry) === JSON.stringify(group));
-      const authored = (replay.replayDerivationFrames[step.replayFrameIndex].after?.realizations ?? [])
-        .some(entry => JSON.stringify(entry) === JSON.stringify(group));
-      assert.equal(holds, authored, `step ${index + 1}`);
-    });
-  }
+  assert.deepEqual(converted.analysis.derivationStages.map(stage => (stage.realizations ?? []).some(entry => JSON.stringify(entry) === key)),
+    [false, false, false, false, false, false, true, true]);
+  const live = normalizeParseBundle(structuredClone(authoredPayload), 'minimalism', sentence, 'claude', true, { spellout: true });
+  const [attempt] = planSpelloutAttempts(authoredPayload, [converted]).attempts;
+  const qualification = normalizeParseBundle(structuredClone(attempt.payload), 'minimalism', sentence, 'claude', true,
+    { inputTokens: attempt.inputTokens });
+  const saved = loadTreeBankBundleSnapshot(createTreeBankBundleSnapshot({ ...live, sentence }));
+  const timing = bundle => buildReplayPlayback({ ...bundle, sentence, inputTokens: bundle.inputTokens ?? converted.inputTokens }).steps
+    .map(step => [(step.replayRealizations ?? []).some(entry => JSON.stringify(entry) === key), step.replayRealizationDiagnostics ?? []]);
+  const expected = timing(live);
+  assert.deepEqual(timing(qualification), expected, 'qualification normalization');
+  assert.deepEqual(timing(saved), expected, 'Tree Bank snapshot');
+  assert.deepEqual(expected.flatMap(([, diagnostics]) => diagnostics), []);
+  // It turns on only where a stage starts or at a relation that covers Erg1.
+  const steps = buildReplayPlayback({ ...live, sentence }).steps;
+  const stages = live.analyses[0].derivationStages;
+  steps.forEach((step, index) => {
+    if (!expected[index][0] || expected[index - 1]?.[0] || steps[index - 1]?.replayFrameIndex !== step.replayFrameIndex) return;
+    const relation = stages[step.replayFrameIndex].relations[step.replayRelationIdentity?.relationIndex];
+    assert.ok(step.replayKind === 'relation' && Object.values(relation.anchors).flat().includes('Erg1'), `step ${index + 1}`);
+  });
+  // The saved record, which holds the group in the final stage only, has it from that stage's start.
+  const old = prepare('opus-h1-093-a1');
+  assert.deepEqual(old.playbackSteps.flatMap(step => step.replayRealizationDiagnostics ?? []), []);
+  old.playbackSteps.forEach((step, index) => assert.equal((step.replayRealizations ?? []).some(entry => JSON.stringify(entry) === key),
+    step.replayFrameIndex === 7, `saved step ${index + 1}`));
 });
