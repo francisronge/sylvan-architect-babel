@@ -212,9 +212,11 @@ export function preparePlaqueObstacleIndex<T extends ObstacleRect>(obstacles: re
   return { overlaps, inColumn, some };
 }
 
-/** Vertical order is fixed while a plaque searches different horizontal pockets. */
-export function preparePlaqueColumnIntervals(obstacles: readonly ObstacleRect[], height: number, gap = 24) {
-  const ordered = obstacles.map(box => ({ x: box.x, right: box.x + box.width + gap,
+/** Vertical order is fixed while a plaque searches different horizontal pockets.
+ * `sideGap`, the horizontal gap, may be a hair narrower than `gap`, so that a
+ * column placed `gap` beside an obstacle is not met by that obstacle through rounding. */
+export function preparePlaqueColumnIntervals(obstacles: readonly ObstacleRect[], height: number, gap = 24, sideGap = gap) {
+  const ordered = obstacles.map(box => ({ x: box.x, right: box.x + box.width + sideGap,
     low: box.y - height - gap, high: box.extendsDownward ? Infinity : box.y + box.height + gap }))
     .sort((a, b) => a.low - b.low);
   type Interval = (typeof ordered)[number];
@@ -224,7 +226,7 @@ export function preparePlaqueColumnIntervals(obstacles: readonly ObstacleRect[],
     else merged.push([interval.low, interval.high]);
   };
   const scan = (x: number, width: number) => {
-    const right = x + width + gap;
+    const right = x + width + sideGap;
     const merged: number[][] = [];
     for (const interval of ordered) if (x < interval.right && right > interval.x) merge(merged, interval);
     return merged;
@@ -255,7 +257,7 @@ export function preparePlaqueColumnIntervals(obstacles: readonly ObstacleRect[],
   };
   let queried = false, stamp = 0;
   return (x: number, width: number): number[][] => {
-    const right = x + width + gap;
+    const right = x + width + sideGap;
     const first = cellOf(x), last = cellOf(right);
     // A single column needs no index.
     if (!queried || !(last - first <= reach)) { queried = true; return scan(x, width); }

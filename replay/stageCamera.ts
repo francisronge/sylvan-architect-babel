@@ -396,6 +396,10 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     }
     return moved(id);
   };
+  /** The relations of its stage played by the last step of phase `phaseIndex`. */
+  const playedByPhase = (phaseIndex: number) => new Set(phases.slice(0, phaseIndex + 1)
+    .filter(phase => phase.stageIndex === phases[phaseIndex].stageIndex)
+    .flatMap(phase => phase.scenes.flatMap(scene => [...scene.playedRelations ?? []])));
   type Request = typeof phaseRequests[number][number];
   /** A pocket chosen in this phase stays clear until `end`, where the participants'
    * relative geometry changes. `movement` is the first earlier phase whose authored
@@ -433,6 +437,10 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   const pocketScenes = (key: string, anchor: d3.HierarchyPointNode<SyntaxNode>, phaseIndices: readonly number[],
     othersAt: (phaseIndex: number) => ReadonlyMap<number, PlaquePlacement>): LifetimeScene[] => {
     const anchorId = String((anchor as any).__vizId ?? anchor.data.id);
+    // Where these phases end inside a stage, its later marks are no obstacle in them.
+    const last = phaseIndices.at(-1);
+    const playedThrough = last !== undefined && phases[last + 1]?.stageIndex === phases[last].stageIndex
+      ? playedByPhase(last) : null;
     return phaseIndices.flatMap(phaseIndex => {
       const space = phases[phaseIndex], items = space.items, requests = requestsByIndex(phaseIndex);
       const futureIndex = items.findIndex(item => plaqueIdentity(item) === key);
@@ -477,7 +485,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
           }
           return visible;
         };
-        return [{ nodes: scene.nodes, obstacles: scene.obstacles, anchor: futureAnchor, request: futureRequest, owner: key,
+        return [{ nodes: scene.nodes, obstacles: scene.reservedThrough(space.stageIndex === phases[last!].stageIndex ? playedThrough : null),
+          anchor: futureAnchor, request: futureRequest, owner: key,
           dx: anchor.x - futureAnchor.x, dy: anchor.y - futureAnchor.y, caseVisible: rowVisible(caseOwners), rowVisible, added }];
       });
     });
@@ -510,6 +519,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     // An old pocket blocked by current syntax or a fixed collection must move.
     // Remove it before allocating neighbours so its abandoned position cannot
     // force them into remote pockets. Accepted pockets still own continuity.
+    // A mark its stage paints after this phase blocks only the lifetimes that reach it.
+    const paintedBy = phases[phaseIndex + 1]?.stageIndex === phase.stageIndex ? playedByPhase(phaseIndex) : null;
     if (!collectionsOnly) phaseRequests[phaseIndex].forEach(request => {
       if (collectionReservations[phaseIndex]?.has(request.index)) return;
       const key = plaqueIdentity(frame.items[request.index]), prior = remembered.get(key);
@@ -519,7 +530,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         const pocket = projectPlaqueLayout(new Map([[request.index, projectPlaqueContent(prior, request)]]), id => byId.get(id)).get(request.index);
         if (!pocket) return false;
         const collections = projectPlaqueLayout(collectionReservations[phaseIndex] ?? new Map(), id => byId.get(id));
-        return [...scene.obstacles, ...collections.values()].some(obstacle => !obstacle.enclosedPlaques?.has(key)
+        return [...scene.reservedThrough(paintedBy), ...collections.values()].some(obstacle => !obstacle.enclosedPlaques?.has(key)
           && plaquesOverlap(pocket, obstacle));
       });
       if (invalid) remembered.delete(key);
@@ -1433,11 +1444,26 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
       if (!space) painted.set(key, space = { nodes, obstacles: obstaclesOf(shown.map(index => items[index]), nodes) });
       return space;
     };
-    // A method, not data: measured scenes compare as plain geometry.
-    return Object.defineProperty({ nodes: currentNodes, obstacles: obstaclesOf(items, currentNodes), labels,
-      playedRelations: scene.playedRelations, ...timing }, 'paintedSpace', { value: paintedSpace }) as {
+    const obstacles = obstaclesOf(items, currentNodes);
+    // A plaque's lifetime that ends inside this stage reserves only the marks its stage
+    // has revealed by then (`played`, the stage's relations played by that step); a mark
+    // first painted later is no obstacle while the plaque keeps that pocket.
+    const reservedBy = new Map<string, PlaqueRect[]>();
+    const reservedThrough = (played: ReadonlySet<number> | null) => {
+      if (!played) return obstacles;
+      const shown = items.flatMap((item, index) => item.appearsAtStage < input.stageIndex || planItemRelationRefs(item).some(ref =>
+        ref.stageIndex === input.stageIndex && played.has(ref.relationIndex)) ? [index] : []);
+      if (shown.length === items.length) return obstacles;
+      const key = shown.join(',');
+      let reserved = reservedBy.get(key);
+      if (!reserved) reservedBy.set(key, reserved = obstaclesOf(shown.map(index => items[index]), currentNodes));
+      return reserved;
+    };
+    // Methods, not data: measured scenes compare as plain geometry.
+    return Object.defineProperties({ nodes: currentNodes, obstacles, labels,
+      playedRelations: scene.playedRelations, ...timing }, { paintedSpace: { value: paintedSpace }, reservedThrough: { value: reservedThrough } }) as {
         nodes: typeof currentNodes; obstacles: PlaqueRect[]; labels: typeof labels; playedRelations: typeof scene.playedRelations;
-        paintedSpace: typeof paintedSpace } & typeof timing;
+        paintedSpace: typeof paintedSpace; reservedThrough: typeof reservedThrough } & typeof timing;
   });
   return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured, closing };
 }
