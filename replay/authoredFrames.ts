@@ -1,5 +1,5 @@
 /** Adapt completed authored stages to the compiler input shape. */
-import { type DerivationStage, type SurfaceRealization } from '../types.ts';
+import { type DerivationStage } from '../types.ts';
 import { cloneRealizations } from './realizationReplay.ts';
 import { cloneSyntaxForest, projectAuthoredSyntaxNode } from './syntaxForest.ts';
 import {
@@ -21,16 +21,10 @@ export const getDerivationFrameChange = (frame?: ReplayDerivationFrame | null): 
   ? frame.change
   : null;
 
-/** `spellingGroups` are the analysis's conversion-made groups (Provenance.spellingGroups);
- * each stage that holds one records it as spelled. */
-export const adaptDerivationStagesForReplay = (stages?: DerivationStage[] | null,
-  spellingGroups: readonly SurfaceRealization[] = []): ReplayDerivationFrame[] => {
+export const adaptDerivationStagesForReplay = (stages?: DerivationStage[] | null): ReplayDerivationFrame[] => {
   if (!Array.isArray(stages) || stages.length === 0)
     return [];
-  const key = (group: SurfaceRealization) => JSON.stringify([group.nodeIds, group.tokenIndices]);
-  const spelled = new Set(spellingGroups.map(key));
   return stages.map((stage, index) => {
-    const spelledRealizations = Array.isArray(stage.realizations) ? stage.realizations.filter(group => spelled.has(key(group))) : [];
     const explicitWorkspaceForest = Array.isArray(stage.workspaceForest) ? stage.workspaceForest : [];
     const workspaceForest = cloneSyntaxForest(explicitWorkspaceForest).map(projectAuthoredSyntaxNode);
     const relations = Array.isArray(stage.relations) ? stage.relations : [];
@@ -50,8 +44,7 @@ export const adaptDerivationStagesForReplay = (stages?: DerivationStage[] | null
       relations,
       after: {
         workspaceForest,
-        ...(Array.isArray(stage.realizations) ? { realizations: cloneRealizations(stage.realizations) } : {}),
-        ...(spelledRealizations.length ? { spelledRealizations: cloneRealizations(spelledRealizations) } : {})
+        ...(Array.isArray(stage.realizations) ? { realizations: cloneRealizations(stage.realizations) } : {})
       },
       change,
       workspaceForest,

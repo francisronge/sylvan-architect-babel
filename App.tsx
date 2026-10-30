@@ -621,7 +621,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               abstractionMode={abstractionMode}
               sentence={parsedSentence}
               inputTokens={replayInputTokens}
-              spellingGroups={activeParse.provenance?.spellingGroups}
             />
           ) : activeParse && activeTab === 'notes' ? (
             <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copyStatus={copyStatus} onCopy={(text) => void copyNotation(text)} />

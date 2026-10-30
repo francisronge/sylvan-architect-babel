@@ -1,5 +1,5 @@
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import type { DerivationStage, SurfaceRealization } from '../types.ts';
+import type { DerivationStage } from '../types.ts';
 import { compileDispatchedRelationRenderPlan, dispatchRelationStagesForPlan } from './relations/renderPlanCompiler.ts';
 import { relationMomentOrders } from './relations/anchorRailBands.ts';
 import { adaptDerivationStagesForReplay } from './authoredFrames.ts';
@@ -16,17 +16,15 @@ export interface ReplayPreparationInput {
   derivationStages?: DerivationStage[];
   sentence: string;
   inputTokens?: string[];
-  /** The analysis's conversion-made groups (Provenance.spellingGroups). */
-  spellingGroups?: SurfaceRealization[];
   includePlayback: boolean;
 }
 
 /** Shared by the app worker and standalone, synchronous review renderers. */
-export const prepareReplay = ({ derivationStages, sentence, inputTokens, spellingGroups, includePlayback }: ReplayPreparationInput) => {
+export const prepareReplay = ({ derivationStages, sentence, inputTokens, includePlayback }: ReplayPreparationInput) => {
   if (!String(sentence || '').trim() && derivationStages?.some(stage => stage.realizations?.length)) {
     throw new Error('Replay with realization groups requires the original input sentence.');
   }
-  const replayDerivationFrames = adaptDerivationStagesForReplay(derivationStages, spellingGroups);
+  const replayDerivationFrames = adaptDerivationStagesForReplay(derivationStages);
   const hasStages = Array.isArray(derivationStages) && derivationStages.length > 0;
   const derivationReplayPlan = hasStages
     ? buildDerivationReplayPlan({ derivationStages }) as DerivationReplayPlan : null;

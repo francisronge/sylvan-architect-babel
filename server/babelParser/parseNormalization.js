@@ -307,7 +307,7 @@ export const normalizeParseBundle = (
       ? [parsed]
       : [];
 
-  let inputTokens, spellingGroups;
+  let inputTokens;
   if (options.spellout) {
     // A model response names words by spelling them. Babel checks each
     // analysis and derives one shared word list before parsing.
@@ -316,7 +316,6 @@ export const normalizeParseBundle = (
     failed.forEach(error => options.analysisOutcomes?.push({ analysisIndex: error.failure.analysisIndex, status: 'failed', failure: error.failure }));
     if (failed.length) throw failed[0];
     analysesSource = results.map(result => result.analysis);
-    spellingGroups = results.map(result => result.spellingGroups);
     inputTokens = results[0].inputTokens;
   } else {
     inputTokens = resolveSavedInputTokens(sentence, options.inputTokens ?? tokenizeSentenceSurfaceOrder(sentence));
@@ -331,7 +330,6 @@ export const normalizeParseBundle = (
         Array.isArray(parsed?.analyses) ? `$.analyses[${analysisIndex}]` : '$'
       );
       options.analysisOutcomes?.push({ analysisIndex, status: 'succeeded' });
-      if (spellingGroups?.[analysisIndex]?.length) normalized.provenance.spellingGroups = spellingGroups[analysisIndex];
       return normalized;
     } catch (error) {
       if (!(error instanceof ParseApiError)) throw error;

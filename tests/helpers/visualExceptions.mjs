@@ -103,9 +103,13 @@ export const EXCEPTIONS = [
   // The same crowded Agent grid from frame 31, which now also carries the restatements 2:4 and 3:4
   // instead of painting them as two more identical grids (duplicate-plaque).
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/1', 'mark-distance', 'plaque',
-    'plaque(1:1/2:4 theta Agent)@vRead', { desktop: { '31-42': 1.21 }, 'desktop-large': { '31-42': 1.21 } }),
+    'plaque(1:1/2:4 theta Agent)@vRead', { desktop: { '31-42': 1.21 }, 'desktop-large': { '31-42': 1.21 } },
+    { by: 'Francis Ronge', on: '2026-10-30', note: 'Asked: "Approve the two renamed entries?" (the same crowded Agent plaque he already accepted, now nearer, 1.21 vs 1.27 of reach, renamed because two claims now share it); answered: "yeah yeah whatever yes, sure then" (lead session, 30 Oct)',
+      accepts: { desktop: { '31-42': 1.21 }, 'desktop-large': { '31-42': 1.21 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/1', 'mark-distance', 'plaque',
-    'plaque(1:1/2:4/3:4 theta Agent)@vRead', { desktop: { '43-57': 1.21 }, 'desktop-large': { '43-57': 1.21 } }),
+    'plaque(1:1/2:4/3:4 theta Agent)@vRead', { desktop: { '43-57': 1.21 }, 'desktop-large': { '43-57': 1.21 } },
+    { by: 'Francis Ronge', on: '2026-10-30', note: 'Asked: "Approve the two renamed entries?" (the same crowded Agent plaque he already accepted, now nearer, 1.21 vs 1.27 of reach, renamed because two claims now share it); answered: "yeah yeah whatever yes, sure then" (lead session, 30 Oct)',
+      accepts: { desktop: { '43-57': 1.21 }, 'desktop-large': { '43-57': 1.21 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/2', 'mark-distance', 'plaque',
     'plaque(1:1 theta Agent)@v', { desktop: { '38-44': 1.27, '45-48': 1.28 }, 'desktop-large': { '38-44': 1.27, '45-48': 1.28 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
