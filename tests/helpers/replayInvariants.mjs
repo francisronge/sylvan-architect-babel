@@ -14,6 +14,7 @@ import { createFrameRelationResolver } from '../../replay/frameRelations.ts';
 import { isRegisteredTrajectoryRelation } from '../../replay/relations/movementIdentities.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelationRefs, resolveDisplayedTrajectoryAttachments, UNOWNED_RELATION_INDEX } from '../../replay/relations/renderPlan.ts';
+import { plaqueIdentity } from '../../replay/relations/plaquePlacement.ts';
 import { visiblePlanFrameItems } from '../../replay/relations/relationFrame.ts';
 import { relationMomentOrders } from '../../replay/relations/anchorRailBands.ts';
 import { compileDispatchedRelationRenderPlan, dispatchRelationStagesForPlan } from '../../replay/relations/renderPlanCompiler.ts';
@@ -1261,6 +1262,23 @@ export function checkRestatedLettersKept(replay) {
       for (const letter of expected) if (!shown.get(id)?.has(letter)) {
         out.push(violation('restated-letters-kept', index + 1, `${id} loses ${letter}, which its claims write without a shared plaque`));
       }
+    }
+  });
+  return out;
+}
+
+/** Each mark of a plan frame has its own identity. Allocation keeps a plaque's
+ * pocket by `plaqueIdentity` (replay/stageCamera.ts), so two marks sharing one
+ * would trade places: the Dutch c1-013 Case plaque jumped onto its twin. */
+export function checkPlanIdentityUnique(replay) {
+  const out = [];
+  (replay.relationRenderPlan?.frames ?? []).forEach((frame, stageIndex) => {
+    const seen = new Set();
+    for (const item of frame?.items ?? []) {
+      const identity = plaqueIdentity(item);
+      if (seen.has(identity)) out.push(violation('plan-identity-unique', null,
+        `${item.kind} of relation ${item.relationRef?.stageIndex + 1}:${item.relationRef?.relationIndex + 1} appears twice in stage ${stageIndex + 1}`));
+      seen.add(identity);
     }
   });
   return out;

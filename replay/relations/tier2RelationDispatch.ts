@@ -271,6 +271,21 @@ const attachFacetIdentities = (
   });
 };
 
+/** Whether `owner` claims every authored anchor and value item `part` claims. */
+const ownsItemsOf = (owner: Tier2EvaluatedFacet, part: Tier2EvaluatedFacet) => (['anchors', 'values'] as const).every(field =>
+  Object.entries(part.origins?.[field] ?? {}).every(([key, indices]) => indices.every(index => owner.origins?.[field]?.[key]?.includes(index))));
+
+/** A recovered feature path is a partial view of another recovered path that
+ * joins the same endpoints with the same outcome and claims all of its authored
+ * items and more, as a Case claim is of an agreement claim carrying that Case.
+ * Drawing both would paint one path and plaque twice under one identity. */
+const isPartialFeatureView = (scope: Tier2EvaluatedFacet, scopes: readonly Tier2EvaluatedFacet[]) =>
+  scope.recipe.id === 'feature.dependency' && scopes.some(other => other !== scope && other.recipe.id === scope.recipe.id
+    && other.evaluation.outcomeConcept === scope.evaluation.outcomeConcept
+    && (['feature.source', 'feature.target'] as const).every(role =>
+      JSON.stringify(other.evidence?.currentAnchors[role]) === JSON.stringify(scope.evidence?.currentAnchors[role]))
+    && ownsItemsOf(other, scope) && !ownsItemsOf(scope, other));
+
 /** A silent finite head can be context for an already proved lexical PF form.
  * It is not another realization host or an Agree/movement endpoint. Require
  * matching authored tense and a local V complement before retiring its residual. */
@@ -451,7 +466,7 @@ export const dispatchRelationClaims = (
     && new Set(outcomes.map(item => resolveOutcomeLiteral(item)?.concept).filter(Boolean)).size > 1) diagnostics.push({
       kind: 'contradictory-evidence', collision: 'outcome-conflict', facets: []
     });
-  const continued: Tier2EvaluatedFacet[] = !registryEntry
+  const recoveredScopes: Tier2EvaluatedFacet[] = !registryEntry
     ? [...recoverRelationScopes(relation, evidence, input.assignmentContext),
     ...(input.controlContext ? recoverControllerChainControl(evidence, input.controlContext) : [])].flatMap(scope => {
       // Historical continuity can corroborate a subset of a claim already
@@ -480,6 +495,7 @@ export const dispatchRelationClaims = (
         ...('restates' in scope ? { restates: scope.restates } : {})
       }] : [];
     }) : [];
+  const continued = recoveredScopes.filter(scope => !isPartialFeatureView(scope, recoveredScopes));
   // A generic connector is the same claim's incomplete view when a recovered
   // scope supplies rows for exactly its original endpoint fields and items.
   // Other fields, repeated entries and independent endpoints remain separate.
