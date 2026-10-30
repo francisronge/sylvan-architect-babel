@@ -2210,7 +2210,7 @@
       ]
     },
     "replay-regressions/ordinary-receiving-width-control.json#": {
-      "frames": "kDKT5h3D svp1AWCI aeTD5uPl n15Uj4iS ARux-oV_ OeaRurmi wl0dKKYt jQNHeXwB b5JpuVD7 2_5D5PTG EStIPVE2 FJC8VuOI aTvJBTO_ B5HASln_ Dhm8OmgV FIoL6SsM k9LrLhHj HZzDk7Y0 XtbbSPLL PuWslHp7 WbOCf8SC YMm97jfJ IwLmXnIG o8S4pDMI xmiOysTl uH93l79j q8hW_gnU 0o2Fj3qt J2uIyrTk YT7bRAth zweZGtXg wguv-9jZ qiIczxGD S58ukQO1 VCKvrvHI dokkywrz bumjWAL8 1irXmX8K 9IDX-kKB g6ZIV6KO UKXtWXM_",
+      "frames": "kDKT5h3D svp1AWCI aeTD5uPl n15Uj4iS ARux-oV_ OeaRurmi wl0dKKYt jQNHeXwB b5JpuVD7 2_5D5PTG EStIPVE2 FJC8VuOI aTvJBTO_ B5HASln_ Dhm8OmgV FIoL6SsM k9LrLhHj HZzDk7Y0 XtbbSPLL PuWslHp7 WbOCf8SC YMm97jfJ IwLmXnIG o8S4pDMI xmiOysTl uH93l79j q8hW_gnU 0o2Fj3qt J2uIyrTk YT7bRAth mesm34Qm vACeQg24 4AJHscvC RbCyWMak 9ENrLEbu WuwOPv7V WjEXHpJr Sbl1IOyi GrZyXec0 30gHXjHJ t0j-NIKL",
       "canopy": "7lVT9EJq",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -3788,7 +3788,7 @@
       ]
     },
     "replay-regressions/visual-human-catalog.json#/cases/4/analyses/0": {
-      "frames": "TEzUbbX0 qLIisFgS 4zfeKD3q 6WwDHXzf MPuw_xKZ f522ZZpb FsvNLjXv MhMEhMXj aPAukjbv zboJWM5j Q9GKvtj4 FrG6BXSg uKCbQnUL ldV144wb CLRntIyr fuc7nW52 LM-aKpoZ 00xfUwxL pC_bpwsr UofExJac _HsT-Kxk ZcQbA-Rx i7b_2ZN2 f22notsZ P14B5YCn 4Iz9neXa 2vOpdecc KsLa8lUM eQuiThKP HKpCn9VS fk6yovZi mWVI83lG jKQbBDRN v7681DhO J3q4IaNK 18Po5J4- Z8w3u7-r TZow7qpp duRsKpV_ 9RsFZLeN",
+      "frames": "TEzUbbX0 qLIisFgS 4zfeKD3q 6WwDHXzf MPuw_xKZ f522ZZpb FsvNLjXv MhMEhMXj aPAukjbv zboJWM5j Q9GKvtj4 FrG6BXSg uKCbQnUL ldV144wb CLRntIyr fuc7nW52 LM-aKpoZ 00xfUwxL pC_bpwsr UofExJac _HsT-Kxk ZcQbA-Rx i7b_2ZN2 f22notsZ P14B5YCn 4Iz9neXa 2vOpdecc KsLa8lUM eQuiThKP HKpCn9VS TsH3ndZz calPru5n 8J5kGDmW QupDjKba 1Fm2ST1H 6Cm2F3Wy Jm4W8__J DF-IRgIG BKK25_X5 oNGlQY-u",
       "canopy": "bX2igtQK",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
