@@ -193,6 +193,8 @@ export interface Provenance {
   payloadIntegrityFlags?: string[];
   payloadRepairDiagnostics?: PayloadRepairDiagnostic[];
   tokenIndexCorrections?: TokenIndexCorrection[];
+  /** Movement hops whose ids Babel renamed so the occurrence at the source keeps the continuing id. */
+  movementIdentityCorrections?: number;
   hasDerivationStages?: boolean;
   parsePromptTokenCount?: number;
   parseOutputTokenCount?: number;

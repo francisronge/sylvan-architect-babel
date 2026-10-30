@@ -33,7 +33,7 @@ async function checkout(root) {
   return record => {
     const visual = frames.prepareVisualRecord(record);
     return { frames: frames.layoutVisualFrames(visual, [viewport]), canopy: frames.layoutCanopyVisualFrame(visual, viewport),
-      panels: panelText({ ...panel, ...formatting }, visual.prepared.playbackSteps, record.derivationStages),
+      panels: panelText({ ...panel, ...formatting }, visual.prepared.playbackSteps, visual.prepared.derivationStages ?? record.derivationStages),
       tiers: tierLines(visual.prepared.relationRenderPlan) };
   };
 }

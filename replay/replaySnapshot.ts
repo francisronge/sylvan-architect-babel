@@ -1,4 +1,5 @@
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
+import { canonicalizeMovementIdentity } from '../server/babelParser/movementIdentity.js';
 import type { ParseBundle, SurfaceRealization } from '../types.ts';
 import { finalForestForAnalysis } from './finalForest.ts';
 import { collectPronouncedTerminalSequence } from './pronouncedTerminals.ts';
@@ -46,8 +47,9 @@ const projectReplayStep = (step: PlaybackStep): ReplayStepProjection => ({
 export const buildReplayPlayback = (bundle: ParseBundle): ReplayPlayback => {
   const analysis = bundle?.analyses?.[0];
   if (!analysis) throw new Error('Replay snapshot requires at least one analysis.');
+  // Canonical movement identity, as prepareReplay reads it.
   const derivationStages = Array.isArray(analysis.derivationStages)
-    ? analysis.derivationStages
+    ? canonicalizeMovementIdentity(analysis.derivationStages).stages as typeof analysis.derivationStages
     : [];
   const suppliedSentence = String(bundle.sentence || '').trim();
   if (!suppliedSentence && derivationStages.some(stage => stage.realizations?.length)) {

@@ -36,6 +36,7 @@ import {
 } from './visualAudit/report.mjs';
 import { parseStageLabel, probeScript } from './visualAudit/pageProbe.mjs';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { canonicalizeMovementIdentity } from '../server/babelParser/movementIdentity.js';
 import { stepTrajectoryParticipants } from '../tests/helpers/motionOwnership.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -188,8 +189,10 @@ const keepEvidence = (name, value) => {
   return relative(file);
 };
 
-/** Authored anchors of the owning relations ("stage:relation"), with alias ids resolved. */
-function anchorIndex(record) {
+/** Authored anchors of the owning relations ("stage:relation"), with alias ids
+ * resolved, named as the rendered Replay names them (canonical movement identity). */
+function anchorIndex(authored) {
+  const record = { ...authored, derivationStages: canonicalizeMovementIdentity(authored.derivationStages ?? []).stages };
   const alias = new Map();
   const walk = node => {
     if (!node || typeof node !== 'object') return;

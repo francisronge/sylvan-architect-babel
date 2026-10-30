@@ -7,6 +7,7 @@ import { buildResolvedLinkChainIndices } from '../replay/movementIndices.ts';
 import { isPhrasalReplayMovement } from '../replay/movementLinks.ts';
 import { STEP_DELAY_MS } from '../replay/playbackFormatting.ts';
 import { prepareReplay, type PreparedReplay } from '../replay/prepareReplay.ts';
+import { renameTreeIds } from '../server/babelParser/movementIdentity.js';
 import { prepareTreeLabelRuns } from '../replay/prepareTreeLabelRuns.ts';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import type { PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
@@ -72,7 +73,7 @@ type RelationMoment = {
 };
 
 const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
-  data,
+  data: authoredData,
   animated = false,
   autoPlay = true,
   initialReplayMoment,
@@ -109,8 +110,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const viewportSettlerRef = useRef<ReturnType<typeof createViewportSettler> | null>(null);
   const measureUiBoundsRef = useRef<(() => void) | null>(null);
   const [fontLayoutPass, setFontLayoutPass] = useState(0);
-  const fontText = useMemo(() => [...new Set(JSON.stringify([data, derivationStages, sentence]))].sort().join(''),
-    [data, derivationStages, sentence]);
+  const fontText = useMemo(() => [...new Set(JSON.stringify([authoredData, derivationStages, sentence]))].sort().join(''),
+    [authoredData, derivationStages, sentence]);
   const [settledFontText, setSettledFontText] = useState<string | null>(null);
   const trajectoryLabelMaskId = `trajectory-labels-${useId().replace(/:/g, '')}`;
   // Each font pass records the runs its measures are called with; a later face
@@ -155,19 +156,23 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     setFontLayoutPass(pass => pass + 1);
   }, fontText, () => latestMeasuredRuns.current.changed()), [fontText]);
   // The Canopy lays out the last Replay frame, so both views prepare Replay's playback.
-  const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
-    movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps } = useMemo(
+  // `replayStages` are the stages Replay read (canonical movement identity);
+  // the panel resolves the steps' node ids against them.
+  const { derivationStages: replayStages, finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
+    committedDerivationVisualLinks, movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps } = useMemo(
       () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: true }),
       [preparedReplay, derivationStages, sentence, inputTokens]
     );
+  // The final tree takes the ids Replay read, so the Canopy finds its places.
+  const data = useMemo(() => renameTreeIds(authoredData, finalStageIdRenames) as SyntaxNode, [authoredData, finalStageIdRenames]);
   // Only Replay plays its steps; the Canopy paints the completed tree.
   const playbackSteps = animated ? layoutPlaybackSteps : NO_PLAYBACK_STEPS;
   const treeLabelRuns = useMemo(() => settledFontText === fontText ? prepareTreeLabelRuns({
-    replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
-    movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps
+    derivationStages: replayStages, finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
+    committedDerivationVisualLinks, movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps
   }, measureCategoryText) : undefined,
-    [layoutPlaybackSteps, replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
-      movementChainIndexCatalogue, measureCategoryText, settledFontText, fontText]);
+    [replayStages, finalStageIdRenames, layoutPlaybackSteps, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
+      committedDerivationVisualLinks, movementChainIndexCatalogue, measureCategoryText, settledFontText, fontText]);
   const initialStepIndex = initialReplayStepIndex(playbackSteps, initialReplayMoment, initialReplayStep);
   const [activeStepIndex, setActiveStepIndex] = useState(initialStepIndex);
   const openingSelectionRef = useRef<{ steps: typeof playbackSteps; startedAt: number } | null>(null);
@@ -649,8 +654,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         activeRelationMoment,
         acceptedCompositionIsTreeFirst,
         stepLabelRuns: animated ? () => treeLabelRunsForStep({
-          replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
-          movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps
+          derivationStages: replayStages, finalStageIdRenames, replayDerivationFrames, derivationReplayPlan, relationRenderPlan,
+          committedDerivationVisualLinks, movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps
         }, activeStepIndex, measureCategoryText, { includeRelationIndices: true }) : undefined
       }, camera: { zoomBehavior, cameraAnimationRef, manualCameraRef, data, derivationStagesSignature, autoCameraRef, fitRevision }, lifecycle: {
         svgRef,
@@ -872,7 +877,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           playedRelationIndicesAttribute={playedRelationIndicesAttribute}
           activeStep={currentReplayStep}
           playbackSteps={playbackSteps}
-          derivationStages={derivationStages}
+          derivationStages={replayStages}
           sentence={sentence}
           activeStepIndex={activeStepIndex}
           activeStageDisplayLabel={activeStageDisplayLabel}

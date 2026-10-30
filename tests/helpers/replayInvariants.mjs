@@ -27,6 +27,10 @@ import { piedPipedPhrase, relationOwnsNonMovementTreeTransition, resolveFallback
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
 import { createSvgDom, descendants, select } from './svgDom.mjs';
 
+/** The record as Replay read it: prepareReplay returns the stages it prepared
+ * (canonical movement identity), which the steps' node ids refer to. */
+const asPrepared = (replay, record) => (replay?.derivationStages ? { ...record, derivationStages: replay.derivationStages } : record);
+
 const violation = (rule, frame, detail) => ({ rule, frame, detail });
 const isScaffold = data => data.replayLayoutOnly === true || data.replayOrigin?.kind === 'layout';
 const isWorkspace = data => data.replayOrigin?.kind === 'workspace';
@@ -155,6 +159,7 @@ function isWaitingRootProjection(replay, record, stageIndex, completion, id, wan
 /** The completed state of every authored stage, in authored terms. Root order
  * is not compared: separate workspaces have no authored order. */
 export function checkStageCompletion(replay, record) {
+  record = asPrepared(replay, record);
   const steps = replay.playbackSteps, out = [];
   const initialKey = String(resolveSavedInputTokens(record.sentence ?? '', record.inputTokens)[0] ?? '').trim().toLocaleLowerCase();
   (record.derivationStages ?? []).forEach((stage, stageIndex) => {
@@ -272,6 +277,7 @@ function coveredByClaim(stage, relation, id) {
  * phrase a later movement moves waits for that movement.
  */
 export function checkRelationMoments(replay, record) {
+  record = asPrepared(replay, record);
   const steps = replay.playbackSteps, out = [], moments = new Map();
   steps.forEach((step, index) => {
     if (step.replayKind !== 'relation' || !step.replayRelationIdentity) return;
@@ -468,6 +474,7 @@ function continuedPairs(previousForest, currentForest, relations, earlierOwned =
  * down nor jumps when the stage begins. Each daughter it keeps is likewise
  * painted under one id across that boundary and never built again. */
 export function checkContinuedOccurrences(replay, record) {
+  record = asPrepared(replay, record);
   const steps = replay.playbackSteps, stages = record.derivationStages ?? [], out = [];
   const frames = replay.replayDerivationFrames ?? [];
   const resolve = createFrameRelationResolver(frames, replay.derivationReplayPlan);
@@ -725,6 +732,7 @@ const sameMaterial = (left, right) => canonical(left, OCCURRENCE_FIELDS) === can
  * would take over that construction. Derived words are pronunciation, not
  * construction. */
 export function checkRelationConstruction(replay, record) {
+  record = asPrepared(replay, record);
   const steps = replay.playbackSteps, stages = record.derivationStages ?? [], out = [];
   steps.forEach((step, index) => {
     if (index === 0 || step.replayKind !== 'relation' || !step.replayRelationIdentity || momentOwnership(step).endpoints.size) return;
@@ -800,6 +808,7 @@ export function checkAttachAtMerge(replay) {
  * segment inserted below the parent (adjunction) leaves the occurrence in it.
  * Repeated ids cannot be compared and are not reported. */
 export function checkExistingNotRemerged(replay, record) {
+  record = asPrepared(replay, record);
   const steps = replay.playbackSteps, stages = record.derivationStages ?? [], out = [];
   const located = stages.map(stage => locateAuthored(stage?.workspaceForest));
   steps.forEach((step, index) => {
@@ -833,6 +842,7 @@ export function checkExistingNotRemerged(replay, record) {
  * belongs to the first such moment of its stage: no earlier step of the stage
  * paints it, so no construction step builds it. */
 export function checkMovementLandingParent(replay, record) {
+  record = asPrepared(replay, record);
   const out = [], stages = record.derivationStages ?? [], introduced = new Set();
   const parents = forest => {
     const parent = new Map(), pending = (forest ?? []).map(root => [root, null]);
@@ -953,6 +963,7 @@ export function authoredMovements(record) {
  * `built` lists the material painted earlier. `trajectory` is whether that
  * moment's relation draws a trajectory to the landing. */
 export function movementPresentations(replay, record) {
+  record = asPrepared(replay, record);
   const steps = replay.playbackSteps, stages = record.derivationStages ?? [];
   const movements = new Map(authoredMovements(record).map(movement => [`${movement.stage}:${movement.landing}`, movement]));
   steps.forEach(step => {
@@ -1292,6 +1303,7 @@ export function checkPlanIdentityUnique(replay) {
  * occurrence that stays pronounced in its stage. Reusing the occurrence's own
  * authored text is not a generated label. */
 export function checkGapLabelOnSilence(replay, record) {
+  record = asPrepared(replay, record);
   const out = [];
   (replay.relationRenderPlan?.frames ?? []).forEach((frame, stageIndex) => {
     const forest = record?.derivationStages?.[stageIndex]?.workspaceForest ?? [];

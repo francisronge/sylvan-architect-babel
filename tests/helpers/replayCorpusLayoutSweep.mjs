@@ -42,28 +42,32 @@ const modules = { coordinates, camera, layout, display, d3 };
 
 // Each layout prepares its own Replay, as each continuity test does, so no
 // plan cached for one direction can stand in for the other.
-const prepare = record => prepareReplay({ ...structuredClone(record), includePlayback: true }).playbackSteps;
-const frames = (steps, record, [width, height], direction) =>
-  layoutReplayFrames({ steps, stages: record.derivationStages, width, height, direction }, modules);
+// The layout reads the stages Replay prepared (canonical movement identity).
+const prepare = record => {
+  const prepared = prepareReplay({ ...structuredClone(record), includePlayback: true });
+  return { steps: prepared.playbackSteps, stages: prepared.derivationStages };
+};
+const frames = (steps, stages, [width, height], direction) =>
+  layoutReplayFrames({ steps, stages, width, height, direction }, modules);
 
 /** One record's off-grid rows, contour plan statuses and mirror deviations. */
 export function sweepRecord({ id, record }) {
-  const steps = prepare(record), groups = camera.buildStageLayoutGroups(steps, record.derivationStages);
+  const { steps, stages } = prepare(record), groups = camera.buildStageLayoutGroups(steps, stages);
   const viewports = new Map();
   for (const viewport of VIEWPORTS) {
-    const key = JSON.stringify(record.derivationStages.map((_, stage) => camera.stageTreeLayoutSize(steps, stage, ...viewport, groups)));
+    const key = JSON.stringify(stages.map((_, stage) => camera.stageTreeLayoutSize(steps, stage, ...viewport, groups)));
     if (!viewports.has(key)) viewports.set(key, viewport);
   }
-  const [first, ...others] = viewports.values(), ltr = frames(steps, record, first, 'ltr');
+  const [first, ...others] = viewports.values(), ltr = frames(steps, stages, first, 'ltr');
   // The contour check matches rows by their y; it relies on the shared row grid.
   const offGrid = steps.flatMap(step => (step.replayVisibleNodeIds ?? []).flatMap(node => {
     const y = ltr.positions.get(step.replayCanvasData)?.get(node)?.y;
     return y !== undefined && Math.abs(y / TREE_ROW_HEIGHT - Math.round(y / TREE_ROW_HEIGHT)) >= 1e-9 ? [`${id}: ${node} at y=${y}`] : [];
   }));
   const statuses = coordinates.getContourPlanStatuses(steps);
-  const deviations = [[first, ltr], ...others.map(viewport => [viewport, frames(prepare(record), record, viewport, 'ltr')])]
+  const deviations = [[first, ltr], ...others.map(viewport => [viewport, frames(prepare(record).steps, stages, viewport, 'ltr')])]
     .flatMap(([viewport, left]) => {
-      const deviation = mirrorDeviation(left.scenes, frames(prepare(record), record, viewport, 'rtl').scenes);
+      const deviation = mirrorDeviation(left.scenes, frames(prepare(record).steps, stages, viewport, 'rtl').scenes);
       return deviation ? [{ viewport, ...deviation }] : [];
     });
   return { id, offGrid, statuses, deviations };

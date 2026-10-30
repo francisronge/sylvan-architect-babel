@@ -87,7 +87,9 @@ test('control: a waiting root projection is allowed only until a later relation 
   assert(reported(checkStageCompletion(ordinary, record), 'stage-completion', completion, 'authored matrixCP is not displayed'));
   const named = structuredClone(record);
   named.derivationStages[0].relations.push({ relation: 'clause typing', anchors: { clause: 'matrixCP' } });
-  assert(reported(checkStageCompletion(waiting, named), 'stage-completion', completion, 'authored matrixCP is not displayed'));
+  // The checks read the stages a replay was prepared from; this one carries the named relation.
+  assert(reported(checkStageCompletion({ ...waiting, derivationStages: named.derivationStages }, named), 'stage-completion', completion,
+    'authored matrixCP is not displayed'));
 });
 
 test('control: relation-moments reports a lost, repeated, misplaced or needlessly reordered moment', () => {
@@ -280,8 +282,10 @@ test('control: existing-not-remerged reports a kept-ID landing merged by constru
     (node.children ?? []).forEach(rename);
   };
   stage.workspaceForest.forEach(rename);
-  const merged = breakReplay(copy => Object.assign(copy[moment], { replayKind: 'micro', operation: 'ExternalMerge',
-    sourceNodeIds: ['dpLow'], replayRelationIdentity: undefined }));
+  // Replay now reads every hop source-kept, so this shape is built by hand: the
+  // broken replay stands for one prepared from the kept-ID stages.
+  const merged = { ...breakReplay(copy => Object.assign(copy[moment], { replayKind: 'micro', operation: 'ExternalMerge',
+    sourceNodeIds: ['dpLow'], replayRelationIdentity: undefined })), derivationStages: kept.derivationStages };
   assert.deepEqual(checkExistingNotRemerged(merged, kept).map(item => item.frame), [moment + 1]);
   assert(reported(checkExistingNotRemerged(merged, kept), 'existing-not-remerged', moment + 1, 'dpLow leaves'));
   // An adjunct segment inserted below a kept parent leaves its occurrence in it.
@@ -442,7 +446,8 @@ test('control: movement-shown-as-movement reports an authored or recognized move
   const borrowed = broken(steps => { steps[moment].replayRelationIdentity = { stageIndex: 0, relationIndex: 1 }; });
   assert(reported(borrowed, 'movement-shown-as-movement', moment + 1, 'booksDP arrives at relation Passive A-movement chain (0:1)'));
   const recognized = broken(steps => Object.assign(steps[headMoment], { replayKind: 'micro', operation: 'ExternalMerge', replayRelationIdentity: undefined }));
-  assert(reported(recognized, 'movement-shown-as-movement', headMoment + 1, 'v arrives at micro ExternalMerge, not at a moment of its claims 1:0, 1:1'));
+  // The landing takes the new id (verbTrace) once its source keeps v.
+  assert(reported(recognized, 'movement-shown-as-movement', headMoment + 1, 'verbTrace arrives at micro ExternalMerge, not at a moment of its claims 1:0, 1:1'));
 });
 
 /* The sweep: every rule on every frame of every committed saved analysis.

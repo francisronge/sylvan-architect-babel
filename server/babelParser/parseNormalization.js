@@ -13,6 +13,7 @@ import { authoredWord } from './nodePronunciation.js';
 import { omitMismatchedOptionalTokenIndices } from './tokenIndexRecovery.js';
 import { convertSpelloutPayload } from './spellout.js';
 import { expandPartsListPayload } from './partsList.js';
+import { canonicalizeMovementIdentity, renameTreeIds, stageIdRenames } from './movementIdentity.js';
 
 const normalizeOptionalText = (value) => {
   const text = String(value || '').trim();
@@ -125,8 +126,8 @@ const normalizeParseResult = (
       })
     );
   }
-  const { tree: committedTree, finalForest } = derivationPrimaryBundle;
-  const derivationStages = derivationFrames.map((frame) => {
+  const { tree: authoredTree, finalForest: authoredFinalForest } = derivationPrimaryBundle;
+  const authoredStages = derivationFrames.map((frame) => {
     const details = frame?.change?.details && typeof frame.change.details === 'object' && !Array.isArray(frame.change.details)
       ? frame.change.details
       : {};
@@ -142,6 +143,14 @@ const normalizeParseResult = (
       ...(Object.hasOwn(frame?.after || {}, 'realizations') ? { realizations: structuredClone(frame.after.realizations) } : {})
     };
   });
+  // The validated stages take canonical movement identity: at every hop the
+  // occurrence at the source keeps the continuing id. Only id strings change;
+  // the raw response stays as the model wrote it.
+  const identity = canonicalizeMovementIdentity(authoredStages);
+  const derivationStages = identity.stages;
+  const finalIds = stageIdRenames(identity.renames, derivationStages.length - 1);
+  const committedTree = renameTreeIds(authoredTree, finalIds);
+  const finalForest = authoredFinalForest.map(root => renameTreeIds(root, finalIds));
   const provenance = {
     modelRoute,
     framework,
@@ -153,7 +162,8 @@ const normalizeParseResult = (
     payloadIntegrityFlags: payloadIntegrityFlags.length > 0
       ? Array.from(new Set(payloadIntegrityFlags))
       : undefined,
-    hasDerivationStages: derivationStages.length > 0
+    hasDerivationStages: derivationStages.length > 0,
+    ...(identity.swappedHops ? { movementIdentityCorrections: identity.swappedHops } : {})
   };
 
   return {

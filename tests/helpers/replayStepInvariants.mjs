@@ -16,6 +16,10 @@ import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
 import { authoredIdentity, frameStructure, momentOwnership, pronunciationOwners, voicesOccurrence } from './replayInvariants.mjs';
 
+/** The record as Replay read it: prepareReplay returns the stages it prepared
+ * (canonical movement identity), which the steps' node ids refer to. */
+const asPrepared = (replay, record) => (replay?.derivationStages ? { ...record, derivationStages: replay.derivationStages } : record);
+
 const finding = (rule, subtype, subject, frame, detail) => ({ rule, subtype, subject, frame, detail });
 const EMPTY_FRAME = { nodes: new Map(), visible: new Set(), displayed: new Set(), parent: new Map(), children: new Map() };
 const trimmed = value => typeof value === 'string' ? value.trim() : '';
@@ -119,6 +123,7 @@ function frameChange(previous, current, initialKey) {
  * - `unknown-step`: a step of another kind.
  */
 export function checkStepSemantics(replay, record) {
+  record = asPrepared(replay, record);
   const steps = replay.playbackSteps, out = [], stages = authoredStages(record), introducedLandings = new Set();
   const moments = new Map(), firstTrajectories = new Map();
   const pronunciation = pronunciationOwners(replay);
@@ -339,6 +344,7 @@ export function vanishedAnchors(plan) {
  * is a contract question (replayContractWarnings.mjs, renamed-anchor).
  */
 export function checkMarkPersistence(replay, record, { select = isPlanItemRevealed } = {}) {
+  record = asPrepared(replay, record);
   const steps = replay.playbackSteps, plan = replay.relationRenderPlan, out = [], stages = authoredStages(record);
   if (!plan) return out;
   const vanished = new Map(vanishedAnchors(plan).map(entry => [`${entry.frameIndex}|${entry.relation}`, entry.ids]));

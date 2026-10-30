@@ -7,6 +7,10 @@ import { planItemRelationRefs } from '../../replay/relations/renderPlan.ts';
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
 import { vanishedAnchors } from './replayStepInvariants.mjs';
 
+/** The record as Replay read it: prepareReplay returns the stages it prepared
+ * (canonical movement identity), which the steps' node ids refer to. */
+const asPrepared = (replay, record) => (replay?.derivationStages ? { ...record, derivationStages: replay.derivationStages } : record);
+
 const warning = (rule, subtype, subject, frame, detail) => ({ rule, subtype, subject, frame, detail });
 const relationKey = (stageIndex, relationIndex) => `${stageIndex}:${relationIndex}`;
 const nodesOf = forest => {
@@ -21,6 +25,7 @@ const nodesOf = forest => {
  * same lineage: the model renamed an occurrence (v1 to v2) instead of keeping
  * its id, so the mark cannot follow it. One warning per renamed anchor. */
 export function checkRenamedAnchors(replay, record) {
+  record = asPrepared(replay, record);
   const stages = record.derivationStages ?? [], out = [], vanished = vanishedAnchors(replay.relationRenderPlan);
   for (const stageIndex of new Set(vanished.map(entry => entry.frameIndex))) {
     const before = nodesOf(stages[stageIndex - 1]?.workspaceForest), after = nodesOf(stages[stageIndex]?.workspaceForest);
@@ -193,6 +198,7 @@ export function structuralDisplacements(previousForest, currentForest) {
  * occurrence, whatever that relation is called: its recognition, not its
  * name, decides whether Replay draws the arrow. */
 export function checkMovementUnrendered(replay, record) {
+  record = asPrepared(replay, record);
   const plan = replay.relationRenderPlan, out = [], stages = record.derivationStages ?? [];
   const paths = (plan?.frames ?? []).flatMap(frame => frame.items)
     .filter(item => item.kind === 'trajectory' || item.kind === 'quantifier-raising');
@@ -248,6 +254,7 @@ export function checkMovementUnrendered(replay, record) {
  * checkMovementUnrendered counts a landing as reached by any path of its
  * stage, so it does not see these. */
 export function checkMovementEndpoints(replay, record) {
+  record = asPrepared(replay, record);
   const out = [], momentOf = new Map(), stages = record.derivationStages ?? [];
   replay.playbackSteps.forEach((step, index) => {
     const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;

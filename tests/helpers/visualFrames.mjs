@@ -506,7 +506,8 @@ function boundMarks(primitives, items) {
  * reads it again is reported by layoutWidthFindings. A last frame that cannot
  * place the Canopy is a layout fault, reported as an error. */
 function layoutCanopyTree(visual, viewport, metrics = TEXT_METRICS) {
-  const data = canvas.buildDerivationCanvasData(visual.record.derivationStages.at(-1)?.workspaceForest ?? []);
+  // As TreeVisualizer renames its final tree: the ids Replay read.
+  const data = canvas.buildDerivationCanvasData((visual.prepared.derivationStages ?? visual.record.derivationStages).at(-1)?.workspaceForest ?? []);
   if (!data) return null;
   const canopy = canvas.buildRenderableCommittedCanvasData(data);
   const root = d3.hierarchy(canopy); display.applyVizIds(root);

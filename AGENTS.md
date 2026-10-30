@@ -109,6 +109,14 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
   provider JSON mode or schema, so every provider answers under the same
   conditions. `corrections` records which form arrived. Text outside the block,
   a second block or a damaged object fails.
+- The prompt lets the model choose whether a moved occurrence's landing or its
+  source keeps the id. Babel reads every hop one way:
+  `server/babelParser/movementIdentity.js` renames ids so the source keeps the
+  continuing id, in normalization (counted in
+  `provenance.movementIdentityCorrections`) and again in `prepareReplay`, which
+  every Replay path and saved record passes. Only id strings change. Whatever
+  pairs stage ids with Replay steps reads `prepareReplay`'s returned
+  `derivationStages`, never the stages it was given.
 - Legacy outputs with a mismatched optional `tokenIndex`: when the final
   pronounced words independently match the input, normalization may drop the
   index and validate again, recording it in `provenance.tokenIndexCorrections`

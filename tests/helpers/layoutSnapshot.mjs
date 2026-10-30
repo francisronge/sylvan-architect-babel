@@ -67,7 +67,8 @@ export function tierLines(plan) {
  * desktop Canopy frame or null. */
 export function snapshotRecord(visual, frames, canopy, panelModules) {
   const { prepared, record } = visual;
-  const panels = panelText(panelModules, prepared.playbackSteps, record.derivationStages);
+  // The panel reads the stages Replay prepared (canonical movement identity).
+  const panels = panelText(panelModules, prepared.playbackSteps, prepared.derivationStages ?? record.derivationStages);
   return { frames: frames.map(frame => digest(canonicalFrame(frame, panels[frame.frame - 1]))).join(' '),
     canopy: canopy ? digest(canonicalFrame(canopy)) : null, tiers: tierLines(prepared.relationRenderPlan) };
 }
