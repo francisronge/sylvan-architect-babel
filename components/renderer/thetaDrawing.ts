@@ -162,28 +162,8 @@ export function createThetaDrawing({
           .attr('x2', (plateOrigin.x + leftColumnWidth).toFixed(1))
           .attr('y1', (plateOrigin.y + 47).toFixed(1))
           .attr('y2', (plateOrigin.y + plateHeight - 13).toFixed(1));
-        roleEntries.forEach((role) => {
-          const column = gridLayout.columns[role.columnIndex];
-          const rowOwner = role.relationRefs?.length ? {
-            ...grid, relationRef: role.relationRefs[0],
-            composedRefs: role.relationRefs.slice(1), coalescedRefs: []
-          } : grid;
-          const row = plate.append('g').attr('class', 'babel-theta-grid-column');
-          decorateRelationElement(row.node()!, rowOwner, null);
-          const left = plateOrigin.x + column.left;
-          if (role.columnIndex > 0) {
-            row.append('line')
-              .attr('class', 'babel-theta-grid-rule')
-              .attr('x1', left.toFixed(1))
-              .attr('x2', left.toFixed(1))
-              .attr('y1', (plateOrigin.y + 47).toFixed(1))
-              .attr('y2', (plateOrigin.y + plateHeight - 13).toFixed(1));
-          }
-          drawPlaqueText(row, column.label, 'babel-theta-grid-role', plateOrigin)
-            .attr('text-anchor', 'middle');
-          drawPlaqueText(row, column.index, 'babel-theta-grid-index babel-relation-index', plateOrigin)
-            .attr('text-anchor', 'middle');
-
+        // Writes a role's letter into its argument's label: a column's, or a restatement's whose plaque this grid paints.
+        const writeThetaLetter = (role: { nodeId: string; index?: string; terminalId: string }, rowOwner: RelationPlanItem) => {
           const roleAnchor = resolveOverlayAnchor(role.nodeId);
           const labelTarget = thetaLabelTarget(roleAnchor, role.nodeId);
           const roleIsEntirelyTraces = labelTarget?.kind === 'category';
@@ -233,7 +213,37 @@ export function createThetaDrawing({
               decorateRelationElement(terminalIndex.node()!, rowOwner, null);
             }
           });
+        };
+        roleEntries.forEach((role) => {
+          const column = gridLayout.columns[role.columnIndex];
+          const rowOwner = role.relationRefs?.length ? {
+            ...grid, relationRef: role.relationRefs[0],
+            composedRefs: role.relationRefs.slice(1), coalescedRefs: []
+          } : grid;
+          const row = plate.append('g').attr('class', 'babel-theta-grid-column');
+          decorateRelationElement(row.node()!, rowOwner, null);
+          const left = plateOrigin.x + column.left;
+          if (role.columnIndex > 0) {
+            row.append('line')
+              .attr('class', 'babel-theta-grid-rule')
+              .attr('x1', left.toFixed(1))
+              .attr('x2', left.toFixed(1))
+              .attr('y1', (plateOrigin.y + 47).toFixed(1))
+              .attr('y2', (plateOrigin.y + plateHeight - 13).toFixed(1));
+          }
+          drawPlaqueText(row, column.label, 'babel-theta-grid-role', plateOrigin)
+            .attr('text-anchor', 'middle');
+          drawPlaqueText(row, column.index, 'babel-theta-grid-index babel-relation-index', plateOrigin)
+            .attr('text-anchor', 'middle');
+
+          writeThetaLetter(role, rowOwner);
         });
+        for (const role of grid.restatedRoles ?? []) {
+          const terminal = resolveOverlayAnchor(role.nodeId)?.leaves().at(-1);
+          if (!terminal || !role.relationRefs.length) continue;
+          writeThetaLetter({ ...role, terminalId: getNodeId(terminal as unknown as HierNode) }, { ...grid,
+            relationRef: role.relationRefs[0], composedRefs: role.relationRefs.slice(1), coalescedRefs: [] });
+        }
       });
     }
     return true;

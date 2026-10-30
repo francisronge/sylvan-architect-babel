@@ -68,6 +68,9 @@ export type CompilePlanOptions = {
    * (`relationMomentOrders`); a stage without an entry plays in authored order.
    * Rails take their bands from this order (anchorRailBands.ts). */
   relationMomentOrders?: ReadonlyMap<number, readonly number[]>;
+  /** False keeps each restating claim's identical plaque (planCoalescence.ts), so a
+   * check can compare what sharing them paints with what the claims assert. */
+  shareRestatedPlaques?: boolean;
 };
 
 const conventionalIndex = (ordinal: number): string => 'ijklmnopqrstuvwxyz'[ordinal] ?? `i${ordinal + 1}`;
@@ -175,7 +178,8 @@ export const compileDispatchedRelationRenderPlan = (
   const nextPhaseIsPrimary = () => phaseArcOrdinal++ === 0;
 
   const stageNodeMaps = stageList.map(stage => collectForest(stage.workspaceForest));
-  const { coalescedCaseItems, coalesceFrames } = createPlanCoalescer(stageDispatches, stageNodeMaps);
+  const { coalescedCaseItems, coalesceFrames } = createPlanCoalescer(stageDispatches, stageNodeMaps,
+    { shareRestatedPlaques: options.shareRestatedPlaques });
 
   stageList.forEach((stage, stageIndex) => {
     const nodes = stageNodeMaps[stageIndex];

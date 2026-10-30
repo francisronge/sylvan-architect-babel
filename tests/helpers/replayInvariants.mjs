@@ -15,6 +15,10 @@ import { isRegisteredTrajectoryRelation } from '../../replay/relations/movementI
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelationRefs, resolveDisplayedTrajectoryAttachments, UNOWNED_RELATION_INDEX } from '../../replay/relations/renderPlan.ts';
 import { visiblePlanFrameItems } from '../../replay/relations/relationFrame.ts';
+import { relationMomentOrders } from '../../replay/relations/anchorRailBands.ts';
+import { compileDispatchedRelationRenderPlan, dispatchRelationStagesForPlan } from '../../replay/relations/renderPlanCompiler.ts';
+import { relationStagesFromFrames } from '../../replay/relationStages.ts';
+import { thetaLetterRoles } from '../../replay/relations/thetaGridComposition.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import { extractDisplayedSubscriptIndex, extractMovementIndex, normalizeTraceIndexForDisplay, resolveLeafSurface } from '../../replay/replaySurfaceNotation.ts';
 import { chainIndicesForStep, identityLabelTarget, thetaLabelTarget, treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
@@ -1163,7 +1167,7 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
       }
       // Each grid asserts its argument letters at the label the theta painter
       // indexes: the argument's last word, or its category when it is all traces.
-      for (const grid of grids) for (const role of grid.thetaRoles) {
+      for (const grid of grids) for (const role of thetaLetterRoles(grid)) {
         const target = role.index && thetaLabelTarget(resolve(role.nodeId), role.nodeId);
         if (!target) continue;
         const labels = g.selectAll(`.${target.kind}-label`).filter(function exactThetaLabel() {
@@ -1212,7 +1216,7 @@ export function checkLabelIndicesOwned(replay, _record = null, labelRuns = treeL
       .map(item => resolveDisplayedTrajectoryAttachments(item, id => byId.get(id), { stageIndex: stage, playedRelationIndices: played.get(stage) }));
     const letters = (mode) => items.flatMap(item => mode === 'identity'
       ? (item.kind === 'coindex' && item.familyId === 'identity.occurrences' && item.index ? item.nodeIds.map(id => [id, item.index]) : [])
-      : (isThetaGrid(item) ? (item.thetaRoles ?? []).flatMap(role => role.index ? [[role.nodeId, role.index]] : []) : []));
+      : (isThetaGrid(item) ? thetaLetterRoles(item).flatMap(role => role.index ? [[role.nodeId, role.index]] : []) : []));
     const owned = { identity: letters('identity'), theta: letters('theta') };
     for (const [id, nodeRuns] of runs) {
       const node = structure.nodes.get(id);
@@ -1230,6 +1234,31 @@ export function checkLabelIndicesOwned(replay, _record = null, labelRuns = treeL
           if (owned[shown.mode].some(([at, letter]) => letter === shown.text && above.has(String(at)))) continue;
           out.push(violation('label-index-owned', index + 1, `${id} shows ${shown.mode} ${shown.text}, which no ${shown.mode} index of this node gives`));
         }
+      }
+    }
+  });
+  return out;
+}
+
+/** Sharing a restated plaque keeps every letter. The step's labels are laid out
+ * twice: from the replay's plan, and from the same claims compiled with every
+ * restating claim's own identical plaque kept (`shareRestatedPlaques: false`).
+ * Each index letter a label shows in the second it also shows in the first. The
+ * expectation comes from the uncoalesced claims, so a coalescing that drops a
+ * restatement's letter cannot also remove it from what is checked. */
+export function checkRestatedLettersKept(replay) {
+  const out = [], frames = replay.replayDerivationFrames ?? [];
+  if (!replay.relationRenderPlan || !frames.length) return out;
+  const separate = { ...replay, relationRenderPlan: compileDispatchedRelationRenderPlan(
+    dispatchRelationStagesForPlan(relationStagesFromFrames(frames, replay.derivationReplayPlan)),
+    { relationMomentOrders: relationMomentOrders(replay.playbackSteps, frames.length), shareRestatedPlaques: false }) };
+  const letters = runs => new Map([...runs].map(([id, labelRuns]) => [id, new Set(labelRuns.flatMap(run =>
+    [normalizeTraceIndexForDisplay(extractDisplayedSubscriptIndex(run.text)), ...run.indices.map(index => index.text)].filter(Boolean)))]));
+  replay.playbackSteps.forEach((_, index) => {
+    const shown = letters(treeLabelRunsForStep(replay, index, undefined, { includeRelationIndices: true }));
+    for (const [id, expected] of letters(treeLabelRunsForStep(separate, index, undefined, { includeRelationIndices: true }))) {
+      for (const letter of expected) if (!shown.get(id)?.has(letter)) {
+        out.push(violation('restated-letters-kept', index + 1, `${id} loses ${letter}, which its claims write without a shared plaque`));
       }
     }
   });

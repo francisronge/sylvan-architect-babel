@@ -14,7 +14,7 @@ import {
   type RelationRenderPlan,
   type TrajectoryPlanItem
 } from './renderPlan.ts';
-import { composeThetaGrids } from './thetaGridComposition.ts';
+import { composeThetaGrids, thetaLetterRoles } from './thetaGridComposition.ts';
 
 /** Deterministic layer order: lower draws first (further back). */
 const LAYER_ORDER: Record<RelationPlanItem['kind'], number> = {
@@ -46,7 +46,8 @@ const LAYER_ORDER: Record<RelationPlanItem['kind'], number> = {
 
 /** Complete-claim identity and composition share one policy. Restatement can
  * share ink, but never loses an authored relation moment. */
-export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], stageNodeMaps: Map<string, SyntaxNode>[]) {
+export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], stageNodeMaps: Map<string, SyntaxNode>[],
+  { shareRestatedPlaques = true }: { shareRestatedPlaques?: boolean } = {}) {
   const COALESCE_EXCLUDED_FIELDS = new Set([
     'relationRef',
     'composedRefs',
@@ -156,8 +157,8 @@ export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], 
    * the earliest paints once and carries every later claim's moment and hover.
    * Other plaques' claims must also name the same occurrences, with the same
    * lineage: a plaque whose claim names another recipient is another claim. A grid's
-   * letters already name its arguments' identity, and its later restatement
-   * also yields its argument badges. A claim about a preceding state (backward)
+   * letters already name its arguments' identity; its later restatement yields
+   * its argument badges but keeps writing its own letters (restatedRoles). A claim about a preceding state (backward)
    * stays its own, as does a feature plaque on the source of a Case or
    * agreement path, which joins its plaque by the claims' authored stage
    * (featureComposition.ts, collectionPlaque).
@@ -174,6 +175,7 @@ export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], 
     ...Object.values(item.relationRef.anchors ?? {}).flatMap(flattenAnchorIds)])]
     .map(id => [id, stageNodeMaps[item.appearsAtStage]?.get(id)?.lineageId ?? null]).sort());
   const coalesceRestatedPlaques = (items: RelationPlanItem[]): RelationPlanItem[] => {
+    if (!shareRestatedPlaques) return items;
     const holders = new Map<string, RelationPlanItem>(), removed = new Set<RelationPlanItem>(), yielded = new Set<string>();
     const pathSources = new Set(items.flatMap(item => item.kind === 'directed-path' ? [item.fromNodeId] : []));
     const drawing = (item: RelationPlanItem) => JSON.stringify([item.relationRef.stageIndex, item.relationRef.relationIndex,
@@ -187,7 +189,14 @@ export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], 
       if (!holder) { holders.set(key, item); continue; }
       mergeRelationRefs(holder, item);
       removed.add(item);
-      if (item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid') yielded.add(drawing(item));
+      if (holder.kind === 'node-plaque' && item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid') {
+        yielded.add(drawing(item));
+        // The restatement still letters its own arguments, from its own moment.
+        const written = new Set(thetaLetterRoles(holder).map(role => JSON.stringify([role.nodeId, role.index])));
+        const restated = [...(item.thetaRoles ?? []).map(role => ({ ...role, relationRefs: role.relationRefs ?? planItemRelationRefs(item) })),
+          ...item.restatedRoles ?? []].filter(role => !written.has(JSON.stringify([role.nodeId, role.index])));
+        if (restated.length) holder.restatedRoles = [...holder.restatedRoles ?? [], ...restated];
+      }
     }
     return items.filter(item => !removed.has(item) && !(item.kind === 'node-badges' && item.badgeStyle === 'theta-role'
       && yielded.has(drawing(item))));

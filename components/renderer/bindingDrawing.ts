@@ -7,6 +7,7 @@ import {
 } from '../../replay/relations/bindingDomainGeometry.ts';
 import { type BoundPrimitive } from '../../replay/relations/boundGeometry.ts';
 import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
+import { thetaLetterRoles } from '../../replay/relations/thetaGridComposition.ts';
 import type { ScopeDomainPaint } from '../../replay/relations/scopeDomainPaint.ts';
 import {
   planItemRelationRefs,
@@ -83,7 +84,7 @@ export const indexLetterLabels = (g: DrawingLayer, resolveOverlayAnchor: Overlay
   const thetaLettersAt = (label: SVGTextElement) => {
     if (!thetaLetters) {
       thetaLetters = new Map();
-      for (const grid of thetaGrids) for (const role of (grid.kind === 'node-plaque' && grid.thetaRoles) || []) {
+      for (const grid of thetaGrids) for (const role of thetaLetterRoles(grid)) {
         const target = role.index ? thetaLabelTarget(resolveOverlayAnchor(role.nodeId), role.nodeId) : undefined;
         if (!target) continue;
         const labels = g.selectAll<SVGTextElement, HierNode>(`.${target.kind}-label`).filter(function exactThetaLabel(candidate) {

@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import {
-  checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkGapLabelOnSilence, checkInputUnchanged, checkLabelIndicesOwned, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
+  checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkGapLabelOnSilence, checkInputUnchanged, checkLabelIndicesOwned, checkLandingAttached, checkRestatedLettersKept, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, checkWholeParent, frameStructure
@@ -361,6 +361,16 @@ test('control: label-index-owned reports an index that belongs to no chain, coin
   assert(reported(checkLabelIndicesOwned(wh, null, foreign('k', 'identity')), 'label-index-owned', 113, 'D_which::__leaf shows identity k'));
 });
 
+test('control: restated-letters-kept reports a letter that a shared restated plaque drops', () => {
+  // The stage-2 grid of verbTrace restates the stage-1 one and letters the moved
+  // theme Bücher (subjectIP) j; sharing its plaque once dropped that letter.
+  const shared = prepare(corpus.records.find(entry => entry.id === 'movement/independent-infl-context.json#').record);
+  assert.deepEqual(checkRestatedLettersKept(shared), []);
+  const dropped = { ...shared, relationRenderPlan: { ...shared.relationRenderPlan, frames: shared.relationRenderPlan.frames
+    .map(frame => ({ ...frame, items: frame.items.map(({ restatedRoles: _restated, ...item }) => item) })) } };
+  assert(reported(checkRestatedLettersKept(dropped), 'restated-letters-kept', 31, 'noun::__leaf loses j'));
+});
+
 test('control: marks-at-owning-moment reports a mark before its moment and a mark whose moment never plays', () => {
   assert.deepEqual(checkMarksAtOwningMoment(replay), []);
   const momentOf = (stage, relation) => steps.findIndex(step => step.replayKind === 'relation'
@@ -449,7 +459,7 @@ const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 
   'no-early-reveal', 'relation-construction', 'parent-after-children', 'whole-parent', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
   'movement-landing-parent', 'movement-shown-as-movement', 'existing-not-remerged',
   'visible-in-canvas',
-  'marks-at-owning-moment', 'one-letter-per-label', 'label-index-owned'];
+  'marks-at-owning-moment', 'one-letter-per-label', 'label-index-owned', 'restated-letters-kept'];
 let sweep;
 before(() => {
   sweep = corpus.records.map(({ id, record, contract }) => {
@@ -465,6 +475,7 @@ before(() => {
         ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored),
         ...checkMovementShownAsMovement(prepared, authored), ...checkExistingNotRemerged(prepared, authored), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared), ...checkLabelIndicesOwned(prepared),
+        ...checkRestatedLettersKept(prepared),
         ...checkGapLabelOnSilence(prepared, authored)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
         ...checkContractWarnings(prepared, authored, { contract })] };

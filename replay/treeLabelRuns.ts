@@ -7,6 +7,7 @@ import type { PreparedReplay } from './prepareReplay.ts';
 import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.ts';
 import { visiblePlanFrameItems } from './relations/relationFrame.ts';
 import { planItemDependencyNodeIds, resolveDisplayedTrajectoryAttachments } from './relations/renderPlan.ts';
+import { thetaLetterRoles } from './relations/thetaGridComposition.ts';
 import { buildResolvedLinkChainIndices, buildResolvedLinkRawTraceAliasMap, phraseChainLabelIndex, resolveLexicalMovementTraceDisplayIndex, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import {
@@ -244,7 +245,7 @@ export function treeLabelRunsForStep(
     const drawKey = JSON.stringify([item.relationRef.stageIndex, item.relationRef.relationIndex, item.tier2ClaimIdentity ?? null]);
     if (thetaDraws.has(drawKey)) continue;
     thetaDraws.add(drawKey);
-    for (const role of item.thetaRoles || []) {
+    for (const role of thetaLetterRoles(item)) {
       const target = thetaLabelTarget(resolve(role.nodeId), role.nodeId);
       if (!target) continue;
       const idKey = key(target.labelId, target.kind), label = labels.get(idKey);
