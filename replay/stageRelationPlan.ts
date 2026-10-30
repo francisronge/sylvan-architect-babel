@@ -17,8 +17,8 @@ import {
   isRegisteredTrajectoryRelation,
   registeredTrajectoryDisplayKind
 } from './relations/movementIdentities.ts';
-import { isHeadShellLabel } from './replaySurfaceNotation.ts';
 import type { IndexedRelationStep, ReplayStageContext } from './stageContext.ts';
+import { readStructuralHeads } from './structuralHeads.ts';
 import {
   collectSyntaxSubtreeNodeIds,
   findNodeByIdInForest,
@@ -206,6 +206,8 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
       && !beforeLinkKeys.has(resolvedRelationLinkKey(link))));
   });
   const relationVisibleNodeIdsByIndex = new Map<number, string[]>();
+  // A head landing inside a complex head reveals that whole head with it.
+  const heads = readStructuralHeads(workspaceRoots);
   relationPlacements.forEach((placement) => {
     if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) {
       relationVisibleNodeIdsByIndex.set(placement.relationIndex, []);
@@ -240,7 +242,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     relationVisibleNodeIdsByIndex.set(placement.relationIndex, Array.from(new Set([
       ...targets.flatMap(({ targetParentNodeId, landingWrapper, trajectoryKind, targetParent, targetSubtreeNodeIds }) => [
         targetParentNodeId, landingWrapper?.wrapperId, ...targetSubtreeNodeIds,
-        ...(trajectoryKind === 'head' && isHeadShellLabel(targetParent?.label) ? collectSyntaxSubtreeNodeIds(targetParent) : [])
+        ...(trajectoryKind === 'head' && targetParent && heads.isHead(targetParent) ? collectSyntaxSubtreeNodeIds(targetParent) : [])
       ]),
       ...getMovementCreatedLandingHostNodeIds(placement),
       ...getMovementPiedPipedNodeIds(placement),
