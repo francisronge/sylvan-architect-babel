@@ -112,7 +112,10 @@ test('two exact Agree claims valuing one goal\'s Case in a stage draw one path',
 // feature name, an underscore, "?" or nothing) does not hide an unvalued Case.
 test('an Agree whose Case is written unvalued in feature notation draws no Case path and keeps its row', () => {
   for (const written of ['Case: unvalued', '[uCase: _]', '[uCase:]', 'uCase', '[uCase]', 'u-Case', '_', '?', 'Case: ?',
-    'Case = _', '[Case: ?]', 'case: not yet valued', '   ']) {
+    'Case = _', '[Case: ?]', 'case: not yet valued', '   ',
+    // Sol round 2: complete state expressions and dash or empty-set placeholders.
+    'unvalued Case', 'Case value: unvalued', 'Case: -', '[Case: —]', 'Case: –', '[uCase: ∅]', '∅', 'Case (unvalued)',
+    'uCase[ ]', 'Case: none', 'Case: pending', 'Case value is still unassigned', 'Case: undetermined', 'Case: not determined']) {
     const list = items([agree({ phi: '3pl', case: written })]);
     assert.equal(casePaths(list).length, 0, JSON.stringify(written));
     assert.equal(list.some(item => item.pathStyle === 'case-agree'), false, JSON.stringify(written));
@@ -123,8 +126,10 @@ test('an Agree whose Case is written unvalued in feature notation draws no Case 
 });
 
 test('an Agree whose Case is written valued in feature notation keeps that notation on its path', () => {
-  for (const written of ['Case: nominative', '[uCase: NOM]', 'uCase = nom', 'NOM']) {
+  for (const written of ['Case: nominative', '[uCase: NOM]', 'uCase = nom', 'NOM', 'valued Case: nominative', 'Case value: dative',
+    'nominative-accusative', 'abstract object Case without overt accusative marking']) {
     const paths = casePaths(items([agree({ phi: '3pl', case: written })]));
     assert.deepEqual(paths.map(path => [path.fromNodeId, path.toNodeId, path.label]), [['probe', 'goal', written]], written);
+    assert.equal(casePaths(items([agree({ phi: '3pl', case: written }, 'An authored agreement')])).length, 1, written);
   }
 });

@@ -1,22 +1,24 @@
 import { isUnestablishedOutcomeLiteral, normalizeOutcomeLiteral } from './outcomeResolver.ts';
 import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
-import { buildTier2SynonymIndex, normalizeTier2Synonym, relationRoleConcepts } from './tier2Synonyms.ts';
+import { buildTier2SynonymIndex, claimDeniesOrWithholds, normalizeTier2Synonym, relationRoleConcepts } from './tier2Synonyms.ts';
 
 const synonyms = buildTier2SynonymIndex();
 
-/** An unvalued or pending Case state supplies no assigned Case value. Match
- * complete state expressions only; unfamiliar Case names remain literal.
- * Feature notation names the feature before its value ("[uCase: _]",
- * "Case = ?"): the value decides. A bare Case feature name, with or without its
- * u/i prefix, an underscore, "?" or nothing states no value. */
+/** An unvalued or pending Case state supplies no assigned Case value. A Case
+ * value is established only if a value token remains once the Case feature's
+ * name ("Case", "uCase", "Case value"), brackets, separators and placeholders
+ * ("_", "?", "-", "—", "∅") and state words are removed: words that only state
+ * valuation ("valued", "is still"), "unvalued", and words that deny or withhold
+ * (claimDeniesOrWithholds: "none", "pending", "not"). A state phrase that names
+ * an unestablished outcome ("not determined") is no value either. Words that
+ * qualify a remaining value stay with it, and unfamiliar Case names stay literal. */
 export function isUnestablishedCaseValue(literal: string): boolean {
-  const written = String(literal ?? '').normalize('NFKC').trim().replace(/^\[([^[\]]*)\]$/u, '$1').trim();
-  const value = /^[^\s:=]+\s*[:=](.*)$/su.exec(written)?.[1] ?? written;
-  if (/^[\s_?]*$/u.test(value)) return true;
-  const state = normalizeOutcomeLiteral(value)
-    .replace(/^(?:(?:[ui] ?)?case(?: value)?(?: |$)(?:is )?)?(?:(?:still|currently) )?/u, '');
-  return !state || isUnestablishedOutcomeLiteral(state)
-    || /^(?:unvalued|unassigned|not (?:yet )?(?:valued|assigned|licensed))$/u.test(state);
+  const words = normalizeOutcomeLiteral(literal).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const stated = (word: string) => /^(?:[ui]?case|value|valued|assigned|licensed|is|still|currently|yet)$/u.test(word);
+  // A prefix written apart ("u-Case") joins its feature name.
+  const state = words.filter((word, index) => !stated(word) && !(index + 1 < words.length && stated(word + words[index + 1])));
+  if (isUnestablishedOutcomeLiteral(state.join(' '))) return true;
+  return !state.some(word => !/^unvalued$/u.test(word) && !claimDeniesOrWithholds(undefined, word));
 }
 
 /** Agreement-host inference and movement endpoints do not establish Case
