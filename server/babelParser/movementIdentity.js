@@ -194,8 +194,10 @@ export const canonicalizeMovementIdentity = (inputStages, { keep = 'source' } = 
         map.set(sourceId, landingId).set(landingId, sourceId);
       }
       if (map.size && stages === inputStages) {
-        // Copy on the first rename and read the hop again from the copy.
-        stages = structuredClone(inputStages);
+        // Copy on the first rename and read the hop again from the copy. Each
+        // stage is copied alone: a caller may share one node object between
+        // stages, and renaming it in one stage must not rename the other.
+        stages = inputStages.map(stage => structuredClone(stage));
         continue;
       }
       handled.add(`lineage:${hop.lineage}`);

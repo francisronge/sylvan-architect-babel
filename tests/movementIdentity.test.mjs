@@ -43,6 +43,16 @@ test('a landing-kept hop gives the continuing id to its source, and only ids cha
   assert.equal(shape(stages), shape(input), 'labels, words, silence, lineage and relations are unchanged');
 });
 
+test('a node object shared between stages is renamed only where its hop is', () => {
+  const object = n('what', 'DP', [w('whatD', 'D', 'what')], { lineageId: 'wh' });
+  const stages = whLandingKept();
+  stages[0].workspaceForest[0].children[1].children[1] = object;
+  stages[1].workspaceForest[0].children[0] = object;
+  const canonical = canonicalizeMovementIdentity(stages).stages;
+  assert.deepEqual(ids(canonical[0].workspaceForest), ['tp', 'mia', 'vp', 'see', 'what', 'whatD'], 'the stage before the hop keeps its ids');
+  assert.equal(canonical[1].workspaceForest[0].children[0].id, 'whatT');
+});
+
 test('an analysis without movement, or already source-kept, is returned as it is', () => {
   const still = [stage([w('a', 'D', 'a')]), stage([n('dp', 'DP', [w('a', 'D', 'a')])])];
   assert.equal(canonicalizeMovementIdentity(still).stages, still);
