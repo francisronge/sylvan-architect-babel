@@ -20,16 +20,6 @@ export const scalarValue = (
   return String(Array.isArray(value) ? value.length === 1 ? value[0] : fallback : value ?? fallback);
 };
 
-const SUBSCRIPT_GLYPHS: Readonly<Record<string, string>> = {
-  '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
-  '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
-  i: 'ᵢ', j: 'ⱼ', k: 'ₖ', l: 'ₗ', m: 'ₘ', n: 'ₙ', p: 'ₚ'
-};
-
-export const asSubscript = (value: string): string => Array.from(value)
-  .map((character) => SUBSCRIPT_GLYPHS[character] || character)
-  .join('');
-
 export const listValue = (
   values: Record<string, string | string[]> | undefined,
   key: string

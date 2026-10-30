@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 
 // The shape of two saved Opus across-the-board analyses (s02, n3-49): a
 // finite head already projects in one conjunct's workspace; a copy of it
@@ -52,11 +53,15 @@ for (const [name, relation] of relations) test(`a head copied sideward into anot
   assert.deepEqual(input, original);
 });
 
-test('a curated sideward movement from a silent source still labels its gap', () => {
+test('a curated sideward movement from a silent source adds no trace label: the model\'s word stays', () => {
   const input = shape({ relation: 'sidewardMovement', anchors: { source: 'T2', copy: 'T1' } });
   find(input.currentForest, 'T2').silent = true;
-  const badges = prepare(input).relationRenderPlan.frames[1].items.filter(item => item.badgeStyle === 'gap-notation');
-  assert.deepEqual(badges.flatMap(item => item.badges.map(badge => `${badge.nodeId}:${badge.text}`)), ['T2:t₁']);
+  const replay = prepare(input);
+  const badges = replay.relationRenderPlan.frames[1].items.filter(item => item.badgeStyle === 'gap-notation');
+  assert.deepEqual(badges.flatMap(item => item.badges.map(badge => `${badge.nodeId}:${badge.text}`)), []);
+  const last = replay.playbackSteps.length - 1;
+  const text = options => treeLabelRunsForStep(replay, last, undefined, options).get('T2')?.find(run => run.kind === 'terminal')?.text;
+  assert.equal(text(), text({ includeRelationIndices: false }), 'the relation leaves the source\'s own text as written');
 });
 
 test('a sideward head reading keeps the refusals for malformed or unrelated claims', () => {
@@ -80,12 +85,16 @@ test('a sideward head reading keeps the refusals for malformed or unrelated clai
   }
 });
 
-test('the gap-label-on-silence invariant reports a generated label on a pronounced occurrence', async () => {
-  const { checkGapLabelOnSilence } = await import('./helpers/replayInvariants.mjs');
+test('the no-generated-gap-label invariant reports any gap label that is not the model\'s own text', async () => {
+  const { checkNoGeneratedGapLabel } = await import('./helpers/replayInvariants.mjs');
   const input = shape({ relation: 'sidewardMovement', anchors: { source: 'T2', copy: 'T1' } });
-  const record = { derivationStages: [input.priorForest, input.currentForest].map(workspaceForest => ({ workspaceForest })) };
-  const planted = { relationRenderPlan: { frames: [{ items: [] }, { items: [{ kind: 'node-badges', badgeStyle: 'gap-notation', badges: [{ nodeId: 'T2', text: 't₁' }] }] }] } };
-  assert.deepEqual(checkGapLabelOnSilence(planted, record).map(v => v.rule), ['gap-label-on-silence']);
   find(input.currentForest, 'T2').silent = true;
-  assert.deepEqual(checkGapLabelOnSilence(planted, record), []);
+  const relation = { ...input.relation, values: { label: 'T-copy' } };
+  const record = { derivationStages: [input.priorForest, input.currentForest].map((workspaceForest, i) => ({ workspaceForest, relations: i ? [relation] : [] })) };
+  const planted = text => ({ relationRenderPlan: { frames: [{ items: [] }, { items: [{ kind: 'node-badges', badgeStyle: 'gap-notation',
+    relationRef: { stageIndex: 1, relationIndex: 0 }, badges: [{ nodeId: 'T2', text }] }] }] } });
+  for (const text of ['t₁', 'did_1', 'pgᵢ'])
+    assert.deepEqual(checkNoGeneratedGapLabel(planted(text), record).map(v => v.rule), ['no-generated-gap-label'], text);
+  for (const text of ['did', 'T[past]', 'T-copy'])
+    assert.deepEqual(checkNoGeneratedGapLabel(planted(text), record), [], `${text} is the model's own text`);
 });
