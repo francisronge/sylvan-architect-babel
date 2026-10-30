@@ -4,7 +4,6 @@ import { type ResolvedRelationLink } from '../relationLinks.ts';
 import { isPronouncedLeaf } from '../server/babelParser/nodePronunciation.js';
 import { resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { type DerivationOperation, type SyntaxNode } from '../types.ts';
-import { categoryLabel } from './categoryLabel.ts';
 import {
   constructionAttachmentUpdates,
   hasConstructionWrapperInsertions,
@@ -33,6 +32,7 @@ import {
   resolveLeafSurface
 } from './replaySurfaceNotation.ts';
 import { forestCanUseCurrentMaterialLayoutScaffold } from './stageLayout.ts';
+import { readStructuralHeads, type StructuralHeads } from './structuralHeads.ts';
 import {
   cloneSyntaxTree,
   collectForestNodesById,
@@ -48,108 +48,33 @@ import {
 } from './syntaxForest.ts';
 import { type HierNode, type PlaybackStep, type ReplayDerivationFrame } from './types.ts';
 
-const normalizeReplayCategoryKeyForOrdering = (value?: string | null): string => {
-  const raw = categoryLabel(value);
-  if (/^vP$/.test(raw))
-    return 'vP';
-  if (/^v$/.test(raw))
-    return 'v';
-  return raw.toUpperCase();
-};
-
-const getDerivationalChildRankForOrdering = (parent: HierNode, child: HierNode, childIndex: number): number => {
-  const parentLabel = String(parent.data?.label || '').trim();
-  const childLabel = String(child.data?.label || '').trim();
-  const parentKey = normalizeReplayCategoryKeyForOrdering(parent.data?.label);
-  const childKey = normalizeReplayCategoryKeyForOrdering(child.data?.label);
-  const childHasChildren = Boolean(child.children && child.children.length > 0);
-  const childHasOvert = subtreeHasOvertYield(child.data);
-  const childIsSilent = isNotationLeaf(child.data);
-  const childIsPredicateCore = childKey === 'vP'
-    || childKey === 'v'
-    || childKey === 'VP'
-    || childKey === 'VOICEP'
-    || childKey === 'AP'
-    || childKey === 'PP'
-    || childKey === 'CP';
-  const parentIsBarProjection = /[’′']+$/.test(parentLabel);
-  const childIsMatchingHead = parentIsBarProjection
-    && !/[’′']+$/.test(childLabel)
-    && childKey === parentKey;
-  if (parentIsBarProjection) {
-    // Complete the complement before selecting/projecting the head that will
-    // merge with it. Selecting every head first leaves illegal hanging
-    // branches across a right-branching X-bar spine.
-    return childIsMatchingHead ? 3 : 0;
+/*
+ * Construction order inside one parent, read from shape (see structuralHeads):
+ * when a head projects the parent, its complement is built first and the head
+ * is brought in to merge with it; when a larger projection does (T′, a lower
+ * segment), that projection is built first and a specifier or adjunct after it.
+ * Selecting every head first would leave hanging branches across a spine.
+ * Without a projecting daughter, branching overt material comes first, silent
+ * notation last, and the rest in authored order.
+ */
+const getDerivationalChildRankForOrdering = (heads: StructuralHeads, parent: HierNode, child: HierNode, childIndex: number): number => {
+  const head = heads.projectingDaughter(parent.data);
+  if (head) {
+    const headIsMinimal = heads.minimal(head);
+    if (child.data === head)
+      return headIsMinimal ? 3 : 0;
+    return headIsMinimal ? 0 : 4;
   }
-  if (parentKey === 'CP') {
-    if (childKey === 'C' || childKey === 'TP' || childKey === 'IP' || childKey === 'INFLP')
-      return 0;
-    return 4;
-  }
-  if (parentKey === 'C') {
-    if (childKey === 'TP' || childKey === 'IP' || childKey === 'INFLP' || childKey === 'VP' || childKey === 'VOICEP')
-      return 0;
-    return 3;
-  }
-  if (parentKey === 'TP' || parentKey === 'IP' || parentKey === 'INFLP') {
-    if (childIsPredicateCore || childKey === 'VPASS' || childKey === 'VPASSIVE')
-      return 0;
-    if (childKey === 'T' || childKey === 'I' || childKey === 'INFL')
-      return 3;
-    if (childKey === 'DP' || childKey === 'NP')
-      return 4;
-  }
-  if (parentKey === 'VOICEP' || parentKey === 'VOICE') {
-    if (childKey === 'vP' || childKey === 'v' || childKey === 'VP')
-      return 0;
-    if (childKey === 'PP')
-      return 1;
-    if (childKey === 'VOICE')
-      return 3;
-    if (childKey === 'DP' || childKey === 'NP')
-      return 4;
-  }
-  if (parentKey === 'vP') {
-    if (childKey === 'v' || childKey === 'VP')
-      return 0;
-    if (childKey === 'DP' || childKey === 'NP')
-      return 4;
-  }
-  if (parentKey === 'v' || parentKey === 'V') {
-    if (childKey === 'VP')
-      return 0;
-    if (childKey === 'v' || childKey === 'V')
-      return 2;
-    if (childKey === 'DP' || childKey === 'NP')
-      return 4;
-  }
-  if (parentKey === 'VP') {
-    if (childKey === 'V')
-      return 0;
-    return childHasOvert && !childIsSilent ? 1 : 2;
-  }
-  if (parentKey === 'DP') {
-    if (childKey === 'D')
-      return 0;
-    if (childKey === 'NP' || childKey === 'N')
-      return 1;
-  }
-  if (parentKey === 'PP') {
-    if (childKey === 'P')
-      return 0;
-    if (childKey === 'DP' || childKey === 'NP')
-      return 1;
-  }
-  if (childHasChildren && childHasOvert)
+  if (child.children?.length && subtreeHasOvertYield(child.data))
     return 0;
-  if (childIsSilent)
+  if (isNotationLeaf(child.data))
     return 3;
   return childIndex;
 };
 
 const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>): HierNode[] => {
   const sequence: HierNode[] = [];
+  const heads = readStructuralHeads(isSyntheticWorkspaceRootNode(root) ? root.data.children || [] : [root.data]);
   const visit = (node: HierNode) => {
     const syntheticWorkspaceRoot = isSyntheticWorkspaceRootNode(node);
     if (!syntheticWorkspaceRoot && !visibleIds.has(getNodeId(node)))
@@ -158,8 +83,8 @@ const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>): HierNod
       .filter((child) => visibleIds.has(getNodeId(child)))
       .map((child, index) => ({ child, index }))
       .sort((left, right) => {
-        const leftRank = getDerivationalChildRankForOrdering(node, left.child, left.index);
-        const rightRank = getDerivationalChildRankForOrdering(node, right.child, right.index);
+        const leftRank = getDerivationalChildRankForOrdering(heads, node, left.child, left.index);
+        const rightRank = getDerivationalChildRankForOrdering(heads, node, right.child, right.index);
         return leftRank === rightRank ? left.index - right.index : leftRank - rightRank;
       })
       .map(({ child }) => child);
