@@ -51,7 +51,11 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
     const oldGap = Math.abs(wide.get(example.head).x - wide.get(example.host).x);
     const gap = Math.abs(before.get(example.head).x - before.get(example.host).x);
     if (example.head === 'had') assert(gap < oldGap - 100, `a material reserved gap is removed: ${oldGap} -> ${gap}`);
-    else assert(gap < 800, `the existing-projection insertion no longer reserves the later wide fork: ${gap}`);
+    // A landing added to an existing projection keeps the room its plan reserved
+    // for it during construction, as the same movement does with the landing
+    // keeping the source ID; opening that room at the movement moved syntax the
+    // movement does not own (motionRule.ts).
+    else assert(gap > 800, `the existing-projection insertion keeps the landing's reserved fork: ${gap}`);
     close(before.get(example.head).x, wide.get(example.head).x, 'the fixed head is not moved');
     close(before.get(example.head).x, movement.get(example.head).x, 'the head stays stationary at the movement');
     const delta = before.get(example.host).x - wide.get(example.host).x;
