@@ -205,7 +205,11 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
   // Bare labels do not distinguish a projecting node from its lexical head.
   // A new matching parent is a head projection only when its other child is
   // the preceding complement, unchanged except for the proved lower occurrence
-  // or, for a head copied sideward, a preceding separate workspace.
+  // or, for a head copied sideward, a preceding separate workspace. That
+  // complement may also be assembled in this stage before the head merges,
+  // as when an adjunct joins VP first ([V [V V DP] D] from VP and D): each new
+  // node in it branches, renews no earlier object's lineage and joins only
+  // earlier separate roots, which stay unchanged as before.
   // The head carries its word itself or, in a forest written wholly in bare
   // labels, over a single terminal ("C" over "did").
   const preterminals = Boolean(workspaces && bareProjectionsOf(workspaces.current) && bareProjectionsOf(workspaces.prior));
@@ -219,7 +223,15 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
     || prior.nodes.has(parent.id) || prior.nodes.has(target.id) && target.id !== before.id
     || !complement.children?.length || prior.duplicates.has(complement.id)) return false;
   const oldComplement = prior.nodes.get(complement.id);
-  if (!oldComplement) return false;
+  const parts: Array<[SyntaxNode, SyntaxNode]> = oldComplement ? [[complement, oldComplement]] : [];
+  const assembled = (node: SyntaxNode): boolean => {
+    const old = prior.nodes.get(node.id);
+    if (old) return !prior.parents.has(node.id) && Boolean(parts.push([node, old]));
+    return Boolean(node.children?.length) && !current.duplicates.has(node.id)
+      && !(node.lineageId && [...prior.nodes.values()].some(other => other.lineageId === node.lineageId))
+      && node.children!.every(assembled);
+  };
+  if (!oldComplement && !assembled(complement)) return false;
   const rootOf = (id: string): string => {
     let root = id;
     while (current.parents.get(root)) root = current.parents.get(root)!.id;
@@ -228,7 +240,7 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
   // A head copied sideward merges with another workspace: its complement was
   // a separate root before, and the source keeps its exact slot in another
   // tree, as does every other occurrence of the head's lineage.
-  const sideward = !prior.parents.has(complement.id) && !contains(oldComplement, before.id)
+  const sideward = oldComplement !== undefined && !prior.parents.has(complement.id) && !contains(oldComplement, before.id)
     && Boolean(target.lineageId) && current.nodes.get(before.id)?.lineageId === target.lineageId
     && (!before.lineageId || before.lineageId === target.lineageId)
     && !current.duplicates.has(before.id) && !prior.duplicates.has(before.id)
@@ -237,7 +249,7 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
       || rootOf(node.id) !== rootOf(target.id));
   let sourceId = before.id;
   if (!sideward) {
-    if (!contains(oldComplement, before.id)) return false;
+    if (!parts.some(([, old]) => contains(old, before.id))) return false;
     const complementIds: string[] = [];
     const collect = (node: SyntaxNode) => { complementIds.push(node.id); node.children?.forEach(collect); };
     collect(complement);
@@ -258,7 +270,7 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
     return sameAuthoredValue(fields, oldFields) && children.length === oldChildren.length
       && children.every((child, index) => retained(child, oldChildren[index]));
   };
-  return retained(complement, oldComplement);
+  return parts.every(([node, old]) => retained(node, old));
 };
 
 type PriorSourcePosition = { node?: SyntaxNode; parent?: SyntaxNode };
