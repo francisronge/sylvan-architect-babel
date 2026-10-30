@@ -14,7 +14,8 @@ test('review notes print movement diagnostics and Replay violations before visua
   assert.deepEqual(notes, [
     'Babel could not draw a movement at step 78: MOVEMENT_ENDPOINTS_UNRESOLVED: lists',
     'Replay check movement-shown-as-movement at step 34: dp_subj arrives at construction ExternalMerge',
-    'glyph-overlap (text) 20.4 at desktop, step 21'
+    'glyph-overlap (text) 20.4 at desktop, step 21',
+    'mark-distance 1.1 at desktop, step 3'
   ]);
   assert.deepEqual(reviewNotes({}), []);
 });

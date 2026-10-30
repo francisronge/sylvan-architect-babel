@@ -333,7 +333,8 @@ export function checkVisibleInCanvas(replay) {
  * These are the attachments construction makes in
  * replay/constructionAttachments.ts: a held attachment completes at its
  * parent's merge, a wrapper takes over the edge it is inserted into, and a
- * regrouping parent's material moves at its first new child. */
+ * regrouping parent's material moves at the step of the new child that takes
+ * it; the last such step completes the regrouping. */
 function stepOwnsEdge(step, previous, current, child, parent) {
   if (step.replayKind !== 'micro') return false;
   const target = String(step.targetNodeId ?? '');

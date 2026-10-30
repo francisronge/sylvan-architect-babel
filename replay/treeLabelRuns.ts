@@ -80,12 +80,13 @@ export function stagedTerminalText(node: HierNode, context: StagedTerminalContex
 }
 
 /** How an identity or theta index joins a label: reuse an equal identity
- * index, reuse an equal subscript already written in the label text (a chain
- * or operator index), or append its own run. A label shows each letter once. */
+ * index, reuse an equal subscript already written in the label text (an
+ * authored or chain index), or append its own run. A label shows each letter
+ * once; binding letters are painted by their relations, not staged here. */
 export const labelIndexAction = (contents: string, existingIndices: readonly string[], index: string) =>
   existingIndices.includes(index) ? 'existing' : extractDisplayedSubscriptIndex(contents) === index ? 'inline' : 'append';
 /** The text a theta index follows: the label as identity found it, else as the
- * step staged it (with its chain or operator index), else its authored default. */
+ * step staged it (with its chain index), else its authored default. */
 export const thetaLabelBase = (identityBase: string | undefined, stagedText: string | undefined, contents: string) =>
   identityBase || stagedText || contents;
 

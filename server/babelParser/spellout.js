@@ -630,8 +630,9 @@ const convertAligned = (item, tokens) => {
   // A spelling group says only what its word spells, so it holds wherever that
   // word stands: from the first stage of an unbroken run, ending in the final
   // stage, in which its leaf is pronounced with the same word and no authored
-  // group of the stage names that leaf or its words. Replay never shows it as
-  // an event (realizationReplay.ts, spellingAssociation).
+  // group of the stage names that leaf or its words. Unless a relation covers
+  // it, Replay shows it from the stage's first step, not as an event
+  // (realizationReplay.ts, spellingAssociation).
   const standsIn = (stageIndex, group) => {
     const reading = item.readings[stageIndex], range = reading.ranges.get(group.nodeIds[0]);
     const finalRange = item.readings[last].ranges.get(group.nodeIds[0]);
