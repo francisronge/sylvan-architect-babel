@@ -388,6 +388,10 @@ export type NodePlaquePlanItem = PlanItemBase & {
   /** Same-moment feature bundles retain the claim identity of every contributing row. */
   featureRowClaims?: string[][];
   thetaRoles?: Array<{ nodeId: string; label: string; index?: string; relationRefs?: PlanRelationRef[] }>;
+  /** Roles of later claims whose identical plaque this grid paints (planCoalescence.ts):
+   * no column, but each writes its letter into its own argument's label from its
+   * relations' moment, where that argument is displayed. Not a dependency. */
+  restatedRoles?: Array<{ nodeId: string; label: string; index?: string; relationRefs: PlanRelationRef[] }>;
   nativeContent?: NativePlaqueContent;
   realizationRowKinds?: Array<'rewrite' | 'literal'>;
   /** Exact authored moment that introduces each row; null means the owner relation. */
@@ -656,6 +660,7 @@ export const planItemDependencyNodeIds = (item: RelationPlanItem): string[] => {
       || key === 'positionNodeIds'
       || key === 'priorWitnessNodeIds'
       || key === 'tier2WitnessNodeIds'
+      || key === 'restatedRoles'
       || derivedFields.has(key)
     ) return;
     if (Array.isArray(value)) {

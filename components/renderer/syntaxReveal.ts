@@ -1,7 +1,6 @@
 import * as d3 from 'd3';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import {
-  buildResolvedLinkOperatorVariableIndexMap,
   buildResolvedLinkRawTraceAliasMap,
   resolveLexicalMovementTraceDisplayIndex,
   resolveTraceIndexFromNodeContext
@@ -124,13 +123,6 @@ export function updateSyntaxReveal({
     : revealThreshold;
   const svg = d3.select(svgRef.current);
   const layoutDerivationTraceIndexByNodeId = traceDisplayIndexByNodeId;
-  const layoutOperatorVariableIndexByNodeId = traceDisplayFrame
-    ? buildResolvedLinkOperatorVariableIndexMap(
-      traceDisplayFrame.workspaceForest || [],
-      traceDisplayRelationLinks,
-      traceDisplayFrameIndex
-    )
-    : new Map<string, string>();
   const layoutRawTraceAliasByIndex = traceDisplayFrame
     ? buildResolvedLinkRawTraceAliasMap(
       traceDisplayFrame.workspaceForest || [],
@@ -172,8 +164,7 @@ export function updateSyntaxReveal({
   svg.selectAll<SVGTextElement, HierNode>('.terminal-label')
     .text(function (d) {
       if (usesDerivationFrames && currentReplayStep?.replayCanvasData) return stagedTerminalText(d, {
-        traceIndices: layoutDerivationTraceIndexByNodeId, operatorIndices: layoutOperatorVariableIndexByNodeId,
-        rawTraceAliases: layoutRawTraceAliasByIndex
+        traceIndices: layoutDerivationTraceIndexByNodeId, rawTraceAliases: layoutRawTraceAliasByIndex
       });
       const element = this as SVGTextElement;
       const nodeId = element.getAttribute('data-node-id') || '';
@@ -187,10 +178,6 @@ export function updateSyntaxReveal({
         ? layoutRawTraceAliasByIndex.get(String(rawTraceAlias).trim().toLowerCase())
         : undefined;
       const directTraceIndex = layoutDerivationTraceIndexByNodeId.get(nodeId);
-      const operatorVariableIndex = resolveTraceIndexFromNodeContext(
-        d,
-        layoutOperatorVariableIndexByNodeId
-      );
       const carriedMovementTraceIndex = resolveTraceIndexFromNodeContext(
         d,
         layoutDerivationTraceIndexByNodeId
@@ -215,10 +202,7 @@ export function updateSyntaxReveal({
             fallback,
             directTraceIndex || storedTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
           )
-          : formatIndexedSurfaceForDisplayValue(
-            maybeCapitalizeLayoutSentenceInitialLeaf(d, fallback),
-            operatorVariableIndex
-          );
+          : maybeCapitalizeLayoutSentenceInitialLeaf(d, fallback);
       }
       if (effectiveRevealThreshold < morph.step) {
         return morph.hideBefore ? '' : maybeCapitalizeLayoutSentenceInitialLeaf(d, morph.preText);
@@ -244,10 +228,7 @@ export function updateSyntaxReveal({
           directTraceIndex || storedTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
         );
       }
-      return formatIndexedSurfaceForDisplayValue(
-        maybeCapitalizeLayoutSentenceInitialLeaf(d, morph.postText || fallback),
-        operatorVariableIndex
-      );
+      return maybeCapitalizeLayoutSentenceInitialLeaf(d, morph.postText || fallback);
     });
 
 }

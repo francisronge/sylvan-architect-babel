@@ -7,6 +7,7 @@ import {
 } from '../../replay/relations/bindingDomainGeometry.ts';
 import { type BoundPrimitive } from '../../replay/relations/boundGeometry.ts';
 import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
+import { thetaLetterRoles } from '../../replay/relations/thetaGridComposition.ts';
 import type { ScopeDomainPaint } from '../../replay/relations/scopeDomainPaint.ts';
 import {
   planItemRelationRefs,
@@ -16,6 +17,7 @@ import { extractDisplayedSubscriptIndex } from '../../replay/replaySurfaceNotati
 import {
   labelIndexAction,
   identityLabelTarget,
+  thetaLabelTarget,
   treeLabelIndexAttributes
 } from '../../replay/treeLabelRuns.ts';
 import { type HierNode } from '../../replay/types.ts';
@@ -72,9 +74,28 @@ const identityIndexLabels = (g: DrawingLayer, resolveOverlayAnchor: OverlayAncho
 };
 
 /** The label each binding refinement measures to place a letter, found with
- * the same lookups, so letters at one physical label share one plan entry. */
-export const indexLetterLabels = (g: DrawingLayer, resolveOverlayAnchor: OverlayAnchor):
+ * the same lookups, so letters at one physical label share one plan entry.
+ * `thetaGrids` are the step's drawn theta grids: the deferred theta painter
+ * writes their argument letters into the labels thetaLabelTarget names. */
+export const indexLetterLabels = (g: DrawingLayer, resolveOverlayAnchor: OverlayAnchor,
+  thetaGrids: readonly RelationPlanItem[] = []):
   Omit<IndexLetterContext<IndexLetterLabel>, 'emphasisRank'> => {
+  let thetaLetters: Map<SVGTextElement, Set<string>> | undefined;
+  const thetaLettersAt = (label: SVGTextElement) => {
+    if (!thetaLetters) {
+      thetaLetters = new Map();
+      for (const grid of thetaGrids) for (const role of thetaLetterRoles(grid)) {
+        const target = role.index ? thetaLabelTarget(resolveOverlayAnchor(role.nodeId), role.nodeId) : undefined;
+        if (!target) continue;
+        const labels = g.selectAll<SVGTextElement, HierNode>(`.${target.kind}-label`).filter(function exactThetaLabel(candidate) {
+          return target.kind === 'category' ? this.getAttribute('data-category-node-id') === role.nodeId
+            : getNodeId(candidate) === target.labelId || this.getAttribute('data-node-id') === target.labelId;
+        });
+        labels.each(function collectThetaLetter() { thetaLetters!.set(this, (thetaLetters!.get(this) ?? new Set()).add(role.index!)); });
+      }
+    }
+    return thetaLetters.get(label) ?? new Set<string>();
+  };
   const shell = (nodeId: string) => shellLabelElement(g, nodeId);
   const terminal = (nodeId: string) => terminalLabelElement(g, resolveOverlayAnchor(nodeId), nodeId);
   const accepted = (nodeId: string) => shell(nodeId) ?? terminal(nodeId);
@@ -91,7 +112,8 @@ export const indexLetterLabels = (g: DrawingLayer, resolveOverlayAnchor: Overlay
       // Refinement cannot position a letter without its label, so it shares nothing.
       return label ?? `unplaced:${letter.nodeId}`;
     },
-    writtenSubscript: label => typeof label === 'string' ? null : extractDisplayedSubscriptIndex(label.textContent || '')
+    writtenSubscript: label => typeof label === 'string' ? null : extractDisplayedSubscriptIndex(label.textContent || ''),
+    thetaLetters: label => typeof label === 'string' ? new Set<string>() : thetaLettersAt(label)
   };
 };
 

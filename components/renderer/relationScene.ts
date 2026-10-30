@@ -599,8 +599,10 @@ export function paintRelationScene({
       ensureTrajectoryRelationLayer,
       trajectoryMarkerIds
     });
+    const drawnThetaGrids = [...new Set(drawablePrimitives.map(primitive => frameItems[primitive.itemIndex]))]
+      .filter(item => item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid' && item.familyId === 'theta.grid');
     const indexLetterPlan = planIndexLetters(drawablePrimitives, frameItems, {
-      ...indexLetterLabels(g, resolveOverlayAnchor),
+      ...indexLetterLabels(g, resolveOverlayAnchor, drawnThetaGrids),
       emphasisRank: item => {
         const emphasis = relationEmphasisForItem(item);
         return emphasis === 'active' ? 2 : emphasis === 'quiet' ? 0 : 1;

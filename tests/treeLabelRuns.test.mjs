@@ -14,7 +14,7 @@ import {
 import { readFileSync } from 'node:fs';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-const context=(trace={},operator={},aliases={})=>({traceIndices:new Map(Object.entries(trace)),operatorIndices:new Map(Object.entries(operator)),rawTraceAliases:new Map(Object.entries(aliases))});
+const context=(trace={},aliases={})=>({traceIndices:new Map(Object.entries(trace)),rawTraceAliases:new Map(Object.entries(aliases))});
 const leaf=(word,extras={})=>{const root=d3.hierarchy({id:'w',label:'N',word,...extras});applyVizIds(root);return root;};
 
 test('formatted terminal measures all generated digits and preserves authored literals',()=>{
@@ -29,7 +29,7 @@ test('formatted terminal measures all generated digits and preserves authored li
 });
 test('silent/ghost lexical copies retain their lexical display and exact casing',()=>{
  assert.equal(stagedTerminalText(leaf('book',{silent:true}),context({w:'11'})),'book₁₁');
- assert.equal(stagedTerminalText(leaf('Book',{ghost:true}),context({}, {w:'11'})),'Book');
+ assert.equal(stagedTerminalText(leaf('Book',{ghost:true}),context({})),'Book');
  assert.equal(stagedTerminalText(leaf('Book',{ghost:true}),context({w:'11'})),'Book₁₁');
 });
 test('identity deduplicates existing notation, but retains distinct and Unicode indices',()=>{
@@ -48,7 +48,7 @@ test('theta retains identity runs, uses the existing saved base and avoids dupli
  assert.equal(thetaLabelState(identity,'j').text,'Book₁₀');
  assert.deepEqual(thetaLabelState(thetaLabelState(identity,'j'),'k').indices,[{text:'i',mode:'identity'},{text:'j',mode:'theta'},{text:'k',mode:'theta'}]);
 });
-test('theta keeps the chain or operator index the step staged on its terminal',()=>{
+test('theta keeps the chain index the step staged on its terminal',()=>{
  const staged={kind:'terminal',text:'PRO₂',stagedText:'PRO₂',defaultText:'PRO',indices:[]};
  assert.deepEqual(thetaLabelState(staged,'k'),{...staged,lines:undefined,indices:[{text:'k',mode:'theta'}]});
 });

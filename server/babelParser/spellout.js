@@ -541,7 +541,7 @@ const alignAnalysis = (analysis, sentence, meter) => {
         `Stage ${stageIndex + 1} group ${groupIndex} text ${JSON.stringify(group.text)} matches ${located.matches ? 'more than one place' : 'no place'} in the final words.`));
     });
   }
-  return { diagnostics, observations, units, earlier, stages, finalGroups };
+  return { diagnostics, observations, units, earlier, stages, finalGroups, readings };
 };
 
 /**
@@ -625,19 +625,41 @@ const convertAligned = (item, tokens) => {
     || (uncovered.length && !normalizeSurfaceToken(unit.text)))
     ? [{ nodeIds: [unit.nodeId], tokenIndices: unit.tokenIndices }] : []));
   const earlierSpans = new Map(item.earlier.map(group => [`${group.stageIndex}:${group.groupIndex}`, group.spans]));
+  const earlierTokens = (stageIndex, groupIndex) => earlierSpans.get(`${stageIndex}:${groupIndex}`).flatMap(within);
+  const last = item.stages.length - 1;
+  // A spelling group says only what its word spells, so it holds wherever that
+  // word stands: from the first stage of an unbroken run, ending in the final
+  // stage, in which its leaf is pronounced with the same word and no authored
+  // group of the stage names that leaf or its words. Replay never shows it as
+  // an event (realizationReplay.ts, spellingAssociation).
+  const standsIn = (stageIndex, group) => {
+    const reading = item.readings[stageIndex], range = reading.ranges.get(group.nodeIds[0]);
+    const finalRange = item.readings[last].ranges.get(group.nodeIds[0]);
+    if (!range || range[1] - range[0] !== 1 || reading.leaves[range[0]].silent
+      || reading.leaves[range[0]].node.word !== item.readings[last].leaves[finalRange[0]].node.word) return false;
+    return stageIndex === last || (item.stages[stageIndex].realizations || []).every((authored, groupIndex) =>
+      !earlierTokens(stageIndex, groupIndex).some(token => group.tokenIndices.includes(token))
+      && authored.nodeIds.every(id => { const owner = reading.ranges.get(id); return !owner || owner[1] <= range[0] || owner[0] > range[0]; }));
+  };
+  const firstStage = spellingGroups.map((group) => {
+    let first = last;
+    while (first > 0 && standsIn(first - 1, group)) first -= 1;
+    return first;
+  });
   const groupTokens = new Map();
   units.forEach((unit) => {
     if (unit.group === undefined) return;
     if (!groupTokens.has(unit.group)) groupTokens.set(unit.group, []);
     groupTokens.get(unit.group).push(...unit.tokenIndices);
   });
-  const last = item.stages.length - 1;
   const derivationStages = item.stages.map((stage, stageIndex) => {
     const final = stageIndex === last;
-    if (!Array.isArray(stage.realizations) && !(final && spellingGroups.length)) return stage;
+    const spelled = spellingGroups.filter((_, index) => firstStage[index] <= stageIndex)
+      .map(group => ({ nodeIds: [...group.nodeIds], tokenIndices: [...group.tokenIndices] }));
+    if (!Array.isArray(stage.realizations) && !spelled.length) return stage;
     const realizations = (stage.realizations || []).map((group, groupIndex) => ({ nodeIds: group.nodeIds,
-      tokenIndices: final ? groupTokens.get(groupIndex) : earlierSpans.get(`${stageIndex}:${groupIndex}`).flatMap(within) }));
-    return { ...stage, realizations: final ? [...realizations, ...spellingGroups] : realizations };
+      tokenIndices: final ? groupTokens.get(groupIndex) : earlierTokens(stageIndex, groupIndex) }));
+    return { ...stage, realizations: [...realizations, ...spelled] };
   });
   return {
     diagnostics: [], observations: item.observations,

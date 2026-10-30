@@ -93,11 +93,22 @@ export function composeThetaGrids(items: RelationPlanItem[], predicateLineage: (
 /** Reserve the complete inventory, but paint only rows whose relation has played. */
 export function projectThetaGrid(item: RelationPlanItem, frameIndex: number,
   played: ReadonlySet<number> | null): RelationPlanItem {
-  if (!isGrid(item) || !item.thetaRoles.some(role => role.relationRefs)) return item;
+  if (!isGrid(item)) return item;
+  const reached = (ref: PlanRelationRef) => played === null || ref.stageIndex < frameIndex
+    || (ref.stageIndex === frameIndex && played.has(ref.relationIndex));
+  const restated = item.restatedRoles?.flatMap(role => {
+    const relationRefs = role.relationRefs.filter(reached);
+    return relationRefs.length ? [{ ...role, relationRefs }] : [];
+  });
+  const projected = restated ? { ...item, restatedRoles: restated } : item;
+  if (!item.thetaRoles.some(role => role.relationRefs)) return projected;
   const thetaRoles = item.thetaRoles.flatMap(role => {
-    const relationRefs = role.relationRefs?.filter(ref => played === null || ref.stageIndex < frameIndex
-      || (ref.stageIndex === frameIndex && played.has(ref.relationIndex)));
+    const relationRefs = role.relationRefs?.filter(reached);
     return relationRefs?.length ? [{ ...role, relationRefs }] : [];
   });
-  return { ...item, thetaRoles, rows: thetaRoles.map(role => ({ label: role.label, value: '' })) };
+  return { ...projected, thetaRoles, rows: thetaRoles.map(role => ({ label: role.label, value: '' })) };
 }
+
+/** Every role whose letter a grid writes into an argument's label: its columns' and its restatements'. */
+export const thetaLetterRoles = (item: RelationPlanItem): Array<{ nodeId: string; index?: string }> =>
+  item.kind === 'node-plaque' ? [...item.thetaRoles ?? [], ...item.restatedRoles ?? []] : [];

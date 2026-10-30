@@ -113,6 +113,23 @@ test('missing or ambiguous timing shows at the last covering or last relation mo
   }
 });
 
+test('a group that spells its own word keeps the relation that covers it; one no relation covers holds from its stage\'s start', () => {
+  // Sol's review of #318: an authored root group for walk was switched on
+  // before the relation that covers it. Only one no relation covers, such as
+  // the spelling conversion's inw for "in w", holds without an owner.
+  const walkForest = [node('domain', [{ id: 'root', label: 'V', word: 'walk', children: [] }, node('other')])];
+  const play = relations => buildReplayPlayback({ sentence: 'walk', inputTokens: ['walk'],
+    analyses: [{ tree: walkForest[0], derivationStages: [stage(), stage([group(['root'], [0])], relations, walkForest)] }] }).steps;
+  const frames = adaptDerivationStagesForReplay([stage(), stage([group(['root'], [0])], [relation(['other']), relation(['root'])], walkForest)]);
+  assert.equal(resolveRealizationChanges(frames[0], frames[1], 1, ['walk'])[0].relationIndex, 1);
+  const [unrelated, owner] = moments(play([relation(['other']), relation(['root'])]), 1);
+  assert.deepEqual(unrelated.replayRealizations, []);
+  assert.deepEqual(owner.replayRealizations, [group(['root'], [0])]);
+  const unowned = play([relation(['other'])]);
+  for (const step of unowned.filter(step => step.replayFrameIndex === 1)) assert.deepEqual(step.replayRealizations, [group(['root'], [0])]);
+  assert(unowned.every(step => !step.replayRealizationDiagnostics?.length));
+});
+
 test('ambiguous realization descriptions never win by wording or list order', () => {
   for (const names of [['Inflection', 'Case preservation'], ['Case preservation', 'Inflection'], ['形態', 'تحقق']]) {
     const relations = names.map(name => relation(['root', 'past'], undefined, name));

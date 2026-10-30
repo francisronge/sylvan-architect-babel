@@ -38,10 +38,12 @@ export function panelText({ buildReplayPanelContent, buildReplayDisplayDetailBlo
 /** One normalized frame (visualRules' model) and its panel, in a stable form. A
  * plaque's identity key and allocated pocket describe its allocation, not what it
  * paints; its content box is the audit's measure of its rows, which its shell shows,
- * and `realization` classifies a plate the audit judges by its own rule. A binding
+ * `realization` classifies a plate the audit judges by its own rule, and its anchor
+ * and face restate its id and text for duplicate-plaque. A binding
  * domain's `painted` ellipse follows from the syntax and plaques recorded. */
 export function canonicalFrame(frame, panel = null) {
-  const plaques = frame.plaques.map(({ key: _key, pocket: _pocket, content: _content, realization: _realization, ...plaque }) => plaque);
+  const plaques = frame.plaques.map(({ key: _key, pocket: _pocket, content: _content, realization: _realization,
+    anchorNodeId: _anchorNodeId, face: _face, ...plaque }) => plaque);
   const marks = (frame.marks ?? []).map(({ painted: _painted, ...mark }) => mark);
   // Badge texts restate anchor-set badges, which `marks` already holds.
   const texts = frame.texts.filter(text => text.kind !== 'badge');

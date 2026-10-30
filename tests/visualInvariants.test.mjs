@@ -12,8 +12,8 @@ import {
   TEXT_METRICS, VIEWPORTS
 } from './helpers/visualFrames.mjs';
 import {
-  checkBranchGeometry, checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance, checkMarkMotion,
-  checkParentCentring, RULES
+  checkBranchGeometry, checkClipped, checkDuplicatePlaques, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance,
+  checkMarkMotion, checkParentCentring, RULES
 } from './helpers/visualRules.mjs';
 import { EXCEPTIONS } from './helpers/visualExceptions.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
@@ -165,6 +165,25 @@ test('control: mark-distance reports a plaque left far from its anchor, as the a
   assert.deepEqual(subjects(checkMarkDistance({ ...blank(0.2), texts: [{ ...role, distance: 250 }] })), ['role(2:0 goal)@obj']);
   assert.deepEqual(checkMarkDistance({ ...blank(0.2), texts: [{ ...role, distance: 180 }] }), [],
     'one step outward (16 px past reach at this Fit) still reads as the witness\'s own label');
+});
+
+test('control: duplicate-plaque reports one node showing the same plaque for two claims', () => {
+  // Sol h1-038 (29 October held-out batch) showed two Agent grids on higherVbar at
+  // steps 37-38: the stage-2 theta claim and the stage-4 chain claim restating it.
+  const records = JSON.parse(readFileSync(new URL('./helpers/heldoutDefectRecords.json', import.meta.url), 'utf8'));
+  const { sentence, inputTokens, derivationStages } = records['sol-h1-038-a1'];
+  const frames = layoutVisualFrames(prepareVisualRecord({ sentence, inputTokens, derivationStages }), [VIEWPORTS[0]], { steps: [36, 37, 38] });
+  const agents = frame => frame.plaques.filter(plaque => plaque.anchorNodeId === 'higherVbar' && plaque.text === 'theta Agent');
+  // The earlier grid paints once, keeping its pocket, and carries the restatement's moment.
+  assert.deepEqual(frames.map(frame => agents(frame).map(plaque => plaque.claims)), [[['1:2', '3:1']], [['1:2', '3:1']], [['1:2', '3:1']]]);
+  assert.deepEqual(frames.flatMap(checkDuplicatePlaques), []);
+  const frame = frames[1], agent = agents(frame);
+  const again = (claims, face = agent[0].face) => ({ ...frame, plaques: [...frame.plaques, { ...agent[0], id: 'again', claims, face }] });
+  assert.deepEqual(subjects(checkDuplicatePlaques(again(['3:1']))), [`${agent[0].id} again`]);
+  assert.deepEqual(checkDuplicatePlaques(again(['3:1', '1:2'])), [], 'one claim set painted twice is not this rule');
+  assert.deepEqual(checkDuplicatePlaques(again(['3:1'], JSON.stringify(['theta-grid', null, [{ label: 'Agent', value: '' }], [['Agent', 'k']]]))),
+    [], 'a grid lettering another argument paints other content');
+  assert.deepEqual(checkDuplicatePlaques(again(['3:1'], null)), [], 'a path plaque labels its own arrow');
 });
 
 test('control: label-typography reports a closing mark starting a line, a lone remnant and an opening mark ending one', () => {

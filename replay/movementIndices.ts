@@ -372,39 +372,6 @@ export const buildResolvedLinkChainIndices = (
   return { terminals: traceIndexByNodeId, phrases: phraseIndexByNodeId };
 };
 
-export const buildResolvedLinkOperatorVariableIndexMap = (
-  currentForest: SyntaxNode[],
-  resolvedRelationLinks: ResolvedRelationLink[] | undefined,
-  activeStepIndex: number
-): Map<string, string> => {
-  const indexByNodeId = new Map<string, string>();
-  const assignIndexToNodeAndLeaves = (nodeId: string, index: string) => {
-    const normalizedNodeId = String(nodeId || '');
-    const normalizedIndex = normalizeTraceIndexForDisplay(index);
-    if (!normalizedNodeId || !normalizedIndex)
-      return;
-    indexByNodeId.set(normalizedNodeId, normalizedIndex);
-    const node = findNodeByIdInForest(currentForest, normalizedNodeId);
-    if (!node)
-      return;
-    collectLeafSyntaxNodes(node)
-      .map((leaf) => String(leaf?.id || ''))
-      .filter(Boolean)
-      .forEach((leafId) => indexByNodeId.set(leafId, normalizedIndex));
-  };
-  (Array.isArray(resolvedRelationLinks) ? resolvedRelationLinks : []).forEach((link) => {
-    const relation = String(link?.relation || link?.operation || '').trim();
-    const stepIndex = Number.isInteger(link?.stepIndex) ? Number(link.stepIndex) : 0;
-    if (!/operator\s*[-\s]?variable\s*[-\s]?binding/i.test(relation) || stepIndex > activeStepIndex) {
-      return;
-    }
-    const index = String(link?.relationIndex || '').trim();
-    assignIndexToNodeAndLeaves(String(link?.targetNodeId || ''), index);
-    assignIndexToNodeAndLeaves(String(link?.witnessNodeId || ''), index);
-  });
-  return indexByNodeId;
-};
-
 export const buildResolvedLinkRawTraceAliasMap = (
   currentForest: SyntaxNode[],
   resolvedRelationLinks: ResolvedRelationLink[] | undefined,

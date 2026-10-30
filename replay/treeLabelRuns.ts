@@ -7,7 +7,8 @@ import type { PreparedReplay } from './prepareReplay.ts';
 import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.ts';
 import { visiblePlanFrameItems } from './relations/relationFrame.ts';
 import { planItemDependencyNodeIds, resolveDisplayedTrajectoryAttachments } from './relations/renderPlan.ts';
-import { buildResolvedLinkChainIndices, buildResolvedLinkOperatorVariableIndexMap, buildResolvedLinkRawTraceAliasMap, phraseChainLabelIndex, resolveLexicalMovementTraceDisplayIndex, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
+import { thetaLetterRoles } from './relations/thetaGridComposition.ts';
+import { buildResolvedLinkChainIndices, buildResolvedLinkRawTraceAliasMap, phraseChainLabelIndex, resolveLexicalMovementTraceDisplayIndex, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import {
   extractDisplayedSubscriptIndex,
@@ -51,7 +52,6 @@ export type TreeLabelMeasure = (runs: TreeLabelRuns) => TreeLabelBounds | undefi
 export type PreparedTreeLabelRuns = ReadonlyMap<SyntaxNode, ReadonlyMap<string, readonly TreeLabelRuns[]>>;
 export type StagedTerminalContext = {
   traceIndices: Map<string, string>;
-  operatorIndices: Map<string, string>;
   rawTraceAliases: Map<string, string>;
 };
 
@@ -66,7 +66,8 @@ export function categoryLabelLines(node: HierNode, phraseIndices: Map<string, st
 }
 
 /** Staged Replay already owns surface and casing. This only applies the same
- * additive index/trace notation used by both painter text paths. */
+ * additive index/trace notation used by both painter text paths. A word shows
+ * only the index of a chain it belongs to; a binding mark draws its own letter. */
 export function stagedTerminalText(node: HierNode, context: StagedTerminalContext): string {
   const surface = resolveLeafSurface(node).trim();
   const inherited = resolveTraceIndexFromNodeContext(node, context.traceIndices);
@@ -75,9 +76,7 @@ export function stagedTerminalText(node: HierNode, context: StagedTerminalContex
   if ((node.data as SyntaxNode & { ghost?: boolean }).ghost === true) return surface;
   const rawAlias = extractMovementIndex(surface);
   const alias = rawAlias ? context.rawTraceAliases.get(rawAlias.trim().toLowerCase()) : undefined;
-  const formatted = formatAuthoredWitnessSurface(surface, inherited, alias);
-  return isTraceLike(formatted) || isNullLike(formatted) ? formatted
-    : formatIndexedSurfaceForDisplayValue(formatted, resolveTraceIndexFromNodeContext(node, context.operatorIndices));
+  return formatAuthoredWitnessSurface(surface, inherited, alias);
 }
 
 /** How an identity or theta index joins a label: reuse an equal identity
@@ -163,7 +162,6 @@ export function treeLabelRunsForStep(
   const chainIndices = chainIndicesForStep(prepared, stepIndex)!;
   const context: StagedTerminalContext = {
     traceIndices: chainIndices.terminals,
-    operatorIndices: buildResolvedLinkOperatorVariableIndexMap(frame.workspaceForest || [], links, stage),
     rawTraceAliases: buildResolvedLinkRawTraceAliasMap(frame.workspaceForest || [], links, stage)
   };
   const labels = new Map<string, TreeLabelState>();
@@ -247,7 +245,7 @@ export function treeLabelRunsForStep(
     const drawKey = JSON.stringify([item.relationRef.stageIndex, item.relationRef.relationIndex, item.tier2ClaimIdentity ?? null]);
     if (thetaDraws.has(drawKey)) continue;
     thetaDraws.add(drawKey);
-    for (const role of item.thetaRoles || []) {
+    for (const role of thetaLetterRoles(item)) {
       const target = thetaLabelTarget(resolve(role.nodeId), role.nodeId);
       if (!target) continue;
       const idKey = key(target.labelId, target.kind), label = labels.get(idKey);

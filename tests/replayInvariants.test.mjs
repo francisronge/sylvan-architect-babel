@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import {
-  checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkGapLabelOnSilence, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
+  checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkGapLabelOnSilence, checkInputUnchanged, checkLabelIndicesOwned, checkLandingAttached, checkRestatedLettersKept, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, checkWholeParent, frameStructure
@@ -338,6 +339,38 @@ test('one-letter-per-label: a word that is an argument of two theta grids shows 
   assert.deepEqual(checkOneLetterPerLabel(prepare(record)), []);
 });
 
+test('control: label-index-owned reports an index that belongs to no chain, coindex or theta grid of its node', () => {
+  // Opus h1-014 (29 October held-out batch) painted the operator-variable link
+  // counter 32 on the words of the moved phrase: Which₃₂ cake₃₂.
+  const records = JSON.parse(readFileSync(new URL('./helpers/heldoutDefectRecords.json', import.meta.url), 'utf8'));
+  const { sentence, inputTokens, derivationStages } = records['opus-h1-014-a1'];
+  const wh = prepare({ sentence, inputTokens, derivationStages });
+  assert.deepEqual(checkLabelIndicesOwned(wh), []);
+  const foreign = (letter, mode) => (...args) => {
+    const runs = treeLabelRunsForStep(...args);
+    const which = runs.get('D_which::__leaf');
+    if (which) runs.set('D_which::__leaf', which.map(run => mode ? { ...run, indices: [...run.indices, { text: letter, mode }] }
+      : { ...run, text: `${run.text}${letter}` }));
+    return runs;
+  };
+  assert(reported(checkLabelIndicesOwned(wh, null, foreign('₃₂')), 'label-index-owned', 113, 'D_which::__leaf shows Which₃₂: 32 is no chain'));
+  // Once DP_wh has moved, its chain index 2 is its words' chain too; before, it is no chain of theirs.
+  const own = checkLabelIndicesOwned(wh, null, foreign('₂')).filter(found => found.detail.includes('D_which'));
+  assert(!own.some(found => found.frame === 113) && reported(own, 'label-index-owned', 5, 'which₂: 2 is no chain'));
+  assert(reported(checkLabelIndicesOwned(wh, null, foreign('k', 'theta')), 'label-index-owned', 113, 'D_which::__leaf shows theta k'));
+  assert(reported(checkLabelIndicesOwned(wh, null, foreign('k', 'identity')), 'label-index-owned', 113, 'D_which::__leaf shows identity k'));
+});
+
+test('control: restated-letters-kept reports a letter that a shared restated plaque drops', () => {
+  // The stage-2 grid of verbTrace restates the stage-1 one and letters the moved
+  // theme Bücher (subjectIP) j; sharing its plaque once dropped that letter.
+  const shared = prepare(corpus.records.find(entry => entry.id === 'movement/independent-infl-context.json#').record);
+  assert.deepEqual(checkRestatedLettersKept(shared), []);
+  const dropped = { ...shared, relationRenderPlan: { ...shared.relationRenderPlan, frames: shared.relationRenderPlan.frames
+    .map(frame => ({ ...frame, items: frame.items.map(({ restatedRoles: _restated, ...item }) => item) })) } };
+  assert(reported(checkRestatedLettersKept(dropped), 'restated-letters-kept', 31, 'noun::__leaf loses j'));
+});
+
 test('control: marks-at-owning-moment reports a mark before its moment and a mark whose moment never plays', () => {
   assert.deepEqual(checkMarksAtOwningMoment(replay), []);
   const momentOf = (stage, relation) => steps.findIndex(step => step.replayKind === 'relation'
@@ -426,7 +459,7 @@ const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 
   'no-early-reveal', 'relation-construction', 'parent-after-children', 'whole-parent', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
   'movement-landing-parent', 'movement-shown-as-movement', 'existing-not-remerged',
   'visible-in-canvas',
-  'marks-at-owning-moment', 'one-letter-per-label'];
+  'marks-at-owning-moment', 'one-letter-per-label', 'label-index-owned', 'restated-letters-kept'];
 let sweep;
 before(() => {
   sweep = corpus.records.map(({ id, record, contract }) => {
@@ -441,7 +474,9 @@ before(() => {
         ...checkContinuedOccurrences(prepared, authored),
         ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored),
         ...checkMovementShownAsMovement(prepared, authored), ...checkExistingNotRemerged(prepared, authored), ...checkVisibleInCanvas(prepared),
-        ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared), ...checkGapLabelOnSilence(prepared, authored)
+        ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared), ...checkLabelIndicesOwned(prepared),
+        ...checkRestatedLettersKept(prepared),
+        ...checkGapLabelOnSilence(prepared, authored)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
         ...checkContractWarnings(prepared, authored, { contract })] };
     } catch (error) { return { id, error }; }

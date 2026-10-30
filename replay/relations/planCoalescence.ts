@@ -5,6 +5,7 @@ import { flattenAnchorIds } from './planSyntax.ts';
 import type { RelationClaimDispatch } from './relationClaims.ts';
 import { mergeAnchorSetOrganization } from './relationFrame.ts';
 import {
+  planItemDependencyNodeIds,
   planItemRelationRefs,
   resolveDisplayedTrajectoryAttachments,
   type DirectedPathPlanItem,
@@ -13,7 +14,7 @@ import {
   type RelationRenderPlan,
   type TrajectoryPlanItem
 } from './renderPlan.ts';
-import { composeThetaGrids } from './thetaGridComposition.ts';
+import { composeThetaGrids, thetaLetterRoles } from './thetaGridComposition.ts';
 
 /** Deterministic layer order: lower draws first (further back). */
 const LAYER_ORDER: Record<RelationPlanItem['kind'], number> = {
@@ -45,7 +46,8 @@ const LAYER_ORDER: Record<RelationPlanItem['kind'], number> = {
 
 /** Complete-claim identity and composition share one policy. Restatement can
  * share ink, but never loses an authored relation moment. */
-export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], stageNodeMaps: Map<string, SyntaxNode>[]) {
+export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], stageNodeMaps: Map<string, SyntaxNode>[],
+  { shareRestatedPlaques = true }: { shareRestatedPlaques?: boolean } = {}) {
   const COALESCE_EXCLUDED_FIELDS = new Set([
     'relationRef',
     'composedRefs',
@@ -145,6 +147,59 @@ export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], 
       else unique.set(key, { ...item });
     });
     return [...unique.values()];
+  };
+
+  /*
+   * Different claims can paint the same plaque on one anchor: a later stage
+   * restating a theta role for the trace of the same chain (the allocator gives
+   * both arguments the chain's letter), or each stage restating one PF form.
+   * Where their plaques stand together in a frame and yield at the same moment,
+   * the earliest paints once and carries every later claim's moment and hover.
+   * Other plaques' claims must also name the same occurrences, with the same
+   * lineage: a plaque whose claim names another recipient is another claim. A grid's
+   * letters already name its arguments' identity; its later restatement yields
+   * its argument badges but keeps writing its own letters (restatedRoles). A claim about a preceding state (backward)
+   * stays its own, as does a feature plaque on the source of a Case or
+   * agreement path, which joins its plaque by the claims' authored stage
+   * (featureComposition.ts, collectionPlaque).
+   */
+  const paintedPlaqueKey = (item: RelationPlanItem): string | undefined => item.kind !== 'node-plaque'
+    || item.realization || item.rowRefs ? undefined : JSON.stringify(canonicalize({
+      style: item.plaqueStyle, family: item.familyId ?? null, anchors: item.anchorNodeIds, title: item.title ?? null,
+      rows: item.rows, native: item.nativeContent ?? null, kinds: item.realizationRowKinds ?? null,
+      columns: item.thetaRoles?.map(role => [role.label, role.index ?? null]) ?? null,
+      relationOnly: item.persistence === 'relation-only', supersededAt: item.supersededAt ?? null, backward: item.backward
+    }));
+  // The occurrences a plaque's claim names or depends on, each with its lineage where it stands.
+  const participants = (item: RelationPlanItem) => JSON.stringify([...new Set([...planItemDependencyNodeIds(item),
+    ...Object.values(item.relationRef.anchors ?? {}).flatMap(flattenAnchorIds)])]
+    .map(id => [id, stageNodeMaps[item.appearsAtStage]?.get(id)?.lineageId ?? null]).sort());
+  const coalesceRestatedPlaques = (items: RelationPlanItem[]): RelationPlanItem[] => {
+    if (!shareRestatedPlaques) return items;
+    const holders = new Map<string, RelationPlanItem>(), removed = new Set<RelationPlanItem>(), yielded = new Set<string>();
+    const pathSources = new Set(items.flatMap(item => item.kind === 'directed-path' ? [item.fromNodeId] : []));
+    const drawing = (item: RelationPlanItem) => JSON.stringify([item.relationRef.stageIndex, item.relationRef.relationIndex,
+      item.tier2ClaimIdentity ?? null]);
+    for (const item of items) {
+      const face = paintedPlaqueKey(item);
+      if (face === undefined || item.backward || item.kind === 'node-plaque' && item.plaqueStyle === 'feature'
+        && item.anchorNodeIds.some(id => pathSources.has(id))) continue;
+      const key = item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid' ? face : `${face}\u0000${participants(item)}`;
+      const holder = holders.get(key);
+      if (!holder) { holders.set(key, item); continue; }
+      mergeRelationRefs(holder, item);
+      removed.add(item);
+      if (holder.kind === 'node-plaque' && item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid') {
+        yielded.add(drawing(item));
+        // The restatement still letters its own arguments, from its own moment.
+        const written = new Set(thetaLetterRoles(holder).map(role => JSON.stringify([role.nodeId, role.index])));
+        const restated = [...(item.thetaRoles ?? []).map(role => ({ ...role, relationRefs: role.relationRefs ?? planItemRelationRefs(item) })),
+          ...item.restatedRoles ?? []].filter(role => !written.has(JSON.stringify([role.nodeId, role.index])));
+        if (restated.length) holder.restatedRoles = [...holder.restatedRoles ?? [], ...restated];
+      }
+    }
+    return items.filter(item => !removed.has(item) && !(item.kind === 'node-badges' && item.badgeStyle === 'theta-role'
+      && yielded.has(drawing(item))));
   };
 
   const coalesceFrames = (frames: RelationRenderPlan['frames']) => {
@@ -324,8 +379,8 @@ export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], 
             && candidate.relationIndex === ref.relationIndex) === index);
         rest.forEach(item => { item.bindingPathSuppressed = true; });
       });
-      frame.items = mergeAnchorSetOrganization(composeFeatureBundles(composeThetaGrids(coalescedItems, grid =>
-        stageNodeMaps[grid.appearsAtStage].get(grid.anchorNodeIds[0])?.lineageId, frame.stageIndex)), false);
+      frame.items = mergeAnchorSetOrganization(coalesceRestatedPlaques(composeFeatureBundles(composeThetaGrids(coalescedItems, grid =>
+        stageNodeMaps[grid.appearsAtStage].get(grid.anchorNodeIds[0])?.lineageId, frame.stageIndex))), false);
     });
 
   };

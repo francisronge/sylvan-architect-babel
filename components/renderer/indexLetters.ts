@@ -4,8 +4,10 @@
  * The dependency-index allocator gives one chain one letter, so co-visible marks
  * can assert the same letter at the same occurrence: a QR relation's covert
  * path and binding path both index its operator and variable, and a silent
- * occurrence's label may already show the letter. The binding painters draw
- * exactly the letters listed here, and only those assigned to them.
+ * occurrence's label may already show the letter, as a written subscript or as
+ * the theta letter of an argument whose chain the allocator gave the same
+ * letter. The binding painters draw exactly the letters listed here, and only
+ * those assigned to them.
  */
 import type { BoundPrimitive } from '../../replay/relations/boundGeometry.ts';
 import type { RelationPlanItem } from '../../replay/relations/renderPlan.ts';
@@ -30,7 +32,8 @@ export const primitiveIndexLetters = (primitive: BoundPrimitive): IndexLetter[] 
 };
 
 /** `none`: another letter shows it. `glyph`: draw this letter. `label`: the
- * label's written subscript already shows it, so decorate that label instead.
+ * label already writes it, as a subscript or a theta letter, so decorate that
+ * label instead.
  * A drawn or decorated letter also carries the claims of `alsoFor`. */
 export type IndexLetterDraw<Label> = { draw: 'none' } | { draw: 'glyph' | 'label'; label: Label; alsoFor: readonly number[] };
 export type IndexLetterPlan<Label> = (letter: IndexLetter) => IndexLetterDraw<Label>;
@@ -41,6 +44,8 @@ export interface IndexLetterContext<Label> {
   labelOf(letter: IndexLetter, primitive: BoundPrimitive): Label | null;
   /** The index a label already shows as a written subscript, such as Opᵢ. */
   writtenSubscript(label: Label): string | null;
+  /** The theta letters the step's grids write into a label (deferred theta painting). */
+  thetaLetters?(label: Label): ReadonlySet<string>;
   /** Higher ranks are more prominent at the current Replay step. */
   emphasisRank(item: RelationPlanItem): number;
 }
@@ -71,7 +76,8 @@ export function planIndexLetters<Label>(
       Number(right.role === 'identity') - Number(left.role === 'identity')
       || context.emphasisRank(items[right.itemIndex]) - context.emphasisRank(items[left.itemIndex])
       || ROLE_ORDER[left.role] - ROLE_ORDER[right.role] || left.itemIndex - right.itemIndex);
-    const written = holder.role !== 'identity' && context.writtenSubscript(label) === index;
+    const written = holder.role !== 'identity'
+      && (context.writtenSubscript(label) === index || Boolean(context.thetaLetters?.(label).has(index)));
     for (const other of others) draws.set(letterKey(other), { draw: 'none' });
     draws.set(letterKey(holder), { draw: written ? 'label' : 'glyph', label,
       alsoFor: [...new Set(others.map(other => other.itemIndex))].filter(item => item !== holder.itemIndex) });
