@@ -25,7 +25,7 @@ import {
 import { buildMovementProtectedNodeIds } from '../replay/triangulation.ts';
 import type { PlaybackStep } from '../replay/types.ts';
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
-import { type DerivationStage, type SyntaxNode } from '../types';
+import { type DerivationStage, type SurfaceRealization, type SyntaxNode } from '../types';
 import { selectReplayCanvas } from './replayStepCanvas.ts';
 import { withPlaqueTextMeasure } from './renderer/plaqueText.ts';
 import { applyRelationEmphasis } from './renderer/relationInteraction.ts';
@@ -64,6 +64,8 @@ export interface TreeVisualizerProps {
   abstractionMode?: boolean;
   sentence?: string;
   inputTokens?: string[];
+  /** The analysis's conversion-made realization groups (Provenance.spellingGroups). */
+  spellingGroups?: SurfaceRealization[];
 }
 
 type RelationMoment = {
@@ -82,6 +84,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   abstractionMode = false,
   sentence = '',
   inputTokens,
+  spellingGroups,
   preparedReplay,
   manualCameraState
 }) => {
@@ -157,8 +160,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   // The Canopy lays out the last Replay frame, so both views prepare Replay's playback.
   const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
     movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps } = useMemo(
-      () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: true }),
-      [preparedReplay, derivationStages, sentence, inputTokens]
+      () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, spellingGroups, includePlayback: true }),
+      [preparedReplay, derivationStages, sentence, inputTokens, spellingGroups]
     );
   // Only Replay plays its steps; the Canopy paints the completed tree.
   const playbackSteps = animated ? layoutPlaybackSteps : NO_PLAYBACK_STEPS;

@@ -78,8 +78,9 @@ export interface RealizationChange {
   relationIndex: number | null;
   candidateRelationIndices?: number[];
   diagnostic?: string;
-  /** Only spelling associations arrive (spellingAssociation) and no relation
-   * states them: they hold from the stage's first step and are no realization event. */
+  /** Spelling associations (spellingAssociation) that the conversion made, or
+   * that no relation covers, and that no relation states: they hold from the
+   * stage's first step and are no realization event. */
   spelling?: true;
 }
 
@@ -87,9 +88,9 @@ export interface RealizationChange {
  * A group of one pronounced leaf whose word spells the group's input stretch,
  * such as inw for the token "in w". It says nothing its word does not:
  * Babel's spelling conversion records one wherever a word covers several
- * tokens or writes its token with other marks (spellout.js). Unless a relation
- * states it, no relation owns it and no moment shows it; it holds wherever its
- * word stands.
+ * tokens or writes its token with other marks (spellout.js), and records it
+ * (Provenance.spellingGroups); such a group, or one no relation covers, holds
+ * wherever its word stands unless a relation states it.
  */
 export const spellingAssociation = (group: SurfaceRealization, forest: readonly SyntaxNode[],
   inputTokens?: readonly string[]): boolean => {
@@ -436,9 +437,15 @@ export const resolveRealizationChanges = (
     || (inputSequence(index).length > 0 || Object.keys(current.relations![index].values ?? {})
       .some(key => normalizeTier2Synonym(key) === 'input association'))
       && change.after.some(group => group.nodeIds.some(id => relations[index].current.has(id)));
+  const spelled = new Set((current.after?.spelledRealizations ?? []).map(groupKey));
+  // Only spelling associations arrive and no relation states them.
+  const unstatedSpelling = (change: Pick<RealizationChange, 'before' | 'after'>) => !change.before.length
+    && change.after.every(group => spellingAssociation(group, current.workspaceForest, inputTokens))
+    && !relations.some((_, index) => statesAssociation(index, change));
   return changes.map(change => {
-    if (!change.before.length && change.after.every(group => spellingAssociation(group, current.workspaceForest, inputTokens))
-      && !relations.some((_, index) => statesAssociation(index, change))) {
+    // A group the conversion made is never an event. An authored one keeps
+    // any relation that covers it; only one no relation covers holds unasked.
+    if (unstatedSpelling(change) && change.after.every(group => spelled.has(groupKey(group)))) {
       return { ...change, relationIndex: null, spelling: true as const };
     }
     let directCandidates = relations.flatMap((relation, index) => {
@@ -493,6 +500,7 @@ export const resolveRealizationChanges = (
     const candidates = directCandidates.length ? directCandidates
       : relations.flatMap((relation, index) => movementCovers(change, relation.movement) ? [index] : []);
     if (candidates.length === 1) return { ...change, relationIndex: candidates[0] };
+    if (!candidates.length && unstatedSpelling(change)) return { ...change, relationIndex: null, spelling: true as const };
     const reason = candidates.length === 0 ? 'MISSING_OWNER' : 'AMBIGUOUS_OWNER';
     return { ...change, relationIndex: null, candidateRelationIndices: candidates,
       diagnostic: `REALIZATION_${reason}: Stage ${stageIndex + 1}, input positions ${[...new Set([...change.before, ...change.after].flatMap(group => group.tokenIndices))].sort((a, b) => a - b).join(', ')}. ${candidates.length

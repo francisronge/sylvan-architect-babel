@@ -60,10 +60,13 @@ test('Opus h1-093: a word that spells its token across a space is associated fro
   const present = stages.map(stage => (stage.realizations ?? []).some(entry => JSON.stringify(entry) === JSON.stringify(group)));
   // Erg1 first stands, pronounced inw, in stage 7.
   assert.deepEqual(present, [false, false, false, false, false, false, true, true]);
-  const bundle = normalizeParseBundle(structuredClone(converted.analysis), 'minimalism', sentence, 'claude', true,
-    { inputTokens: converted.inputTokens });
+  // The live parse records the conversion's groups in provenance; the saved record predates that.
+  const bundle = normalizeParseBundle(structuredClone(authoredPayload), 'minimalism', sentence, 'claude', true, { spellout: true });
+  const [analysis] = bundle.analyses;
+  assert.deepEqual(analysis.provenance.spellingGroups, [group]);
   for (const replay of [
-    prepareReplay({ sentence, inputTokens: converted.inputTokens, derivationStages: bundle.analyses[0].derivationStages, includePlayback: true }),
+    prepareReplay({ sentence, inputTokens: bundle.inputTokens, derivationStages: analysis.derivationStages,
+      spellingGroups: analysis.provenance.spellingGroups, includePlayback: true }),
     prepare('opus-h1-093-a1')
   ]) {
     const steps = replay.playbackSteps;

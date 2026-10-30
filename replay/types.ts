@@ -139,6 +139,8 @@ export interface ReplayDerivationAfterState {
   workspaceForest?: SyntaxNode[];
   reusePreviousWorkspace?: boolean;
   realizations?: SurfaceRealization[];
+  /** The stage's groups that Babel's spelling conversion made (Provenance.spellingGroups). */
+  spelledRealizations?: SurfaceRealization[];
 }
 
 

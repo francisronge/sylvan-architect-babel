@@ -193,6 +193,10 @@ export interface Provenance {
   payloadIntegrityFlags?: string[];
   payloadRepairDiagnostics?: PayloadRepairDiagnostic[];
   tokenIndexCorrections?: TokenIndexCorrection[];
+  /** Single-leaf groups Babel's spelling conversion made for words that spell
+   * their stretch with other marks or across tokens (spellout.js). Replay never
+   * shows them as events (realizationReplay.ts). */
+  spellingGroups?: SurfaceRealization[];
   hasDerivationStages?: boolean;
   parsePromptTokenCount?: number;
   parseOutputTokenCount?: number;

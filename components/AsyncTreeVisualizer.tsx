@@ -13,11 +13,12 @@ const PreparedTreeVisualizer: React.FC<AsyncTreeVisualizerProps> = (props) => {
     derivationStages: props.derivationStages,
     sentence: props.sentence ?? '',
     inputTokens: props.inputTokens,
+    spellingGroups: props.spellingGroups,
     // The Canopy lays out the last Replay frame, so it needs the playback too.
     includePlayback: true
   // Each view still mounts its own tree from its own preparation.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- switching views prepares again.
-  }), [props.derivationStages, props.sentence, props.inputTokens, props.animated]);
+  }), [props.derivationStages, props.sentence, props.inputTokens, props.spellingGroups, props.animated]);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<{
     input: ReplayPreparationInput; attempt: number; result?: PreparedReplay; error?: Error;

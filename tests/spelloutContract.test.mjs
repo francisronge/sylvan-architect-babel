@@ -155,8 +155,12 @@ test('a spelling group the conversion makes holds from its word\'s first stage a
     assert.ok(result.ok, `${record.label}: ${JSON.stringify(result.diagnostics)}`);
     const group = result.spellingGroups.find(entry => entry.nodeIds[0] === unit.nodeId);
     assert.ok(group, `${record.label}: ${unit.nodeId} spells "${unit.token}" across a space`);
-    const stages = normalize(result.analysis, sentence, result.inputTokens, record.framework).analyses[0].derivationStages;
-    const replay = prepareReplay({ sentence, inputTokens: result.inputTokens, derivationStages: stages, includePlayback: true });
+    // As a live parse does: the conversion's groups are recorded in provenance and Replay reads them there.
+    const [analysis] = normalizeParseBundle(structuredClone(spellout), record.framework, sentence, 'gpt', true, { spellout: true }).analyses;
+    assert.deepEqual(analysis.provenance.spellingGroups, result.spellingGroups, record.label);
+    const stages = analysis.derivationStages;
+    const replay = prepareReplay({ sentence, inputTokens: result.inputTokens, derivationStages: stages,
+      spellingGroups: analysis.provenance.spellingGroups, includePlayback: true });
     groups += 1;
     const held = stages.map(stage => (stage.realizations ?? []).some(entry => key(entry) === key(group)));
     const first = held.indexOf(true);

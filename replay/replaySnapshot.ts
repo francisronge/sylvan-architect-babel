@@ -55,7 +55,7 @@ export const buildReplayPlayback = (bundle: ParseBundle): ReplayPlayback => {
   }
   const sentence = suppliedSentence
     || collectPronouncedTerminalSequence(finalForestForAnalysis(analysis)).join(' ');
-  const frames = adaptDerivationStagesForReplay(derivationStages);
+  const frames = adaptDerivationStagesForReplay(derivationStages, analysis.provenance?.spellingGroups);
   const replayPlan = buildDerivationReplayPlan({ derivationStages }) as DerivationReplayPlan;
   const steps = buildPlaybackStepsFromDerivationFrames({
     frames,
