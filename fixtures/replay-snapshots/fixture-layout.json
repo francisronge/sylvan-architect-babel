@@ -1040,7 +1040,7 @@
       ]
     },
     "replay-regressions/astra-turkish-relative-2.json#": {
-      "frames": "SxIk2Oup yfgJ_djj s3XrhNCs w265Q5ap zTBDDsRL NEsODtbq -sH79z7a 9i863ydG 1HAzhhwX TNJxduzh kipf_oAY w78Ct061 -AsOK0VG OYjexJ49 nGXZqUy4 rqktjEtJ iPMEfvB2 zx9LTVdq QRJn1iEr jkVkU0_9 P3_fwjC- nU6xn4_H qp9lEWEZ OMteWt9Y sqv3TzND k13Y7M83 VJSXb1x2 ysRF2d7Q ZEYRE4nn mEu6QqI0 LW_KYxlE e4ngjxA9 OQzQtozZ KgOKiiHe UK1iAkH5 b56M6tcW eNaepyqM o5JnE6S6 saOBdSzM 9JHER1YZ E26Z_aSy MZHEJWaf VwcUXAZv -Kun47AX TKD63nzB _nHxQsfm jmpZuk5T 97HOtJ5T",
+      "frames": "SxIk2Oup yfgJ_djj s3XrhNCs w265Q5ap zTBDDsRL NEsODtbq -sH79z7a 9i863ydG 1HAzhhwX TNJxduzh kipf_oAY w78Ct061 -AsOK0VG OYjexJ49 nGXZqUy4 -gWJjyyR RgGrsldU EjoVioiy _Y0v8zOV 2VC0YXpV cJfFMlJR O_8gFbdQ VLLmzt4y YHX4JDCY iAaUF6mH tpjn0e5j ugzRZLnZ Zr2uL6uT xBPd_WsJ xOnnkXjg Fv3pi_9c hBuok2B2 RjVxqvnL nqI_2nX2 cm5xtbFl TCoUPlse fFrxPzMA KQKRrc-l xebwvYaK T69wThWH 1E15SZW- P9ve9u6k Rca9_FFf aiK6RMdP QTt4CSUk Sur8MuVE HbZKCHlE RObYZW-U",
       "canopy": "Yw76cP0E",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -1057,6 +1057,8 @@
         "1:3 T2 node-badges theta.grid theta-grid",
         "1:3 T2 node-plaque theta.grid theta-grid",
         "1:4 T2 directed-path tier2.feature-dependency feature.dependency",
+        "1:4 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "1:4 T3 fallback",
         "1:5 T3 fallback",
         "2:0 T2 node-badges tier2.gap-notation gap.notation",
         "2:0 T3 fallback"
