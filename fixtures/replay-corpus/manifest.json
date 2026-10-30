@@ -33,7 +33,8 @@
       "id": "japanese-independent-clause-realization",
       "source": "../replay-regressions/independent-clause-and-realization.json",
       "mechanisms": ["nonmovement", "separate-pronunciation"],
-      "expect": {"minRealizationGroups": 1, "minMerges": 1, "maxMovementMoments": 0}
+      "expect": {"minRealizationGroups": 1, "minMerges": 1, "maxMovementMoments": 0},
+      "allow": {"plan": true, "reason": "Babel no longer adds its own index to a Tier-2 gap label (Francis, 27 and 30 Oct 2026): the operatorTrace badge reads the model's NP (tᵢ) instead of NP (tᵢ)_i."}
     },
     {
       "id": "ordinary-receiving-width-control",

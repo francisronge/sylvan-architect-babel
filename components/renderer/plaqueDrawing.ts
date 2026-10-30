@@ -32,7 +32,7 @@ import { coalesceCollectionPaths, collectionPathAttachment } from '../collection
 import { appendPlaqueContent } from '../plaqueViewport.ts';
 import type { ClaimDrawing, DrawingLayer, RelationEmphasis, RelationLayers, TreeMeasurements } from './drawingContext.ts';
 import { drawPlaqueText } from './plaqueText.ts';
-interface PlaqueDrawingContext extends Pick<ClaimDrawing, 'queueAcceptedRelationDraw'>, Pick<RelationLayers, 'ensureFeatureRelationLayer' | 'acceptedLayerInHost' | 'idiomChunkLayers' | 'parasiticGapCoindexLayers'>, Pick<TreeMeasurements, 'measuredTerminalSubtreeRectNow' | 'measuredTreeLabelRectNow'> {
+interface PlaqueDrawingContext extends Pick<ClaimDrawing, 'queueAcceptedRelationDraw'>, Pick<RelationLayers, 'ensureFeatureRelationLayer' | 'acceptedLayerInHost' | 'idiomChunkLayers'>, Pick<TreeMeasurements, 'measuredTerminalSubtreeRectNow' | 'measuredTreeLabelRectNow'> {
   g: DrawingLayer;
   frameItems: RelationPlanItem[];
   drawCaseFeatureComposition: (assignmentIndex: number) => void;
@@ -64,7 +64,6 @@ export function createPlaqueDrawing({
   markSubtreeLensNodes,
   acceptedLayerInHost,
   idiomChunkLayers,
-  parasiticGapCoindexLayers,
   appendMarker
 }: PlaqueDrawingContext) {
 
@@ -313,66 +312,6 @@ export function createPlaqueDrawing({
     }
     if (primitive.badgeStyle === 'gap-notation' && primitive.reuseExistingNotation) {
       host.attr('data-gap-notation-reuses', primitive.nodeId);
-      return;
-    }
-    if (primitive.badgeStyle === 'gap-notation'
-      && (planItem.familyId === 'parasitic-gap.composition'
-        || planItem.familyId === 'trajectory.across-the-board'
-        || planItem.familyId === 'trajectory.sideward')) {
-      if (planItem.familyId === 'parasitic-gap.composition') {
-        acceptedLayerInHost(
-          parasiticGapCoindexLayers,
-          planItem,
-          'babel-coindex-relation-layer',
-          host
-        ).append('text')
-          .attr('class', 'babel-pg-gap-label')
-          .attr('data-gap-label-anchor', primitive.nodeId)
-          .attr('x', primitive.x.toFixed(1))
-          .attr('y', primitive.y.toFixed(1))
-          .style('fill', '#34d399')
-          .style('stroke', 'rgba(1, 8, 5, 0.94)')
-          .style('stroke-width', '6px')
-          .style('paint-order', 'stroke')
-          .style('font-family', '"Crimson Pro", Georgia, serif')
-          .style('font-size', '32px')
-          .style('font-style', 'italic')
-          .style('font-weight', '700')
-          .text(primitive.text);
-        return;
-      }
-      const anchor = resolveOverlayAnchor(primitive.nodeId);
-      if (anchor) {
-        const terminalIds = new Set(
-          anchor.descendants()
-            .map((terminal) => getNodeId(terminal as unknown as HierNode))
-        );
-        g.selectAll<SVGTextElement, HierNode>('.terminal-label')
-          .filter((terminal) => terminalIds.has(getNodeId(terminal)))
-          .each(function preserveGapLabel() {
-            const label = d3.select(this);
-            const restoreAttribute = planItem.familyId === 'trajectory.across-the-board'
-              || planItem.familyId === 'trajectory.sideward'
-              ? 'data-copy-restore'
-              : 'data-gap-restore';
-            if (!label.attr(restoreAttribute)) {
-              label.attr(restoreAttribute, label.attr('data-default-label') || this.textContent || '');
-            }
-          })
-          .classed(
-            planItem.familyId === 'trajectory.across-the-board'
-              || planItem.familyId === 'trajectory.sideward'
-              ? 'babel-moved-from-copy'
-              : 'babel-gap-notation',
-            true
-          )
-          .classed(
-            'babel-moved-from-copy',
-            planItem.familyId === 'trajectory.across-the-board'
-            || planItem.familyId === 'trajectory.sideward'
-          )
-          .text(primitive.text);
-      }
       return;
     }
     const marker = appendMarker(primitive.x, primitive.y, primitive.badgeStyle === 'gap-notation', primitive.stackIndex);

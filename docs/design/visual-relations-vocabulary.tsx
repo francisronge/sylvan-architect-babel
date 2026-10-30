@@ -454,39 +454,20 @@ function PrimitiveDrawing({ name, markerPrefix }: { name: PrimitiveName; markerP
       );
     case 'Gap label':
       /*
-       * The two gap notations: the relabeled terminal (babel-gap-notation /
-       * babel-moved-from-copy carry the treatment; the visible mark is the
-       * substituted trace text) and the standalone parasitic-gap label with
-       * its production inline typography.
+       * Babel writes no gap notation of its own. The only gap label is the
+       * model's own text for its gap, drawn as a plain badge beside the node
+       * when the tree does not already show that exact text.
        */
       return (
-        <>
-          <text
-            className="terminal-label babel-gap-notation"
-            x="96"
-            y="104"
-            textAnchor="middle"
-            fontSize="30"
-            fontWeight="900"
-            fill="#34d399"
-            style={terminalLabelStyle}
-          >tᵢ</text>
-          <text
-            className="babel-pg-gap-label"
-            x="188"
-            y="104"
-            style={{
-              fill: '#34d399',
-              stroke: 'rgba(1, 8, 5, 0.94)',
-              strokeWidth: '6px',
-              paintOrder: 'stroke',
-              fontFamily: '"Crimson Pro", Georgia, serif',
-              fontSize: '32px',
-              fontStyle: 'italic',
-              fontWeight: 700
-            }}
-          >pgᵢ</text>
-        </>
+        <text
+          className="vr-text-badge vr-badge-gap-notation"
+          x="160"
+          y="100"
+          textAnchor="middle"
+          fontSize="11px"
+          fill="#a7f3d0"
+          fontFamily="'IBM Plex Mono', monospace"
+        >authored label</text>
       );
     case 'Coindex':
       return (

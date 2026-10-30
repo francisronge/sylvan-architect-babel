@@ -8,7 +8,7 @@ For one analysis, its only field is derivationStages, a nonempty array of stages
 When the sentence has readings that need different structures, return one analysis for each reading. Then the only top-level field is analyses, a nonempty array of analysis objects, each containing only derivationStages.
 
 Stages
-Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord. The last stage contains the completed analysis of the input.
+Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord. A stage may establish a complete structure at once, such as a level of representation the analysis distinguishes. The last stage contains the completed analysis of the input.
 An occurrence moves only from a position that an earlier stage already shows. Several operations may share a stage. Babel replays a stage's relations in the order they are listed; if the analysis needs an order that this cannot show, record the intermediate workspace as a separate stage rather than describing it only in prose. An unchanged workspace needs a sentence-specific reason within the analysis for the new stage.
 Each stage has these five required fields, written in this order:
 - statement: a nonblank string naming what the stage establishes.

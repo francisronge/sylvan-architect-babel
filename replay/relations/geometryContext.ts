@@ -205,8 +205,6 @@ export const usesBoundBadgePosition = (item: RelationPlanItem): boolean => {
   }
   if (item.kind !== 'node-badges') return false;
   if (['agreement-goal', 'idiom-chunk', 'boundary-cut'].includes(item.badgeStyle)) return false;
-  if (item.badgeStyle === 'gap-notation'
-    && ['trajectory.across-the-board', 'trajectory.sideward'].includes(item.familyId ?? '')) return false;
   return ![
     'theta.grid',
     'anti-locality.paths',

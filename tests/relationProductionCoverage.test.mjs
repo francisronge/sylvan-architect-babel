@@ -314,7 +314,7 @@ test('ParasiticGap owns exactly one ordinary movement path from real gap to fill
   );
 });
 
-test('ParasiticGap gap-only authorship compiles specialized gap notation without movement', () => {
+test('ParasiticGap gap-only authorship adds no pg label of its own and falls back to the neutral mark', () => {
   const plan = compileRelationRenderPlan([
     stage([{
       relation: 'ParasiticGap',
@@ -328,13 +328,10 @@ test('ParasiticGap gap-only authorship compiles specialized gap notation without
 
   assert.deepEqual(plan.unregistered, []);
   assert.deepEqual(plan.diagnostics, []);
-  assert.deepEqual(gapBadges, [
-    { nodeId: 'b_fx', text: 'pgᵢ', shape: 'plain' },
-    { nodeId: 'c_fx', text: 'pgᵢ', shape: 'plain' }
-  ]);
+  assert.deepEqual(gapBadges, []);
   assert.equal(items.some((item) => item.kind === 'trajectory'), false);
   assert.equal(items.some((item) => item.kind === 'parasitic-gap-copy'), false);
-  assert.equal(items.some((item) => item.kind === 'fallback'), false);
+  assert.deepEqual(items.map((item) => item.kind), ['fallback'], 'with no notation of its own the claim keeps the neutral Tier-3 mark');
 });
 
 test('ParasiticGap paths-only authorship compiles path status without movement or gap notation', () => {
@@ -406,7 +403,7 @@ test('ParasiticGap complete movement authorship compiles its trajectory without 
   assert.equal(items.some((item) => item.kind === 'fallback'), false);
 });
 
-test('AbarMove plus gap-only ParasiticGap keeps movement and parasitic notation separate', () => {
+test('AbarMove plus gap-only ParasiticGap keeps the movement and adds no pg label', () => {
   const plan = compileRelationRenderPlan([
     stage([
       {
@@ -440,10 +437,9 @@ test('AbarMove plus gap-only ParasiticGap keeps movement and parasitic notation 
     relationIndex: 0,
     kind: 'phrasal'
   }]);
-  assert.deepEqual(gapBadges, [
-    { nodeId: 'b_fx', text: 'pgᵢ', shape: 'plain' }
-  ]);
-  assert.equal(items.some((item) => item.kind === 'fallback'), false);
+  assert.deepEqual(gapBadges, []);
+  assert.deepEqual(items.filter((item) => item.kind === 'fallback').map((item) => item.relationRef.relationIndex), [1],
+    'the gap-only parasitic-gap claim keeps the neutral Tier-3 mark');
 });
 
 test('a failed ParasiticGap movement facet does not abort valid gap and path facets', () => {
@@ -469,7 +465,8 @@ test('a failed ParasiticGap movement facet does not abort valid gap and path fac
   assert.equal(items.some((item) => item.kind === 'path-status'), true);
   assert.equal(
     items.some((item) => item.kind === 'node-badges' && item.badgeStyle === 'gap-notation'),
-    true
+    false,
+    'Babel adds no pg label of its own'
   );
   assert.equal(items.some((item) => item.kind === 'fallback'), false);
 });

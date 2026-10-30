@@ -1,0 +1,117 @@
+{
+  "note": "Distinct Case values from saved analyses (codex and anthropic qualification archives and fixtures, 30 Oct 2026) that name a Case together with a deny, withhold, pending or unvalued word. Babel does not parse prose: none of them draws a Case path (lead decision, 30 Oct 2026).",
+  "values": [
+    {
+      "value": "infinitival to does not assign nominative Case",
+      "source": "codex-qualification/bughunt-20261018/runs/18-en-degree-complement :: PRO licensing :: case"
+    },
+    {
+      "value": "は does not itself realize nominative Case",
+      "source": "codex-qualification/bughunt-20261018/runs/46-ja-causative :: topic marking :: caseStatus"
+    },
+    {
+      "value": "Topic marking does not itself supply the finite subject's abstract nominative Case.",
+      "source": "codex-qualification/bughunt-20261018/runs/48-ko-long-negation :: subject topic marking :: caseStatus"
+    },
+    {
+      "value": "Unlicensed at this stage: infinitival to does not assign nominative",
+      "source": "codex-qualification/bughunt2-20261018/runs/10-en-raising-experiencer :: Nonfinite selection and Case restriction :: subjectCase"
+    },
+    {
+      "value": "infinitival to does not assign nominative",
+      "source": "codex-qualification/bughunt2-20261018/runs/12-en-wh-infinitive :: PRO licensing :: case"
+    },
+    {
+      "value": "does not value nominative Case",
+      "source": "codex-qualification/bughunt2-20261018/runs/13-en-passive-ecm :: infinitival selection and feature specification :: caseCapacity"
+    },
+    {
+      "value": "no accusative Case is available to Mary",
+      "source": "codex-qualification/bughunt2-20261018/runs/13-en-passive-ecm :: passive licensing :: caseEffect"
+    },
+    {
+      "value": "Nonfinite I does not assign nominative Case",
+      "source": "codex-qualification/bughunt2-20261018/runs/18-en-promise-control :: PRO-theorem configuration :: Case"
+    },
+    {
+      "value": "nominative, with no overt suffix",
+      "source": "codex-qualification/confirm-20261030-trial/runs/c1-028-hu-focus :: finite-agreement-and-case :: subjectCase"
+    },
+    {
+      "value": "Pred does not assign nominative Case.",
+      "source": "codex-qualification/indexed-night-20261018/runs/08-en-small-clause :: Defective Case domain :: CaseCapacity"
+    },
+    {
+      "value": "structural accusative unavailable; nominative licensing pending",
+      "source": "codex-qualification/indexed-night-20261018/runs/43-ja-passive :: direct-passive argument and case licensing :: patientCase"
+    },
+    {
+      "value": "Dependent I assigns no nominative Case to PRO.",
+      "source": "codex-qualification/indexed-night-20261018/runs/50-th-serial-verb :: PRO licensing :: case"
+    },
+    {
+      "value": "genitive licensing pending",
+      "source": "codex-qualification/night3-20261019/runs/06-he-construct :: Nominal possessive interpretation :: caseStatus"
+    },
+    {
+      "value": "structural nominative pending",
+      "source": "codex-qualification/night3-20261019/runs/06-he-construct :: Adjectival theta assignment :: caseStatus"
+    },
+    {
+      "value": "Peripheral nominative topic, not independently governed by finite I.",
+      "source": "codex-qualification/night3-20261019/runs/40-it-pro-drop :: right-dislocation and discourse coreference :: CaseStatus"
+    },
+    {
+      "value": "unvalued; infinitival to does not assign nominative",
+      "source": "codex-qualification/night3-20261019/runs/52-en-ecm :: Infinitival licensing without nominative Case :: subjectCaseStatus"
+    },
+    {
+      "value": "the subject retains inherent ergative Case; no additional nominative Case is assigned",
+      "source": "codex-qualification/rare-relations-20261017/runs/20-hindi-object-agreement :: finite subject-position licensing :: caseConsequence"
+    },
+    {
+      "value": "Infinitival to does not assign nominative Case.",
+      "source": "codex-qualification/ship1-20261024/runs/s1-09-en-object-control :: PRO licensing :: Case"
+    },
+    {
+      "value": "no nominative is assigned by infinitival I",
+      "source": "codex-qualification/sol-cfc-20261027/runs/n4-04-en-raising-control-mix :: passive-A-movement-and-chain :: Case"
+    },
+    {
+      "value": "no overt nominative Case",
+      "source": "codex-qualification/sol-parts-20261026/runs/n4-04-en-raising-control-mix :: PRO-position licensing :: Case"
+    },
+    {
+      "value": "no nominative assignment by nonfinite I",
+      "source": "codex-qualification/sol-stress-20261027/runs/s72-grc-article-infinitive :: PRO licensing :: Case"
+    },
+    {
+      "value": "Structural accusative remains unassigned.",
+      "source": "codex-qualification/spellout-metalanguage-ab-20261018/runs/zh-ba-name.r1.A :: internal theta-role assignment and result interpretation :: caseStatus"
+    },
+    {
+      "value": "no nominative Case",
+      "source": "codex-qualification/spellout-night-20261018/runs/09-en-ecm :: Infinitival selection :: caseLicensing"
+    },
+    {
+      "value": "no nominative Case is assigned by nonfinite I",
+      "source": "codex-qualification/spellout-night-20261018/runs/20-es-clitic-climbing :: PRO licensing :: case"
+    },
+    {
+      "value": "no nominative Case assigned",
+      "source": "codex-qualification/spellout-v2-check-20261018/runs/50-th-serial-verb.a :: PRO licensing :: abstractCase"
+    },
+    {
+      "value": "no nominative Case is assigned by the embedded I",
+      "source": "codex-qualification/spellout-v2-check-20261018/runs/50-th-serial-verb.c :: pro_licensing :: case"
+    },
+    {
+      "value": "no ordinary nominative Case is assigned to PRO",
+      "source": "codex-qualification/spellout-v3-product-20261018/runs/50-th-serial-verb :: PRO licensing :: case"
+    },
+    {
+      "value": "no accusative assignment",
+      "source": ".t3/worktrees/Babel/t3-fbb29397/fixtures/movement/clause-context.json :: raising-predicate selection :: embeddedSubjectCase"
+    }
+  ]
+}

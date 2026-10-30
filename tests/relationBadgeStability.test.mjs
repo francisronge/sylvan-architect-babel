@@ -85,8 +85,6 @@ const nativeBadges = [
   ['agreement lens', { badgeStyle: 'agreement-goal' }],
   ['idiom lens', { badgeStyle: 'idiom-chunk' }],
   ['boundary cuts', { badgeStyle: 'boundary-cut' }],
-  ['ATB gap notation', { familyId: 'trajectory.across-the-board', badgeStyle: 'gap-notation' }],
-  ['sideward gap notation', { familyId: 'trajectory.sideward', badgeStyle: 'gap-notation' }],
   ['anti-locality', { familyId: 'anti-locality.paths', badgeStyle: 'facilitator' }],
   ['improper movement', { familyId: 'improper-movement.landing', badgeStyle: 'improper-hosts' }],
   ['multidominance', { familyId: 'multidominance.shared-node', badgeStyle: 'shared-object' }],
@@ -145,8 +143,8 @@ test('same-stage mixed generic badges receive distinct slots in authored order',
   ], [0, 1, 2]);
 });
 
-test('parasitic-gap notation still consumes its real bound position', () => {
-  const gap = badge(0, 0, { familyId: 'parasitic-gap.composition', badgeStyle: 'gap-notation' });
+test('a gap label still consumes its real bound position', () => {
+  const gap = badge(0, 0, { familyId: 'tier2.gap-notation', badgeStyle: 'gap-notation' });
   const bound = bind([gap, fallback(0, 1)]);
   assert.equal(markFor(bound, 'text-badge', 0).stackIndex, 0);
   assert.equal(markFor(bound, 'fallback-mark', 1).stackIndex, 1);

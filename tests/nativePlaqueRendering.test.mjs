@@ -620,14 +620,6 @@ test('Tier2 category-labelled trace reuses the exact existing I instead of drawi
   assert.equal(host.attrs['data-gap-notation-reuses'], 'lower');
 });
 
-test('the same exact gap notation reuses its occurrence independently of relation tier or family', () => {
-  for (const familyId of ['tier2.gap-notation', 'trajectory.across-the-board', 'trajectory.sideward', 'parasitic-gap.composition']) {
-    const { result, host } = gapLabels([{ text: 't', kind: 'terminal' }], 't', 'lower', familyId);
-    assert.equal(result, undefined);
-    assert.equal(host.attrs['data-gap-notation-reuses'], 'lower');
-  }
-});
-
 test('Tier2 trace notation remains authored and silent-copy words retain their occurrence index', () => {
   for (const [text, original, notation] of [['t', 't', 't'], ['t_i', 't_i', 't_i'], ['t_V', 't_V', 't_V'], ['John\u2081', 'John', 'John']]) {
     const { result, host } = gapLabels([{ text, original, kind: 'terminal', index: text === 't' ? undefined : '1' }], notation);

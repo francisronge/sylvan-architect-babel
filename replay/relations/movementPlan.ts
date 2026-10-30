@@ -1,4 +1,3 @@
-import type { SyntaxNode } from '../../types.ts';
 import { isWordlessCategoryLeaf } from '../replaySurfaceNotation.ts';
 import { collectAuthoredSilentSubtreeIds } from './authoredSilence.ts';
 import type { FacetPlanCompilers, FacetPlanContext } from './facetPlanContext.ts';
@@ -10,7 +9,7 @@ import {
   stableChainKey,
   structuralLeafCount
 } from './planSyntax.ts';
-import { LICENSED_OR_BLOCKED_OUTCOME_STATES, asSubscript, recognizedOutcome, scalarValue } from './planValues.ts';
+import { LICENSED_OR_BLOCKED_OUTCOME_STATES, recognizedOutcome, scalarValue } from './planValues.ts';
 import type { RegisteredPlanCompilers } from './registeredPlanContext.ts';
 import {
   TRAJECTORY_SOURCE_ROLES,
@@ -20,13 +19,10 @@ import {
   type ProductionRenderFamily
 } from './renderFamilies.ts';
 import { pairedLiterals } from './tier2EvidenceQueries.ts';
-import { gapBadgeText, singleValue } from './tier2PlanValues.ts';
+import { singleValue } from './tier2PlanValues.ts';
 import { claimDeniesOrWithholds } from './tier2Synonyms.ts';
 import { headTrajectoryAttachment } from './trajectoryAttachment.ts';
 
-
-const pronouncesWord = (node?: SyntaxNode): boolean => Boolean(node) && node!.silent !== true
-  && (node!.children?.length ? node!.children.some(pronouncesWord) : Boolean(node!.word?.trim()));
 
 export const movementPlan = {
   'operator-variable-binding': (context) => {
@@ -98,16 +94,6 @@ export const movementPlan = {
           witnessNodeId,
           sourceAttachment: 'terminal',
           targetAttachment: 'shell'
-        });
-        items.push({
-          ...base,
-          kind: 'node-badges',
-          badgeStyle: 'gap-notation',
-          badges: [{
-            nodeId: sourceNodeId,
-            text: `t${asSubscript(typeof values?.index === 'string' ? values.index : 'i')}`,
-            shape: 'plain'
-          }]
         });
       });
       return;
@@ -191,20 +177,6 @@ export const movementPlan = {
         ? 'shell-top'
         : headSized ? headTrajectoryAttachment(nodes.get(target.nodeId)!) : 'shell-bottom'
     });
-
-    // A gap label marks a gap: a sideward source that stays pronounced gets none.
-    if (sideward && !pronouncesWord(nodes.get(source.nodeId))) {
-      items.push({
-        ...base,
-        kind: 'node-badges',
-        badgeStyle: 'gap-notation',
-        badges: [{
-          nodeId: source.nodeId,
-          text: `t${asSubscript(typeof values?.index === 'string' ? values.index : '1')}`,
-          shape: 'plain'
-        }]
-      });
-    }
 
     /*
      * Accepted auxiliary marks travel with their trajectory: the
@@ -404,20 +376,6 @@ export const movementPlan = {
     }
 
     const index = scalarValue(values, 'index') || 'i';
-    const pushGapNotation = () => {
-      const subscript = asSubscript(index);
-      items.push({
-        ...base,
-        kind: 'node-badges',
-        badgeStyle: 'gap-notation',
-        badges: resolvedParasitic.map((nodeId) => ({
-          nodeId,
-          text: `pg${subscript}`,
-          shape: 'plain' as const
-        }))
-      });
-    };
-
     if (
       fillerResolved
       && realGapResolved
@@ -425,9 +383,6 @@ export const movementPlan = {
       && usesPhillipsPathStatus
     ) {
       items.push({ ...base, kind: 'coindex', nodeIds: [filler], index });
-    }
-    if (parasiticFacetResolved && !drawsCopyFork) {
-      pushGapNotation();
     }
 
     // The composition owns its path arrays outright, so every authored
@@ -582,9 +537,10 @@ export const movementFacetPlan = {
     });
     return;
   },
+  // Babel never writes gap notation of its own: the label is the model's
+  // authored label for that gap, or else the gap's own word or category label.
   'gap.notation': (context: FacetPlanContext) => {
     const { evidence, push, base, facet, many, nodes } = context;
-    const indices = pairedLiterals(evidence, 'gap', 'index') ?? [];
     const labels = pairedLiterals(evidence, 'gap', 'label') ?? [];
     push({
       ...base(facet, ['Gap label'], 'tier2.gap-notation'),
@@ -593,7 +549,7 @@ export const movementFacetPlan = {
       badges: many('gap').map((nodeId, index) => ({
         nodeId,
         text: labels[index]?.trim() ? labels[index]
-          : gapBadgeText(String(nodes.get(nodeId)?.word || nodes.get(nodeId)?.label || ''), indices[index]), shape: 'plain'
+          : String(nodes.get(nodeId)?.word || nodes.get(nodeId)?.label || ''), shape: 'plain'
       }))
     });
     return;

@@ -18,14 +18,24 @@ const record = corpus.records.find(entry => entry.id === 'replay-regressions/rev
 const subject = 'plaque(5:1 theta theme)@mV';
 const offset = plaque => [Math.round(plaque.rect.x - plaque.anchor.x), Math.round(plaque.rect.y - plaque.anchor.y)];
 
-test('a θ-grid leaves a pocket its stage will build syntax in as the stage begins, not at that construction step', () => {
+// Since its stage's Agree claims draw Case on their paths (Francis, 30 Oct 2026), a
+// pocket 173 units away opens at frame 55 and the early pocket would cost 501, so the
+// trade of PR #285 keeps the grid until frame 55, where new syntax (bookBase) takes its
+// pocket, and it moves once. Approval: { by: 'Francis', on: '2026-10-30', note: '1. Yes.
+// (accepting the Case-on-Agree layouts: n4-13 Location grid 1.17× reach;
+// review-workspace-boundaries theme grid moves at step 55)' }, in the lead session.
+test('a θ-grid keeps its pocket in stage 8 until new syntax takes it at frame 55, then holds one pocket', () => {
   const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: [52, 53, 54, 55, 56] });
   const pockets = frames.map(frame => ({ frame: frame.frame, stage: frame.stage,
     offset: offset(frame.plaques.find(plaque => plaque.id === subject)) }));
   assert.deepEqual(pockets.map(({ stage }) => stage), [7, 8, 8, 8, 8]);
-  const [last, ...stage8] = pockets;
-  assert.notDeepEqual(stage8[0].offset, last.offset, 'it moves where stage 8 begins');
-  assert.deepEqual(new Set(stage8.map(({ offset }) => JSON.stringify(offset))).size, 1, `one pocket through stage 8: ${JSON.stringify(pockets)}`);
+  assert.deepEqual(pockets.map(({ offset }) => offset), [[66, -15], [66, -15], [66, -15], [174, 120], [174, 120]],
+    JSON.stringify(pockets));
+  // The move at frame 55 is owned: that frame paints the bookBase label in the earlier pocket.
+  const [, , before, at] = frames, prior = before.plaques.find(plaque => plaque.id === subject);
+  const box = prior.rect, overlaps = b => b.x < box.x + box.width && box.x < b.x + b.width && b.y < box.y + box.height && box.y < b.y + b.height;
+  assert(at.texts.some(text => text.id === 'bookBase:category' && text.boxes.some(overlaps)));
+  assert(!before.texts.some(text => text.id === 'bookBase:category' && text.boxes.some(overlaps)));
   assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject} ${found.measure}`), []);
 });
 

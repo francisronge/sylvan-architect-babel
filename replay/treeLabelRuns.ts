@@ -16,10 +16,8 @@ import {
   formatAuthoredWitnessSurface,
   formatIndexedSurfaceForDisplayValue,
   isDisplayTerminalNode,
-  isNullLike,
   isTraceLike,
   isWordlessCategoryLeaf,
-  normalizeTraceIndexForDisplay,
   resolveLeafSurface,
   shouldExpandPreterminalLeaf
 } from './replaySurfaceNotation.ts';
@@ -189,43 +187,7 @@ export function treeLabelRunsForStep(
     activeRelation).map(item => resolveDisplayedTrajectoryAttachments(item, id => visibleAliases.get(id)?.data,
       { stageIndex: stage, playedRelationIndices: played }))
     .filter(item => planItemDependencyNodeIds(item).every(id => resolve(id))) : [];
-  // The binder tests reuse against the base labels, before any synchronous
-  // relation painter mutates their text or appends identity indices.
-  const baseLabels = new Map(labels);
-  const belongs = (node: HierNode, id: string) => getNodeId(node) === id
-    || node.data.aliasIds?.includes(id) || isReplayDisplayChild(node.data, id);
-  const reusesGapNotation = (id: string, text: string) => Boolean(text && nodes.some(node => {
-    if (!belongs(node, id)) return false;
-    return (['category', 'terminal'] as const).some(kind => {
-      const label = baseLabels.get(key(getNodeId(node), kind));
-      if (!label) return false;
-      if (textContent(label) === text) return true;
-      if (label.defaultText !== text) return false;
-      const inherited = resolveTraceIndexFromNodeContext(node, context.traceIndices);
-      const raw = extractMovementIndex(text);
-      const alias = raw ? context.rawTraceAliases.get(raw.trim().toLowerCase()) : undefined;
-      const index = resolveLexicalMovementTraceDisplayIndex(text, inherited)
-        || ((isTraceLike(text) || isNullLike(text) && (inherited || alias))
-          ? normalizeTraceIndexForDisplay(inherited || alias || raw) : '');
-      return textContent(label) === (isTraceLike(text) ? formatAuthoredWitnessSurface(text, index)
-        : formatIndexedSurfaceForDisplayValue(text, index));
-    });
-  }));
   for (const item of items) {
-    if (item.kind === 'node-badges' && item.badgeStyle === 'gap-notation'
-      && ['trajectory.across-the-board', 'trajectory.sideward'].includes(item.familyId || '')) {
-      for (const badge of item.badges) {
-        if (reusesGapNotation(badge.nodeId, badge.text)) continue;
-        const descendants = new Set(resolve(badge.nodeId)?.descendants().map(getNodeId));
-        for (const node of nodes) {
-          if (!descendants.has(getNodeId(node))) continue;
-          const idKey = key(getNodeId(node), 'terminal'), label = labels.get(idKey);
-          // The existing painter resets the whole terminal text, removing its
-          // tspans while retaining saved default/identity base attributes.
-          if (label) labels.set(idKey, { ...label, text: badge.text, indices: [] });
-        }
-      }
-    }
     if (item.kind === 'coindex' && item.familyId === 'identity.occurrences' && item.index) {
       for (const id of item.nodeIds) {
         const target = identityLabelTarget(resolve(id), id);

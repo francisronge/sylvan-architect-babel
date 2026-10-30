@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import {
-  checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkGapLabelOnSilence, checkPlanIdentityUnique, checkInputUnchanged, checkLabelIndicesOwned, checkLandingAttached, checkRestatedLettersKept, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
+  checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkNoGeneratedGapLabel, checkPlanIdentityUnique, checkInputUnchanged, checkLabelIndicesOwned, checkLandingAttached, checkRestatedLettersKept, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, checkWholeParent, frameStructure
@@ -459,7 +459,7 @@ const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 
   'no-early-reveal', 'relation-construction', 'parent-after-children', 'whole-parent', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
   'movement-landing-parent', 'movement-shown-as-movement', 'existing-not-remerged',
   'visible-in-canvas',
-  'marks-at-owning-moment', 'one-letter-per-label', 'label-index-owned', 'restated-letters-kept', 'gap-label-on-silence', 'plan-identity-unique'];
+  'marks-at-owning-moment', 'one-letter-per-label', 'label-index-owned', 'restated-letters-kept', 'no-generated-gap-label', 'plan-identity-unique'];
 let sweep;
 before(() => {
   sweep = corpus.records.map(({ id, record, contract }) => {
@@ -476,7 +476,7 @@ before(() => {
         ...checkMovementShownAsMovement(prepared, authored), ...checkExistingNotRemerged(prepared, authored), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared), ...checkLabelIndicesOwned(prepared),
         ...checkRestatedLettersKept(prepared),
-        ...checkGapLabelOnSilence(prepared, authored), ...checkPlanIdentityUnique(prepared)
+        ...checkNoGeneratedGapLabel(prepared, authored), ...checkPlanIdentityUnique(prepared)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
         ...checkContractWarnings(prepared, authored, { contract })] };
     } catch (error) { return { id, error }; }

@@ -417,6 +417,13 @@ test('position descriptions use matching X-bar projections, never child order al
     [node('vbar', 'V′', [dp(), leaf('v', 'buy', { label: 'V' })]), 'John (complement of V)'],
     [node('tp', 'TP', [dp(), node('wrong', 'V′', [])]), 'John (DP in TP)'],
     [node('tp', 'TP', [dp(), node('inner', 'TP', [])]), 'John (DP in TP)'],
+    // TP over TP with a head and its complement is one projection read from
+    // structure: the head's sister is its complement, while the phrase beside
+    // the inner TP stays neutral (specifier or adjunct).
+    [node('tp', 'TP', [node('john', 'DP', [leaf('word', 'John')]), node('inner', 'TP', [leaf('tense', 'did', { label: 'T' }),
+      node('origin', 'VP', [leaf('verb', 'leave', { label: 'V' })])])]), 'leave (complement of T)'],
+    [node('tp', 'TP', [dp(), node('inner', 'TP', [leaf('tense', 'did', { label: 'T' }),
+      node('vp', 'VP', [leaf('verb', 'leave', { label: 'V' })])])]), 'John (DP in TP)'],
     [node('vbar', 'V′', [node('inner', 'V′', []), dp()]), 'John (DP in V′)'],
     [node('tp', 'TP', [node('wrapper', 'T', [leaf('origin', 'did', { label: 'T' })]), node('vp', 'VP', [])]), 'did (T in TP)']
   ]) {

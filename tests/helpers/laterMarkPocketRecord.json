@@ -1,0 +1,2072 @@
+{
+ "description": "Saved Claude analysis whose theta grid for lv2 keeps a pocket lifetime from step 31 to 41 while lv2 stands still to the end of stage 5, where the tense link T2–v_prom appears at step 45. A reservation that ended with the lifetime let the held pocket be taken there, and the grid jumped beside lv2. Test input for tests/plaqueLaterMarkPocket.test.mjs.",
+ "provenance": {
+  "model": "claude-opus-5-5",
+  "effort": "high",
+  "harness": "qualification:anthropic",
+  "source": "anthropic-qualification/heldout-20261029/h1-071-en-vp-fronting/attempts/parse/bundle.json, analysis 0",
+  "extraction": "Exact saved derivationStages and inputTokens."
+ },
+ "sentence": "Oskar promised to fix the roof, and fix the roof he did.",
+ "inputTokens": [
+  "Oskar",
+  "promised",
+  "to",
+  "fix",
+  "the",
+  "roof",
+  "and",
+  "fix",
+  "the",
+  "roof",
+  "he",
+  "did"
+ ],
+ "derivationStages": [
+  {
+   "statement": "The embedded predicate 'fix the roof' of the first conjunct is assembled.",
+   "stageRecord": "External Merge combines the determiner 'the' with the noun 'roof', and the determiner projects the nominal object. The verb 'fix' then merges with this nominal, and the verb projects. This first-merge configuration is where 'fix' assigns its Theme role to 'the roof', which is the one relation recorded in this stage.",
+   "relations": [
+    {
+     "relation": "theta-assignment",
+     "anchors": {
+      "assigner": "v_fix1",
+      "recipient": "dp1"
+     },
+     "values": {
+      "role": "Theme"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "vp1",
+     "label": "V",
+     "children": [
+      {
+       "id": "v_fix1",
+       "label": "V",
+       "word": "fix",
+       "children": []
+      },
+      {
+       "id": "dp1",
+       "label": "D",
+       "children": [
+        {
+         "id": "d_the1",
+         "label": "D",
+         "word": "the",
+         "children": []
+        },
+        {
+         "id": "n_roof1",
+         "label": "N",
+         "word": "roof",
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The embedded light verb is merged and the silent controlled subject PRO is introduced as its external argument.",
+   "stageRecord": "The agentive light verb merges with the verb phrase 'fix the roof' and projects. The unpronounced subject PRO is then externally merged as the light verb's specifier. In that position the light verb assigns PRO the Agent role of fixing, and this is the single relation of the stage. PRO is given a lineage now because it will raise in the next stage.",
+   "relations": [
+    {
+     "relation": "theta-assignment",
+     "anchors": {
+      "assigner": "lv1",
+      "recipient": "pro"
+     },
+     "values": {
+      "role": "Agent"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "vP1",
+     "label": "v",
+     "children": [
+      {
+       "id": "pro",
+       "label": "D",
+       "word": "PRO",
+       "silent": true,
+       "lineageId": "L_PRO",
+       "children": []
+      },
+      {
+       "id": "vbar1",
+       "label": "v",
+       "children": [
+        {
+         "id": "lv1",
+         "label": "v",
+         "children": []
+        },
+        {
+         "id": "vp1",
+         "label": "V",
+         "children": [
+          {
+           "id": "v_fix1",
+           "label": "V",
+           "word": "fix",
+           "children": []
+          },
+          {
+           "id": "dp1",
+           "label": "D",
+           "children": [
+            {
+             "id": "d_the1",
+             "label": "D",
+             "word": "the",
+             "children": []
+            },
+            {
+             "id": "n_roof1",
+             "label": "N",
+             "word": "roof",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Nonfinite 'to' is merged, Agrees with PRO, and PRO raises to its specifier.",
+   "stageRecord": "Nonfinite 'to' merges with the embedded light-verb phrase and projects. Two relations follow, in this order. First, 'to' probes and Agrees with PRO while PRO is still in its base position, which values null Case on PRO. Second, the EPP property of 'to' triggers Internal Merge of PRO into the specifier of 'to'. A silent trace of the same lineage is left in the base position, so the light-verb phrase now has that trace as its specifier.",
+   "relations": [
+    {
+     "relation": "Agree",
+     "anchors": {
+      "probe": "t_to",
+      "goal": "pro"
+     },
+     "values": {
+      "case": "null"
+     }
+    },
+    {
+     "relation": "Internal Merge",
+     "anchors": {
+      "mover": "pro",
+      "trace": "t_pro",
+      "landingSite": "TP1"
+     },
+     "values": {
+      "trigger": "EPP"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "TP1",
+     "label": "T[-fin]",
+     "children": [
+      {
+       "id": "pro",
+       "label": "D",
+       "word": "PRO",
+       "silent": true,
+       "lineageId": "L_PRO",
+       "children": []
+      },
+      {
+       "id": "Tbar1",
+       "label": "T[-fin]",
+       "children": [
+        {
+         "id": "t_to",
+         "label": "T[-fin]",
+         "word": "to",
+         "children": []
+        },
+        {
+         "id": "vP1",
+         "label": "v",
+         "children": [
+          {
+           "id": "t_pro",
+           "label": "D",
+           "silent": true,
+           "lineageId": "L_PRO",
+           "children": []
+          },
+          {
+           "id": "vbar1",
+           "label": "v",
+           "children": [
+            {
+             "id": "lv1",
+             "label": "v",
+             "children": []
+            },
+            {
+             "id": "vp1",
+             "label": "V",
+             "children": [
+              {
+               "id": "v_fix1",
+               "label": "V",
+               "word": "fix",
+               "children": []
+              },
+              {
+               "id": "dp1",
+               "label": "D",
+               "children": [
+                {
+                 "id": "d_the1",
+                 "label": "D",
+                 "word": "the",
+                 "children": []
+                },
+                {
+                 "id": "n_roof1",
+                 "label": "N",
+                 "word": "roof",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The infinitival clause is closed by a null complementizer and selected by 'promised'.",
+   "stageRecord": "A silent complementizer merges with the infinitival phrase headed by 'to' and projects a clausal complement. The verb 'promised' then merges with that complement and projects. 'Promised' assigns the clause the role of the promised content, which is the relation recorded here.",
+   "relations": [
+    {
+     "relation": "theta-assignment",
+     "anchors": {
+      "assigner": "v_prom",
+      "recipient": "CP_emb"
+     },
+     "values": {
+      "role": "Theme (propositional content)"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "vp2",
+     "label": "V",
+     "children": [
+      {
+       "id": "v_prom",
+       "label": "V",
+       "word": "promised",
+       "children": []
+      },
+      {
+       "id": "CP_emb",
+       "label": "C",
+       "children": [
+        {
+         "id": "c_emb",
+         "label": "C",
+         "children": []
+        },
+        {
+         "id": "TP1",
+         "label": "T[-fin]",
+         "children": [
+          {
+           "id": "pro",
+           "label": "D",
+           "word": "PRO",
+           "silent": true,
+           "lineageId": "L_PRO",
+           "children": []
+          },
+          {
+           "id": "Tbar1",
+           "label": "T[-fin]",
+           "children": [
+            {
+             "id": "t_to",
+             "label": "T[-fin]",
+             "word": "to",
+             "children": []
+            },
+            {
+             "id": "vP1",
+             "label": "v",
+             "children": [
+              {
+               "id": "t_pro",
+               "label": "D",
+               "silent": true,
+               "lineageId": "L_PRO",
+               "children": []
+              },
+              {
+               "id": "vbar1",
+               "label": "v",
+               "children": [
+                {
+                 "id": "lv1",
+                 "label": "v",
+                 "children": []
+                },
+                {
+                 "id": "vp1",
+                 "label": "V",
+                 "children": [
+                  {
+                   "id": "v_fix1",
+                   "label": "V",
+                   "word": "fix",
+                   "children": []
+                  },
+                  {
+                   "id": "dp1",
+                   "label": "D",
+                   "children": [
+                    {
+                     "id": "d_the1",
+                     "label": "D",
+                     "word": "the",
+                     "children": []
+                    },
+                    {
+                     "id": "n_roof1",
+                     "label": "N",
+                     "word": "roof",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The matrix light verb is merged, 'Oskar' is introduced as external argument and is established as the controller of PRO.",
+   "stageRecord": "The matrix light verb merges with the phrase headed by 'promised' and projects. 'Oskar' is then externally merged as its specifier. Two relations follow, in this order. First, the light verb assigns 'Oskar' the Agent role, so Oskar is the one who promises. Second, because 'promise' is a subject-control verb, the embedded PRO is controlled by this matrix subject rather than by any object. This control relation links 'Oskar' to PRO in its raised position.",
+   "relations": [
+    {
+     "relation": "theta-assignment",
+     "anchors": {
+      "assigner": "lv2",
+      "recipient": "oskar"
+     },
+     "values": {
+      "role": "Agent"
+     }
+    },
+    {
+     "relation": "obligatory control",
+     "anchors": {
+      "controller": "oskar",
+      "controllee": "pro"
+     },
+     "values": {
+      "type": "subject control"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "vP2",
+     "label": "v",
+     "children": [
+      {
+       "id": "oskar",
+       "label": "D",
+       "word": "Oskar",
+       "lineageId": "L_OSKAR",
+       "children": []
+      },
+      {
+       "id": "vbar2",
+       "label": "v",
+       "children": [
+        {
+         "id": "lv2",
+         "label": "v",
+         "children": []
+        },
+        {
+         "id": "vp2",
+         "label": "V",
+         "children": [
+          {
+           "id": "v_prom",
+           "label": "V",
+           "word": "promised",
+           "children": []
+          },
+          {
+           "id": "CP_emb",
+           "label": "C",
+           "children": [
+            {
+             "id": "c_emb",
+             "label": "C",
+             "children": []
+            },
+            {
+             "id": "TP1",
+             "label": "T[-fin]",
+             "children": [
+              {
+               "id": "pro",
+               "label": "D",
+               "word": "PRO",
+               "silent": true,
+               "lineageId": "L_PRO",
+               "children": []
+              },
+              {
+               "id": "Tbar1",
+               "label": "T[-fin]",
+               "children": [
+                {
+                 "id": "t_to",
+                 "label": "T[-fin]",
+                 "word": "to",
+                 "children": []
+                },
+                {
+                 "id": "vP1",
+                 "label": "v",
+                 "children": [
+                  {
+                   "id": "t_pro",
+                   "label": "D",
+                   "silent": true,
+                   "lineageId": "L_PRO",
+                   "children": []
+                  },
+                  {
+                   "id": "vbar1",
+                   "label": "v",
+                   "children": [
+                    {
+                     "id": "lv1",
+                     "label": "v",
+                     "children": []
+                    },
+                    {
+                     "id": "vp1",
+                     "label": "V",
+                     "children": [
+                      {
+                       "id": "v_fix1",
+                       "label": "V",
+                       "word": "fix",
+                       "children": []
+                      },
+                      {
+                       "id": "dp1",
+                       "label": "D",
+                       "children": [
+                        {
+                         "id": "d_the1",
+                         "label": "D",
+                         "word": "the",
+                         "children": []
+                        },
+                        {
+                         "id": "n_roof1",
+                         "label": "N",
+                         "word": "roof",
+                         "children": []
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Past T is merged, Agrees with 'Oskar', 'Oskar' raises to subject position, past tense is realized on 'promised', and a null declarative C completes the first conjunct.",
+   "stageRecord": "Finite past T merges with the matrix light-verb phrase and projects. Three relations follow, in this order. First, T Agrees with 'Oskar' in its base position, valuing nominative Case on 'Oskar' and person and number on T. Second, the EPP property of T triggers Internal Merge of 'Oskar' into the specifier of T. A silent trace is left in the light-verb specifier. Third, because the verbal complex remains adjacent to T, T's past affix is realized on the verb, which surfaces as 'promised' while T itself has no separate exponent. Finally, a silent declarative complementizer merges with this phrase, which completes the first clause.",
+   "relations": [
+    {
+     "relation": "Agree",
+     "anchors": {
+      "probe": "T2",
+      "goal": "oskar"
+     },
+     "values": {
+      "case": "nominative",
+      "phi": "3sg"
+     }
+    },
+    {
+     "relation": "Internal Merge",
+     "anchors": {
+      "mover": "oskar",
+      "trace": "t_oskar",
+      "landingSite": "TP2"
+     },
+     "values": {
+      "trigger": "EPP"
+     }
+    },
+    {
+     "relation": "tense realization on verb",
+     "anchors": {
+      "tense": "T2",
+      "host": "v_prom"
+     },
+     "values": {
+      "tense": "past"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "CP1",
+     "label": "C",
+     "children": [
+      {
+       "id": "C1",
+       "label": "C",
+       "children": []
+      },
+      {
+       "id": "TP2",
+       "label": "T[+past]",
+       "children": [
+        {
+         "id": "oskar",
+         "label": "D",
+         "word": "Oskar",
+         "lineageId": "L_OSKAR",
+         "children": []
+        },
+        {
+         "id": "Tbar2",
+         "label": "T[+past]",
+         "children": [
+          {
+           "id": "T2",
+           "label": "T[+past]",
+           "children": []
+          },
+          {
+           "id": "vP2",
+           "label": "v",
+           "children": [
+            {
+             "id": "t_oskar",
+             "label": "D",
+             "silent": true,
+             "lineageId": "L_OSKAR",
+             "children": []
+            },
+            {
+             "id": "vbar2",
+             "label": "v",
+             "children": [
+              {
+               "id": "lv2",
+               "label": "v",
+               "children": []
+              },
+              {
+               "id": "vp2",
+               "label": "V",
+               "children": [
+                {
+                 "id": "v_prom",
+                 "label": "V",
+                 "word": "promised",
+                 "children": []
+                },
+                {
+                 "id": "CP_emb",
+                 "label": "C",
+                 "children": [
+                  {
+                   "id": "c_emb",
+                   "label": "C",
+                   "children": []
+                  },
+                  {
+                   "id": "TP1",
+                   "label": "T[-fin]",
+                   "children": [
+                    {
+                     "id": "pro",
+                     "label": "D",
+                     "word": "PRO",
+                     "silent": true,
+                     "lineageId": "L_PRO",
+                     "children": []
+                    },
+                    {
+                     "id": "Tbar1",
+                     "label": "T[-fin]",
+                     "children": [
+                      {
+                       "id": "t_to",
+                       "label": "T[-fin]",
+                       "word": "to",
+                       "children": []
+                      },
+                      {
+                       "id": "vP1",
+                       "label": "v",
+                       "children": [
+                        {
+                         "id": "t_pro",
+                         "label": "D",
+                         "silent": true,
+                         "lineageId": "L_PRO",
+                         "children": []
+                        },
+                        {
+                         "id": "vbar1",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "lv1",
+                           "label": "v",
+                           "children": []
+                          },
+                          {
+                           "id": "vp1",
+                           "label": "V",
+                           "children": [
+                            {
+                             "id": "v_fix1",
+                             "label": "V",
+                             "word": "fix",
+                             "children": []
+                            },
+                            {
+                             "id": "dp1",
+                             "label": "D",
+                             "children": [
+                              {
+                               "id": "d_the1",
+                               "label": "D",
+                               "word": "the",
+                               "children": []
+                              },
+                              {
+                               "id": "n_roof1",
+                               "label": "N",
+                               "word": "roof",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "A second, independent verb phrase 'fix the roof' is built for the second conjunct alongside the finished first clause.",
+   "stageRecord": "The second conjunct is built as a separate object in the workspace while the first clause waits. A new determiner 'the' merges with a new noun 'roof'. The new verb 'fix' then merges with that nominal. This phrase consists of new lexical items, not a copy of the first conjunct's phrase, because the second 'fix the roof' is fully pronounced. 'Fix' assigns its Theme role to the new 'the roof', which is the one relation of the stage.",
+   "relations": [
+    {
+     "relation": "theta-assignment",
+     "anchors": {
+      "assigner": "v_fix2",
+      "recipient": "dp2"
+     },
+     "values": {
+      "role": "Theme"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "CP1",
+     "label": "C",
+     "children": [
+      {
+       "id": "C1",
+       "label": "C",
+       "children": []
+      },
+      {
+       "id": "TP2",
+       "label": "T[+past]",
+       "children": [
+        {
+         "id": "oskar",
+         "label": "D",
+         "word": "Oskar",
+         "lineageId": "L_OSKAR",
+         "children": []
+        },
+        {
+         "id": "Tbar2",
+         "label": "T[+past]",
+         "children": [
+          {
+           "id": "T2",
+           "label": "T[+past]",
+           "children": []
+          },
+          {
+           "id": "vP2",
+           "label": "v",
+           "children": [
+            {
+             "id": "t_oskar",
+             "label": "D",
+             "silent": true,
+             "lineageId": "L_OSKAR",
+             "children": []
+            },
+            {
+             "id": "vbar2",
+             "label": "v",
+             "children": [
+              {
+               "id": "lv2",
+               "label": "v",
+               "children": []
+              },
+              {
+               "id": "vp2",
+               "label": "V",
+               "children": [
+                {
+                 "id": "v_prom",
+                 "label": "V",
+                 "word": "promised",
+                 "children": []
+                },
+                {
+                 "id": "CP_emb",
+                 "label": "C",
+                 "children": [
+                  {
+                   "id": "c_emb",
+                   "label": "C",
+                   "children": []
+                  },
+                  {
+                   "id": "TP1",
+                   "label": "T[-fin]",
+                   "children": [
+                    {
+                     "id": "pro",
+                     "label": "D",
+                     "word": "PRO",
+                     "silent": true,
+                     "lineageId": "L_PRO",
+                     "children": []
+                    },
+                    {
+                     "id": "Tbar1",
+                     "label": "T[-fin]",
+                     "children": [
+                      {
+                       "id": "t_to",
+                       "label": "T[-fin]",
+                       "word": "to",
+                       "children": []
+                      },
+                      {
+                       "id": "vP1",
+                       "label": "v",
+                       "children": [
+                        {
+                         "id": "t_pro",
+                         "label": "D",
+                         "silent": true,
+                         "lineageId": "L_PRO",
+                         "children": []
+                        },
+                        {
+                         "id": "vbar1",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "lv1",
+                           "label": "v",
+                           "children": []
+                          },
+                          {
+                           "id": "vp1",
+                           "label": "V",
+                           "children": [
+                            {
+                             "id": "v_fix1",
+                             "label": "V",
+                             "word": "fix",
+                             "children": []
+                            },
+                            {
+                             "id": "dp1",
+                             "label": "D",
+                             "children": [
+                              {
+                               "id": "d_the1",
+                               "label": "D",
+                               "word": "the",
+                               "children": []
+                              },
+                              {
+                               "id": "n_roof1",
+                               "label": "N",
+                               "word": "roof",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "vp3",
+     "label": "V",
+     "children": [
+      {
+       "id": "v_fix2",
+       "label": "V",
+       "word": "fix",
+       "children": []
+      },
+      {
+       "id": "dp2",
+       "label": "D",
+       "children": [
+        {
+         "id": "d_the2",
+         "label": "D",
+         "word": "the",
+         "children": []
+        },
+        {
+         "id": "n_roof2",
+         "label": "N",
+         "word": "roof",
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The second conjunct's light verb is merged and 'he' is introduced as its external argument.",
+   "stageRecord": "A light verb merges with the second 'fix the roof' and projects. The pronoun 'he' is externally merged as its specifier, and the light verb assigns 'he' the Agent role, which is the relation recorded here. The whole light-verb phrase receives a lineage because it will later be fronted. 'He' receives one because it will raise to subject position.",
+   "relations": [
+    {
+     "relation": "theta-assignment",
+     "anchors": {
+      "assigner": "lv3",
+      "recipient": "he"
+     },
+     "values": {
+      "role": "Agent"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "CP1",
+     "label": "C",
+     "children": [
+      {
+       "id": "C1",
+       "label": "C",
+       "children": []
+      },
+      {
+       "id": "TP2",
+       "label": "T[+past]",
+       "children": [
+        {
+         "id": "oskar",
+         "label": "D",
+         "word": "Oskar",
+         "lineageId": "L_OSKAR",
+         "children": []
+        },
+        {
+         "id": "Tbar2",
+         "label": "T[+past]",
+         "children": [
+          {
+           "id": "T2",
+           "label": "T[+past]",
+           "children": []
+          },
+          {
+           "id": "vP2",
+           "label": "v",
+           "children": [
+            {
+             "id": "t_oskar",
+             "label": "D",
+             "silent": true,
+             "lineageId": "L_OSKAR",
+             "children": []
+            },
+            {
+             "id": "vbar2",
+             "label": "v",
+             "children": [
+              {
+               "id": "lv2",
+               "label": "v",
+               "children": []
+              },
+              {
+               "id": "vp2",
+               "label": "V",
+               "children": [
+                {
+                 "id": "v_prom",
+                 "label": "V",
+                 "word": "promised",
+                 "children": []
+                },
+                {
+                 "id": "CP_emb",
+                 "label": "C",
+                 "children": [
+                  {
+                   "id": "c_emb",
+                   "label": "C",
+                   "children": []
+                  },
+                  {
+                   "id": "TP1",
+                   "label": "T[-fin]",
+                   "children": [
+                    {
+                     "id": "pro",
+                     "label": "D",
+                     "word": "PRO",
+                     "silent": true,
+                     "lineageId": "L_PRO",
+                     "children": []
+                    },
+                    {
+                     "id": "Tbar1",
+                     "label": "T[-fin]",
+                     "children": [
+                      {
+                       "id": "t_to",
+                       "label": "T[-fin]",
+                       "word": "to",
+                       "children": []
+                      },
+                      {
+                       "id": "vP1",
+                       "label": "v",
+                       "children": [
+                        {
+                         "id": "t_pro",
+                         "label": "D",
+                         "silent": true,
+                         "lineageId": "L_PRO",
+                         "children": []
+                        },
+                        {
+                         "id": "vbar1",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "lv1",
+                           "label": "v",
+                           "children": []
+                          },
+                          {
+                           "id": "vp1",
+                           "label": "V",
+                           "children": [
+                            {
+                             "id": "v_fix1",
+                             "label": "V",
+                             "word": "fix",
+                             "children": []
+                            },
+                            {
+                             "id": "dp1",
+                             "label": "D",
+                             "children": [
+                              {
+                               "id": "d_the1",
+                               "label": "D",
+                               "word": "the",
+                               "children": []
+                              },
+                              {
+                               "id": "n_roof1",
+                               "label": "N",
+                               "word": "roof",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "vP3",
+     "label": "v",
+     "lineageId": "L_VP3",
+     "children": [
+      {
+       "id": "he",
+       "label": "D",
+       "word": "he",
+       "lineageId": "L_HE",
+       "children": []
+      },
+      {
+       "id": "vbar3",
+       "label": "v",
+       "children": [
+        {
+         "id": "lv3",
+         "label": "v",
+         "children": []
+        },
+        {
+         "id": "vp3",
+         "label": "V",
+         "children": [
+          {
+           "id": "v_fix2",
+           "label": "V",
+           "word": "fix",
+           "children": []
+          },
+          {
+           "id": "dp2",
+           "label": "D",
+           "children": [
+            {
+             "id": "d_the2",
+             "label": "D",
+             "word": "the",
+             "children": []
+            },
+            {
+             "id": "n_roof2",
+             "label": "N",
+             "word": "roof",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Past T of the second conjunct is merged, Agrees with 'he', and 'he' raises to its specifier.",
+   "stageRecord": "Finite past T merges with the light-verb phrase of the second conjunct and projects. Two relations follow, in this order. First, T Agrees with 'he' in its base position, valuing nominative Case, which is visible in the form 'he', and person and number on T. Second, the EPP property of T triggers Internal Merge of 'he' into the specifier of T. A silent trace is left inside the light-verb phrase. At this point T still has no exponent of its own.",
+   "relations": [
+    {
+     "relation": "Agree",
+     "anchors": {
+      "probe": "T3",
+      "goal": "he"
+     },
+     "values": {
+      "case": "nominative",
+      "phi": "3sg"
+     }
+    },
+    {
+     "relation": "Internal Merge",
+     "anchors": {
+      "mover": "he",
+      "trace": "t_he",
+      "landingSite": "TP3"
+     },
+     "values": {
+      "trigger": "EPP"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "CP1",
+     "label": "C",
+     "children": [
+      {
+       "id": "C1",
+       "label": "C",
+       "children": []
+      },
+      {
+       "id": "TP2",
+       "label": "T[+past]",
+       "children": [
+        {
+         "id": "oskar",
+         "label": "D",
+         "word": "Oskar",
+         "lineageId": "L_OSKAR",
+         "children": []
+        },
+        {
+         "id": "Tbar2",
+         "label": "T[+past]",
+         "children": [
+          {
+           "id": "T2",
+           "label": "T[+past]",
+           "children": []
+          },
+          {
+           "id": "vP2",
+           "label": "v",
+           "children": [
+            {
+             "id": "t_oskar",
+             "label": "D",
+             "silent": true,
+             "lineageId": "L_OSKAR",
+             "children": []
+            },
+            {
+             "id": "vbar2",
+             "label": "v",
+             "children": [
+              {
+               "id": "lv2",
+               "label": "v",
+               "children": []
+              },
+              {
+               "id": "vp2",
+               "label": "V",
+               "children": [
+                {
+                 "id": "v_prom",
+                 "label": "V",
+                 "word": "promised",
+                 "children": []
+                },
+                {
+                 "id": "CP_emb",
+                 "label": "C",
+                 "children": [
+                  {
+                   "id": "c_emb",
+                   "label": "C",
+                   "children": []
+                  },
+                  {
+                   "id": "TP1",
+                   "label": "T[-fin]",
+                   "children": [
+                    {
+                     "id": "pro",
+                     "label": "D",
+                     "word": "PRO",
+                     "silent": true,
+                     "lineageId": "L_PRO",
+                     "children": []
+                    },
+                    {
+                     "id": "Tbar1",
+                     "label": "T[-fin]",
+                     "children": [
+                      {
+                       "id": "t_to",
+                       "label": "T[-fin]",
+                       "word": "to",
+                       "children": []
+                      },
+                      {
+                       "id": "vP1",
+                       "label": "v",
+                       "children": [
+                        {
+                         "id": "t_pro",
+                         "label": "D",
+                         "silent": true,
+                         "lineageId": "L_PRO",
+                         "children": []
+                        },
+                        {
+                         "id": "vbar1",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "lv1",
+                           "label": "v",
+                           "children": []
+                          },
+                          {
+                           "id": "vp1",
+                           "label": "V",
+                           "children": [
+                            {
+                             "id": "v_fix1",
+                             "label": "V",
+                             "word": "fix",
+                             "children": []
+                            },
+                            {
+                             "id": "dp1",
+                             "label": "D",
+                             "children": [
+                              {
+                               "id": "d_the1",
+                               "label": "D",
+                               "word": "the",
+                               "children": []
+                              },
+                              {
+                               "id": "n_roof1",
+                               "label": "N",
+                               "word": "roof",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "TP3",
+     "label": "T[+past]",
+     "children": [
+      {
+       "id": "he",
+       "label": "D",
+       "word": "he",
+       "lineageId": "L_HE",
+       "children": []
+      },
+      {
+       "id": "Tbar3",
+       "label": "T[+past]",
+       "children": [
+        {
+         "id": "T3",
+         "label": "T[+past]",
+         "children": []
+        },
+        {
+         "id": "vP3",
+         "label": "v",
+         "lineageId": "L_VP3",
+         "children": [
+          {
+           "id": "t_he",
+           "label": "D",
+           "silent": true,
+           "lineageId": "L_HE",
+           "children": []
+          },
+          {
+           "id": "vbar3",
+           "label": "v",
+           "children": [
+            {
+             "id": "lv3",
+             "label": "v",
+             "children": []
+            },
+            {
+             "id": "vp3",
+             "label": "V",
+             "children": [
+              {
+               "id": "v_fix2",
+               "label": "V",
+               "word": "fix",
+               "children": []
+              },
+              {
+               "id": "dp2",
+               "label": "D",
+               "children": [
+                {
+                 "id": "d_the2",
+                 "label": "D",
+                 "word": "the",
+                 "children": []
+                },
+                {
+                 "id": "n_roof2",
+                 "label": "N",
+                 "word": "roof",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "A topic-bearing C attracts the whole verb phrase 'fix the roof' to its specifier, stranding past T, which is rescued by do-support as 'did'.",
+   "stageRecord": "A silent complementizer bearing a topic feature merges with the clause 'he ... T' and projects. Two relations follow, in this order. First, the topic feature triggers Internal Merge of the entire light-verb phrase into the specifier of C. This fronts 'fix the roof' together with the silent trace of 'he' that it contains, and leaves a silent trace of the phrase as the complement of T. Second, the verbal host has been displaced out of T's complement, so T's past affix is stranded with nothing adjacent to attach to. Do-support therefore inserts dummy 'do', and T is spelled out as 'did'. The fronted phrase precedes 'he did', which yields the preposed word order.",
+   "relations": [
+    {
+     "relation": "Internal Merge",
+     "anchors": {
+      "mover": "vP3",
+      "trace": "t_vP3",
+      "landingSite": "CP2"
+     },
+     "values": {
+      "trigger": "topic feature on C",
+      "type": "VP-fronting"
+     }
+    },
+    {
+     "relation": "do-support",
+     "anchors": {
+      "strandedTense": "T3"
+     },
+     "values": {
+      "form": "did",
+      "tense": "past"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "CP1",
+     "label": "C",
+     "children": [
+      {
+       "id": "C1",
+       "label": "C",
+       "children": []
+      },
+      {
+       "id": "TP2",
+       "label": "T[+past]",
+       "children": [
+        {
+         "id": "oskar",
+         "label": "D",
+         "word": "Oskar",
+         "lineageId": "L_OSKAR",
+         "children": []
+        },
+        {
+         "id": "Tbar2",
+         "label": "T[+past]",
+         "children": [
+          {
+           "id": "T2",
+           "label": "T[+past]",
+           "children": []
+          },
+          {
+           "id": "vP2",
+           "label": "v",
+           "children": [
+            {
+             "id": "t_oskar",
+             "label": "D",
+             "silent": true,
+             "lineageId": "L_OSKAR",
+             "children": []
+            },
+            {
+             "id": "vbar2",
+             "label": "v",
+             "children": [
+              {
+               "id": "lv2",
+               "label": "v",
+               "children": []
+              },
+              {
+               "id": "vp2",
+               "label": "V",
+               "children": [
+                {
+                 "id": "v_prom",
+                 "label": "V",
+                 "word": "promised",
+                 "children": []
+                },
+                {
+                 "id": "CP_emb",
+                 "label": "C",
+                 "children": [
+                  {
+                   "id": "c_emb",
+                   "label": "C",
+                   "children": []
+                  },
+                  {
+                   "id": "TP1",
+                   "label": "T[-fin]",
+                   "children": [
+                    {
+                     "id": "pro",
+                     "label": "D",
+                     "word": "PRO",
+                     "silent": true,
+                     "lineageId": "L_PRO",
+                     "children": []
+                    },
+                    {
+                     "id": "Tbar1",
+                     "label": "T[-fin]",
+                     "children": [
+                      {
+                       "id": "t_to",
+                       "label": "T[-fin]",
+                       "word": "to",
+                       "children": []
+                      },
+                      {
+                       "id": "vP1",
+                       "label": "v",
+                       "children": [
+                        {
+                         "id": "t_pro",
+                         "label": "D",
+                         "silent": true,
+                         "lineageId": "L_PRO",
+                         "children": []
+                        },
+                        {
+                         "id": "vbar1",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "lv1",
+                           "label": "v",
+                           "children": []
+                          },
+                          {
+                           "id": "vp1",
+                           "label": "V",
+                           "children": [
+                            {
+                             "id": "v_fix1",
+                             "label": "V",
+                             "word": "fix",
+                             "children": []
+                            },
+                            {
+                             "id": "dp1",
+                             "label": "D",
+                             "children": [
+                              {
+                               "id": "d_the1",
+                               "label": "D",
+                               "word": "the",
+                               "children": []
+                              },
+                              {
+                               "id": "n_roof1",
+                               "label": "N",
+                               "word": "roof",
+                               "children": []
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "CP2",
+     "label": "C[Top]",
+     "children": [
+      {
+       "id": "vP3",
+       "label": "v",
+       "lineageId": "L_VP3",
+       "children": [
+        {
+         "id": "t_he",
+         "label": "D",
+         "silent": true,
+         "lineageId": "L_HE",
+         "children": []
+        },
+        {
+         "id": "vbar3",
+         "label": "v",
+         "children": [
+          {
+           "id": "lv3",
+           "label": "v",
+           "children": []
+          },
+          {
+           "id": "vp3",
+           "label": "V",
+           "children": [
+            {
+             "id": "v_fix2",
+             "label": "V",
+             "word": "fix",
+             "children": []
+            },
+            {
+             "id": "dp2",
+             "label": "D",
+             "children": [
+              {
+               "id": "d_the2",
+               "label": "D",
+               "word": "the",
+               "children": []
+              },
+              {
+               "id": "n_roof2",
+               "label": "N",
+               "word": "roof",
+               "children": []
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "Cbar2",
+       "label": "C[Top]",
+       "children": [
+        {
+         "id": "C2",
+         "label": "C[Top]",
+         "children": []
+        },
+        {
+         "id": "TP3",
+         "label": "T[+past]",
+         "children": [
+          {
+           "id": "he",
+           "label": "D",
+           "word": "he",
+           "lineageId": "L_HE",
+           "children": []
+          },
+          {
+           "id": "Tbar3",
+           "label": "T[+past]",
+           "children": [
+            {
+             "id": "T3",
+             "label": "T[+past]",
+             "word": "did",
+             "children": []
+            },
+            {
+             "id": "t_vP3",
+             "label": "v",
+             "silent": true,
+             "lineageId": "L_VP3",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "'And' coordinates the two clauses; 'he' is coreferent with 'Oskar', and the fronted phrase is licensed by the embedded 'fix the roof' as its discourse antecedent.",
+   "stageRecord": "The coordinator 'and' merges with the second clause and projects. The first clause then merges as its specifier, which yields a single coordinate structure and unites the two workspace objects. Three relations are recorded, in this order. First, the coordination relation identifies the two clauses as conjuncts of 'and'. Second, 'he' in the second conjunct is interpreted as coreferent with 'Oskar' in the first. Third, the fronted 'fix the roof' takes the embedded 'fix the roof' of the first conjunct as its given antecedent. That link is what licenses the verum-style VP-preposing, which asserts that the promised action did take place.",
+   "relations": [
+    {
+     "relation": "coordination",
+     "anchors": {
+      "coordinator": "and_",
+      "conjuncts": [
+       "CP1",
+       "CP2"
+      ]
+     },
+     "values": {
+      "type": "clausal conjunction"
+     }
+    },
+    {
+     "relation": "coreference",
+     "anchors": {
+      "antecedent": "oskar",
+      "pronoun": "he"
+     },
+     "values": {
+      "index": "i"
+     }
+    },
+    {
+     "relation": "discourse antecedent of preposed VP",
+     "anchors": {
+      "antecedent": "vP1",
+      "preposed": "vP3"
+     },
+     "values": {
+      "content": "fix the roof"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "andP",
+     "label": "&",
+     "children": [
+      {
+       "id": "CP1",
+       "label": "C",
+       "children": [
+        {
+         "id": "C1",
+         "label": "C",
+         "children": []
+        },
+        {
+         "id": "TP2",
+         "label": "T[+past]",
+         "children": [
+          {
+           "id": "oskar",
+           "label": "D",
+           "word": "Oskar",
+           "lineageId": "L_OSKAR",
+           "children": []
+          },
+          {
+           "id": "Tbar2",
+           "label": "T[+past]",
+           "children": [
+            {
+             "id": "T2",
+             "label": "T[+past]",
+             "children": []
+            },
+            {
+             "id": "vP2",
+             "label": "v",
+             "children": [
+              {
+               "id": "t_oskar",
+               "label": "D",
+               "silent": true,
+               "lineageId": "L_OSKAR",
+               "children": []
+              },
+              {
+               "id": "vbar2",
+               "label": "v",
+               "children": [
+                {
+                 "id": "lv2",
+                 "label": "v",
+                 "children": []
+                },
+                {
+                 "id": "vp2",
+                 "label": "V",
+                 "children": [
+                  {
+                   "id": "v_prom",
+                   "label": "V",
+                   "word": "promised",
+                   "children": []
+                  },
+                  {
+                   "id": "CP_emb",
+                   "label": "C",
+                   "children": [
+                    {
+                     "id": "c_emb",
+                     "label": "C",
+                     "children": []
+                    },
+                    {
+                     "id": "TP1",
+                     "label": "T[-fin]",
+                     "children": [
+                      {
+                       "id": "pro",
+                       "label": "D",
+                       "word": "PRO",
+                       "silent": true,
+                       "lineageId": "L_PRO",
+                       "children": []
+                      },
+                      {
+                       "id": "Tbar1",
+                       "label": "T[-fin]",
+                       "children": [
+                        {
+                         "id": "t_to",
+                         "label": "T[-fin]",
+                         "word": "to",
+                         "children": []
+                        },
+                        {
+                         "id": "vP1",
+                         "label": "v",
+                         "children": [
+                          {
+                           "id": "t_pro",
+                           "label": "D",
+                           "silent": true,
+                           "lineageId": "L_PRO",
+                           "children": []
+                          },
+                          {
+                           "id": "vbar1",
+                           "label": "v",
+                           "children": [
+                            {
+                             "id": "lv1",
+                             "label": "v",
+                             "children": []
+                            },
+                            {
+                             "id": "vp1",
+                             "label": "V",
+                             "children": [
+                              {
+                               "id": "v_fix1",
+                               "label": "V",
+                               "word": "fix",
+                               "children": []
+                              },
+                              {
+                               "id": "dp1",
+                               "label": "D",
+                               "children": [
+                                {
+                                 "id": "d_the1",
+                                 "label": "D",
+                                 "word": "the",
+                                 "children": []
+                                },
+                                {
+                                 "id": "n_roof1",
+                                 "label": "N",
+                                 "word": "roof",
+                                 "children": []
+                                }
+                               ]
+                              }
+                             ]
+                            }
+                           ]
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "andbar",
+       "label": "&",
+       "children": [
+        {
+         "id": "and_",
+         "label": "&",
+         "word": "and",
+         "children": []
+        },
+        {
+         "id": "CP2",
+         "label": "C[Top]",
+         "children": [
+          {
+           "id": "vP3",
+           "label": "v",
+           "lineageId": "L_VP3",
+           "children": [
+            {
+             "id": "t_he",
+             "label": "D",
+             "silent": true,
+             "lineageId": "L_HE",
+             "children": []
+            },
+            {
+             "id": "vbar3",
+             "label": "v",
+             "children": [
+              {
+               "id": "lv3",
+               "label": "v",
+               "children": []
+              },
+              {
+               "id": "vp3",
+               "label": "V",
+               "children": [
+                {
+                 "id": "v_fix2",
+                 "label": "V",
+                 "word": "fix",
+                 "children": []
+                },
+                {
+                 "id": "dp2",
+                 "label": "D",
+                 "children": [
+                  {
+                   "id": "d_the2",
+                   "label": "D",
+                   "word": "the",
+                   "children": []
+                  },
+                  {
+                   "id": "n_roof2",
+                   "label": "N",
+                   "word": "roof",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "Cbar2",
+           "label": "C[Top]",
+           "children": [
+            {
+             "id": "C2",
+             "label": "C[Top]",
+             "children": []
+            },
+            {
+             "id": "TP3",
+             "label": "T[+past]",
+             "children": [
+              {
+               "id": "he",
+               "label": "D",
+               "word": "he",
+               "lineageId": "L_HE",
+               "children": []
+              },
+              {
+               "id": "Tbar3",
+               "label": "T[+past]",
+               "children": [
+                {
+                 "id": "T3",
+                 "label": "T[+past]",
+                 "word": "did",
+                 "children": []
+                },
+                {
+                 "id": "t_vP3",
+                 "label": "v",
+                 "silent": true,
+                 "lineageId": "L_VP3",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
