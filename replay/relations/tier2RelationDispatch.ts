@@ -288,7 +288,8 @@ const isPartialFeatureView = (scope: Tier2EvaluatedFacet, scopes: readonly Tier2
 
 /** A silent finite head can be context for an already proved lexical PF form.
  * It is not another realization host or an Agree/movement endpoint. Require
- * matching authored tense and a sister holding the local verb before retiring its residual. */
+ * matching authored tense and a sister on the local verb's projection line
+ * before retiring its residual. */
 const ownFiniteTenseContext = (
   facets: readonly Tier2EvaluatedFacet[],
   evidence: Tier2FacetEvidence,
@@ -316,7 +317,8 @@ const ownFiniteTenseContext = (
   const headFeatures = annotations(head);
   const contradictsTense = (features: readonly string[]) => features.some(feature =>
     ['past', 'present', 'future'].includes(feature) && feature !== tense);
-  if (!tense || headShape?.kind !== 'head' || headShape.compound || !['I', 'T', 'Infl'].includes(headShape.category)
+  const finiteHeads = ['I', 'T', 'Infl'];
+  if (!tense || headShape?.kind !== 'head' || headShape.compound || !finiteHeads.includes(headShape.category)
     || head.silent !== true || head.word?.trim() || head.children?.length
     || !headFeatures.some(feature => feature === 'finite' || feature === '+finite') || !headFeatures.includes(tense) || contradictsTense(headFeatures)
     || verbShape?.kind !== 'head' || verbShape.compound || verbShape.category !== 'V'
@@ -332,15 +334,33 @@ const ownFiniteTenseContext = (
   const parent = parentNodes?.length === 1 ? parentNodes[0] : undefined;
   const parentShape = readCategoryLabel(parent?.label);
   const complements = parent?.children?.filter(child => child.id !== head.id) ?? [];
-  // Any projection of a clause head (CP, C′ or a bare C over its complement)
-  // closes the local domain; the verb must be found without crossing one.
-  const containsLocalVerb = (node: SyntaxNode): boolean => node.id === verb.id
-    || (!['C', 'I', 'T'].includes(readCategoryLabel(node.label)?.head ?? '')
-      && Boolean(node.children?.some(containsLocalVerb)));
+  const headOf = (node: SyntaxNode) => readCategoryLabel(node.label)?.head;
+  const holdsVerb = (node: SyntaxNode): boolean => node.id === verb.id || Boolean(node.children?.some(holdsVerb));
+  // A nominal holding the verb (a reduced relative, a nominalization) is a
+  // detour, not part of the verb's projection line. Structure alone cannot
+  // tell a D over VP from a v over VP, so the nominal heads are named.
+  const nominalHeads = ['D', 'N'];
+  // T's sister must reach the verb along the verb's own projection line. Each
+  // node either projects the child below it (V′ over V, vP over v′) or is built
+  // by a head daughter taking that child as complement (v over VP, Voice over
+  // vP); that head is never another pronounced verb. No node on the line is
+  // nominal or projects a clause head (C or a finite head, in any notation).
+  const onVerbLine = (node: SyntaxNode): boolean => {
+    if (node.id === verb.id) return true;
+    const category = headOf(node);
+    if (!category || ['C', ...finiteHeads, ...nominalHeads].includes(category)) return false;
+    const below = node.children?.filter(holdsVerb) ?? [];
+    if (below.length !== 1) return false;
+    const headDaughter = node.children!.find(other => other !== below[0] && !other.children?.length
+      && readCategoryLabel(other.label)?.kind === 'head' && headOf(other) === category);
+    if (headDaughter) return !(category === 'V' && headDaughter.silent !== true && headDaughter.word?.trim())
+      && onVerbLine(below[0]);
+    return headOf(below[0]) === category && onVerbLine(below[0]);
+  };
   // The head's mother is its projection in any notation (I′, TP over TP, a
-  // bare T), and its single sister is verbal because it holds the local verb.
+  // bare T), and its single sister is on the verb's projection line.
   if (!parentShape || parentShape.compound || parentShape.head !== headShape.head
-    || complements.length !== 1 || !containsLocalVerb(complements[0])) return [...facets];
+    || complements.length !== 1 || !onVerbLine(complements[0])) return [...facets];
   const treatments = values.filter(entry => normalizeTier2Synonym(entry.key) === 'morphological treatment');
   if (treatments.length > 1 || treatments.some(entry => entry.items.length !== 1
     || !/^whole[- ]word lexical inflection(?: without (?:overt )?(?:V|verb)-to-(?:I|T|Infl) movement)?\.?$/iu.test(entry.items[0].trim()))) return [...facets];

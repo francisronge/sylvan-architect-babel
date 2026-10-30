@@ -192,3 +192,52 @@ test('in every notation, a sister without the verb, a clause boundary or another
     }
   }
 });
+
+/** T's sister and every node down to the verb, in phrasal or bare notation. */
+const clauseOver = (bare, sister) => {
+  const data = notations[bare ? 'bare' : 'phrasal']();
+  node(data, 'ibar').children[1] = sister;
+  return data;
+};
+const head = (id, label, word) => word ? { id, label, word, children: [] } : { id, label, silent: true, children: [] };
+const lexicalVP = phrase => ({ id: 'vbar', label: phrase('V'), children: [
+  head('lexical', 'V', 'persuaded'), { id: 'agent', label: phrase('P'), word: 'by Mira' }
+] });
+
+test('a nominal or embedded-predicate detour to the verb keeps the residual', () => {
+  for (const bare of [false, true]) {
+    const phrase = category => bare ? category : `${category}P`;
+    const cases = [
+      ['DP sister containing V', { id: 'dp', label: phrase('D'), children: [head('det', 'D'), lexicalVP(phrase)] }],
+      ['vP over DP over PartP over V', { id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), {
+        id: 'dp', label: phrase('D'), children: [head('det', 'D'), {
+          id: 'part', label: phrase('Part'), children: [head('participle', 'Part'), lexicalVP(phrase)] }] }] }],
+      ['reduced relative', { id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), {
+        id: 'matrix-vp', label: phrase('V'), children: [head('saw', 'V', 'saw'), {
+          id: 'dp', label: phrase('D'), children: [{ id: 'joel', label: phrase('D'), word: 'Joel' }, {
+            id: 'part', label: phrase('Part'), children: [head('participle', 'Part'), lexicalVP(phrase)] }] }] }] }],
+      ['embedded predicate', { id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), {
+        id: 'matrix-vp', label: phrase('V'), children: [head('saw', 'V', 'saw'), {
+          id: 'part', label: phrase('Part'), children: [head('participle', 'Part'), lexicalVP(phrase)] }] }] }]
+    ];
+    for (const [label, sister] of cases)
+      assert.equal(contextOwned(clauseOver(bare, sister)), false, `${bare ? 'bare' : 'phrasal'}: ${label}`);
+    // The same verb under a functional spine still earns the picture.
+    const spine = { id: 'asp', label: phrase('Asp'), children: [head('aspect', 'Asp'), {
+      id: 'voice', label: phrase('Voice'), children: [head('voice-head', 'Voice'), {
+        id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), lexicalVP(phrase)] }] }] };
+    assert.equal(contextOwned(clauseOver(bare, spine)), true, `${bare ? 'bare' : 'phrasal'}: functional spine`);
+    // A silent upper V of a verb shell is not another verb.
+    const shell = { id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), {
+      id: 'shell', label: phrase('V'), children: [head('upper-v', 'V'), lexicalVP(phrase)] }] };
+    assert.equal(contextOwned(clauseOver(bare, shell)), true, `${bare ? 'bare' : 'phrasal'}: silent verb shell`);
+  }
+});
+
+test('an Infl projection is a clause boundary like I and T', () => {
+  for (const [label, boundary] of [['InflP', 'InflP'], ['Infl′', 'Infl′'], ['bare Infl', 'Infl'], ['IP', 'IP'], ['TP', 'TP']]) {
+    const data = notations.phrasal(), vp = node(data, 'vp');
+    vp.children[1] = { id: 'embedded', label: boundary, children: [head('embedded-infl', 'Infl'), vp.children[1]] };
+    assert.equal(contextOwned(data), false, label);
+  }
+});
