@@ -2,8 +2,11 @@
  *
  * A node is minimal when it is a leaf, or a complex head: a node whose label
  * writes no level and whose daughters are all minimal. A head is a minimal node
- * whose label writes no phrase or bar level, so a "DP" trace leaf stays a
- * phrase. In a tree written in bare labels a head and a small phrase look alike
+ * whose label writes no phrase or bar level (a "DP" trace leaf stays a phrase)
+ * standing in head position: it carries its parent's category, sits inside a
+ * complex head, or is the one minimal daughter of an X′ that no daughter
+ * projects (a head trace "t" under V′). A one-word specifier or argument
+ * ("Mia" in Spec,CP) is a phrase. In a tree written in bare labels a head and a small phrase look alike
  * ([T D T]), so there the Bare Phrase Structure reader decides. Category names
  * never matter: Voice, Appl, Foc, Fin and K are read exactly like T. */
 import type { SyntaxNode } from '../types.ts';
@@ -22,12 +25,24 @@ const PRIME = /[′’']\s*$/u;
 const LOWER_OCCURRENCE = /^(\S+)[\s-]+(?:trace|copy)$/iu;
 const GLOSSED = /^(\S+?)\s*[（(][^（）()]*[）)]$/u;
 const PROSE_LEVEL = /^[A-Za-z\p{Script=Greek}]+[\s-]+(projection|phrase|bar)\b/iu;
+const readShape = (node: ShapeNode) => {
+  const label = String(node.label ?? '').trim();
+  return readCategoryLabel(label) ?? readCategoryLabel(LOWER_OCCURRENCE.exec(label)?.[1])
+    ?? readCategoryLabel(GLOSSED.exec(label)?.[1]);
+};
 const writtenLevel = (node: ShapeNode): 'head' | 'bar' | 'phrase' | undefined => {
   const label = String(node.label ?? '').trim();
   const prose = PROSE_LEVEL.exec(label)?.[1]?.toLowerCase();
   if (prose) return prose === 'phrase' ? 'phrase' : 'bar';
-  return (readCategoryLabel(label) ?? readCategoryLabel(LOWER_OCCURRENCE.exec(label)?.[1])
-    ?? readCategoryLabel(GLOSSED.exec(label)?.[1]))?.kind ?? (PRIME.test(label) ? 'bar' : undefined);
+  return readShape(node)?.kind ?? (PRIME.test(label) ? 'bar' : undefined);
+};
+const projects = (child: ShapeNode, parent: ShapeNode): boolean => {
+  const category = readShape(parent)?.head;
+  return Boolean(category) && readShape(child)?.head === category;
+};
+const writesHeadLevel = (node: ShapeNode): boolean => {
+  const kind = writtenLevel(node);
+  return kind !== 'phrase' && kind !== 'bar';
 };
 
 export interface StructuralHeads {
@@ -41,21 +56,28 @@ export interface StructuralHeads {
 /** Read heads for one forest. Every node passed in later must belong to it. */
 export const readStructuralHeads = (roots: readonly ShapeNode[]): StructuralHeads => {
   const bare = readBareProjections(roots);
+  const parents = new Map<ShapeNode, ShapeNode>();
+  const index = (node: ShapeNode): void => childrenOf(node).forEach(child => { parents.set(child, node); index(child); });
+  roots.forEach(index);
   const cache = new Map<ShapeNode, boolean>();
   const minimal = (node: ShapeNode): boolean => {
     const children = childrenOf(node);
     if (!children.length) return true;
     const cached = cache.get(node);
     if (cached !== undefined) return cached;
-    const kind = writtenLevel(node);
-    const value = bare ? bare.minimal(node) : kind !== 'phrase' && kind !== 'bar' && children.every(minimal);
+    const value = bare ? bare.minimal(node) : writesHeadLevel(node) && children.every(minimal);
     cache.set(node, value);
     return value;
   };
-  const isHead = (node: ShapeNode): boolean => {
-    const kind = writtenLevel(node);
-    return kind !== 'phrase' && kind !== 'bar' && minimal(node);
+  const inHeadPosition = (node: ShapeNode): boolean => {
+    const parent = parents.get(node);
+    if (!parent || projects(node, parent) || isHead(parent)) return true;
+    const daughters = childrenOf(parent);
+    if (writtenLevel(parent) !== 'bar' || daughters.some(daughter => projects(daughter, parent))) return false;
+    const heads = daughters.filter(daughter => writesHeadLevel(daughter) && minimal(daughter));
+    return heads.length === 1 && heads[0] === node;
   };
+  const isHead = (node: ShapeNode): boolean => writesHeadLevel(node) && minimal(node) && inHeadPosition(node);
   const isHeadPosition = (node: ShapeNode): boolean => {
     const structural = bare?.positionKind(node);
     return structural ? structural === 'head' : isHead(node);

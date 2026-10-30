@@ -29,6 +29,27 @@ test('a head raising into a complex head is head movement whatever the categorie
   assert.equal(inferHeadLikeTrajectoryKindFromForest({ forest: phrasal, targetNodeId: 'dp', sourceNodeId: 'dpLow' }), 'phrasal');
 });
 
+// "Mia, Leo saw": a one-word phrase fronted to a specifier, as X-bar,
+// XP-over-XP and bare labels write it. The word is a phrase, not a head.
+const fronted = (notation, label) => {
+  const level = (category, bar) => notation === 'bare' ? category : `${category}${bar}`;
+  const inner = notation === 'xbar' ? 'C′' : level('C', 'P');
+  return [node('cp', level('C', 'P'), [word('miaHigh', label, 'Mia', { lineageId: 'mia' }), node('cbar', inner, [node('c', 'C'),
+    node('tp', level('T', 'P'), [word('leo', label, 'Leo'), node('tbar', notation === 'xbar' ? 'T′' : level('T', 'P'), [node('t', 'T'),
+      node('vp', level('V', 'P'), [word('saw', 'V', 'saw'), word('miaLow', label, 'Mia', { lineageId: 'mia', silent: true })])])])])])];
+};
+
+test('a fronted one-word phrase is phrasal movement in every notation', () => {
+  for (const notation of ['xbar', 'xpOverXp', 'bare']) for (const label of ['Mia', 'Pron', 'D', 'N']) {
+    const forest = fronted(notation, label);
+    assert.equal(inferHeadLikeTrajectoryKindFromForest({ forest, targetNodeId: 'miaHigh', sourceNodeId: 'miaLow' }), 'phrasal',
+      `${label} in ${notation}`);
+    const nodeById = new Map(d3.hierarchy(forest[0]).descendants().map(entry => [entry.data.id, entry]));
+    assert.equal(isHeadLikeResolvedRelation({ sourceNodeId: 'miaLow', targetNodeId: 'miaHigh', operation: 'fronting' }, nodeById), false,
+      `${label} in ${notation} at its moment`);
+  }
+});
+
 test('heads are read from shape, and a written level is respected', () => {
   const forest = [node('pp', 'PP', [node('pbar', 'P′', [word('p', 'P', 'with'), word('np', 'NP', 'Mia')]),
     word('trace', 'DP trace', 't'), word('gloss', 'DP（代词）', 'ta'), node('nbar', 'N-bar', [word('n', 'N', 'cat')])])];
