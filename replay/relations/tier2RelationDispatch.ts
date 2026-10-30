@@ -286,6 +286,20 @@ const isPartialFeatureView = (scope: Tier2EvaluatedFacet, scopes: readonly Tier2
       JSON.stringify(other.evidence?.currentAnchors[role]) === JSON.stringify(scope.evidence?.currentAnchors[role]))
     && ownsItemsOf(other, scope) && !ownsItemsOf(scope, other));
 
+/** Categories that may stand on a verb's projection line below finite tense:
+ * the verb itself and the functional heads of the verbal domain. A silent head
+ * has no shape of its own, so a silent K, P, n or A over a verb phrase looks
+ * exactly like a silent v or Voice; only the head's category, part of the
+ * syntax the model authored, tells them apart. These are the standard
+ * Minimalist heads between T and V: v and v* (Chomsky 1995, 2001), Voice
+ * (Kratzer 1996), Appl and Cause (Pylkkänen 2008), Asp (inner and viewpoint
+ * aspect; Travis 2010), the auxiliary heads Perf, Prog and Pass, and AgrO
+ * (Chomsky 1993). The category reader supplies notation (v*, vP, Voice′,
+ * features, subscripts). Any other category, silent or pronounced, ends the
+ * line, so an unlisted verbal head costs a picture rather than drawing a
+ * wrong one. */
+const VERB_LINE_CATEGORIES = new Set(['V', 'v', 'Voice', 'Appl', 'Cause', 'Asp', 'Perf', 'Prog', 'Pass', 'AgrO']);
+
 /** A silent finite head can be context for an already proved lexical PF form.
  * It is not another realization host or an Agree/movement endpoint. Require
  * matching authored tense and a sister on the local verb's projection line
@@ -336,10 +350,6 @@ const ownFiniteTenseContext = (
   const complements = parent?.children?.filter(child => child.id !== head.id) ?? [];
   const headOf = (node: SyntaxNode) => readCategoryLabel(node.label)?.head;
   const holdsVerb = (node: SyntaxNode): boolean => node.id === verb.id || Boolean(node.children?.some(holdsVerb));
-  // A nominal holding the verb (a reduced relative, a nominalization) is a
-  // detour, not part of the verb's projection line. Structure alone cannot
-  // tell a D over VP from a v over VP, so the nominal heads are named.
-  const nominalHeads = ['D', 'N'];
   const pronounced = (node: SyntaxNode): boolean => Boolean(node.silent !== true && node.word?.trim())
     || Boolean(node.children?.some(pronounced));
   // T's sister must reach the verb along the verb's own projection line. Each
@@ -348,12 +358,12 @@ const ownFiniteTenseContext = (
   // (v over VP, Voice over vP). That head is wholly silent: the verb's own
   // functional heads add no word between T and the verb, while a pronounced
   // head (P "after", a Case marker, another verb) starts a different
-  // projection. No node on the line is nominal or projects a clause head
-  // (C or a finite head, in any notation).
+  // projection. Every node on the line projects a verbal-domain category, so
+  // a nominal, a P, an A or a clause head (C, T) holding the verb is a detour.
   const onVerbLine = (node: SyntaxNode): boolean => {
     if (node.id === verb.id) return true;
     const category = headOf(node);
-    if (!category || ['C', ...finiteHeads, ...nominalHeads].includes(category)) return false;
+    if (!category || !VERB_LINE_CATEGORIES.has(category)) return false;
     const below = node.children?.filter(holdsVerb) ?? [];
     if (below.length !== 1) return false;
     const headDaughter = node.children!.find(other => other !== below[0]

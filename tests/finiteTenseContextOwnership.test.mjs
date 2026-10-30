@@ -265,3 +265,39 @@ test('a complex head daughter with a pronounced verb keeps the residual; a silen
     assert.equal(contextOwned(clauseOver(bare, shell(head('upper-v', 'V')))), true, `${bare ? 'bare' : 'phrasal'}: silent complex shell`);
   }
 });
+
+test('a silent nonverbal head over the verb keeps the residual; a silent verbal-domain head does not', () => {
+  const wrong = [];
+  for (const bare of [false, true]) {
+    const phrase = category => bare ? category : `${category}P`;
+    const over = (category, below, label = category) => ({ id: `${category}-phrase`, label: phrase(category), children: [
+      head(`${category}-head`, label), below] });
+    const littleV = () => over('v', lexicalVP(phrase));
+    const detours = [
+      ['silent K over a verb phrase', over('K', lexicalVP(phrase))],
+      ['silent K over vP', over('K', littleV())],
+      ['silent K over a silent gerund', over('K', over('Ger', lexicalVP(phrase)))],
+      ['silent P over vP', over('P', littleV())],
+      ['silent n over a verb phrase', over('n', lexicalVP(phrase))],
+      ['silent A over a verb phrase', over('A', lexicalVP(phrase))],
+      ['silent A between v and V', over('v', over('A', lexicalVP(phrase)))]
+    ];
+    for (const [label, sister] of detours)
+      if (contextOwned(clauseOver(bare, sister))) wrong.push(`${bare ? 'bare' : 'phrasal'}: ${label} drew the picture`);
+    const spines = [
+      ['v', littleV()],
+      ['v*', over('v', lexicalVP(phrase), 'v* [uφ]')],
+      ['Voice', over('Voice', littleV(), 'Voice [uφ]')],
+      ['Asp', over('Asp', littleV())],
+      ['Appl', over('v', over('Appl', lexicalVP(phrase)))],
+      ['Cause', over('Cause', littleV())],
+      ['Perf', over('Perf', littleV())],
+      ['Prog', over('Prog', littleV())],
+      ['Pass', over('Pass', littleV())],
+      ['AgrO', over('AgrO', littleV())]
+    ];
+    for (const [label, sister] of spines)
+      if (!contextOwned(clauseOver(bare, sister))) wrong.push(`${bare ? 'bare' : 'phrasal'}: silent ${label} lost the picture`);
+  }
+  assert.deepEqual(wrong, []);
+});
