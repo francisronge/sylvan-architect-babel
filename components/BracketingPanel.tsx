@@ -98,7 +98,7 @@ export function BracketingPanel({ id, notation, copyStatus, onCopy, onClose }: B
             The browser blocked clipboard access. Select the bracketing below to copy it.
           </p>
         )}
-        <code className="block text-emerald-400 mono text-sm md:text-base break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
+        <code className="block text-emerald-400 mono text-sm md:text-base break-words leading-relaxed opacity-90 selection:bg-emerald-500/30">
           {notation}
         </code>
       </div>
