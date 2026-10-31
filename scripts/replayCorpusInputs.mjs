@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { MOTION_FAULT_THRESHOLD, noticeableMotion, replayMotionFaults } from './replayMotionContinuity.mjs';
+import { MOTION_FAULT_THRESHOLD, noticeableMotion, replayMotionFaults, replayStepKeys } from './replayMotionContinuity.mjs';
 import { matchFindings } from '../tests/helpers/findings.mjs';
 
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
@@ -132,19 +132,41 @@ export function compareCorpusSnapshots(baseline, candidate, records, { motionExc
       if (!previous || !next) { changedFrames.push({ frame: index + 1, missing: previous ? 'candidate' : 'baseline' }); continue; }
       const changes = pointChanges(previous.points, next.points);
       if (changes.length) changedFrames.push({ frame: index + 1, kind: next.kind, operation: next.operation, changes });
-      if (next.kind !== 'macro') continue;
+    }
+    // A stage's completed frame is compared with the same stage's completed
+    // frame, so a change in how many steps build a stage never compares two stages.
+    const completedFrames = frames => {
+      const seen = new Map();
+      return frames.map(frame => {
+        if (frame.kind !== 'macro') return null;
+        const occurrence = seen.get(frame.stage) ?? 0;
+        seen.set(frame.stage, occurrence + 1);
+        return JSON.stringify([frame.stage, occurrence]);
+      });
+    };
+    const oldCompleted = new Map(completedFrames(before.frames).flatMap((key, index) => key ? [[key, before.frames[index]]] : []));
+    completedFrames(after.frames).forEach((key, index) => {
+      const previous = key && oldCompleted.get(key);
+      if (!previous) return;
       const oldWidths = new Map(previous.widths.map(width => [width.root, width.width]));
-      for (const width of next.widths) {
+      for (const width of after.frames[index].widths) {
         const oldWidth = oldWidths.get(width.root), growth = oldWidth !== undefined && width.width > oldWidth + 1e-6;
         completedWidths.push({ frame: index + 1, root: width.root, before: oldWidth, after: width.width });
         if (growth && !record.allow.completedWidthGrowth) violations.push({ kind: 'completed-width-growth', frame: index + 1, root: width.root });
       }
-    }
+    });
     const finalBefore = before.frames.at(-1)?.points ?? [], finalAfter = after.frames.at(-1)?.points ?? [];
     const finalChanges = pointChanges(finalBefore, finalAfter);
     if (finalChanges.length && !record.allow.finalCoordinates) violations.push({ kind: 'final-coordinate-change' });
-    const oldFaults = new Set(before.continuity.map(objectHash));
-    const newContinuityFaults = after.continuity.filter(fault => !oldFaults.has(objectHash(fault)));
+    // Continuity faults are named by their step, as motion faults are, so a
+    // frame inserted or removed elsewhere neither invents nor hides one.
+    const continuityKey = snapshot => {
+      const steps = replayStepKeys(snapshot.frames);
+      return ({ index, ...fault }) => objectHash({ ...fault, step: steps[index] ?? `#${index}` });
+    };
+    const oldFaults = new Set(before.continuity.map(continuityKey(before)));
+    const afterKey = continuityKey(after);
+    const newContinuityFaults = after.continuity.filter(fault => !oldFaults.has(afterKey(fault)));
     if (newContinuityFaults.length) violations.push({ kind: 'new-continuity-fault', faults: newContinuityFaults });
     // The motion rule decides ownership from each frame's own step, not from the
     // checkout's planner diagnostics. A fault the baseline already has still

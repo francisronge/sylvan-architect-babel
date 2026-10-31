@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises';
 import { buildQualificationReviewRuntime } from '../../scripts/buildContractQualificationReviewRuntime.mjs';
 
 test('neutral connectors pass under visible tree text through zoom and Fit', async () => {
-  // Frame 48 holds a counter-lane connector for Principle B below the relative clause.
+  // Frame 41 holds a counter-lane connector for Principle B below the relative clause.
   const fixture = JSON.parse(await readFile(new URL('../../fixtures/replay-regressions/workspace-arabic-continuity.json', import.meta.url), 'utf8'));
   const { sentence, inputTokens, derivationStages } = fixture.cases[9];
   const runtime = await buildQualificationReviewRuntime();
@@ -19,7 +19,7 @@ test('neutral connectors pass under visible tree text through zoom and Fit', asy
       const stages = ${JSON.stringify(derivationStages)};
       createRoot(document.getElementById('root')).render(<TreeVisualizer data={buildDerivationCanvasData(stages.at(-1).workspaceForest)}
         derivationStages={stages} sentence={${JSON.stringify(sentence)}} inputTokens={${JSON.stringify(inputTokens)}}
-        animated autoPlay={false} initialReplayStep={47} />);`,
+        animated autoPlay={false} initialReplayStep={40} />);`,
     loader: 'tsx', resolveDir: new URL('../../', import.meta.url).pathname },
     bundle: true, write: false, format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' } });
   const browser = await chromium.launch({ headless: true });
@@ -28,7 +28,7 @@ test('neutral connectors pass under visible tree text through zoom and Fit', asy
     const errors = [];
     page.on('pageerror', error => errors.push(String(error)));
     await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${compiled.outputFiles[0].text}</script>`);
-    await page.waitForFunction(() => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === '47'
+    await page.waitForFunction(() => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === '40'
       && document.querySelector('.vr-fallback-connector path[mask]'));
     const inspect = () => page.evaluate(() => {
       const paths = [...document.querySelectorAll('.vr-fallback-connector path')];

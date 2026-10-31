@@ -71,7 +71,10 @@ moving farther by at least the larger of 20 units and 10% of its old distance
 (`NOTICEABLE_MOTION_GROWTH`), fails the comparison unless an approved entry of
 `tests/helpers/motionExceptions.mjs` (`record`, `rule: 'motion'`, `subtype`,
 `subject`, `at: { '-': { frame: distance } }`) covers it. Smaller faults are
-listed as `tolerated`, covered ones as `excepted`.
+listed as `tolerated`, covered ones as `excepted`. Motion and continuity faults
+are matched between checkouts by their step (`replayStepKeys`), and completed
+widths by their stage, never by frame number, so a change in how many steps
+build a stage neither invents nor hides a fault.
 
 With `--fixtures`, a fixture the layout fingerprint covers is judged by motion,
 continuity, geometry and movement only; its Replay, plan, layout and width
