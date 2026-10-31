@@ -38,3 +38,21 @@ function labelCrossings(index) {
 test('a seat never runs a trajectory into a label', () => {
   for (const index of [0, 1]) assert.deepEqual(labelCrossings(index), [], `analysis ${index}`);
 });
+
+test('one trajectory already in a label does not hide another newly entering it', async () => {
+  const { keepsLabelsClear } = await import('../replay/movementGapClosing.ts');
+  // One label; trajectory a already runs 10 units into it before and after the
+  // shift, trajectory b is clear before and runs 5 units in after it.
+  const before = new Map(), after = new Map();
+  const a = { x: 45, y: 0, width: 10, height: 100, trajectory: true, trajectoryKey: 'a' };
+  const bBefore = { x: 200, y: 0, width: 5, height: 100, trajectory: true, trajectoryKey: 'b' };
+  const bAfter = { x: 30, y: 0, width: 5, height: 100, trajectory: true, trajectoryKey: 'b' };
+  const context = {
+    scenes: [{ step: {} }], frames: [before],
+    inkOf: () => [{ x: 0, y: 0, width: 100, height: 100, connectorAttachment: 'n:category' }],
+    plaques: { marks: (_, frame) => [a, frame === before ? bBefore : bAfter] }
+  };
+  assert.equal(keepsLabelsClear(context, { start: 0, end: 1, view: () => after }), false);
+  context.plaques.marks = (_, frame) => [a, bBefore];
+  assert.equal(keepsLabelsClear(context, { start: 0, end: 1, view: () => after }), true, 'unchanged paths pass');
+});

@@ -65,7 +65,8 @@ export function trajectoryPlaqueObstacles(plan: RelationRenderPlan, stageIndex: 
         : sampleQuadratic(path.start, path.control, path.end, 32);
     points.slice(1).forEach((point, i) => obstacles.push({
       x: Math.min(points[i].x, point.x) - 5, y: Math.min(points[i].y, point.y) - 5,
-      width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10, trajectory: true
+      width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10, trajectory: true,
+      trajectoryKey: `trajectory:${stageIndex}:${path.itemIndex}`
     }));
   }
   return obstacles;

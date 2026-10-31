@@ -1543,8 +1543,10 @@ function checkLifetimeShift(context: Context, k: number, shift: LifetimeShift) {
  * (`connectorAttachment`), so a label the shift carries along is the same label.
  * How deep a path runs into a label is the least side of their overlap, so a
  * path that newly enters a label, or runs farther into one it grazed, is refused.
+ * Depth is kept per path and label (`trajectoryKey`), so one path's existing
+ * crossing never hides another path newly crossing the same label.
  * Branch ink is not a label. */
-function keepsLabelsClear(context: Context, shift: LifetimeShift) {
+export function keepsLabelsClear(context: Context, shift: LifetimeShift) {
   const marks = context.plaques.marks;
   if (!marks) return true;
   const depths = (j: number, frame: Painted) => {
@@ -1555,7 +1557,8 @@ function keepsLabelsClear(context: Context, shift: LifetimeShift) {
       for (const path of paths) {
         const depth = Math.min(Math.min(path.x + path.width, label.x + label.width) - Math.max(path.x, label.x),
           Math.min(path.y + path.height, label.y + label.height) - Math.max(path.y, label.y));
-        if (depth > 0) result.set(label.connectorAttachment, Math.max(result.get(label.connectorAttachment) ?? 0, depth));
+        const key = `${label.connectorAttachment}\u0000${(path as PlaqueRect).trajectoryKey ?? ''}`;
+        if (depth > 0) result.set(key, Math.max(result.get(key) ?? 0, depth));
       }
     }
     return result;
