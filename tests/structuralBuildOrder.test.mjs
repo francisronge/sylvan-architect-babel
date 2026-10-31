@@ -74,3 +74,31 @@ test('a base object built before its verb keeps the lowercase form until it is f
   const high = steps.map(step => find(step.replayCanvasData, 'whichHigh::__leaf')?.label).filter(Boolean);
   assert.equal(high.at(-1), 'Which', 'the fronted copy carries the capital');
 });
+
+// A step the scheduler plays at another position than it was built for (here
+// the relative C and C′, played before the head noun so the operator can move
+// into the CP) names the workspaces it shows, not those it was built among.
+test('a repositioned construction step names the workspaces it shows', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const showcase = JSON.parse(await readFile(new URL('../fixtures/showcase/relatives-and-clitics.json', import.meta.url), 'utf8'));
+  const analysis = structuredClone(showcase.cases[5]);
+  // The head noun's N′ comes first, so it is built before the relative clause.
+  const reverse = root => { if (root.id === 'bookNBar') root.children.reverse(); root.children?.forEach(reverse); };
+  analysis.derivationStages.forEach(stage => stage.workspaceForest.forEach(reverse));
+  const steps = prepareReplay({ ...analysis, includePlayback: true }).playbackSteps;
+  const shownRoots = step => {
+    const visible = new Set(step.replayVisibleNodeIds), roots = [];
+    const visit = (node, parentShown) => {
+      const shown = visible.has(node.id);
+      if (shown && !parentShown && node.replayOrigin?.kind !== 'workspace') roots.push(String(node.label || '').trim());
+      node.children?.forEach(child => visit(child, shown && node.replayOrigin?.kind !== 'workspace'));
+    };
+    visit(step.replayCanvasData, false);
+    return roots.sort();
+  };
+  const construction = steps.filter(step => String(step.replayProgressLabel).startsWith('Stage 3/')
+    && ['LexicalSelect', 'Project', 'ExternalMerge'].includes(step.operation));
+  assert.ok(construction.some(step => step.targetNodeId === 'rC'), 'the relative C is built in this stage');
+  for (const step of construction)
+    assert.deepEqual([...step.workspaceAfter].sort(), shownRoots(step), `${step.operation} ${step.targetNodeId}`);
+});
