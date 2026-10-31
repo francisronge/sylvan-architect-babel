@@ -90,3 +90,18 @@ test('Codex c1-007, source ID kept at the lower occurrence: the compound verb wa
   assert.ok(point(bug, 46, 'lowerVP').x - point(bug, 46, 'sendGiveV').x < 1500, 'the waiting verb stands far from its VP');
   assert.deepEqual(faultsAt(bug, 47), []);
 });
+
+// The same saved analyses with every hop rewritten so the lower occurrence
+// keeps the source ID: Replay lays them out as it lays out the landing-kept
+// form above. In n4-12 the extraposed clause leaves CP_emb behind as its trace;
+// in n4-14 the head traces keep the verbs' IDs while the PP waits.
+test('Opus n4-12, source ID kept at the lower occurrence: V′ closes on NP ich at the extraposition, and nothing jumps when ich moves', () => {
+  const bug = 'n4-12-source-kept';
+  assert.ok(point(bug, 70, 'Vbar_gl').x - point(bug, 70, 'NP_ich').x < 1000, 'V′ stands far from NP ich');
+  assert.deepEqual(faultsAt(bug, 69), []);
+  assert.deepEqual(faultsAt(bug, 77).filter(fault => fault.distance >= 200), []);
+});
+
+test('Sol n4-14, source ID kept at the lower occurrence: the parked temporal PP waits where it merges', () => {
+  assert.ok(motion('n4-14-source-kept', 84, 'temporalPP') <= 1, 'the PP travels when it merges');
+});

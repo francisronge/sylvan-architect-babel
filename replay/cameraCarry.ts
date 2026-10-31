@@ -7,8 +7,10 @@ import { getNodeId } from './displayIdentity.ts';
  * shared syntax whose shared ancestors are unchanged. A moved or reattached
  * constituent is left out unless nothing else is shared. The renderer's camera
  * carry (carryCamera in components/treeViewport.ts, carryReference below)
- * equals it except where a crossing lowers syntax under an inserted parent;
- * there the camera holds the syntax it does not lower. Stage alignment keeps
+ * equals it except where a crossing lowers syntax under an inserted parent,
+ * where the camera holds the syntax it does not lower, and where a movement
+ * empties a lower occurrence that keeps the moved phrase's id, which the
+ * camera does not hold (carryReference). Stage alignment keeps
  * this reference because the cross-stage reservations of waiting workspaces
  * are planned against it. Both take their median by `carriedMedian`, with the
  * same `closing`, so planning predicts the carry the screen applies. */
@@ -47,7 +49,11 @@ function lineage(nodes: PaintedNodes, id: string) {
 }
 
 /** Shared syntax the camera holds still across a stage crossing. A node is left
- * out when its ancestors shared by both frames change (a moved constituent). It
+ * out when its ancestors shared by both frames change (a moved constituent), or
+ * when it lost every painted daughter to another place and paints none now:
+ * the lower occurrence of a movement that keeps the moved phrase's id while the
+ * movement takes its material, held no more than the new lower occurrence it
+ * would be had the landing kept the id. It
  * is also left out when it is lowered: a parent is inserted or removed between
  * it and its old root, so its painted ancestry before no longer begins its
  * ancestry after (growth above the old root is not lowering). The ancestors of
@@ -57,7 +63,12 @@ function lineage(nodes: PaintedNodes, id: string) {
  * that, every shared node does. */
 export function carryReference(before: PaintedNodes, after: PaintedNodes) {
   const shared = [...after.keys()].filter(id => before.has(id));
+  // Shared nodes with no painted daughter now, one of whose daughters before is painted elsewhere.
+  const parentsAfter = new Set([...after.values()].map(node => node.parentId));
+  const emptied = new Set([...before].filter(([id, node]) => after.has(id) && node.parentId && after.has(node.parentId)
+    && before.has(node.parentId) && !parentsAfter.has(node.parentId)).map(([, node]) => node.parentId!));
   const unmoved = shared.filter(id => {
+    if (emptied.has(id)) return false;
     const prior = lineage(before, id).filter(ancestor => after.has(ancestor));
     const current = lineage(after, id).filter(ancestor => before.has(ancestor));
     return prior.length === current.length && prior.every((ancestor, index) => ancestor === current[index]);

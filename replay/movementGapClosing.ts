@@ -53,6 +53,11 @@ function trajectoryParticipants(step: PlaybackStep) {
     .flatMap(link => [link.priorSourceNodeId, link.witnessNodeId, link.targetNodeId]).filter((id): id is string => Boolean(id)))];
 }
 
+const nodeContains = (ancestor: Node, node: Node) => {
+  for (let at: Node | null = node; at; at = at.parent) if (getNodeId(at) === getNodeId(ancestor)) return true;
+  return false;
+};
+
 const shownParent = (nodes: Painted, node: Node) => {
   for (let parent = node.parent; parent; parent = parent.parent) if (nodes.has(getNodeId(parent))) return getNodeId(parent);
   return null;
@@ -388,7 +393,11 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
     // workspace, in word order: one that left the edge leaves none, and new syntax
     // beside it (the landing) is not a side that closes.
     const between = (() => {
-      const start = participants.map(id => prior.get(id)).find(node => node && departing.has(getNodeId(node)));
+      // A participant that departs, or else what departs from one: a lower
+      // occurrence that keeps the moved phrase's id stays in its slot, and
+      // only the material the movement takes leaves it.
+      const start = participants.map(id => prior.get(id)).find(node => node && departing.has(getNodeId(node)))
+        ?? [...departing].map(id => prior.get(id)).find(Boolean);
       if (!start) return false;
       let top = start;
       for (let id = shownParent(prior, top); id; id = shownParent(prior, top)) top = prior.get(id)!;
@@ -442,6 +451,18 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
         node.each(member => { members.push(getNodeId(member)); });
         const parts = new Set(members.map(member => partOf.get(member)).filter(part => part !== undefined));
         if (parts.size === 1) for (const member of members) partOf.set(member, line(k, node.x));
+      }
+      // So does the lower occurrence of a later step's movement that keeps the
+      // moved phrase's id: it stays in its slot while the movement takes its
+      // material, as a new lower occurrence would stand there (taking the part
+      // of its place) had the landing kept the id.
+      if (k > 1) for (const id of trajectoryParticipants(scenes[m + k - 1].step)) {
+        const node = frames[k].get(id), old = frames[k - 1].get(id);
+        if (!node || !old || shownParent(frames[k - 1], old) !== shownParent(frames[k], node)) continue;
+        let emptied = false;
+        old.each(member => { const now = frames[k].get(getNodeId(member)); if (member !== old && (!now || !nodeContains(node, now))) emptied = true; });
+        if (!emptied) continue;
+        node.each(member => { if (frames[k - 1].has(getNodeId(member))) partOf.set(getNodeId(member), line(k, node.x)); });
       }
       // Syntax first painted here takes, whole, the part of its highest new ancestor.
       for (const [id, node] of frames[k]) if (!partOf.has(id)) {
@@ -885,7 +906,10 @@ function holdBack(scenes: readonly Scene[], frames: Painted[], coordinates: Map<
         const done = new Set<string>();
         for (const id of moving) frames[j].get(id)?.each(member => {
           const memberId = getNodeId(member);
-          if (done.has(memberId) || (memberId !== id && frames[j].has(memberId) && !moving.has(memberId))) return;
+          // A member's own word moves with it, though the member may be
+          // silent, and its word unpainted, where the hold is measured.
+          const ownWord = member.data.replayOrigin?.kind === 'word' && member.parent !== null && moving.has(getNodeId(member.parent));
+          if (done.has(memberId) || (memberId !== id && frames[j].has(memberId) && !moving.has(memberId) && !ownWord)) return;
           done.add(memberId);
           const point = points.get(memberId);
           const shift = shifts.get(id)!;
