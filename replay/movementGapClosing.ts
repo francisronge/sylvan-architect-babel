@@ -267,7 +267,7 @@ function newContinuityFaults(previous: Scene, step: Scene, oldBefore: Painted, o
  * kept closing moves syntax across (its movement is the stage's first step). Only
  * there does the camera carry break a tie toward the block that holds still
  * (carriedMedian); stageCoordinates records them on the stage's reservations. */
-export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques = { anchors: new Map() }, ink = {} }: {
+export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques = { anchors: new Map() }, plaqueDistances, ink = {} }: {
   steps: readonly PlaybackStep[];
   sizes: ReadonlyMap<number, [number, number]>;
   planned: ReadonlyMap<number, Reservations>;
@@ -276,6 +276,13 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
   ink?: InkMeasures;
   /** The proximity plaques whose room beside their anchors a closing keeps. */
   plaques?: PlaqueRoom;
+  /** Each step's plaques' distances from their anchors (by `step:item`) as
+   * Replay's plaque layout places them over these stage reservations, whose
+   * `closings` stages close at their crossing: what a seated landing keeps
+   * (seatLandings). Without it a seat keeps every proximity plaque's room
+   * (keepsPlaqueRoom). */
+  plaqueDistances?: (stages: ReadonlyMap<number, ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>,
+    closings: ReadonlySet<number>) => ReadonlyMap<string, number>;
 }): { stages: Map<number, Map<SyntaxNode, TreeCoordinateReservation>>; closings: Set<number> } {
   const ordered = steps.filter(step => step.replayCanvasData && step.replayFrameIndex !== undefined && sizes.has(step.replayFrameIndex))
     .sort((a, b) => a.replayFrameIndex! - b.replayFrameIndex! || stageOrder(a) - stageOrder(b));
@@ -622,25 +629,30 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
   }
   const inkOf = (scene: Scene, nodes: readonly Node[]) => treeInkObstacles([...nodes], measureCategoryText, ink.measureTreeInk, false,
     ink.treeLabelRuns?.get(scene.canvas), ink.measureTreeLabel);
-  const context = { scenes, frames: all, coordinates, firstScene, lastScene, paint, measureCategoryText, inkOf, plaques, steps: sceneSteps };
+  const reservations = () => {
+    const byStage = new Map<number, Map<SyntaxNode, TreeCoordinateReservation>>();
+    for (const scene of scenes) {
+      const stage = scene.step.replayFrameIndex!;
+      if (!byStage.has(stage)) byStage.set(stage, new Map());
+      byStage.get(stage)!.set(scene.canvas, coordinates.get(scene.canvas)!);
+    }
+    // Canvases outside the ordered scenes keep their plans.
+    for (const [stage, frames] of planned) for (const [canvas, plan] of frames) {
+      if (!byStage.has(stage)) byStage.set(stage, new Map());
+      if (!byStage.get(stage)!.has(canvas)) byStage.get(stage)!.set(canvas, plan);
+    }
+    return byStage;
+  };
+  const closings = () => new Set(scenes.flatMap(scene => scene.closing ? [scene.step.replayFrameIndex!] : []));
+  const context: Context = { scenes, frames: all, coordinates, firstScene, lastScene, paint, measureCategoryText, inkOf, plaques, steps: sceneSteps,
+    plaqueDistances: plaqueDistances && (() => plaqueDistances(reservations(), closings())) };
   holdLoweredSubtrees(context);
   holdBack(scenes, all, coordinates, firstScene, lastScene, paint, measureCategoryText);
   openSourceRoom(scenes, all, coordinates, firstScene, lastScene, paint, measureCategoryText);
   seatReceivingHeads(context);
   holdAcrossCrossings(context);
   seatLandings(context);
-  const byStage = new Map<number, Map<SyntaxNode, TreeCoordinateReservation>>();
-  for (const scene of scenes) {
-    const stage = scene.step.replayFrameIndex!;
-    if (!byStage.has(stage)) byStage.set(stage, new Map());
-    byStage.get(stage)!.set(scene.canvas, coordinates.get(scene.canvas)!);
-  }
-  // Canvases outside the ordered scenes keep their plans.
-  for (const [stage, frames] of planned) for (const [canvas, plan] of frames) {
-    if (!byStage.has(stage)) byStage.set(stage, new Map());
-    if (!byStage.get(stage)!.has(canvas)) byStage.get(stage)!.set(canvas, plan);
-  }
-  return { stages: byStage, closings: new Set(scenes.flatMap(scene => scene.closing ? [scene.step.replayFrameIndex!] : [])) };
+  return { stages: reservations(), closings: closings() };
 }
 
 type LabelBox = { id: string; box: { x: number; y: number; width: number; height: number } };
@@ -1021,7 +1033,9 @@ function openSourceRoom(scenes: readonly Scene[], frames: Painted[], coordinates
 type Context = { scenes: readonly Scene[]; frames: Painted[]; coordinates: Map<SyntaxNode, Map<string, { x: number; y: number }>>;
   firstScene: ReadonlyMap<SyntaxNode, number>; lastScene: ReadonlyMap<SyntaxNode, number>; paint: (scene: Scene) => Painted;
   measureCategoryText?: CategoryTextMeasure; inkOf: (scene: Scene, nodes: readonly Node[]) => PlaqueRect[];
-  plaques: PlaqueRoom; steps: readonly PlaybackStep[] };
+  plaques: PlaqueRoom; steps: readonly PlaybackStep[];
+  /** Each step's plaques' distances from their anchors over the current coordinates (closeMovementGaps' `plaqueDistances`). */
+  plaqueDistances?: () => ReadonlyMap<string, number> };
 type InkMeasures = { measureTreeInk?: TreeInkTextMeasure; treeLabelRuns?: PreparedTreeLabelRuns; measureTreeLabel?: TreeLabelMeasure };
 
 /** Moves `members` by `amount(id)` over their lives before step `k` (with their
@@ -1358,13 +1372,16 @@ function holdLoweredSubtrees(context: Context) {
  * the sibling gap while their ink stands more than HEAD_HOST_INK_GAP apart, the
  * phrase keeps that fork at the sibling gap over its whole life, source and
  * landing alike, when that lets the landing stand nearer: it never changes shape.
- * Kept only where the movement's motion faults shrink and every check holds
- * (checkLifetimeShift). */
+ * Kept only where the movement's motion faults shrink, every check holds
+ * (checkLifetimeShift), and Replay's plaque layout stands every plaque, in every
+ * step, no farther from its anchor than before (keepsPlaqueDistances). */
 function seatLandings(context: Context) {
   const { scenes } = context;
   const faultSum = (k: number, prior: Painted, now: Painted) => replayMotionFaults({ frames: [motionFrame(scenes[k - 1].step, prior, getNodeId),
     motionFrame(scenes[k].step, now, getNodeId, Boolean(scenes[k].closing))] }).reduce((sum, fault) => sum + fault.distance, 0);
   const daughters = (frame: Painted, node: Node) => (node.children ?? []).filter(child => frame.has(getNodeId(child)));
+  // The plaque distances of the coordinates as they stand, until a seat is kept.
+  let held: ReadonlyMap<string, number> | undefined;
   for (let k = 1; k < scenes.length; k++) {
     const step = scenes[k].step, frames = context.frames;
     if (!trajectoryParticipants(step).length) continue;
@@ -1424,9 +1441,11 @@ function seatLandings(context: Context) {
       // No farther than leaves the parent where it stood before the movement.
       const carry = carryAt(scenes, k, before, after);
       const back = 2 * side * (before.get(parentId)!.x - (after.get(parentId)!.x - carry.x));
+      held ??= context.plaqueDistances?.();
       const shift = applyLifetimeShift(context, k, inward, landingId, side * (back > 1e-6 ? Math.min(room, back) : room));
       if (!shift) continue;
-      if (!checkLifetimeShift(context, k, landingId, shift) && faultSum(k, shift.view(k - 1), shift.view(k)) < was - 1) { shift.commit(); break; }
+      if (!checkLifetimeShift(context, k, shift) && faultSum(k, shift.view(k - 1), shift.view(k)) < was - 1
+        && keepsPlaqueDistances(context, held, shift)) { shift.commit(); held = undefined; break; }
       shift.undo();
     }
   }
@@ -1504,9 +1523,8 @@ function applyLifetimeShift(context: Context, k: number, inward: ReadonlyMap<str
  * (other than the movement `k` itself) changes its motion; the movement moves
  * nothing it does not carry or grant farther; every frame stays ordered; the
  * moved ink meets no other ink, nor comes within COMPACT_INK_CLEARANCE of it,
- * where it did not before, and no branch newly runs through text; and every
- * proximity plaque keeps its room. */
-function checkLifetimeShift(context: Context, k: number, landing: string, shift: LifetimeShift) {
+ * where it did not before, and no branch newly runs through text. */
+function checkLifetimeShift(context: Context, k: number, shift: LifetimeShift) {
   const { scenes, frames, measureCategoryText } = context;
   const { start, end, repainted, moved, view } = shift;
   const changed = new Map(repainted.map((frame, index) => [start + index, frame]));
@@ -1544,11 +1562,23 @@ function checkLifetimeShift(context: Context, k: number, landing: string, shift:
     const crossed = branchCrossings(old, shifted, measureCategoryText);
     for (const crossing of branchCrossings(frame, shifted, measureCategoryText)) if (!crossed.has(crossing)) return `branch at ${j + 1}`;
   }
-  // The landing's own plaques travel with it; every other plaque keeps its room.
-  const carried = new Set<string>();
-  view(k).get(landing)?.each(member => { carried.add(getNodeId(member)); });
-  const others: PlaqueRoom = { ...context.plaques, anchors: new Map([...context.plaques.anchors].map(([stage, plaques]) =>
-    [stage, plaques.filter(plaque => !carried.has(plaque.anchor))] as const)) };
-  if (!keepsPlaqueRoom(context.steps, frames, frames.map((_, index) => view(index)), start, others, measureCategoryText)) return 'plaque room';
   return '';
+}
+
+/** How much farther a plaque may stand: the rounding of a pocket carried with its anchor. */
+const PLAQUE_DISTANCE_TOLERANCE = 1;
+
+/** Whether `shift` (applied to the coordinates) leaves every plaque, in every
+ * step, as near its anchor as it stood (`held`, its distances before) as
+ * Replay's plaque layout places it. A plaque that travels with its anchor is no
+ * exception: the syntax it now passes can take its pocket, and a plaque of other
+ * syntax can lose its pocket to the moved syntax, or to a plaque the layout must
+ * place elsewhere. Without that layout, every proximity plaque keeps its room
+ * (keepsPlaqueRoom). */
+function keepsPlaqueDistances(context: Context, held: ReadonlyMap<string, number> | undefined, shift: LifetimeShift) {
+  if (!context.plaqueDistances || !held) return keepsPlaqueRoom(context.steps, context.frames,
+    context.frames.map((_, index) => shift.view(index)), shift.start, context.plaques, context.measureCategoryText);
+  const now = context.plaqueDistances();
+  for (const [key, distance] of held) if (!((now.get(key) ?? Infinity) <= distance + PLAQUE_DISTANCE_TOLERANCE)) return false;
+  return true;
 }

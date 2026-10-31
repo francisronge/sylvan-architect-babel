@@ -12,7 +12,7 @@ import { closeMovementGaps } from './movementGapClosing.ts';
 import type { PlaqueAnchor, PlaqueRoom } from './plaqueRoom.ts';
 import { reserveMovementSlotClearance } from './movementSlotClearance.ts';
 import { fallbackPlaqueTextMeasure, type PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
-import { proximityPlaqueRequests } from './relations/plaquePlacement.ts';
+import { proximityPlaqueRequests, type PlaquePlacement } from './relations/plaquePlacement.ts';
 import { trajectoryPlaqueObstacles, treeLabelBoxes } from './relations/trajectoryObstacles.ts';
 import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlan.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
@@ -529,8 +529,28 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
 }
 
 /** The relation plan whose plaques Replay draws beside these steps' syntax, and
- * their text measure, so that closing a movement's room keeps their pockets. */
-export type StagePlaques = { plan?: RelationRenderPlan | null; measurePlaqueText?: PlaqueTextMeasure };
+ * their text measure, so that closing a movement's room keeps their pockets.
+ * `schedule` is Replay's plaque layout over given left-to-right stage
+ * coordinates (stageCamera.ts, plaqueScheduleOver): a seated landing leaves
+ * every plaque it places as near its anchor as before (seatLandings). */
+export type StagePlaques = { plan?: RelationRenderPlan | null; measurePlaqueText?: PlaqueTextMeasure;
+  schedule?: (coordinates: ReadonlyMap<number, ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>) => PlaqueSchedule };
+type PlaqueSchedule = { steps: ReadonlyMap<number, ReadonlyMap<number, PlaquePlacement>> };
+
+/** Each step's plaques' distances from their anchors (by `step:item`) as
+ * `schedule` places them over these stage reservations, whose `closings` stages
+ * close at their crossing. A stage of the plan without reservations is laid out
+ * without them, as the layout lays out a stage it gives no size. */
+function plaqueDistancesOver(schedule: NonNullable<StagePlaques['schedule']>, stageCount: number,
+  stages: ReadonlyMap<number, ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>, closings: ReadonlySet<number>) {
+  const coordinates = new Map<number, ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>();
+  for (let stage = 0; stage < stageCount; stage++)
+    coordinates.set(stage, recordClosingEntry(new Map(stages.get(stage) ?? []), closings.has(stage)));
+  const distances = new Map<string, number>();
+  for (const [step, layout] of schedule(coordinates).steps) for (const [item, plaque] of layout)
+    distances.set(`${step}:${item}`, Math.hypot(plaque.x + plaque.width / 2 - plaque.attachmentX, plaque.y + plaque.height / 2 - plaque.attachmentY));
+  return distances;
+}
 
 /** The tree text measures a stage's trajectories bow clear of (treeLabelBoxes),
  * and `key`, the metric key of their values. */
@@ -639,7 +659,9 @@ function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: numb
   if (!closed) {
     const planned = new Map([...sizes].map(([stage, stageSize]) => [stage, planStageCoordinates(steps, stage, stageSize, sizeForStage,
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel)] as const));
+    const schedule = plaques?.schedule, stageCount = plaques?.plan?.frames.length ?? 0;
     byKey.set(key, closed = closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques: room,
+      plaqueDistances: schedule && ((stages, closings) => plaqueDistancesOver(schedule, stageCount, stages, closings)),
       ink: { measureTreeInk, treeLabelRuns, measureTreeLabel } }));
     for (const stage of closed.closings) { const frames = closed.stages.get(stage); if (frames) closingEntries.add(frames); }
   }

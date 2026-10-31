@@ -178,12 +178,14 @@ stood before, so the parent recentres less over the new pair. Where a fork insid
 the landing holds a head and its host wider than the sibling gap while their ink
 stands more than 120 units apart (the receiving component's head-host rule),
 the phrase keeps that fork at the sibling gap over its whole life, source and
-landing alike, so it never changes shape. The landing's own plaques travel with
-it. Keep this only when the movement's motion shrinks, no step moves syntax it
-does not own farther or newly breaks continuity, every frame stays ordered, the
-moved ink comes no nearer other ink than that clearance where it was not already
-nearer, no branch newly crosses text, stages keep their size, and every other
-proximity plaque keeps its room.
+landing alike, so it never changes shape. Keep this only when the movement's
+motion shrinks, no step moves syntax it does not own farther or newly breaks
+continuity, every frame stays ordered, the moved ink comes no nearer other ink
+than that clearance where it was not already nearer, no branch newly crosses
+text, stages keep their size, and Replay's own plaque layout, run over the seated
+coordinates, stands every plaque in every step no farther from its anchor than
+before (within one unit). That includes the landing's own plaques: travelling
+with their anchor does not keep their pocket clear of the syntax they now pass.
 
 Each stage is laid out on its own, so a stage crossing can shift syntax that no
 step moves. Unmoved syntax that shifts rigidly keeps its place relative to the

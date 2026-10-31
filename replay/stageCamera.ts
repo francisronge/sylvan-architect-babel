@@ -163,12 +163,13 @@ function changedPlaqueAttachments(before: d3.HierarchyPointNode<SyntaxNode>[], a
   return changed;
 }
 
-function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
-  abstractionMode = false, protectedNodeIds = new Set<string>(), measureCategoryText, measurePlaqueText, measureTreeInk, treeLabelRuns, measureTreeLabel }: StageLayoutInput, geometry?: StageGeometry) {
+function stageLayouts(input: StageLayoutInput, geometry?: StageGeometry) {
+  const { steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
+    abstractionMode = false, protectedNodeIds = new Set<string>(), measureCategoryText, measurePlaqueText, measureTreeInk, treeLabelRuns, measureTreeLabel } = input;
   const stageSize = stageTreeLayoutSize(steps, stageIndex, width, height, layoutGroups);
   const reservations = geometry?.reservations ?? (stageSize ? buildStageCoordinateReservations(steps, stageIndex, stageSize,
     index => stageTreeLayoutSize(steps, index, width, height, layoutGroups), direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel,
-    { plan, measurePlaqueText }) : null);
+    { plan, measurePlaqueText, schedule: plaqueScheduleOver(input) }) : null);
   const hierarchy = (canvas: SyntaxNode) => {
     const root = d3.hierarchy(cloneSyntaxTree(canvas)!);
     applyVizIds(root);
@@ -242,6 +243,14 @@ function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
     reservations?.get(completedCanvas));
   // The crossing into this stage takes the carry's tie rule only where its plan closed there.
   return { scenes, completedTree, closing: closesOnEntry(reservations) };
+}
+
+/** Replay's plaque schedule for `input` over given left-to-right stage
+ * coordinates, as the plain (not abstracted) tree paints them: what a closing
+ * that seats a landing must leave every plaque as near as (StagePlaques
+ * `schedule`). Its stage sizes, like the closing's, do not depend on the viewport. */
+export function plaqueScheduleOver(input: StageLayoutInput) {
+  return (coordinates: MeasuredStageCoordinates) => buildReplayPlaqueSchedule({ ...input, direction: 'ltr', abstractionMode: false }, coordinates);
 }
 
 export type ReplayPlaqueSchedule = {
