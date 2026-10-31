@@ -124,3 +124,180 @@ test('verified finite context does not consume or print independent unknown sibl
   assert.equal(plate(data).rows.some(row => row.label === 'foreignOperation'), false);
   assert.equal(items(data).some(item => item.kind === 'fallback'), true);
 });
+
+/** One finite clause in three phrase-structure notations. The tense head's
+ * mother is read as its projection and its sister as verbal because it holds
+ * the verb, so no notation depends on spelling I′ or VP. */
+const notations = {
+  // I′ over VP.
+  xbar: () => authored(),
+  // TP over TP, with T's sister a vP.
+  phrasal: () => ({ ...authored(), forest: [{ id: 'clause', label: 'TP', children: [
+    { id: 'subject', label: 'DP', word: 'Mira' },
+    { id: 'ibar', label: 'TP', children: [
+      { id: 'finite', label: 'T [finite, past]', silent: true, children: [] },
+      { id: 'vp', label: 'vP', children: [
+        { id: 'little-v', label: 'v', silent: true, children: [] },
+        { id: 'vbar', label: 'VP', children: [
+          { id: 'lexical', label: 'V', word: 'persuaded', children: [] },
+          { id: 'object', label: 'DP', word: 'Joel' }
+        ] }
+      ] }
+    ] }
+  ] }] }),
+  // Bare labels: T over v.
+  bare: () => ({ ...authored(), forest: [{ id: 'clause', label: 'T', children: [
+    { id: 'subject', label: 'D', word: 'Mira' },
+    { id: 'ibar', label: 'T', children: [
+      { id: 'finite', label: 'T [finite, past]', silent: true, children: [] },
+      { id: 'vp', label: 'v', children: [
+        { id: 'little-v', label: 'v', silent: true, children: [] },
+        { id: 'vbar', label: 'V', children: [
+          { id: 'lexical', label: 'V', word: 'persuaded', children: [] },
+          { id: 'object', label: 'D', word: 'Joel' }
+        ] }
+      ] }
+    ] }
+  ] }] })
+};
+
+test('finite context is recovered from structure in X-bar, phrasal and bare notation', () => {
+  for (const [name, build] of Object.entries(notations)) {
+    const data = build();
+    assert.equal(contextOwned(data), true, name);
+    assert.equal(items(data).some(item => item.kind === 'fallback'), false, name);
+    assert.deepEqual(plate(data).anchorNodeIds, ['lexical'], name);
+  }
+});
+
+test('in every notation, a sister without the verb, a clause boundary or another tense keeps the residual', () => {
+  const negatives = [
+    ['sister without the verb', data => {
+      const vp = node(data, 'vp');
+      node(data, 'ibar').children[1] = { id: 'other', label: node(data, 'subject').label, word: 'it' };
+      node(data, 'clause').children[0] = vp;
+    }],
+    ['clause boundary', data => {
+      const vp = node(data, 'vp'), index = vp.children.findIndex(child => child.id === 'vbar');
+      vp.children[index] = { id: 'embedded', label: node(data, 'clause').label === 'T' ? 'C' : 'CP', children: [
+        { id: 'complementizer', label: 'C', word: 'that' }, vp.children[index]
+      ] };
+    }],
+    ['other tense', data => { node(data, 'finite').label = node(data, 'finite').label.replace('past', 'present'); }]
+  ];
+  for (const [name, build] of Object.entries(notations)) {
+    for (const [label, change] of negatives) {
+      const data = build(); change(data);
+      assert.equal(contextOwned(data), false, `${name}: ${label}`);
+    }
+  }
+});
+
+/** T's sister and every node down to the verb, in phrasal or bare notation. */
+const clauseOver = (bare, sister) => {
+  const data = notations[bare ? 'bare' : 'phrasal']();
+  node(data, 'ibar').children[1] = sister;
+  return data;
+};
+const head = (id, label, word) => word ? { id, label, word, children: [] } : { id, label, silent: true, children: [] };
+const lexicalVP = phrase => ({ id: 'vbar', label: phrase('V'), children: [
+  head('lexical', 'V', 'persuaded'), { id: 'agent', label: phrase('P'), word: 'by Mira' }
+] });
+
+test('a nominal or embedded-predicate detour to the verb keeps the residual', () => {
+  for (const bare of [false, true]) {
+    const phrase = category => bare ? category : `${category}P`;
+    const cases = [
+      ['DP sister containing V', { id: 'dp', label: phrase('D'), children: [head('det', 'D'), lexicalVP(phrase)] }],
+      ['vP over DP over PartP over V', { id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), {
+        id: 'dp', label: phrase('D'), children: [head('det', 'D'), {
+          id: 'part', label: phrase('Part'), children: [head('participle', 'Part'), lexicalVP(phrase)] }] }] }],
+      ['reduced relative', { id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), {
+        id: 'matrix-vp', label: phrase('V'), children: [head('saw', 'V', 'saw'), {
+          id: 'dp', label: phrase('D'), children: [{ id: 'joel', label: phrase('D'), word: 'Joel' }, {
+            id: 'part', label: phrase('Part'), children: [head('participle', 'Part'), lexicalVP(phrase)] }] }] }] }],
+      ['embedded predicate', { id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), {
+        id: 'matrix-vp', label: phrase('V'), children: [head('saw', 'V', 'saw'), {
+          id: 'part', label: phrase('Part'), children: [head('participle', 'Part'), lexicalVP(phrase)] }] }] }]
+    ];
+    for (const [label, sister] of cases)
+      assert.equal(contextOwned(clauseOver(bare, sister)), false, `${bare ? 'bare' : 'phrasal'}: ${label}`);
+    // The same verb under a functional spine still earns the picture.
+    const spine = { id: 'asp', label: phrase('Asp'), children: [head('aspect', 'Asp'), {
+      id: 'voice', label: phrase('Voice'), children: [head('voice-head', 'Voice'), {
+        id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), lexicalVP(phrase)] }] }] };
+    assert.equal(contextOwned(clauseOver(bare, spine)), true, `${bare ? 'bare' : 'phrasal'}: functional spine`);
+    // A silent upper V of a verb shell is not another verb.
+    const shell = { id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), {
+      id: 'shell', label: phrase('V'), children: [head('upper-v', 'V'), lexicalVP(phrase)] }] };
+    assert.equal(contextOwned(clauseOver(bare, shell)), true, `${bare ? 'bare' : 'phrasal'}: silent verb shell`);
+  }
+});
+
+test('an Infl projection is a clause boundary like I and T', () => {
+  for (const [label, boundary] of [['InflP', 'InflP'], ['Infl′', 'Infl′'], ['bare Infl', 'Infl'], ['IP', 'IP'], ['TP', 'TP']]) {
+    const data = notations.phrasal(), vp = node(data, 'vp');
+    vp.children[1] = { id: 'embedded', label: boundary, children: [head('embedded-infl', 'Infl'), vp.children[1]] };
+    assert.equal(contextOwned(data), false, label);
+  }
+});
+
+test('a pronounced nonverbal head between T and the verb keeps the residual', () => {
+  for (const bare of [false, true]) {
+    const phrase = category => bare ? category : `${category}P`;
+    const gerund = { id: 'ger', label: phrase('Ger'), children: [head('gerund', 'Ger'), lexicalVP(phrase)] };
+    const cases = [
+      ['PP over a gerund', { id: 'pp', label: phrase('P'), children: [head('after', 'P', 'after'), gerund] }],
+      ['KP over a gerund', { id: 'kp', label: phrase('K'), children: [head('case', 'K', 'o'), gerund] }]
+    ];
+    for (const [label, sister] of cases)
+      assert.equal(contextOwned(clauseOver(bare, sister)), false, `${bare ? 'bare' : 'phrasal'}: ${label}`);
+  }
+});
+
+test('a complex head daughter with a pronounced verb keeps the residual; a silent one does not', () => {
+  for (const bare of [false, true]) {
+    const phrase = category => bare ? category : `${category}P`;
+    const shell = upper => ({ id: 'vp', label: phrase('v'), children: [head('little-v', 'v'), {
+      id: 'shell', label: phrase('V'), children: [
+        { id: 'complex', label: 'V', children: [upper, head('affix', 'Aff')] }, lexicalVP(phrase)] }] });
+    assert.equal(contextOwned(clauseOver(bare, shell(head('saw', 'V', 'saw')))), false, `${bare ? 'bare' : 'phrasal'}: pronounced complex head`);
+    assert.equal(contextOwned(clauseOver(bare, shell(head('upper-v', 'V')))), true, `${bare ? 'bare' : 'phrasal'}: silent complex shell`);
+  }
+});
+
+test('a silent nonverbal head over the verb keeps the residual; a silent verbal-domain head does not', () => {
+  const wrong = [];
+  for (const bare of [false, true]) {
+    const phrase = category => bare ? category : `${category}P`;
+    const over = (category, below, label = category) => ({ id: `${category}-phrase`, label: phrase(category), children: [
+      head(`${category}-head`, label), below] });
+    const littleV = () => over('v', lexicalVP(phrase));
+    const detours = [
+      ['silent K over a verb phrase', over('K', lexicalVP(phrase))],
+      ['silent K over vP', over('K', littleV())],
+      ['silent K over a silent gerund', over('K', over('Ger', lexicalVP(phrase)))],
+      ['silent P over vP', over('P', littleV())],
+      ['silent n over a verb phrase', over('n', lexicalVP(phrase))],
+      ['silent A over a verb phrase', over('A', lexicalVP(phrase))],
+      ['silent A between v and V', over('v', over('A', lexicalVP(phrase)))]
+    ];
+    for (const [label, sister] of detours)
+      if (contextOwned(clauseOver(bare, sister))) wrong.push(`${bare ? 'bare' : 'phrasal'}: ${label} drew the picture`);
+    const spines = [
+      ['v', littleV()],
+      ['v*', over('v', lexicalVP(phrase), 'v* [uφ]')],
+      ['Voice', over('Voice', littleV(), 'Voice [uφ]')],
+      ['Asp', over('Asp', littleV())],
+      ['Appl', over('v', over('Appl', lexicalVP(phrase)))],
+      ['Cause', over('Cause', littleV())],
+      ['Perf', over('Perf', littleV())],
+      ['Prog', over('Prog', littleV())],
+      ['Pass', over('Pass', littleV())],
+      ['AgrO', over('AgrO', littleV())]
+    ];
+    for (const [label, sister] of spines)
+      if (!contextOwned(clauseOver(bare, sister))) wrong.push(`${bare ? 'bare' : 'phrasal'}: silent ${label} lost the picture`);
+  }
+  assert.deepEqual(wrong, []);
+});
