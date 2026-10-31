@@ -101,8 +101,10 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       style={{
         // The panel stands above the sentence bar and below the top controls.
         // In a workspace too short for both it shrinks to its controls and
-        // timeline, and only then lets the bar cover its details, so its
-        // controls stay in view. With room to spare these limits never bind.
+        // timeline and stays below the top controls, overlapping the bar; in
+        // the app it is drawn in a layer above the bar (TreeVisualizer), so
+        // the bar never hides its controls. With room to spare these limits
+        // never bind.
         bottom: `min(${bottom}px, calc(100% - ${REPLAY_PANEL_FLOOR + top}px))`,
         right,
         minHeight: `max(${REPLAY_PANEL_FLOOR}px, min(148px, calc(100% - ${bottom + top}px)))`,

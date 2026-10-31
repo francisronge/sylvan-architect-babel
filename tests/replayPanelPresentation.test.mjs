@@ -107,6 +107,10 @@ const panelBox = (html, height) => {
 };
 
 test('the Replay panel clears the sentence bar and the top controls, and keeps its controls in a cramped workspace', () => {
+  // Every size is judged. Where the top controls, the panel's controls and
+  // timeline (128px) and the bar cannot all fit, the panel stays below the top
+  // controls and overlaps the bar by exactly the missing height; the app draws
+  // it above the bar (tests/browser/appWorkflow.test.mjs clicks its controls).
   for (const top of [16, 88]) for (let workspace = 300; workspace <= 1000; workspace += 20) for (let bottom = 16; bottom <= 520; bottom += 12) {
     const box = panelBox(render(properties(1, { bottom, top })), workspace);
     const room = workspace - bottom - top;
@@ -114,6 +118,10 @@ test('the Replay panel clears the sentence bar and the top controls, and keeps i
     assert.ok(box.height >= 128 - 1e-9, `the controls and timeline keep their height: ${at}`);
     assert.ok(box.top >= top - 1e-9, `the panel stays below the top controls: ${at}`);
     if (room >= 128) assert.equal(box.bottom, bottom, `the panel stands above the sentence bar: ${at}`);
+    else {
+      assert.equal(box.top, top, `a cramped panel stays just below the top controls: ${at}`);
+      assert.equal(bottom - box.bottom, 128 - room, `a cramped panel overlaps the bar only by the missing height: ${at}`);
+    }
     if (room >= 148) {
       // With room to spare the panel keeps the size it had before the limits.
       const before = Math.max(148, Math.min(workspace - 100, Math.min(260, workspace * 0.4)));

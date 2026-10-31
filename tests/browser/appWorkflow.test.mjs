@@ -66,6 +66,20 @@ async function assertReplayControlsReachable(page) {
   assert.deepEqual(reach.covered, [], 'nothing covers the side control or the Replay controls');
 }
 
+/** Prev, Next and Play answer a pointer: each moves Replay as it should. */
+async function clickReplayControls(page) {
+  const frame = async () => Number(await page.getByRole('slider', { name: 'Replay frame' }).inputValue());
+  await pauseReplayAt(page, 2);
+  await page.getByRole('button', { name: 'Prev', exact: true }).click();
+  await waitForReplayPaint(page, 1);
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await waitForReplayPaint(page, 2);
+  assert.equal(await frame(), 2);
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  assert.ok(await frame() >= 2, 'Play advanced or held Replay');
+}
+
 /** A new analysis opens in Replay and plays; pause it on a chosen frame. */
 async function pauseReplayAt(page, frame) {
   const slider = page.getByRole('slider', { name: 'Replay frame' });
@@ -659,13 +673,13 @@ test('the bracketing panel stays above the sentence bar and inside a short or ov
   let browser;
   try {
     browser = await chromium.launch({ headless: true });
-    // A window too short for the parse selector, the Replay panel and the
-    // expanded sentence bar together is used with the bar collapsed.
-    for (const [name, viewport, analysis, sentence, scrolls, collapseBar] of [
-      ['short', { width: 1440, height: 520 }, bundle, bundle.sentence, false, true],
-      ['compact', { width: 1440, height: 700 }, bundle, bundle.sentence, false, false],
-      ['long-desktop', { width: 1440, height: 900 }, long, longSentence, true, false],
-      ['long-mobile', { width: 390, height: 844 }, long, longSentence, true, false]
+    // At 1440x460 the parse selector, the Replay panel and the expanded
+    // sentence bar cannot all fit; the panel's controls must still answer.
+    for (const [name, viewport, analysis, sentence, scrolls] of [
+      ['short', { width: 1440, height: 460 }, bundle, bundle.sentence, false],
+      ['compact', { width: 1440, height: 700 }, bundle, bundle.sentence, false],
+      ['long-desktop', { width: 1440, height: 900 }, long, longSentence, true],
+      ['long-mobile', { width: 390, height: 844 }, long, longSentence, true]
     ]) {
       const context = await browser.newContext({ viewport });
       try {
@@ -675,12 +689,11 @@ test('the bracketing panel stays above the sentence bar and inside a short or ov
         await page.goto(server.url);
         await sentenceInput(page).fill(sentence);
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
-        if (collapseBar) {
-          await page.getByTitle('Collapse', { exact: true }).click();
-          await page.getByRole('button', { name: 'Expand Arbor Control', exact: true }).waitFor();
-        }
         await pauseReplayAt(page, 'last');
+        assert.ok(await sentenceInput(page).isVisible(), 'the sentence bar stays expanded');
         await assertReplayControlsReachable(page);
+        await clickReplayControls(page);
+        await pauseReplayAt(page, 'last');
         await page.getByRole('button', { name: 'Labeled Bracketing', exact: true }).click();
         await page.getByRole('dialog', { name: 'Labeled Bracketing' }).waitFor();
         const measured = await assertBracketingOnTop(page, { scrolls });
@@ -693,5 +706,43 @@ test('the bracketing panel stays above the sentence bar and inside a short or ov
     try { await browser?.close(); }
     finally { await server.close(); }
   }
+});
+
+test('on a short phone showing a failure, Replay and the bracketing still answer a pointer', { timeout: 120_000 }, async () => {
+  const server = await startBrowserTestServer({ root });
+  const output = process.env.BABEL_WORKFLOW_EVIDENCE || await mkdtemp(path.join(os.tmpdir(), 'babel-short-phone-'));
+  await mkdir(output, { recursive: true });
+  try {
+    for (const [engine, browserType] of [['chromium', chromium], ['webkit', webkit]]) {
+      const browser = await browserType.launch({ headless: true });
+      try {
+        const context = await browser.newContext({ viewport: { width: 390, height: 640 } });
+        const page = await context.newPage(), errors = [];
+        page.on('pageerror', error => errors.push(String(error)));
+        let fail = false;
+        await context.route('**/api/parse', route => fail
+          ? route.fulfill({ status: 503, json: { error: { code: 'MODEL_UNAVAILABLE', message: 'Controlled provider interruption.' } } })
+          : route.fulfill({ status: 200, json: bundle }));
+        await page.goto(server.url);
+        await sentenceInput(page).fill(bundle.sentence);
+        await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+        await pauseReplayAt(page, 2);
+        fail = true;
+        await sentenceInput(page).fill('Nia laughed.');
+        await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+        await page.getByRole('alert').filter({ hasText: 'Controlled provider interruption.' }).waitFor();
+        await waitForReplayPaint(page, 2);
+        await page.screenshot({ path: path.join(output, `short-phone-failure-${engine}-390x640.png`) });
+        await assertReplayControlsReachable(page);
+        await clickReplayControls(page);
+        await page.getByRole('button', { name: 'Labeled Bracketing', exact: true }).click();
+        await page.getByRole('dialog', { name: 'Labeled Bracketing' }).waitFor();
+        await page.screenshot({ path: path.join(output, `short-phone-bracketing-${engine}-390x640.png`) });
+        assert.equal(await page.getByRole('alert').count(), 1, 'the failure stays shown');
+        assert.deepEqual(errors, []);
+        await context.close();
+      } finally { await browser.close(); }
+    }
+  } finally { await server.close(); }
 });
 

@@ -662,9 +662,11 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                 tree's labeled bracketing over the tree, in the place the view
                 tabs held, so the tree keeps the same fitted width. It stands
                 at mid-height, or above the sentence bar when the bar reaches
-                that high (a failure on a phone), so the bar never covers it. */}
-            <div data-babel-tree-controls="right" className="absolute right-4 md:right-8 translate-y-1/2 z-30 flex flex-col gap-3 md:gap-4"
-              style={{ bottom: `max(50%, calc(${Math.round(sideControlInset) + 12}px + 1.75rem))` }}>
+                that high (a failure on a phone). It never leaves the top of the
+                workspace, and its layer is above the bar's for the case where
+                the bar is taller than the workspace. */}
+            <div data-babel-tree-controls="right" className="absolute right-4 md:right-8 translate-y-1/2 z-40 flex flex-col gap-3 md:gap-4"
+              style={{ bottom: `min(calc(100% - 16px - 1.75rem), max(50%, calc(${Math.round(sideControlInset) + 12}px + 1.75rem)))` }}>
               <button
                 ref={bracketingButtonRef}
                 type="button"
@@ -689,10 +691,11 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
             </div>
 
             {/* The bracketing's own layer spans the workspace above the side
-                control and the sentence bar, and stops short of the control so
-                it stays reachable. The panel scrolls within this layer. */}
+                control, the Replay panel and the sentence bar, and stops short
+                of the control so it stays reachable. The panel scrolls within
+                this layer. */}
             {bracketingOpen && activeParse && milesNotation && (
-              <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-end p-4 pr-[4.75rem] md:p-8 md:pr-[6.5rem]">
+              <div className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-end p-4 pr-[4.75rem] md:p-8 md:pr-[6.5rem]">
                 <BracketingPanel id="babel-bracketing" notation={milesNotation} copyStatus={copyStatus}
                   onCopy={(text) => void copyNotation(text)} onClose={closeBracketing} />
               </div>
