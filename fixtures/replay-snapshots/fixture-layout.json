@@ -2139,6 +2139,24 @@
         "4:5 T3 fallback"
       ]
     },
+    "replay-regressions/nested-head-adjunctions.json#": {
+      "frames": "_swxtypY MjDKuOIU B5ybw2y4 YdTbqHkV tMvzb1hs H7wWaqHD 4UaWYPWq 7ttVbNBE oeceIkIK LObDISPV 3J9BHv9H yWFb7OBz GlP2Jfe0 mZo828pN fYnOtu-s XMD83A6P AFd_-luK JbKZjaZ3 QFwrPjdX 2Vs5RkVF m4o4ZCqf ixAAXi6o -JmjdB-c XAiyLJix ihq0kNJS UrxIVllE K0yPoGr7 opulSADJ lWRYieTp dHJx2s8U 0w-_CJtu XOrOXXXL",
+      "canopy": "IZBGY_DJ",
+      "tiers": [
+        "0:0 T2 node-badges theta.grid theta-grid",
+        "0:0 T2 node-plaque theta.grid theta-grid",
+        "0:1 T3 fallback",
+        "1:0 T2 trajectory tier2.movement-path movement.path",
+        "1:0 T3 fallback",
+        "1:1 T2 trajectory tier2.movement-path movement.path",
+        "1:1 T3 fallback",
+        "1:2 T2 trajectory tier2.movement-path movement.path",
+        "1:2 T3 fallback",
+        "1:3 T3 fallback",
+        "1:4 T3 fallback",
+        "1:5 T3 fallback"
+      ]
+    },
     "replay-regressions/nested-premovement-width.json#": {
       "frames": "ss3zZZwD XALJrB6F neul0wOm kor9Chpk VuqByYVI q6dF512h yDTXiqME vXmS7b98 FYv9Ic7Q dATjYHa5 y-SPqsVA vdxKgyg8 wwEVWXXR E0ccmiQN 9KxNC2i2 S0xLRYVJ 0kJ4pKc9 YSWEm0Au dCMVwKjL 9roCOBik Zw9CUNMA zxsj6QxX lSOKFTyr rkqBCB_R fFJ-aJ4- nqCXRSs9 uewPmHM3 szo-kjy2 2n1Jhgfx 9Ifq6Ts6 7ikmZ2VD xUf7t4hz WpxK8OGb 3wFqgpVJ dJ-gTZTH -Q_6Y-bo MhA6bavS dO2eJ174 o4OfXp67 lCSHxHKs 6HSm3J-e Osi2Rfwl HvLp_zqJ LBG9bNbA 2MBJR2u4 Ez1A-yOS 1OVsuTwn Ge-PaPQd F6cX1ZgX c51KiBRP Ix9ZVxp3",
       "canopy": "_8U1LXJa",

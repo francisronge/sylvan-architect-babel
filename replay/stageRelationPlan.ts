@@ -155,7 +155,18 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     // the source workspace. An old, separately selected head in the
     // landing complex does not yet attach it to that workspace.
     // Higher projections retain their own micro-steps.
+    // A later head movement of the stage that lands beside this landing's
+    // complex forms the next segment over it ([[V T] Cl] built as V-to-T,
+    // then Cl adjoining): that segment is the later movement's new parent.
+    const laterHeadLandingIds = new Set(relationPlacements
+      .filter(candidate => candidate.relationIndex > placement.relationIndex
+        && (candidate.renderableTrajectory || candidate.ownsPhrasalTreeTransition))
+      .flatMap(candidate => candidate.authoredTargetNodeIds));
     return landingAttachmentPath(workspaceRoots, previousFrameWorkspaceRoots, authoredTargetNodeId, priorSourceIds, (parentNodeId, branchNodeId, hostIds) => {
+      if (trajectoryDisplayKind === 'head' && hostIds.length > 0
+        && (findNodeByIdInForest(workspaceRoots, parentNodeId)?.children || [])
+          .some(child => child.id !== branchNodeId && laterHeadLandingIds.has(child.id)))
+        return true;
       const structuralParent = findNodeByIdInForest(structuralWorkspaceRoots, parentNodeId);
       // Keep the attachment atomic by default. An earlier authored claim
       // can require this independently buildable receiving context first;

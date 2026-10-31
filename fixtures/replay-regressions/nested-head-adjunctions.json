@@ -1,0 +1,399 @@
+{
+  "description": "Stage 2 builds one nested head complex by three successive adjunctions in a single stage: the verb raises to the selected past T (relativeVerbHead), the subject clitic adjoins to that complex (relativeSubjectHead), and the object clitic adjoins to the result (relativeComplexHead), whose parent relativeT then joins the clause the heads leave. The first movement's landing path climbed through both outer segments to relativeT, so it required the two clitic landings, the later movements required it in turn, and Replay reported RELATION_TIMING_CONFLICT and kept authored order: frames 18 and 19 painted relativeComplexHead over only one of its two daughters (whole-parent). A head landing's path now stops below a segment whose other daughter a later movement of the stage lands; that segment is the later movement's new parent. Each adjunction plays at its own moment with its own segment, and construction merges the finished complex into relativeT.",
+  "source": "GPT-6.1 Sol, high reasoning effort, Codex OAuth qualification run, 29 Oct 2026 (heldout-20261029, h1-095-ar-complement-clause, analysis 0; ~/Library/Application Support/Babel/codex-qualification/heldout-20261029/runs). Trimmed: stages 1 and 2 of 6, which build the relative clause الذي قابلناه في المطار and merge it with الرجل, kept exactly as the model wrote them except that each realization group's token index is renumbered for the shorter sentence (5 becomes 2). The sentence is the remaining words.",
+  "sentence": "الرجل الذي قابلناه في المطار",
+  "framework": "minimalism",
+  "inputTokens": [
+    "الرجل",
+    "الذي",
+    "قابلناه",
+    "في",
+    "المطار"
+  ],
+  "derivationStages": [
+    {
+      "statement": "Reading 1: construct the airport encounter inside the relative clause.",
+      "stageRecord": "Merge قابل with the third-person masculine singular object pronoun ه, then attach في المطار to the encounter predicate. Merge a phonologically empty, transparent v and the first-person plural subject نا. The thematic relation assigns the encounter's agent to نا and its patient to ه. The locative relation places that encounter at the airport. Projection labels identify heads rather than stipulating bar levels.",
+      "relations": [
+        {
+          "relation": "theta_assignment",
+          "anchors": {
+            "predicate": "meet",
+            "agent": "we",
+            "patient": "him"
+          }
+        },
+        {
+          "relation": "event_location",
+          "anchors": {
+            "eventPredicate": "meet",
+            "location": "airportPP"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "relativev",
+          "label": "v",
+          "children": [
+            {
+              "id": "we",
+              "label": "D[1pl]",
+              "word": "نا",
+              "lineageId": "we-chain",
+              "children": []
+            },
+            {
+              "id": "relativevInner",
+              "label": "v",
+              "children": [
+                {
+                  "id": "relativevHead",
+                  "label": "v",
+                  "silent": true,
+                  "children": []
+                },
+                {
+                  "id": "meetLocation",
+                  "label": "V",
+                  "children": [
+                    {
+                      "id": "meetCore",
+                      "label": "V",
+                      "children": [
+                        {
+                          "id": "meet",
+                          "label": "V",
+                          "word": "قابل",
+                          "lineageId": "meet-chain",
+                          "children": []
+                        },
+                        {
+                          "id": "him",
+                          "label": "D[3msg]",
+                          "word": "ه",
+                          "lineageId": "resumptive-chain",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "airportPP",
+                      "label": "P",
+                      "children": [
+                        {
+                          "id": "airportP",
+                          "label": "P",
+                          "word": "في",
+                          "children": []
+                        },
+                        {
+                          "id": "airport",
+                          "label": "D",
+                          "children": [
+                            {
+                              "id": "airportD",
+                              "label": "D[def]",
+                              "silent": true,
+                              "children": []
+                            },
+                            {
+                              "id": "airportN",
+                              "label": "N",
+                              "word": "المطار",
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Complete الذي قابلناه في المطار and merge it with الرجل.",
+      "stageRecord": "Raise قابل across transparent v to the relative clause's past T, leaving a silent verbal trace. Incorporate the pronominal subject نا into that verbal head, then incorporate the resumptive object ه; both leave silent argument traces. These operations establish the ordered verbal complex realized as قابلناه. Merge الذي and a base-generated silent relative operator: the operator binds the incorporated resumptive pronoun rather than originating as the verb's object. Attach the relative clause to الرجل and merge its silent definite D. The relative marker agrees with this definite masculine singular nominal. Definiteness on الرجل and المطار remains within their lexical noun forms; no separate pronounced article is posited.",
+      "relations": [
+        {
+          "relation": "head_movement",
+          "anchors": {
+            "source": "meet",
+            "landing": "meetHigh"
+          },
+          "priorAnchors": {
+            "source": "meet"
+          },
+          "values": {
+            "path": "V to past T across transparent v",
+            "lowerOccurrence": "silent trace"
+          }
+        },
+        {
+          "relation": "subject_clitic_incorporation",
+          "anchors": {
+            "source": "we",
+            "landing": "weHigh",
+            "host": "meetHigh"
+          },
+          "priorAnchors": {
+            "source": "we"
+          },
+          "values": {
+            "features": "first person plural",
+            "lowerOccurrence": "silent trace"
+          }
+        },
+        {
+          "relation": "object_clitic_incorporation",
+          "anchors": {
+            "source": "him",
+            "landing": "himHigh",
+            "host": "relativeSubjectHead"
+          },
+          "priorAnchors": {
+            "source": "him"
+          },
+          "values": {
+            "features": "third person masculine singular",
+            "lowerOccurrence": "silent trace"
+          }
+        },
+        {
+          "relation": "verbal_complex_realization",
+          "anchors": {
+            "contributors": [
+              "meetHigh",
+              "weHigh",
+              "himHigh"
+            ]
+          },
+          "values": {
+            "text": "قابلناه"
+          }
+        },
+        {
+          "relation": "resumptive_binding",
+          "anchors": {
+            "operator": "relativeOperator",
+            "resumptive": "himHigh"
+          }
+        },
+        {
+          "relation": "relative_restriction_and_concord",
+          "anchors": {
+            "nominal": "manN",
+            "determiner": "manD",
+            "relativeClause": "relativeC",
+            "relativeMarker": "relativeMarker"
+          },
+          "values": {
+            "features": "definite masculine singular"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "man",
+          "label": "D",
+          "lineageId": "man-chain",
+          "children": [
+            {
+              "id": "manD",
+              "label": "D[def]",
+              "silent": true,
+              "children": []
+            },
+            {
+              "id": "restrictedMan",
+              "label": "N",
+              "children": [
+                {
+                  "id": "manN",
+                  "label": "N",
+                  "word": "الرجل",
+                  "children": []
+                },
+                {
+                  "id": "relativeC",
+                  "label": "C",
+                  "children": [
+                    {
+                      "id": "relativeOperator",
+                      "label": "D[relative operator]",
+                      "silent": true,
+                      "children": []
+                    },
+                    {
+                      "id": "relativeCInner",
+                      "label": "C",
+                      "children": [
+                        {
+                          "id": "relativeMarker",
+                          "label": "C[relative]",
+                          "word": "الذي",
+                          "children": []
+                        },
+                        {
+                          "id": "relativeT",
+                          "label": "T",
+                          "children": [
+                            {
+                              "id": "relativeComplexHead",
+                              "label": "T",
+                              "children": [
+                                {
+                                  "id": "relativeSubjectHead",
+                                  "label": "T",
+                                  "children": [
+                                    {
+                                      "id": "relativeVerbHead",
+                                      "label": "T",
+                                      "children": [
+                                        {
+                                          "id": "meetHigh",
+                                          "label": "V",
+                                          "word": "قابل",
+                                          "lineageId": "meet-chain",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "relativeTHead",
+                                          "label": "T[past]",
+                                          "silent": true,
+                                          "children": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "weHigh",
+                                      "label": "D[1pl]",
+                                      "word": "نا",
+                                      "lineageId": "we-chain",
+                                      "children": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "himHigh",
+                                  "label": "D[3msg]",
+                                  "word": "ه",
+                                  "lineageId": "resumptive-chain",
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "relativev",
+                              "label": "v",
+                              "children": [
+                                {
+                                  "id": "we",
+                                  "label": "D-trace[1pl]",
+                                  "word": "نا",
+                                  "silent": true,
+                                  "lineageId": "we-chain",
+                                  "children": []
+                                },
+                                {
+                                  "id": "relativevInner",
+                                  "label": "v",
+                                  "children": [
+                                    {
+                                      "id": "relativevHead",
+                                      "label": "v",
+                                      "silent": true,
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "meetLocation",
+                                      "label": "V",
+                                      "children": [
+                                        {
+                                          "id": "meetCore",
+                                          "label": "V",
+                                          "children": [
+                                            {
+                                              "id": "meet",
+                                              "label": "V-trace",
+                                              "word": "قابل",
+                                              "silent": true,
+                                              "lineageId": "meet-chain",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "him",
+                                              "label": "D-trace[3msg]",
+                                              "word": "ه",
+                                              "silent": true,
+                                              "lineageId": "resumptive-chain",
+                                              "children": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "airportPP",
+                                          "label": "P",
+                                          "children": [
+                                            {
+                                              "id": "airportP",
+                                              "label": "P",
+                                              "word": "في",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "airport",
+                                              "label": "D",
+                                              "children": [
+                                                {
+                                                  "id": "airportD",
+                                                  "label": "D[def]",
+                                                  "silent": true,
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "airportN",
+                                                  "label": "N",
+                                                  "word": "المطار",
+                                                  "children": []
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "realizations": [
+        {
+          "nodeIds": [
+            "meetHigh",
+            "weHigh",
+            "himHigh"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ]
+    }
+  ]
+}
