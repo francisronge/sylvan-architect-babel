@@ -47,6 +47,25 @@ async function assertReplayWithInput(page) {
   assert.ok(layout.panelGap >= 0, `the Replay panel stands above the input bar: ${layout.panelGap}px between them`);
 }
 
+/** Whatever the sentence bar shows (a failure, a short workspace), the side
+ * control and the Replay panel's controls stay inside the workspace and on top
+ * where they are drawn, so a pointer reaches them. */
+async function assertReplayControlsReachable(page) {
+  const reach = await page.evaluate(() => {
+    const workspace = document.querySelector('[data-babel-workspace]').getBoundingClientRect();
+    const panel = document.querySelector('[data-babel-replay-panel]').getBoundingClientRect();
+    const targets = [document.querySelector('button[aria-label="Labeled Bracketing"]'),
+      ...document.querySelectorAll('.babel-replay-controls > button'), document.querySelector('input[aria-label="Replay frame"]')];
+    return { panelTop: panel.top - workspace.top, covered: targets.flatMap(element => {
+      const box = element.getBoundingClientRect(), x = box.left + box.width / 2, y = box.top + box.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      return element === hit || element.contains(hit) ? [] : [`${element.getAttribute('aria-label') || element.textContent.trim()} under ${hit?.outerHTML.slice(0, 80)}`];
+    }) };
+  });
+  assert.ok(reach.panelTop >= 0, `the Replay panel starts inside the workspace: ${reach.panelTop}px`);
+  assert.deepEqual(reach.covered, [], 'nothing covers the side control or the Replay controls');
+}
+
 /** A new analysis opens in Replay and plays; pause it on a chosen frame. */
 async function pauseReplayAt(page, frame) {
   const slider = page.getByRole('slider', { name: 'Replay frame' });
@@ -278,6 +297,7 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
               assert.ok(await sentenceInput(page).isVisible(), 'a failure keeps the input in Replay');
               assert.equal(await sentenceInput(page).inputValue(), failedDraft);
               assert.equal(await page.getByRole('alert').count(), 1, 'failure remains visible and announced');
+              await assertReplayControlsReachable(page);
               if (kind === 'malformed-model-output') {
                 // Choosing the next request's model or effort keeps this failure and its downloads.
                 const [model, effort] = [0, 1].map(index => page.getByRole('banner').locator('select').nth(index));
@@ -653,6 +673,7 @@ test('the bracketing panel stays above the sentence bar and inside a short or ov
         await sentenceInput(page).fill(sentence);
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
         await pauseReplayAt(page, 'last');
+        await assertReplayControlsReachable(page);
         await page.getByRole('button', { name: 'Labeled Bracketing', exact: true }).click();
         await page.getByRole('dialog', { name: 'Labeled Bracketing' }).waitFor();
         const measured = await assertBracketingOnTop(page, { scrolls });

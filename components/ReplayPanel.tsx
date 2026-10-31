@@ -36,6 +36,9 @@ export interface ReplayPanelProps {
   onStepChange: (index: number) => void;
 }
 
+/** The controls and timeline, the least of the panel that must stay in view. */
+const REPLAY_PANEL_FLOOR = 128;
+
 // Playback state and viewport measurement stay with the tree; this component
 // keeps the same panel root so its ref measures the visible controls directly.
 const ReplayPanel: React.FC<ReplayPanelProps> = ({
@@ -92,7 +95,15 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       data-babel-active-relation-index={activeRelationMoment?.relationIndex}
       data-babel-played-relation-indices={playedRelationIndicesAttribute}
       className="babel-replay-panel absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-[#17362d] bg-[#020806]/[0.96] p-4 shadow-2xl"
-      style={{ bottom, right }}
+      style={{
+        // The panel stands above the sentence bar. In a workspace too short for
+        // both it shrinks to its controls and timeline (128px), and only then
+        // lets the bar cover its details, so its controls never leave the top.
+        bottom: `min(${bottom}px, calc(100% - ${REPLAY_PANEL_FLOOR + 16}px))`,
+        right,
+        minHeight: `max(${REPLAY_PANEL_FLOOR}px, min(148px, calc(100% - ${bottom + 16}px)))`,
+        maxHeight: `min(calc(100% - 100px), calc(100% - ${bottom + 16}px))`
+      }}
     >
       <div className="babel-replay-controls flex items-center gap-2 mb-3">
         <button

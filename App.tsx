@@ -131,6 +131,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const [activeParseIndex, setActiveParseIndex] = useState(0);
   const [bracketingOpen, setBracketingOpen] = useState(false);
   const bracketingButtonRef = useRef<HTMLButtonElement>(null);
+  const workspaceRef = useRef<HTMLElement>(null);
+  const [inputBar, setInputBar] = useState<HTMLDivElement | null>(null);
+  const [inputBarInset, setInputBarInset] = useState(0);
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [isInputVisible, setIsInputVisible] = useState(!showcaseMode);
   const [abstractionMode, setAbstractionMode] = useState(false);
@@ -255,6 +258,27 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   useEffect(() => {
     setReasoningEffort((current) => coerceReasoningEffortForRoute(modelRoute, current));
   }, [modelRoute]);
+
+  // How far the shown sentence bar reaches up from the workspace's bottom edge.
+  // The bar grows with a failure or an expanded body; the side control keeps
+  // above it. The observer reports once when it starts, then on every resize.
+  useEffect(() => {
+    const workspace = workspaceRef.current;
+    if (!inputBar || !workspace || !isInputVisible) return;
+    const measure = () => {
+      const inset = Math.max(0, workspace.getBoundingClientRect().bottom - inputBar.getBoundingClientRect().top);
+      setInputBarInset(previous => Math.abs(previous - inset) < 0.5 ? previous : inset);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(inputBar);
+    observer.observe(workspace);
+    inputBar.addEventListener('transitionend', measure);
+    return () => {
+      observer.disconnect();
+      inputBar.removeEventListener('transitionend', measure);
+    };
+  }, [inputBar, isInputVisible]);
+  const sideControlInset = inputBar && isInputVisible ? inputBarInset : 0;
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -562,7 +586,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
           {treeBank.error}
         </div>
       )}
-      <main data-babel-workspace="true" className="flex-1 relative flex flex-col overflow-hidden">
+      <main ref={workspaceRef} data-babel-workspace="true" className="flex-1 relative flex flex-col overflow-hidden">
         {isTreeBankView && (
           <TreeBankView
             entries={treeBank.entries} loading={treeBank.loading} error={treeBank.error}
@@ -636,8 +660,11 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
           <>
             {/* Replay is Babel's only view. Its side control opens the final
                 tree's labeled bracketing over the tree, in the place the view
-                tabs held, so the tree keeps the same fitted width. */}
-            <div data-babel-tree-controls="right" className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-3 md:gap-4">
+                tabs held, so the tree keeps the same fitted width. It stands
+                at mid-height, or above the sentence bar when the bar reaches
+                that high (a failure on a phone), so the bar never covers it. */}
+            <div data-babel-tree-controls="right" className="absolute right-4 md:right-8 translate-y-1/2 z-30 flex flex-col gap-3 md:gap-4"
+              style={{ bottom: `max(50%, calc(${Math.round(sideControlInset) + 12}px + 1.75rem))` }}>
               <button
                 ref={bracketingButtonRef}
                 type="button"
@@ -676,6 +703,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                 {/* Input UI. A hidden panel or collapsed body stays mounted for its
                     transition, so inert keeps its controls out of focus order. */}
                 <div
+                  ref={setInputBar}
                   data-babel-tree-controls="bottom"
                   aria-hidden={!isInputVisible}
                   inert={!isInputVisible}
