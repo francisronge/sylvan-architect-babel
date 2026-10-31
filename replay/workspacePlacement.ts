@@ -4,6 +4,7 @@ import { attachmentShapeChanges } from './attachmentShapeChanges.ts';
 import { categoryMetricKey } from './categoryMetricKey.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { retainedSubtreeMaterial } from './displayWordMaterial.ts';
 import { rigidMovementHosts } from './movementHostContinuity.ts';
 import { cubicIntersectsRect } from './relations/curveClearance.ts';
 import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
@@ -129,8 +130,9 @@ export function reserveWorkspaceAttachments({
       const attached = next.nodes.get(getNodeId(node));
       return attached && visibleParentId(attached, next.nodes);
     }).forEach(node => ordinaryRoots.add(getNodeId(node)));
+    // Generated sentence casing is not new material (retainedSubtreeMaterial).
     const common = earlier.filter(node => later.some(other => getNodeId(other) === getNodeId(node)
-      && JSON.stringify(node.data) === JSON.stringify(other.data)));
+      && retainedSubtreeMaterial(node.data) === retainedSubtreeMaterial(other.data)));
     common.forEach(node => ordinaryRoots.add(getNodeId(node)));
     const earlierOrder = [...common].sort((a, b) => a.x - b.x).map(getNodeId);
     const laterOrder = [...common].sort((a, b) => next.nodes.get(getNodeId(a))!.x - next.nodes.get(getNodeId(b))!.x).map(getNodeId);

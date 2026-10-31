@@ -4,6 +4,7 @@ import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelPars
 import { type SyntaxNode } from '../types.ts';
 import { replayOwnerId } from './displayIdentity.ts';
 import { readStructuralProjections } from './projectionStructure.ts';
+import { readStructuralHeads, type StructuralHeads } from './structuralHeads.ts';
 import { isResolvedMovementLink } from './movementLinks.ts';
 import { buildStructuralReplayFallback } from './playbackFormatting.ts';
 import {
@@ -155,21 +156,27 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
         leaf: SyntaxNode;
         silent: boolean;
       } => Boolean(entry));
-    // The first pronounced word of each workspace in the stage's own
-    // structure, selected yet or not (future scaffolding excluded).
-    const firstStageLeafIds = new Map<SyntaxNode, string>();
-    leafIds.forEach(leafId => {
-      const info = exactNodes.get(leafId)!;
-      const workspace = leafWorkspaces.get(leafId)!;
-      if (!info.layout && !info.silent && !firstStageLeafIds.has(workspace))
-        firstStageLeafIds.set(workspace, leafId);
-    });
     const firstPronouncedLeafIds = new Map<SyntaxNode, string>();
     currentLeaves.forEach(({ leaf, silent }) => {
       const workspace = leafWorkspaces.get(String(leaf.id || ''))!;
       if (!silent && !firstPronouncedLeafIds.has(workspace))
         firstPronouncedLeafIds.set(workspace, String(leaf.id || ''));
     });
+    let heads: StructuralHeads | undefined;
+    // A complement: the phrase's parent projects from a head beside it.
+    const precededComplement = (phraseId: string, leafId: string): boolean => {
+      const phrase = nodesByName.get(phraseId);
+      const parent = phrase && exactNodes.get(String(phrase.id || ''))?.parent;
+      if (!phrase || !parent)
+        return false;
+      heads ??= readStructuralHeads(detachedForest ? clonedCanvas.children || [] : [clonedCanvas]);
+      const head = heads.projectingDaughter(parent);
+      if (!head || head === phrase || !heads.minimal(head))
+        return false;
+      const workspace = leafWorkspaces.get(leafId);
+      const pronounced = leafIds.filter(id => !exactNodes.get(id)!.layout && !exactNodes.get(id)!.silent && leafWorkspaces.get(id) === workspace);
+      return pronounced.indexOf(leafId) > 0;
+    };
     const casingByLeafId = new Map<string, string>();
     currentLeaves.forEach(({ leaf }) => {
       const surface = String(leaf.word || leaf.label || '').trim();
@@ -191,13 +198,13 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
         return landing && collectOvertLeafNodeIdsInOrder(landing).includes(leafId);
       });
       // A phrase that an overt movement will carry to the front stands, until
-      // it first moves, in its base position. Where the stage's structure puts
-      // pronounced words before that position (a base object after its verb),
-      // it is not sentence-initial, even while those words are still to be
+      // it first moves, in its base position. A complement there with
+      // pronounced words before it in its stage (a base object after its
+      // verb) is not sentence-initial, even while those words are still to be
       // selected.
       const contains = (id: string) => collectOvertLeafNodeIdsInOrder(nodesByName.get(id) ?? {} as SyntaxNode).includes(leafId);
-      const awaitsMovement = firstStageLeafIds.get(leafWorkspaces.get(leafId)!) !== leafId
-        && movements.some(move => move.moment > stepIndex && contains(move.priorSourceNodeId))
+      const awaitsMovement = movements.some(move => move.moment > stepIndex && contains(move.priorSourceNodeId)
+          && precededComplement(move.priorSourceNodeId, leafId))
         && !movements.some(move => move.moment <= stepIndex && contains(move.targetNodeId));
       const nextSurface = leafId && leafId === firstPronouncedLeafIds.get(leafWorkspaces.get(leafId)!) && !awaitsMovement
         ? (detachedForest ? surface : authoredLowercaseSource && !surfacedLanding ? authoredSurface : uppercaseInitial)
