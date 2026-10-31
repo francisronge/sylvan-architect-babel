@@ -177,6 +177,11 @@ test('continuity faults and completed widths are matched by step, so a removed f
   const widened = structuredClone(fewer);
   widened[1].widths[0].width += 1;
   assert.deepEqual(kinds(build(widened, fault(1))), ['completed-width-growth']);
+  // An extra completed frame of a stage is judged against that stage, and one of
+  // a stage the baseline never completed fails.
+  const extra = [fewer[0], frame(0, 'macro', 'Stage', 1000), fewer[1]];
+  assert.deepEqual(kinds(build(extra, fault(2))), ['completed-width-growth']);
+  assert.deepEqual(kinds(build([...fewer, frame(2, 'macro', 'Stage', 300)], fault(1))), ['completed-width-unmatched']);
 });
 
 test('a child that moves farther than its moving parent is a worsened fault', () => {

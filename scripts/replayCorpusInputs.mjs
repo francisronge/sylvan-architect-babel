@@ -145,9 +145,16 @@ export function compareCorpusSnapshots(baseline, candidate, records, { motionExc
       });
     };
     const oldCompleted = new Map(completedFrames(before.frames).flatMap((key, index) => key ? [[key, before.frames[index]]] : []));
+    // An extra completed frame is judged against its stage's last completed
+    // frame; one for a stage the baseline never completed cannot be judged.
+    const lastCompleted = new Map(before.frames.filter(frame => frame.kind === 'macro').map(frame => [frame.stage, frame]));
     completedFrames(after.frames).forEach((key, index) => {
-      const previous = key && oldCompleted.get(key);
-      if (!previous) return;
+      if (!key) return;
+      const previous = oldCompleted.get(key) ?? lastCompleted.get(after.frames[index].stage);
+      if (!previous) {
+        if (!record.allow.completedWidthGrowth) violations.push({ kind: 'completed-width-unmatched', frame: index + 1 });
+        return;
+      }
       const oldWidths = new Map(previous.widths.map(width => [width.root, width.width]));
       for (const width of after.frames[index].widths) {
         const oldWidth = oldWidths.get(width.root), growth = oldWidth !== undefined && width.width > oldWidth + 1e-6;
