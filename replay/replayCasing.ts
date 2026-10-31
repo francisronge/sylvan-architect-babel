@@ -153,7 +153,8 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
     return steps;
   const uppercaseInitial = caseSurfaceInitial(sentenceInitialSurface, 'upper');
   const lowercaseInitial = caseSurfaceInitial(sentenceInitialSurface, 'lower');
-  if (uppercaseInitial === lowercaseInitial)
+  // A sentence that does not begin with a capital has none to give.
+  if (uppercaseInitial === lowercaseInitial || sentenceInitialSurface.trim() !== uppercaseInitial)
     return steps;
   const finalInitial = finalInitialOccurrence(steps, initialKey);
   type CasingFrame = ReturnType<typeof readCasingFrame>;

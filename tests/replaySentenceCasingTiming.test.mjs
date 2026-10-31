@@ -219,3 +219,16 @@ test('a phrase built apart, merged low and then fronted stays lowercase until it
   assert.deepEqual(output.map(item => find(item.replayCanvasData, 'which').word), ['which', 'which', 'Which']);
   assert.equal(find(output[2].replayCanvasData, 'which-low').word, 'which');
 });
+
+// "dass das Buch niemand gelesen hat": a sentence that starts in lowercase has
+// no capital to give, so its first word keeps its authored form.
+test('a sentence that begins in lowercase gives no word a capital', () => {
+  const canvas = { id: 'cp', label: 'CP', children: [
+    { id: 'c', label: 'C', children: [word('dass', 'dass')] },
+    { id: 'tp', label: 'TP', children: [word('niemand', 'niemand')] }
+  ] };
+  const [result] = applyPreFrontingSentenceInitialCasing(freeze([step('ExternalMerge', ['cp', 'c', 'dass', 'tp', 'niemand'], canvas,
+    { targetNodeId: 'dass', targetLabel: 'dass', sourceLabels: ['dass'] })]), 'dass das Buch niemand gelesen hat');
+  assert.equal(find(result.replayCanvasData, 'dass').word, 'dass');
+  assert.equal(result.targetLabel, 'dass');
+});

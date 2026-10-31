@@ -53,8 +53,6 @@ export const EXCEPTIONS = [
     { mobile: { '32>33': 27.4 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/workspace-component-lifetime.json#/cases/2', 'first-paint-continuity', 'off-canvas:moved', 'stage 5',
     { mobile: { '60>61': 144.66 } }),
-  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/dissolved-constituent-rebuild.json#', 'first-paint-continuity', 'jump:relayout', 'stage 5',
-    { desktop: { '33>34,34>33': 71.88 }, mobile: { '33>34,34>33': 34.7 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/diverse-recovery.json#/examples/0/analysis', 'first-paint-continuity', 'jump:relayout', 'stage 2',
     { desktop: { '38>39,39>38': 33.2 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/reviewed-construction.json#/cases/1', 'first-paint-continuity', 'jump:relayout', 'stage 3',
@@ -96,9 +94,10 @@ export const EXCEPTIONS = [
   // Catalog #24's record (47-zh-relative.r1.B a6), also committed as the waiting-root fixture. Waiting slots
   // fixed catalog #19-#21 (16>17) and the off-canvas first paint into stage 3; its stage relayout remains.
   // The subject movement now brings T' at 43>44, so the clause rises a row while 我 and 昨天 stay; the
-  // insertion of the T that 昨天 adjoins to is its own External Merge at 45>46, no longer the scope claim's 48>49.
+  // insertion of the T that 昨天 adjoins to is its own External Merge, no longer the scope claim's 48>49. Built
+  // bottom-up, that T merges before the Top head is selected, at 44>45.
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:relayout',
-    'stage 3', { desktop: { '45>46,46>45': 26.72 } }),
+    'stage 3', { desktop: { '44>45,45>44': 26.72 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:stage-coordinates',
     'stage 2', { desktop: { '44>43': 65.74 }, mobile: { '44>43': 35.63 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:stage-coordinates',
@@ -108,7 +107,7 @@ export const EXCEPTIONS = [
   x(SPREAD_RETENTION, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'settled-path-independence', 'retention',
     'stage 3', { desktop: { '43>44': 30.03 }, mobile: { '43>44': 37.77 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:relayout',
-    'stage 3', { desktop: { '45>46,46>45': 26.72 } }),
+    'stage 3', { desktop: { '44>45,45>44': 26.72 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
     'stage 2', { desktop: { '44>43': 65.74 }, mobile: { '44>43': 35.63 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
