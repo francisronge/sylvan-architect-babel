@@ -96,9 +96,9 @@ export const NOTICEABLE_MOTION_GROWTH = 0.1;
 export const noticeableMotion = (fault: { distance: number }, base?: { distance: number }) => base === undefined ? fault.distance >= NOTICEABLE_MOTION
   : fault.distance - base.distance >= Math.max(NOTICEABLE_MOTION, base.distance * NOTICEABLE_MOTION_GROWTH);
 
-/** Each frame's step named semantically (stage, kind, operation, target and
- * relation, counted per repeat). A fault named by its step keeps that name when
- * a frame elsewhere is inserted or removed, so an unchanged fault never looks new. */
+/** Each frame's semantic step key (stage, kind, operation, target, relation and
+ * occurrence). Faults name their step by it, so an inserted, removed or
+ * reordered frame elsewhere does not make an unchanged fault look new. */
 export function replayStepKeys(frames: readonly any[]): string[] {
   const seen = new Map<string, number>();
   return frames.map(frame => {

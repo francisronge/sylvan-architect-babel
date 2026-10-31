@@ -258,7 +258,7 @@ once its mistake can no longer happen.
 | A batch review page prints every known fault on its tree. | `scripts/buildReplayReview.mjs`; `tests/buildReplayReview.test.mjs` |
 | A review page compares the change with current main. | `scripts/buildReplayComparison.mjs` refuses a candidate that lacks the baseline commit; building the baseline from current main is judgment |
 | A review page shows at most 4 cases, each with one short line. | `checkCaseList` in `scripts/buildReplayComparison.mjs`; `tests/replayComparisonPage.test.mjs` |
-| Before saying a PR's checks pass, read its CI result (`gh pr checks`); local gates do not cover CI's corpus records. | Judgment |
+| Before saying a PR's checks pass, read its CI result (`gh pr checks`); local gates do not cover CI's corpus records. Never end a turn with a failing PR unhandled. | Stop hook `scripts/prCheckGuard.mjs` (`.claude/settings.json`) holds a Claude turn once while an open PR has a failing check; `tests/prCheckGuard.test.mjs`. Other agents: judgment |
 | Before describing an outside tool or product Francis names (Jev is TypeSafe AI's model), look it up; never assume what it is. | Judgment |
 | Before calling a change clean, step through its changed frames in the real renderer; an improving metric can hide a regression. | Judgment |
 | Before listing open work, read ROADMAP's current work order and Explicitly Not Active; never relist what Francis settled. | Judgment |
