@@ -171,10 +171,10 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const rememberReplayPosition = useCallback((step: number) => {
     if (activeParse) replayPositions.current.set(activeParse, step);
   }, [activeParse]);
-  const closeBracketing = () => {
+  const closeBracketing = useCallback((returnFocus: boolean) => {
     setBracketingOpen(false);
-    bracketingButtonRef.current?.focus();
-  };
+    if (returnFocus) bracketingButtonRef.current?.focus();
+  }, []);
   const changeParse = (index: number) => {
     const analysis = analysisBundle?.analyses[index];
     setInitialReplayPosition(analysis ? replayPositions.current.get(analysis) ?? null : null);
@@ -659,13 +659,17 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                   </span>
                 )}
               </button>
-              {bracketingOpen && activeParse && milesNotation && (
-                <div className="absolute right-full top-1/2 -translate-y-1/2 mr-4 z-50">
-                  <BracketingPanel id="babel-bracketing" notation={milesNotation} copyStatus={copyStatus}
-                    onCopy={(text) => void copyNotation(text)} onClose={closeBracketing} />
-                </div>
-              )}
             </div>
+
+            {/* The bracketing's own layer spans the workspace above the side
+                control and the sentence bar, and stops short of the control so
+                it stays reachable. The panel scrolls within this layer. */}
+            {bracketingOpen && activeParse && milesNotation && (
+              <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-end p-4 pr-[4.75rem] md:p-8 md:pr-[6.5rem]">
+                <BracketingPanel id="babel-bracketing" notation={milesNotation} copyStatus={copyStatus}
+                  onCopy={(text) => void copyNotation(text)} onClose={closeBracketing} />
+              </div>
+            )}
 
             {!hideShowcaseInput && !devCaptureMode && (
               <>

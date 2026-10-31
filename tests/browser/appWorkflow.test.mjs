@@ -299,10 +299,24 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
                 assert.deepEqual(retained.rawOutput, malformed.body.error.rawOutput);
                 assert.equal(retained.input.sentence, failedDraft);
                 assert.equal(retained.generationRecord.runId, 'controlled-malformed-output');
+                const inspection = page.getByRole('dialog', { name: 'Failed output inspection' });
                 await page.getByRole('button', { name: 'Inspect failed output', exact: true }).click();
-                await page.getByRole('dialog').waitFor();
+                await inspection.waitFor();
                 await page.getByRole('button', { name: 'Close inspection', exact: true }).click();
                 assert.equal(await page.getByRole('dialog').count(), 0);
+                // With the bracketing open, Escape in the inspection closes only the inspection.
+                const bracketing = page.getByRole('dialog', { name: 'Labeled Bracketing' });
+                await page.getByRole('button', { name: 'Labeled Bracketing', exact: true }).click();
+                await bracketing.waitFor();
+                // The open panel may cover the button, so it is reached from the keyboard.
+                await page.getByRole('button', { name: 'Inspect failed output', exact: true }).focus();
+                await page.keyboard.press('Enter');
+                await inspection.waitFor();
+                await page.keyboard.press('Escape');
+                await inspection.waitFor({ state: 'detached' });
+                assert.ok(await bracketing.isVisible(), 'the inspection keeps its own Escape');
+                await bracketing.getByRole('button', { name: 'Close labeled bracketing', exact: true }).click();
+                await bracketing.waitFor({ state: 'detached' });
                 await waitForReplayPaint(page, 4);
               }
               observations.push({ engine, width, kind, selectedAnalysis: 2, replayStep: 4, paused: true });
@@ -507,6 +521,24 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         await bracketing.waitFor({ state: 'detached' });
         assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Labeled Bracketing');
         assert.equal(await page.locator('svg[data-babel-rendered-step]').getAttribute('data-babel-rendered-step'), '1');
+        // The panel is not modal: after Tab leaves it, Escape still closes it,
+        // and focus stays where the user moved it.
+        await bracketingButton.click();
+        await bracketing.waitFor();
+        const focusInPanel = () => page.evaluate(() => Boolean(document.activeElement?.closest('#babel-bracketing')));
+        for (let presses = 0; presses < 10 && await focusInPanel(); presses++) await page.keyboard.press('Tab');
+        assert.equal(await focusInPanel(), false, 'Tab leaves the panel');
+        const outside = await page.evaluate(() => {
+          const element = document.activeElement;
+          element.dataset.babelFocusProbe = 'outside';
+          return element.outerHTML.slice(0, 120);
+        });
+        assert.ok(await bracketing.isVisible(), 'leaving the panel keeps it open');
+        await page.keyboard.press('Escape');
+        await bracketing.waitFor({ state: 'detached' });
+        assert.equal(await page.evaluate(() => document.activeElement?.dataset.babelFocusProbe), 'outside',
+          `Escape from outside the panel leaves focus on ${outside}`);
+        await page.evaluate(() => { delete document.activeElement.dataset.babelFocusProbe; });
         await page.getByTitle('Open Tree Bank', { exact: true }).click();
         await page.getByRole('button', { name: 'Delete', exact: true }).click();
         // The confirmation is modal: focus starts on Cancel, Escape cancels, and
@@ -551,3 +583,87 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
     finally { await server.close(); }
   }
 });
+
+/** The bracketing panel is the top layer wherever it is drawn: inside the
+ * workspace, clear of its own control, and above the sentence bar. Content
+ * taller than the workspace scrolls inside the panel. */
+async function assertBracketingOnTop(page, { scrolls }) {
+  const bracketing = page.getByRole('dialog', { name: 'Labeled Bracketing' });
+  const measure = () => bracketing.evaluate(panel => {
+    const box = panel.getBoundingClientRect();
+    const workspace = panel.closest('[data-babel-workspace]').getBoundingClientRect();
+    const control = document.querySelector('button[aria-label="Labeled Bracketing"]').getBoundingClientRect();
+    const bar = document.querySelector('[data-babel-tree-controls="bottom"]').getBoundingClientRect();
+    const covered = [];
+    for (const fx of [0.05, 0.5, 0.95]) for (const fy of [0.05, 0.5, 0.95]) {
+      const x = box.left + box.width * fx, y = box.top + box.height * fy;
+      if (!panel.contains(document.elementFromPoint(x, y))) covered.push([Math.round(x), Math.round(y)]);
+    }
+    return { box: { top: box.top, bottom: box.bottom, left: box.left, right: box.right }, covered,
+      workspace: { top: workspace.top, bottom: workspace.bottom, left: workspace.left, right: workspace.right },
+      clearOfControl: box.right <= control.left, overBar: box.bottom > bar.top && box.left < bar.right && box.right > bar.left,
+      overflow: panel.scrollHeight - panel.clientHeight };
+  });
+  const before = await measure();
+  for (const side of ['top', 'left']) assert.ok(before.box[side] >= before.workspace[side] - 1, `panel ${side} inside the workspace: ${JSON.stringify(before)}`);
+  for (const side of ['bottom', 'right']) assert.ok(before.box[side] <= before.workspace[side] + 1, `panel ${side} inside the workspace: ${JSON.stringify(before)}`);
+  assert.ok(before.clearOfControl, 'the panel leaves its control reachable');
+  assert.deepEqual(before.covered, [], 'nothing covers the panel');
+  if (scrolls) {
+    assert.ok(before.overflow > 0, `long bracketing scrolls inside the panel: ${before.overflow}px`);
+    await bracketing.evaluate(panel => { panel.scrollTop = panel.scrollHeight; });
+    const end = await bracketing.evaluate(panel => {
+      const code = panel.querySelector('code').getBoundingClientRect();
+      const hit = document.elementFromPoint(code.left + 4, code.bottom - 4);
+      return { reached: panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 1, visible: panel.contains(hit) };
+    });
+    assert.deepEqual(end, { reached: true, visible: true }, 'the end of the bracketing scrolls into view, uncovered');
+  }
+  return before;
+}
+
+test('the bracketing panel stays above the sentence bar and inside a short or overflowing workspace', { timeout: 120_000 }, async () => {
+  // Forty long words make a bracketing taller than any workspace below.
+  const words = Array.from({ length: 40 }, (_, index) => `extraordinarilyunpronounceable${String.fromCharCode(97 + (index % 26))}${index}`);
+  const longSentence = words.join(' ');
+  const long = { ...normalizeParseBundle({ analyses: [{ derivationStages: [
+    { statement: 'Select the words.', stageRecord: 'The words enter the workspace.', relations: [],
+      workspaceForest: words.map((word, index) => ({ id: `w${index}`, label: 'N', word, children: [] })) },
+    { statement: 'Construct the phrase.', stageRecord: 'The words form one phrase.', relations: [], workspaceForest: [
+      { id: 'phrase', label: 'NP', children: words.map((_, index) => ({ refId: `w${index}` })) }
+    ] }
+  ] }] }, 'minimalism', longSentence, 'gpt', true), sentence: longSentence };
+  const server = await startBrowserTestServer({ root });
+  const output = process.env.BABEL_WORKFLOW_EVIDENCE || await mkdtemp(path.join(os.tmpdir(), 'babel-bracketing-'));
+  await mkdir(output, { recursive: true });
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+    for (const [name, viewport, analysis, sentence, scrolls] of [
+      ['short', { width: 1440, height: 460 }, bundle, bundle.sentence, false],
+      ['long-desktop', { width: 1440, height: 900 }, long, longSentence, true],
+      ['long-mobile', { width: 390, height: 844 }, long, longSentence, true]
+    ]) {
+      const context = await browser.newContext({ viewport });
+      try {
+        const page = await context.newPage(), errors = [];
+        page.on('pageerror', error => errors.push(String(error)));
+        await context.route('**/api/parse', route => route.fulfill({ status: 200, json: analysis }));
+        await page.goto(server.url);
+        await sentenceInput(page).fill(sentence);
+        await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+        await pauseReplayAt(page, 'last');
+        await page.getByRole('button', { name: 'Labeled Bracketing', exact: true }).click();
+        await page.getByRole('dialog', { name: 'Labeled Bracketing' }).waitFor();
+        const measured = await assertBracketingOnTop(page, { scrolls });
+        if (name === 'short') assert.ok(measured.overBar, 'the short workspace puts the panel over the sentence bar');
+        await page.screenshot({ path: path.join(output, `bracketing-${name}-${viewport.width}x${viewport.height}.png`) });
+        assert.deepEqual(errors, []);
+      } finally { await context.close(); }
+    }
+  } finally {
+    try { await browser?.close(); }
+    finally { await server.close(); }
+  }
+});
+
