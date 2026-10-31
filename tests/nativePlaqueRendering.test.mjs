@@ -681,6 +681,25 @@ test('an unchanged Replay frame retains its accepted fit after font-driven repai
   assert.equal(fit(recentered).y, recentered.y, 'the completed Replay can release its final fit');
 });
 
+test('an unchanged Replay frame uses the space an app control frees', () => {
+  const data = {}, auto = { current: null };
+  const harness = createCameraHarness(Element, { width: 1440, height: 800, data, step: 4, animated: true, auto });
+  const bounds = { minX: 0, maxX: 200, minY: 0, maxY: 100 };
+  const withConsole = { top: 0, right: 92, bottom: 460 };
+  const layout = { g: harness.group, stagePlaqueContainmentBounds: bounds, stageFitContainmentBounds: bounds,
+    fitLeft: 16, fitRight: 1336, fitTop: 120, fitBottom: 340, controls: withConsole };
+  const squeezed = d3.zoomIdentity.translate(500, 120).scale(0.7);
+  const roomy = d3.zoomIdentity.translate(300, 140).scale(1.6);
+  const fit = transform => harness.run(() => createFittedCamera({ session: harness.session, layout }).applyFittedCamera(transform));
+  fit(squeezed);
+  // A retained camera may zoom out to a new fit but never in, so freed space alone is not used.
+  assert.equal(fit(roomy).k, squeezed.k, 'the same frame and controls keep the accepted camera');
+  // The failure console is dismissed: the canvas keeps its size, the tree gains the space.
+  Object.assign(layout, { fitBottom: 600, controls: { ...withConsole, bottom: 16 } });
+  assert.equal(fit(roomy).k, roomy.k, 'the freed space is used at once');
+  assert.equal(fit(roomy.scale(1.25)).k, roomy.k, 'and that fit is then kept for the frame');
+});
+
 test('stacked linguistic notation keeps automatic-fit size and spacing through manual zoom and redraw', () => {
   const root = new Element('g');
   const appendMarker = (x, y, treeNotation, stackIndex) => appendOverlayMarker(select(root), x, y, 2, 46, treeNotation, stackIndex);

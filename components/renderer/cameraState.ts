@@ -20,7 +20,14 @@ export type AutoCameraState = TreeCameraState & {
   closesOnEntry?: boolean;
   /** Framed the completed last Stage Record, whose fit is its own. */
   completed: boolean;
+  /** The app controls the fit avoided (see CameraFitGeometry `controls`). */
+  controls?: CameraControlBounds;
 };
+
+/** Space the app's own controls take from the tree canvas: the sentence console,
+ * the view tabs and the top bar. They float over the canvas, so they can appear
+ * or leave without resizing it. */
+export type CameraControlBounds = { top: number; right: number; bottom: number };
 
 /** Retained camera interaction state for one mounted tree, shared across frame draws. */
 export interface CameraSession {
