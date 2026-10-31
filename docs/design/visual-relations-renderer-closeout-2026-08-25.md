@@ -170,6 +170,21 @@ and an exact landing that turns an existing unary projection into a binary fork
 around its sole retained child. Adding a daughter to an existing fork does not
 release unrelated peers. Ordinary merges retain all internal subtree offsets.
 
+A movement's landing that joins an existing parent beside a sister need not
+stand at its stage's own spacing. From the movement on it may stand nearer that
+sister, its measured ink keeping the receiving component's clearance (34 units)
+from all other ink on that side, and no nearer than leaves the parent where it
+stood before, so the parent recentres less over the new pair. Where a fork inside
+the landing holds a head and its host wider than the sibling gap while their ink
+stands more than 120 units apart (the receiving component's head-host rule),
+the phrase keeps that fork at the sibling gap over its whole life, source and
+landing alike, so it never changes shape. The landing's own plaques travel with
+it. Keep this only when the movement's motion shrinks, no step moves syntax it
+does not own farther or newly breaks continuity, every frame stays ordered, the
+moved ink comes no nearer other ink than that clearance where it was not already
+nearer, no branch newly crosses text, stages keep their size, and every other
+proximity plaque keeps its room.
+
 An unbranched moving source must not sit farther out than its replacement lower
 occurrence when both occupy the same parent slot beside stationary siblings.
 The compact lower slot may be reserved throughout the source's construction.

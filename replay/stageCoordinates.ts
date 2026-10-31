@@ -639,7 +639,8 @@ function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: numb
   if (!closed) {
     const planned = new Map([...sizes].map(([stage, stageSize]) => [stage, planStageCoordinates(steps, stage, stageSize, sizeForStage,
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel)] as const));
-    byKey.set(key, closed = closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques: room }));
+    byKey.set(key, closed = closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques: room,
+      ink: { measureTreeInk, treeLabelRuns, measureTreeLabel } }));
     for (const stage of closed.closings) { const frames = closed.stages.get(stage); if (frames) closingEntries.add(frames); }
   }
   return closed.stages.get(stageIndex) ?? null;

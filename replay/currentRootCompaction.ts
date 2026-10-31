@@ -15,6 +15,9 @@ import { TREE_SIBLING_GAP } from './treeSpacing.ts';
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 const cache = new WeakMap<Reservations, Reservations>();
+/** Ink a compacted piece keeps from the fixed syntax beside it, and from each
+ * other a head and its host keep, in tree units (measured ink, not centres). */
+export const COMPACT_INK_CLEARANCE = 34, HEAD_HOST_INK_GAP = 120;
 
 /** Reserve a compact receiving component throughout its construction. Only its
  * owning movement opens the later landing space; ordinary merges retain every
@@ -89,7 +92,7 @@ export function compactCurrentRootForks(steps: readonly PlaybackStep[], sizes: R
         const gap = side === 0
           ? Math.min(...hostInk.map(box => box.x)) - Math.max(...headInk.map(box => box.x + box.width))
           : Math.min(...headInk.map(box => box.x)) - Math.max(...hostInk.map(box => box.x + box.width));
-        let amount = Math.min(gap - 120, Math.abs(head.x - host.x) - TREE_SIBLING_GAP);
+        let amount = Math.min(gap - HEAD_HOST_INK_GAP, Math.abs(head.x - host.x) - TREE_SIBLING_GAP);
         if (amount <= 1e-6) continue;
         // Earlier independent inputs can occupy the same horizontal corridor.
         // Their measured ink limits the one translation used by the complete
@@ -108,9 +111,9 @@ export function compactCurrentRootForks(steps: readonly PlaybackStep[], sizes: R
           const query = verticalObstacleIndex(ink(fixed, canvas));
           for (const moving of ink(moved, canvas)) query(moving, obstacle => {
             if (side === 0 && obstacle.x + obstacle.width <= moving.x)
-              amount = Math.min(amount, moving.x - obstacle.x - obstacle.width - 34);
+              amount = Math.min(amount, moving.x - obstacle.x - obstacle.width - COMPACT_INK_CLEARANCE);
             if (side === 1 && moving.x + moving.width <= obstacle.x)
-              amount = Math.min(amount, obstacle.x - moving.x - moving.width - 34);
+              amount = Math.min(amount, obstacle.x - moving.x - moving.width - COMPACT_INK_CLEARANCE);
             return false;
           });
         }
