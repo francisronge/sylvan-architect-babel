@@ -12,9 +12,20 @@ import {
 
 const accessPolicy = readParseAccessPolicy(process.env, { requireOrigin: true, allowNoOrigin: false });
 
+// Vercel stops this function at `maxDuration` in vercel.json (300 s on the
+// current plan) and answers with its own error page. Babel ends the provider
+// call first, so the browser receives Babel's ordinary PROVIDER_TIMEOUT
+// failure. The 15 s left over covers checking and compiling a late answer
+// (2.8 s at most across 1,440 saved runs, measured locally), sending it, and
+// cold-start time. tests/hostedParseDeadline.test.mjs keeps the two in step.
+export const HOSTED_FUNCTION_MAX_DURATION_MS = 300_000;
+export const HOSTED_RESPONSE_HEADROOM_MS = 15_000;
+export const HOSTED_PROVIDER_DEADLINE_MS = HOSTED_FUNCTION_MAX_DURATION_MS - HOSTED_RESPONSE_HEADROOM_MS;
+
 const send = (res, { status, body }) => res.status(status).json(body);
 
 export default async function handler(req, res) {
+  const deadlineAt = Date.now() + HOSTED_PROVIDER_DEADLINE_MS;
   for (const [name, value] of Object.entries(PARSE_RESPONSE_HEADERS)) res.setHeader(name, value);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
@@ -43,7 +54,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const result = await parseFromRequest(req, res);
+    const result = await parseFromRequest(req, res, undefined, { deadlineAt });
     if (!res.destroyed) return res.status(200).json(result);
   } catch (error) {
     if (res.destroyed) return;
