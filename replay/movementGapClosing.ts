@@ -126,6 +126,14 @@ function sameMotion(scenes: readonly Scene[], j: number, oldBefore: Painted, old
   return true;
 }
 
+/** Whether two paintings of one frame place every node alike up to one translation. */
+const sameShape = (a: Painted, b: Painted) => {
+  const [first] = a.keys(), from = first && a.get(first), to = first && b.get(first);
+  if (!from || !to || a.size !== b.size) return a.size === 0 && b.size === 0;
+  const dx = to.x - from.x, dy = to.y - from.y;
+  return [...a].every(([id, node]) => { const other = b.get(id); return other && Math.abs(other.x - node.x - dx) <= 1e-6 && Math.abs(other.y - node.y - dy) <= 1e-6; });
+};
+
 const spanOf = (frame: Painted) => {
   let low = Infinity, high = -Infinity;
   for (const node of frame.values()) { low = Math.min(low, node.x); high = Math.max(high, node.x); }
@@ -354,7 +362,14 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
     const entry = scenes[m - 1].step.replayFrameIndex !== scenes[m].step.replayFrameIndex
       ? carriedShift(prior, current, { closing: Boolean(scenes[m].closing) }).x : 0;
     const lo = Math.min(...xs), hi = Math.max(...xs);
-    const kept = [...current].some(([id, node]) => !prior.has(id) && node.x - entry >= lo - 1 && node.x - entry <= hi + 1);
+    // A lower occurrence is new in that extent, or is a participant that keeps
+    // the moved phrase's id and stays in its slot while its material departs.
+    const kept = [...current].some(([id, node]) => !prior.has(id) && node.x - entry >= lo - 1 && node.x - entry <= hi + 1)
+      || participants.some(id => {
+        const before = prior.get(id), now = current.get(id);
+        return before && now && !departing.has(id) && shownParent(prior, before) === shownParent(current, now)
+          && (before.children ?? []).some(child => departing.has(getNodeId(child)));
+      });
     const bound = hi - lo + (kept ? 0 : TREE_SIBLING_GAP);
     // At the movement the lines stand in the room the phrase leaves: past the
     // syntax wholly before and after its former extent, and through no phrase
@@ -392,12 +407,12 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
     // A gap lies between syntax that stood on both sides of the phrase in its
     // workspace, in word order: one that left the edge leaves none, and new syntax
     // beside it (the landing) is not a side that closes.
+    const departed = participants.map(id => prior.get(id)).find(node => node && departing.has(getNodeId(node)));
     const between = (() => {
       // A participant that departs, or else what departs from one: a lower
       // occurrence that keeps the moved phrase's id stays in its slot, and
       // only the material the movement takes leaves it.
-      const start = participants.map(id => prior.get(id)).find(node => node && departing.has(getNodeId(node)))
-        ?? [...departing].map(id => prior.get(id)).find(Boolean);
+      const start = departed ?? [...departing].map(id => prior.get(id)).find(Boolean);
       if (!start) return false;
       let top = start;
       for (let id = shownParent(prior, top); id; id = shownParent(prior, top)) top = prior.get(id)!;
@@ -634,7 +649,11 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
       // Nor any continuity fault the corpus gate would newly find.
       const continuous = !added.length && keepsStageSize(scenes, all, new Map(closed.map((frame, index) => [m + index, frame]))) && closed.every((frame, index) => !newContinuityFaults(scenes[m + index - 1], scenes[m + index],
         frames[index], frames[index + 1], index ? closed[index - 1] : frames[0], frame, index ? Boolean(scenes[m + index].closing) : closingNow).length);
-      if (continuous && closed.slice(1).every((frame, index) =>
+      // With the lower occurrence keeping the moved phrase's id, the room is
+      // closed early only where the derivation closes it anyway: the completed
+      // tree keeps its shape, and only the hole before it goes.
+      const keepsCompletedShape = departed || sameShape(all.at(-1)!, closed.at(-1)!);
+      if (continuous && keepsCompletedShape && closed.slice(1).every((frame, index) =>
         sameMotion(scenes, m + index + 1, frames[index + 1], frames[index + 2], closed[index], frame))
         && keepsPlaqueRoom(sceneSteps, all, [...all.slice(0, m), ...closed], m, plaques, measureCategoryText)) {
         closed.forEach((frame, index) => { all[m + index] = frame; });
