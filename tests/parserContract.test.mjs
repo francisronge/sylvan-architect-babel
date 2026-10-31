@@ -122,7 +122,7 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(instruction, /Do not add a relation solely to announce one of these construction events\./);
     assert.match(instruction, /Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events\./);
     assert.doesNotMatch(instruction, /construction steps recoverable from workspace changes|not fully expressed by the forest's ordinary mother-daughter or sisterhood branching/);
-    assert.match(instruction, /- stageRecord: .* Explain the choices specific to this sentence, not the framework's general conventions\. Do not mention node ids, field names or how the JSON encodes the analysis\./);
+    assert.match(instruction, /- stageRecord: .* Explain each step as it applies to this sentence\. Do not mention node ids, field names or how the JSON encodes the analysis\./);
     assert.match(instruction, /- relations: an array of relations introduced or changed in this stage\. Record each relation once, in the stage where it is established; list it again in a later stage only if the analysis changes it\./);
     assert.match(instruction, /Babel replays a stage's relations in the order they are listed; if the analysis needs an order that this cannot show, record the intermediate workspace as a separate stage rather than describing it only in prose\./);
     assert.match(instruction, /An occurrence keeps its id in every later stage, including when it is redefined\. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id\./);

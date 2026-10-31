@@ -19,7 +19,7 @@ Build the derivation forward. Each stage records the complete syntactic workspac
 An occurrence moves only from a position that an earlier stage already shows. Several operations may share a stage. Babel replays a stage's relations in the order they are listed; if the analysis needs an order that this cannot show, record the intermediate workspace as a separate stage rather than describing it only in prose. An unchanged workspace needs a sentence-specific reason within the analysis for the new stage.
 Each stage has these five required fields, written in this order:
 - statement: a nonblank string naming what the stage establishes.
-- stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. Explain the choices specific to this sentence, not the framework's general conventions. Do not mention node ids, field names or how the JSON encodes the analysis.
+- stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. Explain each step as it applies to this sentence. Do not mention node ids, field names or how the JSON encodes the analysis.
 - relations: an array of relations introduced or changed in this stage. Record each relation once, in the stage where it is established; list it again in a later stage only if the analysis changes it.
 - workspace: an array of node ids naming the root of every currently active syntax tree or separate syntax object after these operations.
 - nodes: an array of the syntax nodes this stage introduces or changes, defined below.
