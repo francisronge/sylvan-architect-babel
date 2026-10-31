@@ -131,7 +131,7 @@ export const classifyProviderRouteError = ({
   }
   if (error?.code === 'PROVIDER_TIMEOUT' || statusCode === 408 || statusCode === 504
     || haystack.includes('timed out') || haystack.includes('timeout')) {
-    return new ParseApiError('PROVIDER_TIMEOUT', `${providerLabel} timed out before a result was received.`, 504, {
+    return new ParseApiError('PROVIDER_TIMEOUT', `Generation took too long: ${providerLabel} timed out before a result was received. You can try again.`, 504, {
       provider: providerLabel,
       model,
       ...providerAttemptDetails,
