@@ -205,8 +205,10 @@ export const evaluateStructuralCheck = (
           || !headCategory || shapeOf(label(parent))?.head !== headCategory) break;
         const siblings = currentIndex.nodes.get(parent)![0].children ?? [];
         // A sister head of the same category, alone or as any member of a
-        // compound head (v+T, T+v), heads a higher shell: stop there.
-        if (foundComplement && siblings.some(sibling => {
+        // compound head (v+T, T+v), competes for the spine: inside the
+        // complex head it makes the head ambiguous, above the complement it
+        // heads a higher shell. Stop there.
+        if (siblings.some(sibling => {
           const shape = readCategoryLabel(sibling.label);
           return sibling.id !== child && shape?.kind === 'head' && shape.members.includes(headCategory);
         })) break;

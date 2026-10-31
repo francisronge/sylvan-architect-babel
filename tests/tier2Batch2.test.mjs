@@ -242,6 +242,18 @@ test('Transfer stops its phase-head spine at a second head of the same category 
   }
 });
 
+test('Transfer rejects a complex head holding a second head of the phase head category', () => {
+  // Inside v(h, h2) neither v head uniquely owns the spine, so the domain is claimed by neither.
+  for (const [head, other] of [['v*', 'v'], ['v[uφ]', 'v'], ['v', 'v'], ['v', 'v*+T']]) {
+    const tree = [node('phase', 'vP', [leaf('edge'), node('bar', 'v′', [
+      node('complex', 'v', [leaf('h', { label: head, word: undefined, silent: true }), leaf('h2', { label: other, word: undefined, silent: true })]),
+      node('vp', 'VP', [leaf('obj')])])])];
+    const result = inspect(relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'edge' }), tree);
+    assert(!has(result, 'transfer.domain'), `${head} beside ${other}`);
+    assert(!result.items.some(item => item.kind === 'fong-component'), `${head} beside ${other}`);
+  }
+});
+
 test('Transfer reads a compound complex head the same in either member order', () => {
   const tree = complex => [node('phase', 'vP', [leaf('a'), node('vbar', "v'", [
     node('cx', complex, [leaf('V', { label: 'V', word: 'saw' }), leaf('h', { label: 'v', word: undefined, silent: true })]),
