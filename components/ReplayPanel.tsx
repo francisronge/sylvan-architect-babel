@@ -12,7 +12,10 @@ import RootLogo from './RootLogo';
 
 export interface ReplayPanelProps {
   panelRef: React.Ref<HTMLDivElement>;
+  /** Distance kept from the workspace's bottom edge: the sentence bar's reach plus a gap. */
   bottom: number;
+  /** The panel's top never rises above this distance from the workspace's top edge (below the parse selector). */
+  top: number;
   right: number;
   currentReplayKind: string;
   activeRelationMoment: { stageIndex: number; relationIndex: number } | null;
@@ -42,7 +45,7 @@ const REPLAY_PANEL_FLOOR = 128;
 // Playback state and viewport measurement stay with the tree; this component
 // keeps the same panel root so its ref measures the visible controls directly.
 const ReplayPanel: React.FC<ReplayPanelProps> = ({
-  panelRef, bottom, right, currentReplayKind, activeRelationMoment,
+  panelRef, bottom, top, right, currentReplayKind, activeRelationMoment,
   playedRelationIndicesAttribute, activeStep, playbackSteps, derivationStages,
   sentence, activeStepIndex, activeStageDisplayLabel, canStepBackward, canStepForward,
   isAutoPlaying, isScrubbing, handlePrevStep, handleNextStep, handleTogglePlayback,
@@ -96,13 +99,14 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       data-babel-played-relation-indices={playedRelationIndicesAttribute}
       className="babel-replay-panel absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-[#17362d] bg-[#020806]/[0.96] p-4 shadow-2xl"
       style={{
-        // The panel stands above the sentence bar. In a workspace too short for
-        // both it shrinks to its controls and timeline (128px), and only then
-        // lets the bar cover its details, so its controls never leave the top.
-        bottom: `min(${bottom}px, calc(100% - ${REPLAY_PANEL_FLOOR + 16}px))`,
+        // The panel stands above the sentence bar and below the top controls.
+        // In a workspace too short for both it shrinks to its controls and
+        // timeline, and only then lets the bar cover its details, so its
+        // controls stay in view. With room to spare these limits never bind.
+        bottom: `min(${bottom}px, calc(100% - ${REPLAY_PANEL_FLOOR + top}px))`,
         right,
-        minHeight: `max(${REPLAY_PANEL_FLOOR}px, min(148px, calc(100% - ${bottom + 16}px)))`,
-        maxHeight: `min(calc(100% - 100px), calc(100% - ${bottom + 16}px))`
+        minHeight: `max(${REPLAY_PANEL_FLOOR}px, min(148px, calc(100% - ${bottom + top}px)))`,
+        maxHeight: `min(calc(100% - 100px), calc(100% - ${bottom + top}px))`
       }}
     >
       <div className="babel-replay-controls flex items-center gap-2 mb-3">

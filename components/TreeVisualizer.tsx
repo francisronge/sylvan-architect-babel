@@ -866,6 +866,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         <ReplayPanel
           panelRef={replayPanelRef}
           bottom={uiBounds.bottom}
+          top={Math.max(16, uiBounds.top)}
           right={uiBounds.right}
           currentReplayKind={currentReplayKind}
           activeRelationMoment={activeRelationMoment}

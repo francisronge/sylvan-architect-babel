@@ -659,10 +659,13 @@ test('the bracketing panel stays above the sentence bar and inside a short or ov
   let browser;
   try {
     browser = await chromium.launch({ headless: true });
-    for (const [name, viewport, analysis, sentence, scrolls] of [
-      ['short', { width: 1440, height: 460 }, bundle, bundle.sentence, false],
-      ['long-desktop', { width: 1440, height: 900 }, long, longSentence, true],
-      ['long-mobile', { width: 390, height: 844 }, long, longSentence, true]
+    // A window too short for the parse selector, the Replay panel and the
+    // expanded sentence bar together is used with the bar collapsed.
+    for (const [name, viewport, analysis, sentence, scrolls, collapseBar] of [
+      ['short', { width: 1440, height: 520 }, bundle, bundle.sentence, false, true],
+      ['compact', { width: 1440, height: 700 }, bundle, bundle.sentence, false, false],
+      ['long-desktop', { width: 1440, height: 900 }, long, longSentence, true, false],
+      ['long-mobile', { width: 390, height: 844 }, long, longSentence, true, false]
     ]) {
       const context = await browser.newContext({ viewport });
       try {
@@ -672,12 +675,16 @@ test('the bracketing panel stays above the sentence bar and inside a short or ov
         await page.goto(server.url);
         await sentenceInput(page).fill(sentence);
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+        if (collapseBar) {
+          await page.getByTitle('Collapse', { exact: true }).click();
+          await page.getByRole('button', { name: 'Expand Arbor Control', exact: true }).waitFor();
+        }
         await pauseReplayAt(page, 'last');
         await assertReplayControlsReachable(page);
         await page.getByRole('button', { name: 'Labeled Bracketing', exact: true }).click();
         await page.getByRole('dialog', { name: 'Labeled Bracketing' }).waitFor();
         const measured = await assertBracketingOnTop(page, { scrolls });
-        if (name === 'short') assert.ok(measured.overBar, 'the short workspace puts the panel over the sentence bar');
+        if (name === 'short' || name === 'compact') assert.ok(measured.overBar, `the ${name} workspace puts the panel over the sentence bar`);
         await page.screenshot({ path: path.join(output, `bracketing-${name}-${viewport.width}x${viewport.height}.png`) });
         assert.deepEqual(errors, []);
       } finally { await context.close(); }
