@@ -42,13 +42,17 @@ const childrenOf = <Node extends ProjectionNode>(node: Node): Node[] => (Array.i
 // Prose such as "T-projection" also states a level, which is read as notation.
 const PROSE_LEVEL = /^[A-Za-z\p{Script=Greek}]+[\s-]+(?:projection|phrase|bar)\b/iu;
 
-/** Whether some label writes a projection level (XP, X′ or "X projection"). */
+/** Whether some label writes a projection level (XP, X′ or "X projection").
+ * A shared-feature or unlabelled set (⟨φ,φ⟩, {T, vP}, α) is phrasal by what
+ * it is, not by level notation, so a bare-labelled labeling-algorithm tree
+ * still reads its levels from structure. */
 export const writesProjectionLevels = (roots: readonly ProjectionNode[]): boolean => {
   const pending = [...roots];
   while (pending.length) {
     const node = pending.pop();
     if (!node) continue;
-    const kind = readCategoryLabel(node.label)?.kind;
+    const shape = readCategoryLabel(node.label);
+    const kind = shape && (shape.labelling === 'shared-feature' || shape.labelling === 'unlabelled') ? undefined : shape?.kind;
     if (kind === 'phrase' || kind === 'bar' || PROSE_LEVEL.test(String(node.label ?? '').trim())) return true;
     pending.push(...childrenOf(node));
   }
@@ -70,8 +74,9 @@ export const writesIntermediateLevels = (roots: readonly ProjectionNode[]): bool
 
 // A lower occurrence written as "T trace" or "D-copy" keeps its category.
 const LOWER_OCCURRENCE = /^([A-Za-z\p{Script=Greek}]+)[\s-]+(?:trace|copy)$/iu;
+// A shared-feature or unlabelled set names no head category (an empty head).
 const structuralCategory = (label?: string): string | undefined => readCategoryLabel(label)?.head
-  ?? readCategoryLabel(LOWER_OCCURRENCE.exec(String(label ?? '').trim())?.[1])?.head;
+  || readCategoryLabel(LOWER_OCCURRENCE.exec(String(label ?? '').trim())?.[1])?.head || undefined;
 
 /** Structural projection levels for a forest that writes no intermediate level. */
 export const readStructuralProjections = <Node extends ProjectionNode>(roots: readonly Node[]): StructuralProjections<Node> | undefined => {
@@ -138,6 +143,8 @@ export const readStructuralProjections = <Node extends ProjectionNode>(roots: re
   // A phrase label (DP over "Mia") settles what structure leaves open: a
   // one-word item may be a head or a phrase, and the label says phrase.
   const phraseLabels = new Set(all.filter(node => readCategoryLabel(node.label)?.kind === 'phrase'));
+  // A shared-feature label (⟨φ,φ⟩) labels a set of two phrases (Chomsky 2013).
+  const featureLabelled = new Set(all.filter(node => readCategoryLabel(node.label)?.labelling === 'shared-feature'));
   const isHead = (node: Node): boolean => !phraseLabels.has(node)
     && (simpleHead(node) || headShape(node) && inHeadPosition(node));
   let minimalCache: Map<Node, boolean> | undefined;
@@ -163,6 +170,7 @@ export const readStructuralProjections = <Node extends ProjectionNode>(roots: re
   };
   const positionKind = (node: Node): 'head' | 'phrasal' | undefined => {
     const above = parents.get(node);
+    if (above && featureLabelled.has(above)) return 'phrasal';
     if (!minimal(node) && childrenOf(node).some(child => !minimal(child))) return 'phrasal';
     if (minimal(node) && (!maximal(node) || above && minimal(above))) return 'head';
     const siblings = above ? childrenOf(above) : [];
