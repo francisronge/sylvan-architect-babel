@@ -6,7 +6,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { displayTreeForAnalysis } from '../replay/finalForest.ts';
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { parseModelJson } from '../server/babelParser/modelJson.js';
-import { buildSystemInstruction, DERIVATION_STAGES_BASE_INSTRUCTION } from '../server/babelParser/systemInstruction.js';
+import { buildSystemInstruction, buildDerivationStagesInstruction } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 
 const buildCurrentContractPayload = () => ({
@@ -114,9 +114,11 @@ test('both frameworks select the theory and share the open derivation contract w
       : /Minimalist Program using Bare Phrase Structure/);
     assert.match(frameworkInstruction, /^Analyze the exact input within [^.]+\.$/);
     assert.doesNotMatch(frameworkInstruction, /endocentric|binary|one or two children|Attach overt words|bar-level prime|X-bar shells/);
-    assert.equal(instruction.slice(frameworkInstruction.length + 2), DERIVATION_STAGES_BASE_INSTRUCTION);
+    assert.equal(instruction.slice(frameworkInstruction.length + 2), buildDerivationStagesInstruction(framework));
     assert.match(instruction, /An unchanged workspace needs a sentence-specific reason within the analysis for the new stage\./);
-    assert.match(instruction, /Babel derives the basic construction display from the workspace states: introducing a syntax object, adding a projection, and combining objects under a parent\./);
+    assert.match(instruction, framework === 'xbar'
+      ? /Babel derives the basic construction display from the workspace states: introducing a syntax object, adding a projection, and combining objects under a parent\./
+      : /Babel derives the basic construction display from the workspace states: introducing a syntax object and merging objects under a parent\./);
     assert.match(instruction, /Do not add a relation solely to announce one of these construction events\./);
     assert.match(instruction, /Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events\./);
     assert.doesNotMatch(instruction, /construction steps recoverable from workspace changes|not fully expressed by the forest's ordinary mother-daughter or sisterhood branching/);
@@ -154,6 +156,16 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.ok(instruction.indexOf(anchorTiming) < instruction.indexOf('- priorAnchors:'));
     assert.doesNotMatch(instruction, /\b(?:examples?|walked|went|rootGo|Replay)\b|the display's/i);
   }
+});
+
+test('Minimalism is the default framework, and only X-bar names a projection among the construction events', () => {
+  assert.equal(buildSystemInstruction(), buildSystemInstruction('minimalism'));
+  // Bare Phrase Structure has no bar levels; a label comes from Merge.
+  assert.doesNotMatch(buildSystemInstruction('minimalism'), /projection/i);
+  assert.match(buildSystemInstruction('xbar'), /adding a projection/);
+  const [xbarRest, minimalismRest] = ['xbar', 'minimalism'].map(framework => buildDerivationStagesInstruction(framework)
+    .replace(/from the workspace states: [^.]+\./, 'from the workspace states: EVENTS.'));
+  assert.equal(minimalismRest, xbarRest, 'the frameworks share every other sentence of the contract');
 });
 
 test('the model-facing contract specifies the framework and exact input without prompting for verdicts', () => {

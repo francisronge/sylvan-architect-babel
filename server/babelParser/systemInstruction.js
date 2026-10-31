@@ -2,7 +2,14 @@ const XBAR_INSTRUCTION = "Analyze the exact input within X-bar Theory and Govern
 
 const MINIMALISM_INSTRUCTION = "Analyze the exact input within the Minimalist Program using Bare Phrase Structure.";
 
-export const DERIVATION_STAGES_BASE_INSTRUCTION = `Response
+// Bare Phrase Structure has no bar levels and no separate projection step: a
+// label comes from Merge. So only the X-bar instruction names a projection
+// among the construction events Babel derives from the workspace states.
+const constructionEvents = (framework) => (framework === 'xbar'
+  ? 'introducing a syntax object, adding a projection, and combining objects under a parent'
+  : 'introducing a syntax object and merging objects under a parent');
+
+export const buildDerivationStagesInstruction = (framework = 'minimalism') => `Response
 Return only a single valid JSON object, either bare or inside one Markdown code block opened with \`\`\`json, and nothing else.
 For one analysis, its only field is derivationStages, a nonempty array of stages.
 When the sentence has readings that need different structures, return one analysis for each reading. Then the only top-level field is analyses, a nonempty array of analysis objects, each containing only derivationStages.
@@ -34,7 +41,7 @@ An occurrence keeps its id in every later stage, including when it is redefined.
 The nodes entries use only the fields defined above.
 
 Relations
-Babel derives the basic construction display from the workspace states: introducing a syntax object, adding a projection, and combining objects under a parent. Do not add a relation solely to announce one of these construction events. Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events. Use an empty relations array when there are none. Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis.
+Babel derives the basic construction display from the workspace states: ${constructionEvents(framework)}. Do not add a relation solely to announce one of these construction events. Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events. Use an empty relations array when there are none. Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis.
 Explain every relation introduced or changed in this stage within stageRecord, stating what it establishes and which participants it connects. Present these explanations in establishment order and list relations in the same order. One relation entry contains claims established together; claims established at different points need separate entries.
 Each relation has exactly these required fields:
 - relation: a nonblank string naming the relation.
@@ -60,6 +67,6 @@ A group says that these existing syntax objects collectively correspond to this 
 Unlike relations, groups record the complete current state: repeat every association that still holds in each later stage, even when its nodes are unchanged. Omit an association until it is established. Record the operation that establishes or changes an association as a relation of that stage, anchored to the group's current nodes, with priorAnchors for the nodes of any association it replaces, and explain it in stageRecord. If several operations could own the same change, use intermediate stages to make the order explicit. A group itself does not name an operation or create a relation.
 Groups never override silent, including silence inherited from an ancestor; an entirely silent source domain cannot supply an overt realization. Wordless abstract sources are allowed.`;
 
-export const buildSystemInstruction = (framework = 'xbar') =>
+export const buildSystemInstruction = (framework = 'minimalism') =>
   (framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION) +
-  '\n\n' + DERIVATION_STAGES_BASE_INSTRUCTION;
+  '\n\n' + buildDerivationStagesInstruction(framework);
