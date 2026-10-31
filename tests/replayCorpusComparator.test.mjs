@@ -154,6 +154,26 @@ test('faults are matched by step, so an inserted frame neither invents nor hides
   assert.deepEqual(shifted.candidate.map(fault => fault.frame), baseline.map(fault => fault.frame + 1));
 });
 
+test('continuity faults are matched by step, so reordered frames neither invent nor hide one', () => {
+  // Bottom-up construction merged a rebuilt V′ before selecting T, so an existing
+  // continuity fault at that merge moved one frame earlier and was reported as new.
+  const fault = { index: 3, rootId: 'i_v', kind: 'unowned-component-motion' };
+  const withFaults = (faults, reorder = frames => frames) => {
+    const copy = structuredClone(snapshot);
+    copy.records[0].frames = reorder(copy.records[0].frames);
+    copy.records[0].continuity.push(...faults);
+    return copy;
+  };
+  const baseline = withFaults([fault]);
+  const swap = frames => [...frames.slice(0, 2), frames[3], frames[2], ...frames.slice(4)];
+  const steps = baseline.records[0].frames.slice(2, 4).map(frame => `${frame.operation} ${frame.target}`);
+  assert.notEqual(steps[0], steps[1], 'the swapped frames are different steps');
+  const newFaults = candidate => compareCorpusSnapshots(baseline, candidate, records)[0].continuity.new;
+  assert.deepEqual(newFaults(withFaults([{ ...fault, index: 2 }], swap)), [], 'the same step one frame earlier is not new');
+  assert.deepEqual(newFaults(withFaults([fault], swap)), [fault], 'the same frame number at another step is new');
+  assert.deepEqual(newFaults(withFaults([{ ...fault, rootId: 'i_vp0' }])), [{ ...fault, rootId: 'i_vp0' }]);
+});
+
 test('a child that moves farther than its moving parent is a worsened fault', () => {
   const [fault] = compare(structuredClone(snapshot))[0].motion.baseline;
   const moved = structuredClone(snapshot), frame = moved.records[0].frames[fault.frame - 1];
