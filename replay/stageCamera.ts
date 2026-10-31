@@ -1005,6 +1005,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       return nodes;
     })();
     const layout = new Map(scheduled), held = new Set<number>(), left = new Set<number>();
+    let keepAgain: (() => void) | undefined;
     const before = shownBefore;
     const moved = before ? [...scheduled].filter(([index, placement]) => {
       const prior = before.placements.get(identityOf(items[index]));
@@ -1063,6 +1064,16 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
           layout.set(index, scheduled.get(index)!); held.delete(index); lost.add(index); later = undefined; changed = true;
         }
       }
+      // A plaque let go because another plaque's scheduled pocket was in its way is judged
+      // again once the plaques free to move at this step (below) stand where they keep:
+      // one shown first here can take a pocket other than its scheduled one.
+      keepAgain = () => {
+        later = undefined;
+        for (const index of candidates.keys()) if (!held.has(index) && !lost.has(index)) {
+          const kept = holds(index);
+          if (kept) { layout.set(index, kept); held.add(index); later = undefined; }
+        }
+      };
     }
     // Nor does a plaque free to move take a pocket that syntax or a mark of this stage
     // will take while it is still shown beside a still anchor: it takes the first pocket
@@ -1129,6 +1140,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       }
       if (kept) { layout.set(index, kept); held.add(index); chosen.add(index); current = undefined; }
     }
+    if (chosen.size) keepAgain?.();
     // When rows leave a Case plaque, its shell fits the rows that remain at that step,
     // in its pocket (presentShell).
     for (const [index, placement] of layout) {
