@@ -129,7 +129,10 @@ CI splits the heavy gates across runners without changing what they judge.
 and a job that judges them together (`--merge FILE`, once per shard). The merge
 selects the same analyses and options itself, refuses unless the shards hold
 each analysis exactly once, and then reports, fails and checks exceptions and
-fingerprints as one run does. Offline tests run as six shards balanced by the
+fingerprints as one run does. Runner images cache different Node.js 24
+releases and the corpus merge refuses shards measured on another one, so the
+`node-release` job resolves one release per run and every shard and merge job
+installs exactly that release (`tests/ciShardNodeRelease.test.mjs`). Offline tests run as six shards balanced by the
 measured file weights in `scripts/ciTestShard.mjs`, and browser specs as three
 shards balanced by `ciSeconds` in `scripts/browserSuites.mjs`; both checks
 fail unless every file runs exactly once. GitHub's runners differ in CPU (an
