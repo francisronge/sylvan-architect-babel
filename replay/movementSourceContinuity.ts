@@ -3,6 +3,7 @@ import type { SyntaxNode } from '../types.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { motionFrame, noticeableMotion, replayMotionFaults } from './motionRule.ts';
 import { inkBoxesCollide } from './relations/rectGeometry.ts';
 import { prepareTreeInkSubtrees, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
@@ -17,6 +18,11 @@ type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 const cache = new WeakMap<Reservations, Reservations>();
 const epsilon = 1e-6;
+/** How much wider a completed stage's forest may become for a receiving host
+ * waiting as its own workspace to wait nearer the slot that keeps its parent
+ * still (movementGapClosing's WIDTH_GROWTH; its SEAT_GROWTH lets a head
+ * selected apart reserve more of the stage). */
+const COMPLETED_WIDTH_GROWTH = 0.01;
 
 /** An unbranched source replaced in its exact parent slot should not start farther out than
  * its lower occurrence. Reserve the proved compact slot throughout construction,
@@ -80,9 +86,9 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
     return true;
   };
   const reserveTranslations = (index: number, translations: ReadonlyMap<string, number>,
-    owners: ReadonlyMap<string, string>, first = 0, preserveCompletedWidth = false) => {
+    owners: ReadonlyMap<string, string>, first = 0, preserveCompletedWidth = false, commit = true, growth = 0): Reservations | false => {
     const outsideCanvases = new Set([...frames.slice(0, first), ...frames.slice(index + 1)].map(frame => frame.canvas));
-    if (frames.slice(first, index + 1).some(frame => outsideCanvases.has(frame.canvas))) return;
+    if (frames.slice(first, index + 1).some(frame => outsideCanvases.has(frame.canvas))) return false;
     const candidate = new Map(result), candidateScenes = new Map<number, Map<string, Node>>();
     const sharedCanvases = new Map<SyntaxNode, TreeCoordinateReservation>();
     let valid = true;
@@ -121,10 +127,13 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
           return Math.max(...xs) - Math.min(...xs);
         };
         const roots = [...nodes.values()].filter(node => !node.parent || !nodes.has(getNodeId(node.parent)));
-        valid = width([...placed.values()]) <= width([...nodes.values()]) + epsilon
+        // `growth` widens only the forest, where a host waits as its own workspace;
+        // every root keeps its width.
+        const within = (next: number, old: number, forest = false) => next <= old * (1 + (forest ? growth : 0)) + epsilon;
+        valid = within(width([...placed.values()]), width([...nodes.values()]), true)
           && roots.every(root => {
             const ids = root.descendants().map(getNodeId).filter(id => nodes.has(id));
-            return width(ids.map(id => placed.get(id)!)) <= width(ids.map(id => nodes.get(id)!)) + epsilon;
+            return within(width(ids.map(id => placed.get(id)!)), width(ids.map(id => nodes.get(id)!)));
           });
         if (valid) {
           // Fixed outer nodes can hide a wider label or word inside the tree.
@@ -139,22 +148,29 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
             return left === Infinity ? 0 : right - left;
           };
           const nextRoots = roots.map(root => placed.get(getNodeId(root))!);
-          valid = inkWidth(nextRoots, placedInk) <= inkWidth(roots, priorInk) + epsilon
-            && roots.every((root, i) => inkWidth([nextRoots[i]], placedInk) <= inkWidth([root], priorInk) + epsilon);
+          valid = within(inkWidth(nextRoots, placedInk), inkWidth(roots, priorInk), true)
+            && roots.every((root, i) => within(inkWidth([nextRoots[i]], placedInk), inkWidth([root], priorInk)));
         }
       }
     }
-    if (!valid) return;
+    if (!valid) return false;
     const allScenes = frames.map((frame, index) => ({ ...frame, index, nodes: sceneAt(index) }));
     const oldReflows = new Set(workspaceContinuityReflows(allScenes, result,
       scene => [...scene.nodes.values()]).map(issue => JSON.stringify(issue)));
     const reflows = workspaceContinuityReflows(allScenes, candidate,
       scene => [...(candidateScenes.get(scene.index) ?? scene.nodes).values()]);
-    if (reflows.some(issue => !oldReflows.has(JSON.stringify(issue)))) return;
+    if (reflows.some(issue => !oldReflows.has(JSON.stringify(issue)))) return false;
+    if (!commit) return candidate;
     result = candidate;
     scenes.clear();
+    return candidate;
   };
-  const reserveReceivingSlot = (index: number, includeConstruction: boolean) => {
+  // The noticeable motion (replayMotionFaults) these coordinates paint into frames `from` to `to`.
+  const motionCost = (coordinates: Reservations, from: number, to: number) => replayMotionFaults({ frames:
+    frames.slice(Math.max(0, from - 1), to + 1).map((frame, offset) => motionFrame(frame.step,
+      positioned(Math.max(0, from - 1) + offset, coordinates), getNodeId)) })
+    .filter(fault => noticeableMotion(fault)).reduce((sum, fault) => sum + fault.distance, 0);
+  const reserveReceivingSlot = (index: number, includeConstruction: boolean, nearest = false) => {
     const nextStep = frames[index + 1].step;
     if (nextStep.replayKind !== 'relation'
       && !(includeConstruction && nextStep.replayKind === 'micro' && nextStep.operation === 'ExternalMerge')) return;
@@ -185,7 +201,6 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
       const prior = before.get(host)!, landing = after.get(wrapper)!;
       if (!prior.parent || !landing.parent || Math.abs(prior.y - landing.y) > epsilon) continue;
       const dx = landing.x - prior.x;
-      if (Math.abs(dx) <= epsilon) continue;
       const members = new Set<string>(prior.descendants().filter(node => before.has(getNodeId(node))).map(getNodeId));
       // This slot belongs to a receiving component, not to an extracted source.
       // Source-containing hosts retain their separate compaction/contour rule.
@@ -200,6 +215,15 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
       if (JSON.stringify(oldPeers.map(id => id === host ? wrapper : id)) !== JSON.stringify(newPeers)
         || oldPeers.filter(id => id !== host).some(id => Math.hypot(before.get(id)!.x - after.get(id)!.x,
           before.get(id)!.y - after.get(id)!.y) > epsilon && !recenteredPeer(id))) continue;
+      // A sister at the parent's other end that recentres at this movement moves
+      // the parent unless the wrapper's slot absorbs it: the host then waits that
+      // far from its wrapper's slot, so the parent keeps its centre. Where it
+      // cannot, the choice waits until every exact slot is reserved (`nearest`).
+      const end = oldPeers.indexOf(host), opposite = oldPeers.length < 2 ? undefined
+        : end === 0 ? oldPeers.at(-1) : end === oldPeers.length - 1 ? oldPeers[0] : undefined;
+      const recentring = opposite ? after.get(opposite)!.x - before.get(opposite)!.x : 0;
+      const target = dx + recentring;
+      if (Math.abs(target) <= epsilon || nearest && Math.abs(recentring) <= epsilon) continue;
       let first = index;
       // Carry the same rigid slot through this component's construction, stopping
       // where any member still belongs to a different preceding occurrence.
@@ -212,8 +236,25 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
         })) break;
         first = earlier;
       }
-      reserveTranslations(index, new Map([...members].map(id => [id, dx])),
-        new Map([...members].map(id => [id, host])), first, true);
+      const translate = (shift: number, commit = true, growth = 0) => reserveTranslations(index, new Map([...members].map(id => [id, shift])),
+        new Map([...members].map(id => [id, host])), first, true, commit, growth);
+      if (!nearest) { translate(target); continue; }
+      let low = 0, high = 1;
+      for (let attempt = 0; attempt < 12; attempt++) {
+        const middle = (low + high) / 2;
+        if (translate(target * middle, false, COMPLETED_WIDTH_GROWTH)) low = middle; else high = middle;
+      }
+      // Then the host takes its wrapper's own slot where that paints no more
+      // noticeable motion over the frames it waits through and the movement than
+      // its place does; otherwise it waits as near the still slot as it clears
+      // (a forest may grow by COMPLETED_WIDTH_GROWTH), where that paints less.
+      const base = motionCost(result, first, index + 1);
+      const cost = (shift: number) => {
+        const coordinates = Math.abs(shift) > 1 && translate(shift, false, COMPLETED_WIDTH_GROWTH);
+        return coordinates ? motionCost(coordinates, first, index + 1) : Infinity;
+      };
+      const shift = cost(dx) <= base + epsilon ? dx : cost(target * low) < base - 1 ? target * low : 0;
+      if (shift) translate(shift, true, COMPLETED_WIDTH_GROWTH);
     }
   };
   // Settle movement source and receiving slots together first. Subsequent
@@ -223,12 +264,17 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
     const movements = currentWorkspaceMovements(frames[index + 1].step, sceneAt(index), sceneAt(index + 1));
     for (const movement of movements) {
       const before = sceneAt(index), after = sceneAt(index + 1);
-      const source = before.get(movement.priorSourceNodeId)!, lower = after.get(movement.witnessNodeId)!;
+      // A source that keeps its ID around its new lower occurrence is that
+      // occurrence's slot, as when the lower occurrence keeps the source's ID.
+      const witness = after.get(movement.witnessNodeId)!;
+      const slotId = witness?.parent && getNodeId(witness.parent) === movement.priorSourceNodeId
+        && children(witness.parent, after).length === 1 ? movement.priorSourceNodeId : movement.witnessNodeId;
+      const source = before.get(movement.priorSourceNodeId)!, lower = after.get(slotId)!;
       if (!source.parent || !lower.parent || getNodeId(source.parent) !== getNodeId(lower.parent)
         || Math.abs(source.y - lower.y) > epsilon) continue;
       const oldChildren = children(source.parent, before).map(getNodeId), newChildren = children(lower.parent, after).map(getNodeId);
       if (oldChildren.length !== newChildren.length || oldChildren.some((id, i) =>
-        (id === movement.priorSourceNodeId ? movement.witnessNodeId : id) !== newChildren[i])) continue;
+        (id === movement.priorSourceNodeId ? slotId : id) !== newChildren[i])) continue;
       const siblings = oldChildren.filter(id => id !== movement.priorSourceNodeId);
       if (!siblings.length || !siblings.every(id => Math.hypot(before.get(id)!.x - after.get(id)!.x,
         before.get(id)!.y - after.get(id)!.y) <= epsilon)) continue;
@@ -263,7 +309,7 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
         const parentId = getNodeId(lower.parent);
         let last = index + 1;
         for (let later = last + 1; later < frames.length; later++) {
-          const nodes = sceneAt(later), current = nodes.get(movement.witnessNodeId);
+          const nodes = sceneAt(later), current = nodes.get(slotId);
           if (!current?.parent || getNodeId(current.parent) !== parentId
             || current.descendants().filter(node => nodes.has(getNodeId(node))).length !== members.length
             || members.some(node => {
@@ -275,13 +321,14 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
           last = later;
         }
         reserveTranslations(last, new Map(members.map(node => [getNodeId(node), -dx])),
-          new Map(members.map(node => [getNodeId(node), movement.witnessNodeId])), index + 1);
+          new Map(members.map(node => [getNodeId(node), slotId])), index + 1);
       }
     }
     reserveReceivingSlot(index, false);
   }
   // Follow receiving slots backward through ordinary and movement wrappers.
   for (let index = frames.length - 2; index >= 0; index--) reserveReceivingSlot(index, true);
+  for (let index = frames.length - 2; index >= 0; index--) reserveReceivingSlot(index, false, true);
   cache.set(reserved, result);
   return result;
 }
