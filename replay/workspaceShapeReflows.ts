@@ -161,7 +161,9 @@ export function closingAt(previous: PlaybackStep, step: PlaybackStep, before: Re
   }));
   const prior = points(before, oldPositions), now = points(current, newPositions);
   const painted = (map: typeof prior) => new Map([...map].map(([id, point]) => [id, { x: point.x, y: point.y, parentId: point.parent }]));
-  const shift = previous.replayFrameIndex !== step.replayFrameIndex ? paintedShift(painted(prior), painted(now), carry) : { x: 0, y: 0 };
+  // The closing is found under the carry without its held syntax, which is
+  // what the closing itself decides (stageCoordinates.entryCarry).
+  const shift = previous.replayFrameIndex !== step.replayFrameIndex ? paintedShift(painted(prior), painted(now), { closing: carry.closing }) : { x: 0, y: 0 };
   const motion = (id: string) => {
     const a = prior.get(id), b = now.get(id);
     return a && b ? { x: b.x - shift.x - a.x, y: b.y - shift.y - a.y } : undefined;

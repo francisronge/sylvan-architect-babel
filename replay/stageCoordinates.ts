@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import { carriedShift } from './cameraCarry.ts';
+import { carriedShift, carryReference, paintedShift, type CarryOptions } from './cameraCarry.ts';
 import { categoryMetricKey } from './categoryMetricKey.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
 import { compactCurrentRootForks } from './currentRootCompaction.ts';
@@ -9,6 +9,7 @@ import { retainCurrentSiblingRanks, retainCurrentDaughterRanks } from './current
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { retainedSubtreeMaterial } from './displayWordMaterial.ts';
 import { closeMovementGaps } from './movementGapClosing.ts';
+import { motionFrame, replayMotionFaults } from './motionRule.ts';
 import type { PlaqueAnchor, PlaqueRoom } from './plaqueRoom.ts';
 import { reserveMovementSlotClearance } from './movementSlotClearance.ts';
 import { fallbackPlaqueTextMeasure, type PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
@@ -30,7 +31,7 @@ import type { PlaybackStep } from './types.ts';
 import { separateWorkspaceContours } from './workspaceContourClearance.ts';
 import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
 import { reserveWaitingSlots } from './waitingSlots.ts';
-import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { closingAt, workspaceContinuityReflows } from './workspaceShapeReflows.ts';
 import { TREE_SIBLING_GAP } from './treeSpacing.ts';
 
 type Scene = {
@@ -525,6 +526,14 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
   treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, plaques?: StagePlaques): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
   const planned = closedStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, plaques)
     ?? planStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+  const previousSize = stageIndex > 0 ? sizeForStage?.(stageIndex - 1) : null;
+  if (previousSize && !heldChecked.has(planned)) {
+    heldChecked.add(planned);
+    const previous = buildStageCoordinateReservations(steps, stageIndex - 1, previousSize, sizeForStage, 'ltr',
+      measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, plaques);
+    const held = entryHeld(steps, stageIndex, planned, previous, size, previousSize);
+    if (held) heldEntries.set(planned, held);
+  }
   return direction === 'rtl' ? reflectedReservations(steps, planned, size, sizeForStage) : planned;
 }
 
@@ -619,6 +628,7 @@ const closedPlans = new WeakMap<readonly PlaybackStep[], Map<string, ReturnType<
  * reservations: their right-to-left reflection keeps it, and a prepared layout
  * that crosses a worker boundary restores it (plaqueLayoutJob.ts). */
 const closingEntries = new WeakSet<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>();
+const heldChecked = new WeakSet<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>();
 
 /** Whether the camera carry into the stage these reservations plan breaks a tie
  * toward the block that holds still (CarryOptions `closing`): only where the
@@ -627,11 +637,76 @@ export function closesOnEntry(reservations: ReadonlyMap<SyntaxNode, TreeCoordina
   return Boolean(reservations && closingEntries.has(reservations));
 }
 
+/** The shared syntax the camera carry into the stage these reservations plan
+ * holds still (CarryOptions `held`), when the movement opening the stage closes
+ * the room it leaves and other syntax keeps its place. */
+const heldEntries = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, readonly string[]>();
+
+/** The camera carry options of the crossing into the stage these reservations plan. */
+export function entryCarry(reservations: ReadonlyMap<SyntaxNode, TreeCoordinateReservation> | undefined | null): CarryOptions {
+  const held = reservations ? heldEntries.get(reservations) : undefined;
+  return { closing: closesOnEntry(reservations), ...(held ? { held } : {}) };
+}
+
 /** Records on reservations rebuilt from a prepared layout that their stage's
- * plan closed at its crossing (`closesOnEntry`). */
-export function recordClosingEntry<T extends ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>(reservations: T, closing: boolean): T {
+ * plan closed at its crossing (`closesOnEntry`) and the syntax its carry holds. */
+export function recordClosingEntry<T extends ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>(reservations: T, closing: boolean,
+  held?: readonly string[]): T {
   if (closing) closingEntries.add(reservations);
+  if (held?.length) heldEntries.set(reservations, held);
   return reservations;
+}
+
+/** A crossing holds this many shared nodes or more still before its carry
+ * follows them alone (`entryHeld`). */
+const MIN_ENTRY_HELD = 4;
+
+/** At a crossing whose opening movement closes the room it leaves (closingAt,
+ * the motion rule's grant), the shared syntax the closing does not move: the
+ * camera carry holds it still, so the closing side slides toward the gap
+ * instead of every shared node moving by a share of the closing. It is kept
+ * only where it moves the unmoved syntax less than the ordinary carry, read as
+ * the camera rule reads a first paint: the median travel of the unmoved syntax
+ * outside the closing, or of all of it, whichever is less. */
+function entryHeld(steps: readonly PlaybackStep[], stageIndex: number, planned: StageFrames, previousPlanned: StageFrames,
+  size: [number, number], previousSize: [number, number]): readonly string[] | undefined {
+  const opening = stageSteps(steps, stageIndex)[0], last = stageSteps(steps, stageIndex - 1).at(-1);
+  const entered = opening?.replayCanvasData && planned.get(opening.replayCanvasData);
+  const left = last?.replayCanvasData && previousPlanned.get(last.replayCanvasData);
+  if (!opening || !last || opening.replayKind !== 'relation' || !entered || !left) return undefined;
+  const from = paintedSyntax(last, previousSize, left), to = paintedSyntax(opening, size, entered);
+  const closing = closesOnEntry(planned), closes = closingAt(last, opening, from, to, from, to, { closing });
+  if (!closes.size) return undefined;
+  const points = (nodes: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>) => new Map([...nodes].map(([id, node]) =>
+    [id, { x: node.x, y: node.y, parentId: node.parent && nodes.has(getNodeId(node.parent)) ? getNodeId(node.parent) : null }]));
+  const before = points(from), now = points(to), reference = carryReference(before, now), held = reference.filter(id => !closes.has(id));
+  if (held.length < MIN_ENTRY_HELD || held.length >= reference.length) return undefined;
+  const ancestry = (nodes: typeof before, id: string) => {
+    const ids: string[] = [];
+    for (let parent = nodes.get(id)!.parentId; parent && nodes.has(parent); parent = nodes.get(parent)!.parentId)
+      if (before.has(parent) && now.has(parent)) ids.push(parent);
+    return ids.join(' ');
+  };
+  const unmoved = [...now.keys()].filter(id => before.has(id) && ancestry(before, id) === ancestry(now, id));
+  const still = unmoved.filter(id => !closes.has(id));
+  const median = (values: number[]) => {
+    values.sort((a, b) => a - b);
+    return values.length ? (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2 : 0;
+  };
+  const travel = (carry: { x: number; y: number }) => {
+    const of = (ids: string[]) => median(ids.map(id => Math.hypot(now.get(id)!.x - carry.x - before.get(id)!.x,
+      now.get(id)!.y - carry.y - before.get(id)!.y)));
+    return Math.min(of(still.length ? still : unmoved), of(unmoved));
+  };
+  if (travel(paintedShift(before, now, { closing, held })) >= travel(paintedShift(before, now, { closing })) - 1) return undefined;
+  // The motion rule measures a crossing after the screen's carry, so holding
+  // other syntax still may report a deformation the step already has at a node
+  // the ordinary carry left still. The held carry is kept only where every
+  // fault it reports is one the ordinary carry reports, no larger.
+  const faults = (carry: CarryOptions) => new Map(replayMotionFaults({ frames: [motionFrame(last, from, getNodeId),
+    motionFrame(opening, to, getNodeId, carry.closing, carry.held)] }).map(fault => [`${fault.kind} ${fault.node}`, fault.distance]));
+  const ordinary = faults({ closing }), kept = faults({ closing, held });
+  return [...kept].every(([key, distance]) => ordinary.has(key) && distance <= ordinary.get(key)! + 1) ? held : undefined;
 }
 
 /** Every stage's plan with the room movements leave closed at those movements
@@ -683,7 +758,7 @@ export function rightToLeftAxis(steps: readonly PlaybackStep[], size: [number, n
 }
 
 const translated = (frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, dx: number) => recordClosingEntry(new Map([...frames].map(([canvas, points]) =>
-  [canvas, new Map([...points].map(([id, point]) => [id, { x: point.x + dx, y: point.y }]))])), closesOnEntry(frames));
+  [canvas, new Map([...points].map(([id, point]) => [id, { x: point.x + dx, y: point.y }]))])), closesOnEntry(frames), entryCarry(frames).held);
 
 /** A stage's right-to-left reservations: its left-to-right plan, translated so
  * that painting (layoutSyntaxTree reflects x about the stage width) reflects

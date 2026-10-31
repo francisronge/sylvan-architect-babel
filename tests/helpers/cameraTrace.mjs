@@ -42,18 +42,18 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
   const painted = nodes => new Map([...nodes].filter(([, node]) => !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace'));
   const points = nodes => new Map([...nodes].map(([id, node]) => [id, { x: node.x, y: node.y,
     parentId: node.parent && nodes.has(getNodeId(node.parent)) ? getNodeId(node.parent) : null }]));
-  const closings = layout.scenes.map(({ step, nodes, closing }, index) => {
+  const closings = layout.scenes.map(({ step, nodes, closing, held }, index) => {
     if (!index) return new Set();
     const previous = layout.scenes[index - 1], before = painted(previous.nodes), after = painted(nodes);
-    const carry = previous.step.replayFrameIndex !== step.replayFrameIndex ? paintedShift(points(before), points(after), { closing }) : { x: 0, y: 0 };
+    const carry = previous.step.replayFrameIndex !== step.replayFrameIndex ? paintedShift(points(before), points(after), { closing, held }) : { x: 0, y: 0 };
     return new Set([...closingAt(previous.step, step, before, after, before, after, { closing })].filter(id =>
       Math.hypot(after.get(id).x - carry.x - before.get(id).x, after.get(id).y - carry.y - before.get(id).y) > 1));
   });
-  const scenes = layout.scenes.map(({ step, nodes, closing: closesOnEntry }, index) => {
+  const scenes = layout.scenes.map(({ step, nodes, closing: closesOnEntry, held: heldOnEntry }, index) => {
     const completedStep = index === steps.length - 1 && step.replayKind === 'macro' ? index : undefined;
     const { bounds, containment } = layout.stageCamera(step.replayFrameIndex, completedStep);
     const visibleNodes = [...nodes.values()];
-    return { stage: step.replayFrameIndex, completedStep, bounds, containment, visibleNodes, closing: closings[index], closesOnEntry,
+    return { stage: step.replayFrameIndex, completedStep, bounds, containment, visibleNodes, closing: closings[index], closesOnEntry, heldOnEntry,
       // fitTreeCamera's stageFitContainmentBounds.
       envelope: bounds && {
         minX: Math.min(containment?.minX ?? Infinity, bounds.minX - pad.x), maxX: Math.max(containment?.maxX ?? -Infinity, bounds.maxX + pad.x),
@@ -73,7 +73,7 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
     camera.run(() => fitTreeCamera({ session: camera.session, layout: { relationRenderPlan: plan, activeDerivationFrameIndex: scene.stage,
       uiBounds, stageCameraBounds: scene.bounds, stagePlaqueContainmentBounds: scene.containment, completedReplayStep: scene.completedStep,
       g: camera.group, fitFallbackOverlays: undefined, derivationFrameFitNodes: scene.visibleNodes, overlayFitBounds: null,
-      visibleNodes: scene.visibleNodes, closesOnEntry: scene.closesOnEntry } }));
+      visibleNodes: scene.visibleNodes, closesOnEntry: scene.closesOnEntry, heldOnEntry: scene.heldOnEntry } }));
     const first = camera.paints[0];
     camera.advance(SETTLE_MS);
     const settled = camera.paints.at(-1);

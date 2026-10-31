@@ -29,8 +29,13 @@ export function layoutReplayFrames({ steps, stages, width, height, direction, me
   let positions, schedule = null, stageCoordinates = null;
   // Stages whose plan closed a movement's room at their crossing, where the camera
   // carry breaks a tie (stageCoordinates.closesOnEntry; absent in older checkouts).
-  const closings = new Set();
-  const closes = (index, reservations) => { if (coordinates.closesOnEntry?.(reservations)) closings.add(index); };
+  const closings = new Set(), held = new Map();
+  const closes = (index, reservations) => {
+    if (coordinates.closesOnEntry?.(reservations)) closings.add(index);
+    // The syntax the carry into the stage holds still (stageCoordinates.entryCarry; absent in older checkouts).
+    const ids = coordinates.entryCarry?.(reservations).held;
+    if (ids) held.set(index, ids);
+  };
   if (measured) {
     const measuring = plaqueJob.measurePlaqueLayoutJob(input);
     let next = measuring.next();
@@ -58,7 +63,7 @@ export function layoutReplayFrames({ steps, stages, width, height, direction, me
     && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace');
   const scenes = steps.map(step => {
     const scene = { step, canvas: step.replayCanvasData, visible: new Set((step.replayVisibleNodeIds ?? []).map(String)),
-      closing: closings.has(step.replayFrameIndex) };
+      closing: closings.has(step.replayFrameIndex), ...(held.has(step.replayFrameIndex) ? { held: held.get(step.replayFrameIndex) } : {}) };
     if (measured) scene.tree = draw(scene, positions.get(scene.canvas));
     scene.nodes = new Map((measured ? scene.tree.descendants().filter(node => scene.visible.has(display.getNodeId(node))
       && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace') : render(scene, positions.get(scene.canvas)))

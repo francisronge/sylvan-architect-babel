@@ -18,6 +18,8 @@ export type AutoCameraState = TreeCameraState & {
   stepIndex: number; fitRevision: number; stageIndex: number; paintedNodes: PaintedNodes;
   /** The stage plan closed a movement's room at the crossing into the framed stage. */
   closesOnEntry?: boolean;
+  /** The syntax the carry into the framed stage holds still. */
+  heldOnEntry?: readonly string[];
   /** Framed the completed last Stage Record, whose fit is its own. */
   completed: boolean;
   /** The app controls the fit avoided (see CameraFitGeometry `controls`). */

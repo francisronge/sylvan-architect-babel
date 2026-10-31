@@ -9,7 +9,7 @@ import {
   isSyntheticWorkspaceRootNode
 } from '../../replay/replayCanvas.ts';
 import type { MeasuredStageCoordinates } from '../../replay/stageCamera.ts';
-import { closesOnEntry } from '../../replay/stageCoordinates.ts';
+import { closesOnEntry, entryCarry } from '../../replay/stageCoordinates.ts';
 import {
   treeLayoutSize
 } from '../../replay/stageCamera.ts';
@@ -350,7 +350,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
       derivationFrameFitNodes,
       overlayFitBounds,
       visibleNodes,
-      closesOnEntry: animated && usesDerivationFrames && closesOnEntry(replayCoordinates?.get(activeDerivationFrameIndex))
+      closesOnEntry: animated && usesDerivationFrames && closesOnEntry(replayCoordinates?.get(activeDerivationFrameIndex)),
+      heldOnEntry: animated && usesDerivationFrames ? entryCarry(replayCoordinates?.get(activeDerivationFrameIndex)).held : undefined
     }
   });
   /*
