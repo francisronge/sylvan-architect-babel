@@ -124,7 +124,8 @@ export function lostMovementPresentations(baseline, candidate) {
  * worsened fault one covers within its bound is reported, not a violation.
  * A record's `allow` waives its comparisons only when its `from` and `to` are
  * this comparison's fingerprints; otherwise it waives nothing and fails as
- * `stale-allow`, so it is removed once its change has merged. `motionOnly`
+ * `stale-allow`, except that an entry whose change has merged and whose record
+ * is unchanged is only reported (`removableAllow`). `motionOnly`
  * (a reason the run itself sets, never a manifest) waives them all. */
 export function compareCorpusSnapshots(baseline, candidate, records, { motionExceptions = [] } = {}) {
   const old = new Map(baseline.records.map(record => [record.id, record]));
@@ -144,7 +145,11 @@ export function compareCorpusSnapshots(baseline, candidate, records, { motionExc
     const fingerprints = { baseline: comparisonSha256(before), candidate: comparisonSha256(after) };
     const authored = Object.keys(record.allow ?? {}).length > 0;
     const covers = authored && record.allow.from === fingerprints.baseline && record.allow.to === fingerprints.candidate;
-    if (authored && !covers) violations.push({ kind: 'stale-allow', from: record.allow.from, to: record.allow.to, ...fingerprints });
+    // Merged and unchanged since: the entry's change is the base now. It waives
+    // nothing and is reported as removable, but an unrelated change elsewhere
+    // does not fail for it; any change to this record does.
+    const merged = authored && !covers && record.allow.to === fingerprints.baseline && fingerprints.baseline === fingerprints.candidate;
+    if (authored && !covers && !merged) violations.push({ kind: 'stale-allow', from: record.allow.from, to: record.allow.to, ...fingerprints });
     const allowed = Object.fromEntries(ALLOWANCES.map(key => [key, Boolean(record.motionOnly) || covers && record.allow[key] === true]));
     const replayChanged = before.replaySha256 !== after.replaySha256, planChanged = before.planSha256 !== after.planSha256;
     if (replayChanged && !allowed.replay) violations.push({ kind: 'replay-change' });
@@ -226,7 +231,7 @@ export function compareCorpusSnapshots(baseline, candidate, records, { motionExc
     if (lostMovements.length) violations.push({ kind: 'movement-not-shown', faults: lostMovements });
     if (after.invalid.length) violations.push({ kind: 'invalid-geometry', faults: after.invalid });
     if (after.expectationFailures.length) violations.push({ kind: 'mechanism-control-failed', failures: after.expectationFailures });
-    return { ...inputIdentity, fingerprints,
+    return { ...inputIdentity, fingerprints, ...(merged ? { removableAllow: true } : {}),
       hashes: { baseline: { authoredBefore: before.authoredBeforeSha256, authoredAfter: before.authoredAfterSha256,
         replay: before.replaySha256, plan: before.planSha256 }, candidate: { authoredBefore: after.authoredBeforeSha256,
         authoredAfter: after.authoredAfterSha256, replay: after.replaySha256, plan: after.planSha256 } },

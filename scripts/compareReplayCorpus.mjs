@@ -49,6 +49,7 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
         uniqueInputs: new Set(records.map(record => record.inputSha256)).size,
         recordsWithoutMechanismLabels: records.filter(record => !record.mechanisms.length).length,
         changedAnalyses: compared.filter(record => record.changedFrames?.length).length, failures: failures.length,
+        removableAllows: compared.filter(record => record.removableAllow).map(record => record.id),
         toleratedMotionFaults: compared.reduce((count, record) => count + (record.motion?.tolerated.length ?? 0), 0),
         exceptedMotionFaults: compared.reduce((count, record) => count + (record.motion?.excepted.length ?? 0), 0),
         existingContinuityFaults: snapshots[0].records.reduce((count, record) => count + (record.continuity?.length ?? 0), 0),

@@ -459,8 +459,10 @@ test('a corpus allow entry covers only the change it was written for', async () 
   assert.deepEqual(kinds(changed, later, written), ['stale-allow', 'replay-change', 'final-coordinate-change']);
   // Nor does it cover a further change on the branch it was written on.
   assert.deepEqual(kinds(snapshot, later, written), ['stale-allow', 'replay-change', 'final-coordinate-change']);
-  // Merged and unchanged, it covers nothing and fails until it is removed.
-  assert.deepEqual(kinds(changed, structuredClone(changed), written), ['stale-allow']);
+  // Merged and unchanged, it covers nothing and is reported as removable, but an
+  // unrelated PR does not fail for it.
+  assert.deepEqual(kinds(changed, structuredClone(changed), written), []);
+  assert.equal(judged(changed, structuredClone(changed), written).removableAllow, true);
   // It waives only what it names.
   assert.deepEqual(kinds(snapshot, changed, { ...written, finalCoordinates: false }), ['final-coordinate-change']);
 });

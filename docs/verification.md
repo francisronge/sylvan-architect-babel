@@ -92,8 +92,10 @@ waive (the Replay, the relation plan and every frame's points and widths) in
 the base and in this change. The entry waives only the comparisons it names, and
 only while both fingerprints match; a further change on the branch needs new
 fingerprints. Otherwise it waives nothing and fails as `stale-allow`. Once the
-change merges, the base measures `to`, so the next comparison reports the entry
-stale: remove it (removing an entry only tightens the check). The fingerprints
+change merges, the base measures `to`: while the record stays unchanged the
+summary lists the entry under `removableAllows` without failing, so an unrelated
+change is not blocked; remove it then (removing an entry only tightens the
+check). Any change to that record fails as `stale-allow` until it is removed. The fingerprints
 are the same on macOS and on CI's Linux runners for the same sources (31 Oct
 2026, 140 records). The manifest links
 representative fixtures for movement and ordinary wrappers, later movement,
