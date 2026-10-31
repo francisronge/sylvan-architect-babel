@@ -28,6 +28,8 @@ test('from main, every open PR with a failing check is listed, without the ignor
   const reason = blockReason(failing);
   assert.match(reason, /#333 .*head d1d91c8.*Replay motion against the PR base/);
   assert.match(reason, /Ignored: Vercel/);
+  // A subagent's report is not replaced by its answer to this hook.
+  assert.match(reason, /Keep the reply you were about to give in full/);
 });
 
 test('from a PR branch, only that branch\'s PR counts', () => {
