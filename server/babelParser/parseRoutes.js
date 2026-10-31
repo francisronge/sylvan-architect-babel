@@ -288,7 +288,8 @@ export const createParseRoutes = ({
     providerLabel,
     generate,
     selection,
-    abortSignal
+    abortSignal,
+    deadlineAt = Number.POSITIVE_INFINITY
   }) => {
     if (!apiKey) {
       throw new ParseApiError('API_KEY_MISSING', `${providerLabel} API key is not configured on the server.`, 500);
@@ -298,6 +299,8 @@ export const createParseRoutes = ({
     const fullContents = buildParseContentsPrompt(sentence);
     const routeMaxOutputTokens = selection.requestPolicy.maxOutputTokens ?? selection.requestPolicy.maxCompletionTokens;
     const requestStartedAt = Date.now();
+    // `deadlineAt` is a host's hard stop (api/parse.js); it only ever shortens the request budget.
+    const remainingBudget = () => Math.min(getRemainingRequestBudgetMs(requestStartedAt), deadlineAt - Date.now());
     const reasoningEffort = Object.values(selection.nativeSettings)[0];
     const generationOptions = {
       model: selectedModel,
@@ -322,7 +325,7 @@ export const createParseRoutes = ({
     let generationFailureEvidence = null;
     let generationStartedAt = null;
     try {
-      const remainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt);
+      const remainingBudgetMs = remainingBudget();
       if (remainingBudgetMs <= 1200) {
         throw new ParseApiError(
           'PROVIDER_UNAVAILABLE',
@@ -336,7 +339,7 @@ export const createParseRoutes = ({
         abortSignal,
         deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {
-          const attemptRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt);
+          const attemptRemainingBudgetMs = remainingBudget();
           if (attemptRemainingBudgetMs <= 1200) {
             throw new ParseApiError(
               'PROVIDER_UNAVAILABLE',
@@ -468,6 +471,7 @@ export const createParseRoutes = ({
       providerLabel: provider.label,
       generate: provider.generate,
       abortSignal: options.abortSignal,
+      deadlineAt: options.deadlineAt,
       selection
     });
   };

@@ -40,7 +40,7 @@
   ],
   "functions": {
     "api/parse.js": {
-      "maxDuration": 960
+      "maxDuration": 300
     }
   }
 }
