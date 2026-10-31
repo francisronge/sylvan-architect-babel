@@ -38,11 +38,13 @@ test('a copy entry is a new occurrence with the copied structure', () => {
   assert.deepEqual(words(laterLow).map(leaf => leaf.id), ['low/d', 'low/n']);
 });
 
-test('a copy entry takes no children or word and copies a defined node other than itself', () => {
+test('a copy entry takes no children, no other word, and copies a defined node other than itself', () => {
   const base = [{ id: 'n', label: 'N', word: 'car' }];
   const issueOf = (entry) => expandPartsListAnalysis({ derivationStages: [stage(['n'], base), stage(['n', 'k'], [entry])] }).issue;
   assert.match(issueOf({ id: 'k', copyOf: 'n', children: [] }).message, /no children/);
-  assert.match(issueOf({ id: 'k', copyOf: 'n', word: 'car' }).message, /no word/);
+  // Sol restated the copied node's own word (n3-37, n4-17, sol-cfc 27 Oct): that changes nothing.
+  assert.equal(issueOf({ id: 'k', copyOf: 'n', word: 'car' }), undefined);
+  assert.match(issueOf({ id: 'k', copyOf: 'n', word: 'bus' }).message, /no word, or the copied node's own word "car"/);
   assert.match(issueOf({ id: 'k', copyOf: 'missing' }).message, /no node "missing"/);
   assert.match(issueOf({ id: 'k', copyOf: 'k' }).message, /copies itself/);
   assert.match(issueOf({ id: 'k', copyOf: '' }).message, /copyOf/);

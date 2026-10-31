@@ -108,9 +108,7 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
         const copy = Object.hasOwn(node, 'copyOf');
         if (copy) {
           if (!isNonblankString(node.copyOf)) fail(`${nodePath}.copyOf`, node.copyOf, 'the id of the node this entry copies');
-          for (const field of ['children', 'word']) {
-            if (Object.hasOwn(node, field)) fail(`${nodePath}.${field}`, node[field], `no ${field}; a copy takes its structure from the node it copies`);
-          }
+          if (Object.hasOwn(node, 'children')) fail(`${nodePath}.children`, node.children, 'no children; a copy takes its structure from the node it copies');
         }
         if ((!copy || Object.hasOwn(node, 'label')) && !isNonblankString(node.label)) fail(`${nodePath}.label`, node.label, 'a nonblank string');
         if (Object.hasOwn(node, 'children')) {
@@ -191,6 +189,11 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
             return copied;
           };
           const root = copyNode(entry.copyOf, entry.id, 0, new Set());
+          // A copy takes the copied node's word. Restating that same word changes
+          // nothing; any other word would be a second definition, so it fails.
+          if (Object.hasOwn(entry, 'word') && entry.word !== root.word) {
+            fail(`${path}.nodes[${nodeIndex}].word`, entry.word, `no word, or the copied node's own word ${root.word === undefined ? '(it has none)' : quoted(root.word)}; a copy takes its structure from the node it copies`);
+          }
           for (const field of ['label', 'silent', 'lineageId']) if (Object.hasOwn(entry, field)) root[field] = entry[field];
           definitions.set(entry.id, { node: root, stageIndex, nodeIndex });
         }
