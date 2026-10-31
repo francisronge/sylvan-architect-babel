@@ -34,7 +34,7 @@ test('review #8 preserves its completed layout dimensions after retaining the ea
   const steps = prepareReplay({ ...record, includePlayback: true }).playbackSteps;
   const completed = d3.hierarchy(steps.at(-1).replayCanvasData);
   assert.equal(completed.descendants().length, 44);
-  assert.equal(d3.hierarchy(steps[51].replayCanvasData).descendants().length, 45,
+  assert.equal(d3.hierarchy(steps[43].replayCanvasData).descendants().length, 45,
     'the construction canvas needs a synthetic container while the wrapper is unbuilt');
   for (const [width, height] of [[1600, 1100], [390, 844]]) {
     assert.deepEqual(stageTreeLayoutSize(steps, 4, width, height),
@@ -121,11 +121,11 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
       return new Map(layoutSyntaxTree(root, size, direction, reservations.get(step.replayCanvasData), visible)
         .descendants().filter(node => visible.has(getNodeId(node))).map(node => [getNodeId(node), node]));
     };
-    for (const frame of [43, 51, 52, 55]) {
+    for (const frame of [35, 43, 44, 46]) {
       const nodes = positions(frame);
       assert.equal(nodes.get('subjB').y, nodes.get('ibarB').y, `frame ${frame}: current sisters share one rank`);
     }
-    const previous = positions(51), before = positions(55), after = positions(56);
+    const previous = positions(43), before = positions(46), after = positions(47);
     for (const [id, point] of previous) {
       assert.equal(before.get(id).x, point.x, `${id} keeps its x across the construction boundary`);
       assert.equal(before.get(id).y, point.y, `${id} keeps its y across the construction boundary`);

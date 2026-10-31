@@ -7,17 +7,17 @@ import { checkStaleShell } from './helpers/visualRules.mjs';
 /* When rows leave a plaque, its shell fits the rows that remain at that same step, in
  * its pocket. Francis, 27 October 2026, on Sol n3-14-hu-verbal-particle: "Why does the
  * plaque content disappear then shrink size? if that should be happening, then why do
- * it in 2 steps, just make them disappear and shrink at one step?" At frame 39
+ * it in 2 steps, just make them disappear and shrink at one step?" At frame 34
  * finite-agreement-checking supersedes the finite-features row of the nominative Case
- * plaque; main kept the two-row shell empty until stage 3 began at frame 41. */
+ * plaque; main kept the two-row shell empty until stage 3 began at frame 36. */
 
 const record = JSON.parse(readFileSync(new URL('./helpers/caseRowsLeaveRecord.json', import.meta.url), 'utf8'));
 const subject = 'plaque(0:2 directed-path case-assignment)@a_i';
 
 test('a Case plaque shrinks in place at the step its features row leaves', () => {
-  const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: [38, 39, 40, 41] });
+  const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: [33, 34, 35, 36] });
   const shells = frames.map(frame => ({ frame: frame.frame, stage: frame.stage, plaque: frame.plaques.find(plaque => plaque.id === subject) }));
-  assert.deepEqual(shells.map(({ frame, stage }) => [frame, stage]), [[38, 1], [39, 1], [40, 1], [41, 2]]);
+  assert.deepEqual(shells.map(({ frame, stage }) => [frame, stage]), [[33, 1], [34, 1], [35, 1], [36, 2]]);
   const [full, left, ...later] = shells.map(({ plaque }) => plaque);
   assert(full.content.height > full.rect.height - 62, 'two rows fill the shell before');
   assert.deepEqual([left.rect.width, left.rect.height], [left.content.width, left.content.height], 'the shell fits the remaining row');

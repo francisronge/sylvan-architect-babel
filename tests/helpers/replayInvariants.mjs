@@ -9,7 +9,7 @@ import { acceptedRelationDrawingKey, relationLayerKey } from '../../components/r
 import { createThetaDrawing } from '../../components/renderer/thetaDrawing.ts';
 import { labelBelongsToNode, shellLabelElement, terminalLabelElement } from '../../components/renderer/treeMeasurements.ts';
 import { planIndexLetters, primitiveIndexLetters } from '../../components/renderer/indexLetters.ts';
-import { applyVizIds, getNodeId } from '../../replay/displayIdentity.ts';
+import { applyVizIds, getNodeId, isReplayDisplayChild } from '../../replay/displayIdentity.ts';
 import { createFrameRelationResolver } from '../../replay/frameRelations.ts';
 import { isRegisteredTrajectoryRelation } from '../../replay/relations/movementIdentities.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
@@ -529,6 +529,27 @@ export function checkParentAfterChildren(replay) {
       .filter(child => !isScaffold(child.data) && !displayed.has(getNodeId(child))
         && !(before.displayed.has(id) && !before.displayed.has(getNodeId(child))))
       .map(child => violation('parent-after-children', index + 1, `${getNodeId(child)} is hidden under displayed ${id}`)));
+  });
+}
+
+/** A lexical item is one authored node: its category and the word it spells
+ * (the derived display leaf under it) are selected at one step. The word is
+ * never displayed without its category; a word the node gains later, such as
+ * a realization, may join a category already shown. */
+export function checkWordWithCategory(replay) {
+  let previous = EMPTY_FRAME;
+  return replay.playbackSteps.flatMap((step, index) => {
+    const { nodes, displayed } = frameStructure(step), before = previous;
+    previous = frameStructure(step);
+    return [...nodes].flatMap(([id, node]) => {
+      const ownerId = node.parent && getNodeId(node.parent);
+      if (!ownerId || !isReplayDisplayChild(node.data, ownerId)) return [];
+      if (displayed.has(id) && !displayed.has(ownerId))
+        return [violation('word-with-category', index + 1, `${id} is displayed without ${ownerId}`)];
+      if (displayed.has(ownerId) && !before.displayed.has(ownerId) && !displayed.has(id))
+        return [violation('word-with-category', index + 1, `${ownerId} is selected without its word ${id}`)];
+      return [];
+    });
   });
 }
 

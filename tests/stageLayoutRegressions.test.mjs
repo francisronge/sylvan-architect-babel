@@ -33,22 +33,22 @@ test('the stage layouts were measured', () => {
 });
 
 test('Opus n3-75: the pro specifier stands a sibling unit from v′ before head movement, and nothing jumps when v moves', () => {
-  assert.ok(point(15, 16, 'vbar').x - point(15, 16, 'pro1').x >= TREE_SIBLING_GAP - 1, 'v′/pro fork too tight at frame 16');
-  assert.deepEqual(faultsAt(15, 17), []);
+  assert.ok(point(15, 14, 'vbar').x - point(15, 14, 'pro1').x >= TREE_SIBLING_GAP - 1, 'v′/pro fork too tight at frame 14');
+  assert.deepEqual(faultsAt(15, 15), []);
 });
 
 test('Opus n4-12: after the extraposition V′ closes on its sister NP ich at the movement itself', () => {
-  assert.ok(point(18, 82, 'Vbar_gl').x - point(18, 82, 'NP_ich').x < 1000, 'V′ stands far from NP ich');
-  assert.deepEqual(faultsAt(18, 81), []);
+  assert.ok(point(18, 70, 'Vbar_gl').x - point(18, 70, 'NP_ich').x < 1000, 'V′ stands far from NP ich');
+  assert.deepEqual(faultsAt(18, 69), []);
 });
 
 test('Opus n4-35: the new C head is built clear of the head that moves into it and stays put when it arrives', () => {
-  assert.ok(rowClearance(21, 33, ['e_C', 'e_C::__leaf']) >= TREE_SIBLING_GAP - 1, 'ela built tight against Σ');
-  assert.ok(motion(21, 34, 'e_C') <= 1, 'ela repositions at the head movement');
+  assert.ok(rowClearance(21, 26, ['e_C', 'e_C::__leaf']) >= TREE_SIBLING_GAP - 1, 'ela built tight against Σ');
+  assert.ok(motion(21, 27, 'e_C') <= 1, 'ela repositions at the head movement');
 });
 
 test('Sol n4-14: the parked temporal PP waits where it merges', () => {
-  assert.ok(motion(27, 101, 'temporalPP') <= 1, 'the PP travels when it merges');
+  assert.ok(motion(27, 84, 'temporalPP') <= 1, 'the PP travels when it merges');
 });
 
 // The median travel into `frame`, after the carry, of the syntax painted in both
@@ -66,19 +66,19 @@ const attachedTravel = (bug, frame) => {
 };
 
 test('Opus n4-21: closing the room 本を leaves does not jump the clause it stays attached in', () => {
-  assert.ok(attachedTravel(30, 63) < 20, 'the attached syntax jumps when the object scrambles');
+  assert.ok(attachedTravel(30, 51) < 20, 'the attached syntax jumps when the object scrambles');
 });
 
 test('Sol n4-36: the book NP waits near where the relative clause merges with it', () => {
-  assert.ok(faultsAt(32, 60).every(fault => fault.distance < 1000), 'the book NP jumps when it merges');
+  assert.ok(faultsAt(32, 51).every(fault => fault.distance < 1000), 'the book NP jumps when it merges');
 });
 
 // An analysis with the lower occurrence keeping the source ID: the movement that
 // opens a stage owns no more syntax than it would with the landing keeping that ID.
 test('Codex c1-007, source ID kept at the lower occurrence: the ba-object movement opening stage 4 moves nothing it does not own', () => {
-  const [before, after] = [57, 58].map(frame => measured['c1-007-source-kept'].frames[frame - 1]);
+  const [before, after] = [48, 49].map(frame => measured['c1-007-source-kept'].frames[frame - 1]);
   assert.notEqual(before.stage, after.stage);
-  assert.deepEqual(faultsAt('c1-007-source-kept', 58).filter(fault => fault.kind === 'unowned-motion'), []);
+  assert.deepEqual(faultsAt('c1-007-source-kept', 49).filter(fault => fault.kind === 'unowned-motion'), []);
 });
 
 // The compound verb 寄给 waits in its V′ through stages 2 and 3 and then moves to
@@ -87,6 +87,6 @@ test('Codex c1-007, source ID kept at the lower occurrence: the ba-object moveme
 // t_V would then cross at the movement.
 test('Codex c1-007, source ID kept at the lower occurrence: the compound verb waits beside its VP and V-to-Asp moves nothing it does not own', () => {
   const bug = 'c1-007-source-kept';
-  assert.ok(point(bug, 55, 'lowerVP').x - point(bug, 55, 'sendGiveV').x < 1500, 'the waiting verb stands far from its VP');
-  assert.deepEqual(faultsAt(bug, 56), []);
+  assert.ok(point(bug, 46, 'lowerVP').x - point(bug, 46, 'sendGiveV').x < 1500, 'the waiting verb stands far from its VP');
+  assert.deepEqual(faultsAt(bug, 47), []);
 });

@@ -33,7 +33,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     frames.set(number, { step, nodes }); return frames.get(number);
   };
 
-  for (const [beforeFrame, afterFrame, rootId] of [[10, 11, 'b_embPred'], [32, 33, 'b_matrixPred']]) {
+  for (const [beforeFrame, afterFrame, rootId] of [[8, 9, 'b_embPred'], [26, 27, 'b_matrixPred']]) {
     if (runs(direction)) test(`${width}px ${direction}: Spanish selection ${afterFrame} preserves the complete existing predicate`, () => {
       const before = frame(beforeFrame), after = frame(afterFrame);
       assert.equal(after.step.operation, 'LexicalSelect');
@@ -51,7 +51,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
   // Right to left as well: no controlled right-to-left change has yet been shown to fail it while the mirror check reports its record.
   test(`${width}px ${direction}: Spanish movement preserves the preceding full source and sister ranks`, () => {
     for (const [beforeFrame, afterFrame, source, landing] of [
-      [8, 9, 'b_vengaLow', 'b_vengaAtv'], [30, 31, 'b_quieroLow', 'b_quieroAtv']
+      [6, 7, 'b_vengaLow', 'b_vengaAtv'], [24, 25, 'b_quieroLow', 'b_quieroAtv']
     ]) {
       const before = frame(beforeFrame), after = frame(afterFrame);
       assert(!before.nodes.has(landing));

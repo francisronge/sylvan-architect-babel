@@ -9,20 +9,20 @@ import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
  * shaded box, and the outline of a domain box. Francis, 27 October 2026, on Sol
  * n3-47-en-sluicing: "tiny collisions". Main placed the subjectCase plaque of who
  * (stage 4) left of who, where the sluicing remnant's enclosure (stage 6) later
- * covered its right edge from frame 34 on. */
+ * covered its right edge from frame 30 on. */
 
 const record = JSON.parse(readFileSync(new URL('./helpers/regionOverlapRecord.json', import.meta.url), 'utf8'));
 const subject = 'plaque(3:1 subjectCase: nominative)@who';
 
 test('a feature plaque keeps clear of the remnant enclosure its stage draws later, without moving when it appears', () => {
-  const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: Array.from({ length: 14 }, (_, i) => 27 + i) });
+  const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: Array.from({ length: 12 }, (_, i) => 23 + i) });
   const enclosed = frames.filter(frame => frame.marks.some(mark => mark.type === 'enclosure'));
   assert(enclosed.length && enclosed.every(frame => frame.plaques.some(plaque => plaque.id === subject)), 'the plaque shows beside the enclosure');
   assert.deepEqual(frames.flatMap(frame => checkRegionOverlap(frame)).map(found => `${found.frame} ${found.subject}`), []);
   assert.deepEqual(markMotionFindings(frames), []);
   const offsets = new Set(frames.flatMap(frame => frame.plaques.filter(plaque => plaque.id === subject)
     .map(plaque => `${Math.round(plaque.rect.x - plaque.anchor.x)},${Math.round(plaque.rect.y - plaque.anchor.y)}`)));
-  assert.equal(offsets.size, 1, `one pocket from frame 27 through the enclosure: ${[...offsets]}`);
+  assert.equal(offsets.size, 1, `one pocket from frame 23 through the enclosure: ${[...offsets]}`);
 });
 
 test('control: region-overlap reports a plaque on another claim\'s enclosure, or across its domain box or ellipse outline', () => {
@@ -57,11 +57,11 @@ test('control: region-overlap reports a plaque on another claim\'s enclosure, or
  * a fault to fix). Where the ellipse holds a plaque attached inside its domain it
  * grows to fit it; any other plaque, a Case plaque included, stays clear of it. On
  * the unfixed allocation the theme grid of mv, outside its domain, crossed the
- * outline at frames 43-45 (5.2 px), and the Case plaque of iComplex at frames 59-60
+ * outline at frames 37-39 (5.2 px), and the Case plaque of iComplex at frames 49-50
  * (9.7 px). */
 for (const [id, from, to, subject] of [
-  ['replay-regressions/inserted-adjunction-segment.json#', 40, 49, 'plaque(1:6 theta theme)@mv'],
-  ['replay-regressions/review-workspace-boundaries.json#/cases/1', 59, 60, 'plaque(4:1 directed-path case-assignment)@iComplex']
+  ['replay-regressions/inserted-adjunction-segment.json#', 34, 43, 'plaque(1:6 theta theme)@mv'],
+  ['replay-regressions/review-workspace-boundaries.json#/cases/1', 49, 50, 'plaque(4:1 directed-path case-assignment)@iComplex']
 ]) test(`${subject} keeps off the binding domain ellipse it would cross (${id})`, () => {
   const record = loadFixtureAnalyses().records.find(entry => entry.id === id).record;
   const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: Array.from({ length: to - from + 1 }, (_, i) => from + i) });

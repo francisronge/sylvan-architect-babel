@@ -45,24 +45,24 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
     const source = JSON.stringify(record), { steps, sizes, points, preceding, render, diagnostic } = setup(record, width, height, direction);
     assert.deepEqual(retainMovementSourceSlots([...steps].reverse(), sizes, new Map(preceding), direction), points,
       'source slots follow authored Replay order even when measurement visits frames in reverse');
-    assert.equal(steps.length, 62);
+    assert.equal(steps.length, 51);
     assert.equal(diagnostic.status, 'resolved');
     assert.equal(diagnostic.historyCorrections, 1);
     assert(diagnostic.historyEvaluations <= WORKSPACE_HISTORY_EVALUATION_LIMIT);
     const macros = steps.filter(step => step.replayKind === 'macro');
     const oldWidths = [10381.390635558395, 6950.625713752567, 6430.856223175966, 8319.980901287554];
     const before = new Map(render(macros[0]).map(node => [getNodeId(node), node]));
-    const movement = new Map(render(steps[55]).map(node => [getNodeId(node), node]));
+    const movement = new Map(render(steps[44]).map(node => [getNodeId(node), node]));
     close(before.get('matrixVerbBase').x, movement.get('matrixVerbTrace').x, 'the lower occurrence stays at the original source');
     close(before.get('matrixI').x, movement.get('matrixI').x, 'the receiving head opens at its existing center');
     close(before.get('matrixVBar').x, movement.get('matrixVBar').x, 'the source fork no longer contracts at movement');
     assert.equal(before.get('matrixVerbBase').data.word, 'sagte', 'source pronunciation is retained before movement');
-    for (let index = 55; index < steps.length; index++) assert.deepEqual(points.get(steps[index].replayCanvasData),
+    for (let index = 44; index < steps.length; index++) assert.deepEqual(points.get(steps[index].replayCanvasData),
       preceding.get(steps[index].replayCanvasData), 'movement and later frames keep their established layout');
     for (const id of ['matrixVerbBase', 'matrixI']) {
       const initial = new Map(render(macros[0], preceding.get(macros[0].replayCanvasData)).map(node => [getNodeId(node), node]));
       const delta = before.get(id).x - initial.get(id).x;
-      for (const step of steps.slice(0, 55)) {
+      for (const step of steps.slice(0, 44)) {
         const now = new Map(render(step).map(node => [getNodeId(node), node]));
         const old = new Map(render(step, preceding.get(step.replayCanvasData)).map(node => [getNodeId(node), node]));
         if (now.has(id)) close(now.get(id).x - old.get(id).x, delta, `${id} uses one translation throughout construction`);
@@ -83,7 +83,7 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
     }
     for (const zoom of [0.4, 1, 2]) {
       const finalBefore = before.get('embeddedCP');
-      const after = new Map(render(steps[55]).map(node => [getNodeId(node), node]));
+      const after = new Map(render(steps[44]).map(node => [getNodeId(node), node]));
       for (const node of finalBefore.descendants()) {
         const id = getNodeId(node);
         close((node.x - finalBefore.x) * zoom, (after.get(id).x - after.get('embeddedCP').x) * zoom, 'embedded material keeps its internal geometry during movement and zoom');

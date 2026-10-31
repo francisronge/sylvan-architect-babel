@@ -9,8 +9,8 @@ import { buildCorpusSnapshot } from '../scripts/replayCorpusSnapshot.mjs';
 import { replayMotionFaults } from '../scripts/replayMotionContinuity.mjs';
 
 // The Spanish subject that raises to Spec-IP (sol-spanish-qr, analysis 1), on the
-// corpus gate's layout (1600x948). Frame numbers are 1-based; frame 33 is the
-// subject's A-movement, the first frame of its stage, and frame 36 the object's
+// corpus gate's layout (1600x948). Frame numbers are 1-based; frame 28 is the
+// subject's A-movement, the first frame of its stage, and frame 31 the object's
 // Quantifier Raising, which adjoins a new IP segment below C.
 const root = fileURLToPath(new URL('../', import.meta.url));
 const manifest = path.join(await mkdtemp(path.join(tmpdir(), 'landing-seat-')), 'manifest.json');
@@ -58,7 +58,7 @@ test('a landing never stands nearer its neighbours than ordinary sisters', () =>
 // all it carries, stands nearer it: C jumped 1110 relative to the syntax the
 // camera follows.
 test('a leaf that keeps its row across a crossing stays, and its sister side stands nearer it', () => {
-  const c = replayMotionFaults(measured).find(fault => fault.frame === 36 && fault.node === 'c')?.distance ?? 0;
+  const c = replayMotionFaults(measured).find(fault => fault.frame === 31 && fault.node === 'c')?.distance ?? 0;
   assert.ok(c < 600, `C unowned motion ${c}`);
-  assert.ok(Math.abs(point(36, 'c').x - point(35, 'c').x) < 1e-6, 'C stays where it stands');
+  assert.ok(Math.abs(point(31, 'c').x - point(30, 'c').x) < 1e-6, 'C stays where it stands');
 });

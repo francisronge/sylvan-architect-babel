@@ -323,9 +323,11 @@ export const extractReplayWorkspaceLabels = (canvasData: SyntaxNode | null): str
     .filter(Boolean);
 };
 
+/** The first terminal of `root`, and `ownerId`, the authored node it spells, when that terminal is the node's display word. */
 export const getReplayLeafSelectionTarget = (root: SyntaxNode, identity: ReplayIdentityContext): {
   nodeId: string;
   surface: string;
+  ownerId?: string;
 } | null => {
   const renderableRoot = buildRenderableDerivationCanvasData([cloneSyntaxTree(root) || root], identity);
   if (!renderableRoot)
@@ -338,9 +340,11 @@ export const getReplayLeafSelectionTarget = (root: SyntaxNode, identity: ReplayI
   const surface = resolveLeafSurface(leaf);
   if (!surface)
     return null;
+  const ownerId = leaf.parent && isReplayDisplayChild(leaf.data, getNodeId(leaf.parent)) ? getNodeId(leaf.parent) : undefined;
   return {
     nodeId: getNodeId(leaf),
-    surface
+    surface,
+    ...(ownerId ? { ownerId } : {})
   };
 };
 

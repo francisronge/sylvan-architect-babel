@@ -21,14 +21,14 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     const original = JSON.stringify(record), replay = prepareReplay({ ...record, includePlayback: true }), steps = replay.playbackSteps;
     const groups = buildStageLayoutGroups(steps, replay.replayDerivationFrames), sizeFor = stage => stageTreeLayoutSize(steps, stage, width, height, groups);
     const boundaries = {
-      'fresh/english-raising/0': [[39, 40, 'matrixTCore']],
-      'holdout/turkish-relative-subject/0': [[40, 41, 'rIP']],
-      'archive/expansion-parasitic-gap/0': [[40, 41, 'a_tp']],
-      'fresh/japanese-relative/0': [[58, 59, 'matrixIP'], [65, 66, 'matrixCP']],
-      'archive/holdout-german-concord/0': [[29, 30, 'tp']],
-      'fresh/english-binding/0': [[51, 52, 'mtTop']],
-      'fresh/english-binding/1': [[51, 52, 'mtTop']],
-      'archive/german-coordination-xbar-astra/0': [[56, 57, 'ipl']]
+      'fresh/english-raising/0': [[31, 32, 'matrixTCore']],
+      'holdout/turkish-relative-subject/0': [[32, 33, 'rIP']],
+      'archive/expansion-parasitic-gap/0': [[33, 34, 'a_tp']],
+      'fresh/japanese-relative/0': [[50, 51, 'matrixIP'], [57, 58, 'matrixCP']],
+      'archive/holdout-german-concord/0': [[24, 25, 'tp']],
+      'fresh/english-binding/0': [[41, 42, 'mtTop']],
+      'fresh/english-binding/1': [[41, 42, 'mtTop']],
+      'archive/german-coordination-xbar-astra/0': [[47, 48, 'ipl']]
     }[record.key];
     const frame = number => {
       const step = steps[number - 1], size = sizeFor(step.replayFrameIndex), visible = new Set(step.replayVisibleNodeIds);
@@ -47,8 +47,8 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
       }
     }
     if (record.key === 'archive/expansion-parasitic-gap/0') {
-      const before = frame(21), after = frame(22);
-      assert.equal(steps[21].replayKind, 'relation');
+      const before = frame(16), after = frame(17);
+      assert.equal(steps[16].replayKind, 'relation');
       assert.equal(after.get('a_file').parent.data.id, 'a_fvp');
       assert(!before.has('a_fvp'), 'the parent arrives with its owning movement');
       assert(!before.has('a_fdp'), 'the landing is unavailable before its movement');
@@ -60,9 +60,9 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
         after.get('a_fdp').y - before.get('a_rdp').y) > 1, 'the authored source moves to a distinct landing');
       const ownsMovement = link => link.renderFamily === 'trajectory'
         && link.sourceNodeId === 'a_rdp' && link.targetNodeId === 'a_fdp';
-      assert(!steps[20].replayRelationLinks.some(ownsMovement), 'the movement arrow is not premature');
-      assert.equal(steps[21].replayRelationLinks.filter(ownsMovement).length, 1, 'one trajectory owns the movement');
-      const movement = steps[21].replayRelationLinks.find(ownsMovement);
+      assert(!steps[15].replayRelationLinks.some(ownsMovement), 'the movement arrow is not premature');
+      assert.equal(steps[16].replayRelationLinks.filter(ownsMovement).length, 1, 'one trajectory owns the movement');
+      const movement = steps[16].replayRelationLinks.find(ownsMovement);
       assert.equal(movement.authoredRelationKey, '1:0');
       assert.equal(movement.priorSourceNodeId, 'a_rdp');
       assert.equal(movement.witnessNodeId, 'a_rdp');

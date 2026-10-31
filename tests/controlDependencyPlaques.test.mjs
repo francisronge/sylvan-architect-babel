@@ -27,8 +27,8 @@ const runsInto = (route, rect, half = 3.7) => route.slice(1).some((point, index)
 // "Mia seems to want to leave.": after raising, the PF plaque of "seems" sat on
 // the elbow from PRO up to Mia. In the restated chains, the theta grid of "want" did.
 const cases = [
-  ['movement/clause-context.json#/cases/0', [38, 46]],
-  ['movement/restated-chains.json#/0', [32, 69]]
+  ['movement/clause-context.json#/cases/0', [32, 40]],
+  ['movement/restated-chains.json#/0', [25, 59]]
 ];
 for (const [id, [first, last]] of cases) test(`plaques keep clear of the painted control dependency (${id})`, () => {
   const visual = prepareVisualRecord(fixtures.get(id));

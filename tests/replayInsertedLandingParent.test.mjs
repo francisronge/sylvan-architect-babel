@@ -43,10 +43,10 @@ const synthetic = ({ siblings = [leaf('one')], unrelated = false, pending = fals
 };
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/astra-turkish-relative-2.json', import.meta.url)));
-test('Astra Turkish analysis 2: the object is already inside the landing parent in frame 47', () => {
+test('Astra Turkish analysis 2: the object is already inside the landing parent in frame 41', () => {
   const p = compile(saved), steps = p.playbackSteps;
-  assert.equal(steps.length, 48);
-  const before = steps[45], movement = steps[46], final = steps[47];
+  assert.equal(steps.length, 42);
+  const before = steps[39], movement = steps[40], final = steps[41];
   assert.equal(movement.operation, 'local temporal-adjunct repositioning');
   assert.equal(movement.replayKind, 'relation');
   assert.equal(final.operation, 'StageRecord');

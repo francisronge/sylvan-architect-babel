@@ -25,7 +25,7 @@ function plaqueDistances(record, prefix, anchor) {
 // stood 410.5 from v instead of 254.7 from its first frame to the movement.
 test('seating a landing never takes the pocket of another anchor\'s plaque', () => {
   const distances = plaqueDistances(analysis(0), 'plaque(0:0 theta', 'v');
-  for (const frame of [27, 28, 29, 30, 31, 32]) {
+  for (const frame of [22, 23, 24, 25, 26, 27]) {
     assert.ok(distances.has(frame), `theta grid shown at frame ${frame}`);
     assert.ok(distances.get(frame) < 256, `theta grid ${distances.get(frame)} from v at frame ${frame}`);
   }
@@ -39,7 +39,7 @@ test('a plaque that travels with a seated landing keeps its pocket against the s
   const record = analysis(1);
   record.derivationStages[2].relations[1].anchors.subject = 'snp';
   const distances = plaqueDistances(record, 'plaque(2:1 case: nominative)', 'snp');
-  for (const frame of [34, 35, 36, 37, 38]) {
+  for (const frame of [29, 30, 31, 32, 33]) {
     assert.ok(distances.has(frame), `Case plaque shown at frame ${frame}`);
     assert.ok(distances.get(frame) < 315, `Case plaque ${distances.get(frame)} from snp at frame ${frame}`);
   }

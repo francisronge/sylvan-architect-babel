@@ -53,7 +53,7 @@ test('control: step-semantics reports empty steps, wrong child counts, repaints,
     const tree = d3.hierarchy(list[select].replayCanvasData), node = tree.find(item => item.data.id === attached);
     node.parent.data.children.splice(node.parent.data.children.indexOf(node.data), 1);
     (tree.find(item => item.data.id === selected).data.children ??= []).push(node.data);
-  }), 'step-semantics', 'child-count', select + 1, `${selected} is selected over children [${attached}`));
+  }), 'step-semantics', 'child-count', select + 1, `${selected} is selected over children [${selected}::__leaf,${attached}]`));
   const later = steps.findIndex(step => step.replayFrameIndex === 2 && step.replayKind === 'micro');
   assert(reported(check(list => hide(list[later], ['hier', 'hier::__leaf'])), 'step-semantics', 'authored-removal', later + 1,
     'hier disappears although stage 3 authors it'));

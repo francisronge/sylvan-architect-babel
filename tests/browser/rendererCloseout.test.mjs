@@ -18,7 +18,7 @@ const plaqueTexts = locator => locator.evaluateAll(plaques => plaques.map(plaque
     ? [...text.querySelectorAll('tspan')].map(span => span.textContent) : [text.textContent]).join(' ')).join(' ')));
 
 test('the app preserves multiple roots, revised plaques and malformed relation evidence through save/reopen', async () => {
-  const bundle = normalizeParseBundle(closeoutPayload(), 'xbar', closeoutSentence, 'gpt', true);
+  const bundle = normalizeParseBundle(closeoutPayload(), 'minimalism', closeoutSentence, 'gpt', true);
   const stages = bundle.analyses[0].derivationStages;
   const steps = prepareReplay({ sentence: closeoutSentence, derivationStages: stages, includePlayback: true }).playbackSteps;
   const moment = (stageIndex, relationIndex = 0) => steps.findIndex(step => step.replayRelationIdentity?.stageIndex === stageIndex

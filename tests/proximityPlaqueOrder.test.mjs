@@ -11,8 +11,8 @@ const fixtures = new Map(loadFixtureAnalyses().records.map(({ id, record }) => [
 // plaque then moved into the theta grid's pocket and pushed the grid, which shows its
 // owner only by proximity, beyond its nearby reach. The grid now chooses first.
 const cases = [
-  ['movement/clause-context.json#/cases/7', 'ev', [22, 26]],
-  ['replay-regressions/adjunct-attachment-continuity.json#', 'vB', [31, 62]]
+  ['movement/clause-context.json#/cases/7', 'ev', [16, 20]],
+  ['replay-regressions/adjunct-attachment-continuity.json#', 'vB', [23, 52]]
 ];
 for (const [id, anchorId, [first, last]] of cases) test(`a theta grid keeps a nearby pocket beside a Case plaque (${id})`, () => {
   const visual = prepareVisualRecord(fixtures.get(id));

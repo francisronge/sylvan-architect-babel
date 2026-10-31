@@ -96,10 +96,15 @@ export const buildStageConstruction = (compilation: ReplayCompilation, stage: Re
           .slice(rootIndex + 1)
           .flatMap((pendingRoot) => collectSyntaxSubtreeNodeIds(pendingRoot));
         const lexicalSteps: PlaybackStep[] = [];
-        if (leafTarget) {
+        // A word is selected together with the authored node it spells; when
+        // that node is the root, its selection is the root's complete state.
+        const selectedNodeId = leafTarget?.ownerId || leafTarget?.nodeId;
+        if (leafTarget && selectedNodeId !== rootId) {
           const leafSurface = getPreFrontingLexicalSurface(leafTarget.surface, index);
           const selectVisibleNodeIds = new Set<string>(projectedRootIds);
           selectVisibleNodeIds.add(leafTarget.nodeId);
+          if (leafTarget.ownerId)
+            selectVisibleNodeIds.add(leafTarget.ownerId);
           const selectLayoutNodeIds = new Set<string>(selectVisibleNodeIds);
           projectedRootSubtreeIds.forEach((subtreeNodeId) => selectLayoutNodeIds.add(subtreeNodeId));
           rootSubtreeIds.forEach((subtreeNodeId) => selectLayoutNodeIds.add(subtreeNodeId));
@@ -118,9 +123,9 @@ export const buildStageConstruction = (compilation: ReplayCompilation, stage: Re
           lexicalStepCursor += 1;
           lexicalSteps.push({
             ...frameSemanticStep,
-            targetNodeId: leafTarget.nodeId,
+            targetNodeId: selectedNodeId,
             targetLabel: leafSurface,
-            sourceNodeIds: [leafTarget.nodeId],
+            sourceNodeIds: [selectedNodeId!],
             sourceLabels: [leafSurface],
             recipe: buildStructuralReplayFallback('LexicalSelect', leafSurface, [leafSurface]),
             workspaceAfter: buildWorkspaceLabelsForState(rootId, leafSurface, 'leaf'),
@@ -148,14 +153,16 @@ export const buildStageConstruction = (compilation: ReplayCompilation, stage: Re
           identity
         });
         lexicalStepCursor += 1;
+        const selectsRoot = Boolean(leafTarget) && selectedNodeId === rootId;
+        const rootSurface = selectsRoot ? getPreFrontingLexicalSurface(leafTarget!.surface, index) : projectedLabel;
         lexicalSteps.push({
           ...frameSemanticStep,
-          operation: 'Project',
+          operation: selectsRoot ? 'LexicalSelect' : 'Project',
           targetNodeId: rootId,
-          targetLabel: projectedLabel,
+          targetLabel: rootSurface,
           sourceNodeIds: [rootId],
-          sourceLabels: [projectedLabel],
-          recipe: buildStructuralReplayFallback('Project', projectedLabel, [projectedLabel]),
+          sourceLabels: [rootSurface],
+          recipe: buildStructuralReplayFallback(selectsRoot ? 'LexicalSelect' : 'Project', rootSurface, [rootSurface]),
           workspaceAfter: buildWorkspaceLabelsForState(rootId, projectedLabel, 'projected'),
           replayCanvasData: lexicalProjectSnapshot.canvasData,
           replayVisibleNodeIds: lexicalProjectSnapshot.visibleNodeIds,

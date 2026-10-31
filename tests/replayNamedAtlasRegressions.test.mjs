@@ -526,11 +526,11 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
   );
 
   for (const [title, nodeId, expectedSurface] of [
-    ['Agree / Feature Valuation', 'd_girls::__leaf', 'The'],
-    ['Multiple Agree', 'd_we_multiple_agree::__leaf', 'We'],
-    ['Anti-Locality (too short)', 'd_the_high_anti_short::__leaf', 'the'],
-    ['Feature Sharing', 'd_feature_sharing::__leaf', 'The'],
-    ['Case Assignment / Feature Collection', 'p_case_assignment::__leaf', 'Af'],
+    ['Agree / Feature Valuation', 'd_girls', 'The'],
+    ['Multiple Agree', 'd_we_multiple_agree', 'We'],
+    ['Anti-Locality (too short)', 'd_the_high_anti_short', 'the'],
+    ['Feature Sharing', 'd_feature_sharing', 'The'],
+    ['Case Assignment / Feature Collection', 'p_case_assignment', 'Af'],
     ['Deletion (structured DP)', 'd_the_deletion_contrast__silent', 'The']
   ]) {
     const lexicalStep = playback(cardNamed(rawCases, title)).find((step) => step.targetNodeId === nodeId);
@@ -721,7 +721,7 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
   findNode(uppercaseBaseHeadMovement.derivationStages[0].workspaceForest, 't_head_trace').word = 'Did';
   const uppercaseBaseHeadSteps = playback(uppercaseBaseHeadMovement);
   assert.equal(
-    uppercaseBaseHeadSteps.find((step) => step.targetNodeId === 't_head_trace::__leaf')?.targetLabel,
+    uppercaseBaseHeadSteps.find((step) => step.targetNodeId === 't_head_trace')?.targetLabel,
     'Did',
     'an uppercase authored head stays uppercase while it is the first visible word'
   );
@@ -744,7 +744,7 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
     'the initial landing receives uppercase at its movement moment'
   );
   assert.equal(
-    playback(headMovement).find((step) => step.targetNodeId === 't_head_trace::__leaf')?.targetLabel,
+    playback(headMovement).find((step) => step.targetNodeId === 't_head_trace')?.targetLabel,
     'did',
     'an explicitly lowercase authored source must retain its authored form'
   );
@@ -855,12 +855,12 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
   }
 
   for (const [title, nodeId, expectedName] of [
-    ['Control Dependency (object control)', 'mia_ctrl2_n::__leaf', 'Mia'],
-    ['Ellipsis / Sluicing', 'mia_sluice_n::__leaf', 'Mia'],
-    ['Remnant Escape / Pseudogapping', 'n_mary_pseudogapping::__leaf', 'Mary'],
-    ['Antecedent-Contained Deletion', 'd_john_acd::__leaf', 'John'],
-    ['Split Antecedence', 'd_kyle_split_antecedence::__leaf', 'Kyle'],
-    ['Phase Boundaries (nested and disjoint)', 'd_lena_edge_phase_stress::__leaf', 'Lena']
+    ['Control Dependency (object control)', 'mia_ctrl2_n', 'Mia'],
+    ['Ellipsis / Sluicing', 'mia_sluice_n', 'Mia'],
+    ['Remnant Escape / Pseudogapping', 'n_mary_pseudogapping', 'Mary'],
+    ['Antecedent-Contained Deletion', 'd_john_acd', 'John'],
+    ['Split Antecedence', 'd_kyle_split_antecedence', 'Kyle'],
+    ['Phase Boundaries (nested and disjoint)', 'd_lena_edge_phase_stress', 'Lena']
   ]) {
     const lexicalStep = playback(cardNamed(rawCases, title)).find((step) => step.targetNodeId === nodeId);
     assert.equal(lexicalStep?.targetLabel, expectedName, `${title}: proper name casing drifted`);
@@ -901,7 +901,7 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
   assert.ok(completedUpperSpine?.replayVisibleNodeIds?.includes('t_jiu_resumptive_partial_copy'));
   assert.ok(completedUpperSpine?.replayVisibleNodeIds?.includes('disp_zoeng_resumptive_partial_copy'));
   const neiSelection = partialSteps.find((step) => (
-    step.targetNodeId === 'd_nei_resumptive_partial_copy::__leaf'
+    step.targetNodeId === 'd_nei_resumptive_partial_copy'
   ));
   assert.equal(neiSelection?.targetLabel, 'Nei');
   assert.deepEqual(neiSelection?.sourceLabels, ['Nei']);
@@ -1450,19 +1450,15 @@ test('Roll-up builds each modifier complement before selecting the head that mer
   });
 
   assert.deepEqual(baseMicrosteps, [
-    ['LexicalSelect', 'n_books_ru::__leaf'],
-    ['Project', 'n_books_ru'],
+    ['LexicalSelect', 'n_books_ru'],
     ['Project', 'np_ru'],
-    ['LexicalSelect', 'a_red_ru::__leaf'],
-    ['Project', 'a_red_ru'],
+    ['LexicalSelect', 'a_red_ru'],
     ['ExternalMerge', 'abar_red_ru'],
     ['Project', 'ap_red_ru'],
-    ['LexicalSelect', 'a_big_ru::__leaf'],
-    ['Project', 'a_big_ru'],
+    ['LexicalSelect', 'a_big_ru'],
     ['ExternalMerge', 'abar_big_ru'],
     ['Project', 'ap_big_ru'],
-    ['LexicalSelect', 'dem_ru::__leaf'],
-    ['Project', 'dem_ru'],
+    ['LexicalSelect', 'dem_ru'],
     ['ExternalMerge', 'dembar_ru']
   ]);
 

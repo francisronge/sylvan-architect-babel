@@ -21,7 +21,7 @@ const normalizeOptionalText = (value) => {
 
 const normalizeParseResult = (
   value,
-  framework = 'xbar',
+  framework = 'minimalism',
   sentence = '',
   modelRoute,
   options = {}
@@ -237,7 +237,7 @@ const spelloutFailure = (result, multiple) => {
 
 export const normalizeParseBundle = (
   value,
-  framework = 'xbar',
+  framework = 'minimalism',
   sentence = '',
   modelRoute,
   enforceDerivationRouteContract = false,

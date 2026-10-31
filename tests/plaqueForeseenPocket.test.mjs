@@ -11,7 +11,7 @@ import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
  * whose N′ was projected there next: "plaque fucking teleports because IT IS PUT IN
  * THE WORST POSITION POSSIBLE, LITERALLY ABOVE SOMETHING THAT IS ABOUT TO BE
  * PROJECTED". Main kept this θ-grid's stage-7 pocket into stage 8 and moved it at
- * frame 55, the construction step that paints syntax there. */
+ * frame 48, the construction step that paints syntax there. */
 
 const corpus = loadFixtureAnalyses();
 const record = corpus.records.find(entry => entry.id === 'replay-regressions/review-workspace-boundaries.json#/cases/0').record;
@@ -19,21 +19,21 @@ const subject = 'plaque(5:1 theta theme)@mV';
 const offset = plaque => [Math.round(plaque.rect.x - plaque.anchor.x), Math.round(plaque.rect.y - plaque.anchor.y)];
 
 // Since its stage's Agree claims draw Case on their paths (Francis, 30 Oct 2026), main
-// kept this grid at [66, -15] into stage 8 and moved it 175 units at frame 55, where new
+// kept this grid at [66, -15] into stage 8 and moved it 175 units at frame 48, where new
 // syntax (bookBase) takes that pocket (approved then as a trade-off: '1. Yes. (accepting
 // the Case-on-Agree layouts: n4-13 Location grid 1.17× reach; review-workspace-boundaries
 // theme grid moves at step 55)', lead session). Neutral links now reserve only the space
 // they draw (plaqueConnectorObstacles), and a nearer pocket clear of bookBase opens: the
 // grid takes it where stage 8 begins and holds it, 0.59 of its reach instead of 0.65 and
-// then 0.97, with no move at frame 55.
+// then 0.97, with no move at frame 48.
 test('a θ-grid leaves a pocket its stage lays out syntax in where stage 8 begins, then holds one pocket', () => {
-  const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: [52, 53, 54, 55, 56] });
+  const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: [45, 46, 47, 48, 49] });
   const pockets = frames.map(frame => ({ frame: frame.frame, stage: frame.stage,
     offset: offset(frame.plaques.find(plaque => plaque.id === subject)) }));
   assert.deepEqual(pockets.map(({ stage }) => stage), [7, 8, 8, 8, 8]);
   assert.deepEqual(pockets.map(({ offset }) => offset), [[-459, 38], [-476, -64], [-476, -64], [-476, -64], [-476, -64]],
     JSON.stringify(pockets));
-  // bookBase, painted from frame 55, stays clear of the pocket the grid holds through stage 8.
+  // bookBase, painted from frame 48, stays clear of the pocket the grid holds through stage 8.
   const at = frames[3], held = at.plaques.find(plaque => plaque.id === subject).rect;
   const overlaps = b => b.x < held.x + held.width && held.x < b.x + b.width && b.y < held.y + held.height && held.y < b.y + b.height;
   assert(at.texts.some(text => text.id === 'bookBase:category'));
@@ -46,11 +46,11 @@ test('a θ-grid leaves a pocket its stage lays out syntax in where stage 8 begin
 // leaves its pocket where its stage begins keeps the one it takes through that stage
 // beside its still anchor. PR #285 review, 29 October 2026: the unfixed schedule moved
 // these early and then moved them again, the θ-grid of reviewed-construction returning
-// within reach at frame 19, the one of ordinary-receiving giving way at frame 38 to the
+// within reach at frame 14, the one of ordinary-receiving giving way at frame 33 to the
 // 2:2 feature plaque that arrives there.
 for (const [id, subject, steps] of [
-  ['replay-regressions/reviewed-construction.json#/cases/2', 'plaque(0:0 theta agent)@vRestored', [15, 21]],
-  ['replay-regressions/ordinary-receiving-width-control.json#', 'plaque(0:0/0:1/1:2 theta theme)@p_v', [32, 41]]
+  ['replay-regressions/reviewed-construction.json#/cases/2', 'plaque(0:0 theta agent)@vRestored', [11, 16]],
+  ['replay-regressions/ordinary-receiving-width-control.json#', 'plaque(0:0/0:1/1:2 theta theme)@p_v', [27, 36]]
 ]) test(`a plaque that leaves its pocket where its stage begins does not move again in that stage: ${id}`, () => {
   const visual = prepareVisualRecord(corpus.records.find(entry => entry.id === id).record);
   const frames = layoutVisualFrames(visual, [VIEWPORTS[0]], { steps: Array.from({ length: steps[1] - steps[0] + 1 }, (_, at) => steps[0] + at) });
@@ -64,19 +64,19 @@ for (const [id, subject, steps] of [
 });
 
 // PR #285 review, 29 October 2026: at 9ef8615 this θ-grid took a farther pocket where
-// stage 1 began (frame 16), held it through stage 2 and moved again where stage 3 began
-// (frame 26), where main moves it once (frame 19). A plaque keeps an early pocket until
-// its anchor moves (here at frame 43) or it leaves, across stage boundaries, and takes
+// stage 1 began (frame 12), held it through stage 2 and moved again where stage 3 began
+// (frame 21), where main moves it once (frame 14). A plaque keeps an early pocket until
+// its anchor moves (here at frame 34) or it leaves, across stage boundaries, and takes
 // one only where that costs no more moves beside its still anchor than main, nor more
 // than a twentieth farther in all; otherwise it does what main does.
 test('a plaque that takes a pocket early moves no more often beside its still anchor than without it', () => {
   const id = 'replay-regressions/reviewed-construction.json#/cases/2', subject = 'plaque(0:0 theta agent)@vRestored';
   const visual = prepareVisualRecord(corpus.records.find(entry => entry.id === id).record);
   for (const viewport of [VIEWPORTS[0], VIEWPORTS.find(entry => entry.name === 'mobile')]) {
-    const frames = layoutVisualFrames(visual, [viewport], { steps: Array.from({ length: 30 }, (_, at) => 13 + at) });
+    const frames = layoutVisualFrames(visual, [viewport], { steps: Array.from({ length: 25 }, (_, at) => 9 + at) });
     const offsets = frames.map(frame => `${frame.frame} ${offset(frame.plaques.find(plaque => plaque.id === subject))}`);
     const pockets = offsets.map(entry => entry.split(' ')[1]).filter((pocket, at, all) => at === 0 || pocket !== all[at - 1]);
-    assert(pockets.length <= 2, `${viewport.name}: one move from frame 13 to 42: ${offsets.join(', ')}`);
+    assert(pockets.length <= 2, `${viewport.name}: one move from frame 9 to 33: ${offsets.join(', ')}`);
   }
 });
 
@@ -111,8 +111,8 @@ test('the plaque schedule reads lifetime sizes only by the identity allocation k
 // its still anchor as on main, for syntax its stage paints in its pocket, which main's
 // rule excuses.
 for (const [id, subject, steps, at, shift] of [
-  ['replay-regressions/reviewed-construction.json#/cases/2', 'plaque(0:0 theta agent)@vRestored', [15, 21], 19, 267],
-  ['showcase/movement.json#/cases/2', 'plaque(0:2 theta agent/theme)@rec', [90, 95], 93, 60]
+  ['replay-regressions/reviewed-construction.json#/cases/2', 'plaque(0:0 theta agent)@vRestored', [11, 16], 14, 267],
+  ['showcase/movement.json#/cases/2', 'plaque(0:2 theta agent/theme)@rec', [76, 81], 79, 60]
 ]) test(`a plaque without an early pocket moves and is judged as on main: ${id}`, () => {
   const visual = prepareVisualRecord(corpus.records.find(entry => entry.id === id).record);
   const frames = layoutVisualFrames(visual, [VIEWPORTS[0]], { steps: Array.from({ length: steps[1] - steps[0] + 1 }, (_, n) => steps[0] + n) });

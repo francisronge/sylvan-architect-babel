@@ -27,7 +27,7 @@ test('detached placement looks through an intervening projection without changin
   const input = stages(), original = structuredClone(input), result = compile(input);
   assert.deepEqual(componentOrder(result), ['late', 'p']);
   const selects = result.playbackSteps.filter(step => step.replayFrameIndex === 0 && step.operation === 'LexicalSelect');
-  assert.deepEqual(selects.map(step => step.targetNodeId), ['a::__leaf', 'b::__leaf', 'late::__leaf']);
+  assert.deepEqual(selects.map(step => step.targetNodeId), ['a', 'b', 'late']);
   for (const step of result.playbackSteps.filter(step => step.replayFrameIndex === 0)) {
     for (const id of ['p', 'bar', 'q']) assert(!step.replayVisibleNodeIds.includes(id), `${id} must remain unbuilt`);
   }
@@ -59,9 +59,9 @@ const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regression
 const result = prepareReplay({ ...record, includePlayback: true });
 const groups = buildStageLayoutGroups(result.playbackSteps, result.replayDerivationFrames);
 for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
-  test(`modal frame 20 to 21, ${width}px ${direction}: the detached head stays on its eventual side`, () => {
-    assert.equal(result.playbackSteps.length, 29);
-    for (const frame of [20, 21]) {
+  test(`modal frame 15 to 16, ${width}px ${direction}: the detached head stays on its eventual side`, () => {
+    assert.equal(result.playbackSteps.length, 24);
+    for (const frame of [15, 16]) {
       const step = result.playbackSteps[frame - 1];
       const tree = d3.hierarchy(step.replayCanvasData); applyVizIds(tree);
       const size = stageTreeLayoutSize(result.playbackSteps, step.replayFrameIndex, width, height, groups);
@@ -72,7 +72,7 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction o
       assert(direction === 'ltr' ? find('must').x < find('leave').x : find('must').x > find('leave').x);
       assert(!step.replayVisibleNodeIds.includes('tBarMatrix'), 'the modal has not merged yet');
     }
-    assert.equal(result.playbackSteps[20].targetNodeId, 'tpInf');
+    assert.equal(result.playbackSteps[15].targetNodeId, 'tpInf');
   });
 }
 
@@ -82,7 +82,7 @@ const arabicResult = prepareReplay({ ...arabic, includePlayback: true });
 const arabicGroups = buildStageLayoutGroups(arabicResult.playbackSteps, arabicResult.replayDerivationFrames);
 for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
   test(`Arabic loose Neg starts on its eventual outside edge, ${width}px ${direction}`, () => {
-    assert.equal(arabicResult.playbackSteps.length, 31);
+    assert.equal(arabicResult.playbackSteps.length, 25);
     for (const step of arabicResult.playbackSteps) {
       if (!step.replayVisibleNodeIds.includes('negA')) continue;
       const tree = d3.hierarchy(step.replayCanvasData); applyVizIds(tree);

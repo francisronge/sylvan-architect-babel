@@ -8,7 +8,7 @@ import {
   checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkNoGeneratedGapLabel, checkPlanIdentityUnique, checkInputUnchanged, checkLabelIndicesOwned, checkLandingAttached, checkRestatedLettersKept, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
-  checkStageCompletion, checkVisibleInCanvas, checkWholeParent, frameStructure
+  checkStageCompletion, checkVisibleInCanvas, checkWholeParent, checkWordWithCategory, frameStructure
 } from './helpers/replayInvariants.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 import { matchFindings } from './helpers/findings.mjs';
@@ -185,6 +185,17 @@ test('control: parent-after-children reports a new parent without its child and 
   assert(reported(checkParentAfterChildren(retained), 'parent-after-children', merge + 2, `${child} is hidden under displayed`));
 });
 
+test('control: word-with-category reports a word shown alone and a category selected without its word', () => {
+  assert.deepEqual(checkWordWithCategory(replay), []);
+  const select = steps.findIndex(step => step.replayKind === 'micro' && step.operation === 'LexicalSelect'
+    && step.replayVisibleNodeIds.includes(`${step.targetNodeId}::__leaf`));
+  const owner = steps[select].targetNodeId, word = `${owner}::__leaf`;
+  const alone = breakReplay(copy => { copy[select].replayVisibleNodeIds = copy[select].replayVisibleNodeIds.filter(id => id !== owner); });
+  assert(reported(checkWordWithCategory(alone), 'word-with-category', select + 1, `${word} is displayed without ${owner}`));
+  const bare = breakReplay(copy => { copy[select].replayVisibleNodeIds = copy[select].replayVisibleNodeIds.filter(id => id !== word); });
+  assert(reported(checkWordWithCategory(bare), 'word-with-category', select + 1, `${owner} is selected without its word ${word}`));
+});
+
 test('control: whole-parent reports a parent shown with fewer daughters than its stage or the preceding one gives it', () => {
   assert.deepEqual(checkWholeParent(replay), []);
   const merge = steps.findIndex(step => step.replayKind === 'micro' && step.operation === 'ExternalMerge');
@@ -311,10 +322,10 @@ test('control: one-letter-per-label reports a letter painted twice beside one la
   const relative = prepare(record);
   assert.deepEqual(checkOneLetterPerLabel(relative), []);
   const everyLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: 'glyph', label: null, alsoFor: [] }));
-  assert(reported(everyLetter, 'one-letter-per-label', 22, 'operatorHigh shows i 3 times'));
-  assert(reported(everyLetter, 'one-letter-per-label', 20, 'operatorTrace shows i 2 times'));
+  assert(reported(everyLetter, 'one-letter-per-label', 20, 'operatorHigh shows i 3 times'));
+  assert(reported(everyLetter, 'one-letter-per-label', 18, 'operatorTrace shows i 2 times'));
   const noLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: 'none' }));
-  assert(reported(noLetter, 'one-letter-per-label', 22, 'operatorHigh shows i 0 times'));
+  assert(reported(noLetter, 'one-letter-per-label', 20, 'operatorHigh shows i 0 times'));
 });
 
 test('one-letter-per-label: a theta index equal to the chain index staged on its word is shown once', () => {
@@ -353,12 +364,12 @@ test('control: label-index-owned reports an index that belongs to no chain, coin
       : { ...run, text: `${run.text}${letter}` }));
     return runs;
   };
-  assert(reported(checkLabelIndicesOwned(wh, null, foreign('₃₂')), 'label-index-owned', 113, 'D_which::__leaf shows Which₃₂: 32 is no chain'));
+  assert(reported(checkLabelIndicesOwned(wh, null, foreign('₃₂')), 'label-index-owned', 101, 'D_which::__leaf shows Which₃₂: 32 is no chain'));
   // Once DP_wh has moved, its chain index 2 is its words' chain too; before, it is no chain of theirs.
   const own = checkLabelIndicesOwned(wh, null, foreign('₂')).filter(found => found.detail.includes('D_which'));
-  assert(!own.some(found => found.frame === 113) && reported(own, 'label-index-owned', 5, 'which₂: 2 is no chain'));
-  assert(reported(checkLabelIndicesOwned(wh, null, foreign('k', 'theta')), 'label-index-owned', 113, 'D_which::__leaf shows theta k'));
-  assert(reported(checkLabelIndicesOwned(wh, null, foreign('k', 'identity')), 'label-index-owned', 113, 'D_which::__leaf shows identity k'));
+  assert(!own.some(found => found.frame === 101) && reported(own, 'label-index-owned', 4, 'which₂: 2 is no chain'));
+  assert(reported(checkLabelIndicesOwned(wh, null, foreign('k', 'theta')), 'label-index-owned', 101, 'D_which::__leaf shows theta k'));
+  assert(reported(checkLabelIndicesOwned(wh, null, foreign('k', 'identity')), 'label-index-owned', 101, 'D_which::__leaf shows identity k'));
 });
 
 test('control: restated-letters-kept reports a letter that a shared restated plaque drops', () => {
@@ -368,7 +379,7 @@ test('control: restated-letters-kept reports a letter that a shared restated pla
   assert.deepEqual(checkRestatedLettersKept(shared), []);
   const dropped = { ...shared, relationRenderPlan: { ...shared.relationRenderPlan, frames: shared.relationRenderPlan.frames
     .map(frame => ({ ...frame, items: frame.items.map(({ restatedRoles: _restated, ...item }) => item) })) } };
-  assert(reported(checkRestatedLettersKept(dropped), 'restated-letters-kept', 31, 'noun::__leaf loses j'));
+  assert(reported(checkRestatedLettersKept(dropped), 'restated-letters-kept', 26, 'noun::__leaf loses j'));
 });
 
 test('control: marks-at-owning-moment reports a mark before its moment and a mark whose moment never plays', () => {
@@ -426,9 +437,9 @@ test('control: movement-landing-parent reports a new parent below the kept landi
 
 test('control: movement-shown-as-movement reports an authored or recognized movement whose landing construction builds', () => {
   // Stage 1 authors a first-stage passive chain (booksDP over booksTrace) whose
-  // moment is frame 20; stage 2's V-to-I is a recognized movement at frame 28.
+  // moment is frame 17; stage 2's V-to-I is a recognized movement at frame 25.
   const record = corpus.records.find(entry => entry.id === 'replay-regressions/receiving-head-material.json#').record;
-  const prepared = prepare(record), moment = 19, headMoment = 27;
+  const prepared = prepare(record), moment = 16, headMoment = 24;
   assert.deepEqual(checkMovementShownAsMovement(prepared, record), []);
   const broken = edit => {
     const copy = { ...prepared, playbackSteps: structuredClone(prepared.playbackSteps) };
@@ -456,7 +467,7 @@ const REPORTED_BY = new Map([['attach-at-merge', 'no-early-reveal']]);
 const subjectOf = violation => violation.detail.split(' ')[0];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments', 'landing-attached',
-  'no-early-reveal', 'relation-construction', 'parent-after-children', 'whole-parent', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
+  'no-early-reveal', 'relation-construction', 'parent-after-children', 'whole-parent', 'word-with-category', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
   'movement-landing-parent', 'movement-shown-as-movement', 'existing-not-remerged',
   'visible-in-canvas',
   'marks-at-owning-moment', 'one-letter-per-label', 'label-index-owned', 'restated-letters-kept', 'no-generated-gap-label', 'plan-identity-unique'];
@@ -469,7 +480,7 @@ before(() => {
       return { id, frames: prepared.playbackSteps.length, violations: [
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
         ...checkRelationMoments(prepared, authored), ...checkLandingAttached(prepared), ...checkNoEarlyReveal(prepared),
-        ...checkRelationConstruction(prepared, authored), ...checkParentAfterChildren(prepared), ...checkWholeParent(prepared),
+        ...checkRelationConstruction(prepared, authored), ...checkParentAfterChildren(prepared), ...checkWholeParent(prepared), ...checkWordWithCategory(prepared),
         ...checkStableConstruction(prepared),
         ...checkContinuedOccurrences(prepared, authored),
         ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored),

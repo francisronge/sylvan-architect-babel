@@ -44,12 +44,12 @@ const paintedCaseArrows = id => {
 
 // On main the allocator tested a curve from a nominal 150-unit word box and an
 // unmeasured category layout. In cases/7 it accepted a 98.6-unit shaft for claim 4:1
-// that painted at 34.6 from frame 48, shorter than its arrowhead allows.
+// that painted at 34.6 from frame 42, shorter than its arrowhead allows.
 for (const id of ['showcase/agreement-and-case.json#/cases/7', 'showcase/agreement-and-case.json#/cases/0'])
   test(`Case allocation reserves the painted shaft of every arrow (${id})`, () => {
     const arrows = paintedCaseArrows(id);
     assert(arrows.length > 10, 'the fixture shows Case arrows');
-    if (id.endsWith('/7')) assert(arrows.some(arrow => arrow.frame === 48 && arrow.claim === '4:1'), 'frame 48 shows claim 4:1');
+    if (id.endsWith('/7')) assert(arrows.some(arrow => arrow.frame === 42 && arrow.claim === '4:1'), 'frame 42 shows claim 4:1');
     for (const { frame, claim, length } of arrows) assert(length >= CATEGORY_LINE_HEIGHT * 2,
       `frame ${frame}, claim ${claim}: the painted shaft is ${length.toFixed(1)} units`);
   });
@@ -72,8 +72,8 @@ test('a blocked bend keeps its pocket by the other exit instead of sending the p
   // the plaque went 2,387 units farther out for a 4,198-unit arrow. The side exit
   // bends above that label and keeps a nearer pocket.
   const arrow = paintedCaseArrows('replay-regressions/workspace-reservation.json#/cases/0')
-    .find(({ frame, claim }) => frame === 21 && claim === '3:1');
-  assert(arrow, 'frame 21 shows claim 3:1');
+    .find(({ frame, claim }) => frame === 19 && claim === '3:1');
+  assert(arrow, 'frame 19 shows claim 3:1');
   assert(arrow.length <= 1812.1, `the arrow is ${arrow.length.toFixed(1)} units, longer than main's straight one`);
   const { source, target } = arrow.curve;
   const sag = Math.max(...sampleCubic(source, arrow.curve.control1, arrow.curve.control2, target, 128)
@@ -82,12 +82,12 @@ test('a blocked bend keeps its pocket by the other exit instead of sending the p
 });
 
 test('an arrow that already bends on main keeps main\'s pocket and curve', () => {
-  // Francis, 24 Oct, of agreement-and-case case 7 step 31: "This was fine? Why did
+  // Francis, 24 Oct, of agreement-and-case case 7 step 25: "This was fine? Why did
   // you change this?" The [Case: inherent objective] plaque sits left of "sent",
   // and its arrow already bowed on main; a fuller bend must not move it.
   const arrow = paintedCaseArrows('showcase/agreement-and-case.json#/cases/7')
-    .find(({ frame, claim }) => frame === 31 && claim === '1:1');
-  assert(arrow, 'frame 31 shows claim 1:1');
+    .find(({ frame, claim }) => frame === 25 && claim === '1:1');
+  assert(arrow, 'frame 25 shows claim 1:1');
   assert.deepEqual([arrow.box.x, arrow.box.y].map(value => Math.round(value * 100) / 100), [5025.86, 2019]);
   assert.equal(arrow.box.caseRoute, undefined, 'the plaque keeps main\'s plain route');
   assert.deepEqual([arrow.curve.source, arrow.curve.control1, arrow.curve.control2, arrow.curve.target]

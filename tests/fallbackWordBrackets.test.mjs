@@ -134,7 +134,7 @@ test('Arabic determiner and noun: no connector point above the words it brackets
   const { loadFixtureAnalyses } = await import('./helpers/replayInvariantCorpus.mjs');
   const { layoutVisualFrames, prepareVisualRecord, VIEWPORTS } = await import('./helpers/visualFrames.mjs');
   const record = loadFixtureAnalyses().records.find(entry => entry.id === 'showcase/agreement-and-case.json#/cases/0').record;
-  const frames = layoutVisualFrames(prepareVisualRecord(record), VIEWPORTS.filter(viewport => viewport.name !== 'mobile'), { steps: [13, 14] });
+  const frames = layoutVisualFrames(prepareVisualRecord(record), VIEWPORTS.filter(viewport => viewport.name !== 'mobile'), { steps: [8, 9] });
   let checked = 0;
   for (const frame of frames) for (const line of frame.lines.filter(line => line.kind === 'connector')) {
     const words = frame.texts.filter(text => text.kind === 'word' && text.nodes.some(node => line.nodes.includes(node)));

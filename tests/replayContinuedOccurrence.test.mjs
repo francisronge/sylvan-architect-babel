@@ -21,7 +21,7 @@ const stage = steps.flatMap((step, index) => step.replayFrameIndex === 1 ? [inde
 
 test('a renamed node that keeps its slot and daughters continues its predecessor: the stage builds only N + P -> N', () => {
   assert.deepEqual(stage.filter(index => steps[index].replayKind === 'micro').map(index => [steps[index].operation, steps[index].targetNodeId]), [
-    ['ExternalMerge', 'restrictedN'], ['LexicalSelect', 'be::__leaf'], ['Project', 'be'], ['ExternalMerge', 'existV']
+    ['ExternalMerge', 'restrictedN'], ['LexicalSelect', 'be'], ['ExternalMerge', 'existV']
   ], 'no step tears down or rebuilds the Num or the D');
   for (const index of [completion, ...stage]) {
     const { children } = frameStructure(steps[index]);
@@ -54,7 +54,7 @@ test('a word under a continued occurrence keeps its painted identity and is not 
   const done = list.findLastIndex(step => step.replayFrameIndex === 0);
   const own = list.flatMap((step, index) => step.replayFrameIndex === 1 ? [index] : []);
   assert.deepEqual(own.filter(index => list[index].replayKind === 'micro').map(index => [list[index].operation, list[index].targetNodeId]), [
-    ['ExternalMerge', 'restrictedN'], ['LexicalSelect', 'be::__leaf'], ['Project', 'be'], ['ExternalMerge', 'existV']
+    ['ExternalMerge', 'restrictedN'], ['LexicalSelect', 'be'], ['ExternalMerge', 'existV']
   ], 'three is already on screen, so the stage never selects it again');
   for (const index of [done, ...own]) {
     const { children } = frameStructure(list[index]);

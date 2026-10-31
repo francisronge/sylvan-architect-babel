@@ -34,19 +34,19 @@ test('the fixtures were measured', () => {
 // The expletive keeps its ID around its new trace. It waits at that trace's slot
 // from its selection, so its departure moves nothing in IP.
 test('a source that keeps its ID around its lower occurrence waits at that occurrence\'s slot', () => {
-  assert.ok(Math.abs(x('source', 36, 'subjectLow') - x('source', 37, 'subjectLow')) < 1, 'the expletive slot moves at its departure');
-  assert.deepEqual(replayMotionFaults(measured.source).filter(item => item.frame === 37 && item.distance >= 20), []);
+  assert.ok(Math.abs(x('source', 30, 'subjectLow') - x('source', 31, 'subjectLow')) < 1, 'the expletive slot moves at its departure');
+  assert.deepEqual(replayMotionFaults(measured.source).filter(item => item.frame === 31 && item.distance >= 20), []);
 });
 
 // When the honorific head leaves its phrase, that phrase recentres left; tense,
 // which its new head complex wraps, no longer waits in the complex's slot, which
 // would move I′ the whole of half that recentring.
 test('a receiving host does not wait where its wrapper moves the parent farther', () => {
-  assert.ok(fault('tense', 45, 'inflectionBar') < 88, `I′ shape-motion ${fault('tense', 45, 'inflectionBar')}`);
+  assert.ok(fault('tense', 37, 'inflectionBar') < 88, `I′ shape-motion ${fault('tense', 37, 'inflectionBar')}`);
 });
 
 // The interrogative C waits as its own workspace; its complex forms far to the
 // left of it once the auxiliary arrives. It waits nearer that slot, so C′ moves less.
 test('a receiving host waiting as its own workspace waits nearer the slot that keeps its parent still', () => {
-  assert.ok(fault('question', 49, 'matrixCBar') < 157, `C′ shape-motion ${fault('question', 49, 'matrixCBar')}`);
+  assert.ok(fault('question', 42, 'matrixCBar') < 157, `C′ shape-motion ${fault('question', 42, 'matrixCBar')}`);
 });

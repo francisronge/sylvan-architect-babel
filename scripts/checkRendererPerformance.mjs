@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { readFile, writeFile, mkdir, realpath, appendFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { execFile } from 'node:child_process';
 import { parseArgs, promisify } from 'node:util';
 import { chromium } from 'playwright';
@@ -55,7 +56,10 @@ try {
     const runtime = await buildQualificationReviewRuntime({ root: source, entrySource: entry });
     const revision = await promisify(execFile)('git', ['rev-parse', 'HEAD'], { cwd: source }).then(result => result.stdout.trim()).catch(() => null);
     report.builds[name] = { ...runtime.metadata, revision };
-    builds.set(name, { source, entry, metadata: runtime.metadata });
+    // The slider must reach the last step of this revision's own Replay of the fixture.
+    const { prepareReplay } = await import(pathToFileURL(path.join(source, 'replay/prepareReplay.ts')).href);
+    const steps = prepareReplay({ ...structuredClone(fixture), includePlayback: true }).playbackSteps.length;
+    builds.set(name, { source, entry, metadata: runtime.metadata, steps });
     assets.set(`/${name}/runtime.js`, ['text/javascript', runtime.js]);
     assets.set(`/${name}/runtime.css`, ['text/css', runtime.css]);
     assets.set(`/${name}/`, ['text/html', `<!doctype html><html><head><meta charset="utf-8">
@@ -92,9 +96,10 @@ try {
         assert.equal(sample.complete.invalid, 0, 'layout coordinates must be finite');
       }
       const slider = page.getByRole('slider', { name: 'Replay frame', exact: true });
-      assert.equal(await slider.getAttribute('max'), '73', 'the full 74-frame Replay remains available');
+      const last = String(builds.get(name).steps - 1);
+      assert.equal(await slider.getAttribute('max'), last, `the full ${builds.get(name).steps}-frame Replay remains available`);
       await slider.press('End');
-      await page.waitForFunction(() => window.__rendererBenchmark.settledStep === '73', null, { timeout: 10000 });
+      await page.waitForFunction(step => window.__rendererBenchmark.settledStep === step, last, { timeout: 10000 });
       const text = await page.locator('svg[data-babel-tree]').textContent();
       for (const word of ['Mara', 'glaubt', 'Lehrer', 'Bericht', 'lesen', 'wird']) assert(text.includes(word), `missing final word: ${word}`);
       assert.deepEqual(errors, [], 'no browser or external-resource errors');

@@ -9,19 +9,19 @@ import { ownOccupant } from '../replay/relations/pocketHold.ts';
 /* A plaque keeps one pocket for its lifetime, clear of every mark painted in that
  * lifetime; a mark its stage first paints after the lifetime ends is no obstacle while
  * the anchor moves first. In this saved Claude analysis the theta grid of lv2 has a
- * lifetime from step 31 to step 41, but lv2 stands still to the end of stage 5 (step
- * 46), so the Replay step hold keeps the grid's pocket until the stage's tense link
- * T2–v_prom appears at step 45. The pocket must stay clear of that link too: a nearer
- * pocket for steps 31–41 that the link takes made the grid jump 529 units beside lv2
- * at frame 45. */
+ * lifetime from step 25 to step 34, but lv2 stands still to the end of stage 5 (step
+ * 39), so the Replay step hold keeps the grid's pocket until the stage's tense link
+ * T2–v_prom appears at step 38. The pocket must stay clear of that link too: a nearer
+ * pocket for steps 25–34 that the link takes made the grid jump 529 units beside lv2
+ * at frame 38. */
 
 const record = JSON.parse(readFileSync(new URL('./helpers/laterMarkPocketRecord.json', import.meta.url), 'utf8'));
-const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: Array.from({ length: 11 }, (_, i) => 36 + i) });
+const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: Array.from({ length: 11 }, (_, i) => 29 + i) });
 const grid = frame => frame.plaques.find(plaque => plaque.grid && plaque.anchorNodeId === 'lv2');
 
 test('control: the pocket stays clear of every mark painted while the plaque holds it', () => {
-  // The grid holds its pocket through frame 46; frame 45 paints the tense link.
-  assert(frames.some(frame => frame.frame === 45 && frame.lines.some(line => line.kind === 'connector')), 'frame 45 paints the link');
+  // The grid holds its pocket through frame 39; frame 38 paints the tense link.
+  assert(frames.some(frame => frame.frame === 38 && frame.lines.some(line => line.kind === 'connector')), 'frame 38 paints the link');
   for (const frame of frames) {
     const plaque = grid(frame), pocket = plaque && { ...plaque.rect, ...plaque.size };
     if (!plaque) continue;
@@ -40,9 +40,9 @@ const offsetJumps = (list, plaqueOf) => list.slice(1).flatMap((frame, index) => 
 });
 
 test('a plaque beside a still anchor keeps one offset through the rest of its stage', () => {
-  // After the participant movement at frame 42, lv2 stays still to the end of stage 5
-  // (frame 46); the grid keeps one offset there, also when the tense link appears at 45.
-  const stage = frames.filter(frame => frame.frame >= 42 && frame.stage === 5);
+  // After the participant movement at frame 35, lv2 stays still to the end of stage 5
+  // (frame 39); the grid keeps one offset there, also when the tense link appears at 38.
+  const stage = frames.filter(frame => frame.frame >= 35 && frame.stage === 5);
   assert.equal(stage.length, 5);
   for (const frame of stage) assert.deepEqual([frame.painted.get('lv2').x, frame.painted.get('lv2').y],
     [stage[0].painted.get('lv2').x, stage[0].painted.get('lv2').y], `lv2 stays still at frame ${frame.frame}`);
@@ -50,13 +50,13 @@ test('a plaque beside a still anchor keeps one offset through the rest of its st
 });
 
 
-/* At frame 41 the Case plaque of T2 appears. The schedule had it in the grid's pocket for
+/* At frame 34 the Case plaque of T2 appears. The schedule had it in the grid's pocket for
  * that phase, but a plaque shown first at a step takes the pocket it keeps for the rest of
  * its stage (holdPockets), away from the grid. The grid's hold is judged against where
  * that plaque stands, not its scheduled pocket: let go against the scheduled one, the grid
- * jumped 99 units beside the still lv2 into a pocket 1.19 of its reach and again at 42. */
+ * jumped 99 units beside the still lv2 into a pocket 1.19 of its reach and again at 35. */
 test('a plaque shown first at a step does not push a held grid out of a pocket it leaves free', () => {
-  assert(frames.some(frame => frame.frame === 41 && frame.plaques.some(plaque => plaque.id.endsWith('@T2'))), 'frame 41 shows the T2 Case plaque');
+  assert(frames.some(frame => frame.frame === 34 && frame.plaques.some(plaque => plaque.id.endsWith('@T2'))), 'frame 34 shows the T2 Case plaque');
   assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject} ${Math.round(found.measure)}`), []);
   const stage = frames.filter(frame => frame.stage === 5);
   assert.deepEqual(offsetJumps(stage, grid), []);
