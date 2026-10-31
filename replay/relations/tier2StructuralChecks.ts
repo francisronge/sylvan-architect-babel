@@ -183,7 +183,8 @@ export const evaluateStructuralCheck = (
       if (!head) return true;
       // Categories come from the shared notation reader, so v*, v[uφ], v{uφ}
       // and v⁰ share one spine with v, v′ and v*P. As in phase-edge recovery,
-      // a compound label (V+v) or one the reader declines has no category here.
+      // the spine never runs through a compound label (V+v) or one the reader
+      // declines.
       const shapeOf = (text?: string | null) => {
         const shape = readCategoryLabel(text);
         return shape && !shape.compound ? shape : undefined;
@@ -203,9 +204,11 @@ export const evaluateStructuralCheck = (
         if (visited.has(parent) || currentIndex.nodes.get(parent)?.length !== 1
           || !headCategory || shapeOf(label(parent))?.head !== headCategory) break;
         const siblings = currentIndex.nodes.get(parent)![0].children ?? [];
+        // A sister head of the same category, alone or as any member of a
+        // compound head (v+T, T+v), heads a higher shell: stop there.
         if (foundComplement && siblings.some(sibling => {
-          const shape = shapeOf(sibling.label);
-          return sibling.id !== child && shape?.kind === 'head' && shape.head === headCategory;
+          const shape = readCategoryLabel(sibling.label);
+          return sibling.id !== child && shape?.kind === 'head' && shape.members.includes(headCategory);
         })) break;
         visited.add(parent);
         if (domains.every(domain => domain !== child && currentIndex.parentIds.get(domain)?.has(parent))) foundComplement = true;

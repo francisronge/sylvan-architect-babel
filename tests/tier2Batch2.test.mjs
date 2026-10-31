@@ -233,7 +233,9 @@ test('Transfer stops its phase-head spine at a second head of the same category 
     leaf('h2', { label: higherHead, word: undefined, silent: true }),
     node('phase', 'vP', [leaf('a'), node('vbar', "v'", [leaf('h', { label: head, word: undefined, silent: true }),
       node('vp', 'VP', [leaf('obj')])])])])])];
-  for (const [head, higherHead] of [['v', 'v'], ['v', 'v[uφ]'], ['v*', 'v'], ['v[uφ]', 'v*']]) {
+  // A compound higher head (v+T, T+v) is still a second v head, in either member order.
+  for (const [head, higherHead] of [['v', 'v'], ['v', 'v[uφ]'], ['v*', 'v'], ['v[uφ]', 'v*'],
+    ['v*', 'v+T'], ['v*', 'T+v'], ['v[uφ]', 'v+T'], ['v[uφ]', 'T+v']]) {
     const tree = shells(head, higherHead), name = `${head} below ${higherHead}`;
     assert(has(inspect(relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'a' }), tree), 'transfer.domain'), name);
     assert(!has(inspect(relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'b' }), tree), 'transfer.domain'), name);
