@@ -601,10 +601,12 @@ for (const record of records) {
   }
 }
 
-test('below-tree plaques cannot escape a connector stem by moving below its tree reservation', () => {
+test('below-tree plaques cannot escape a straight connector stem by moving below its tree reservation', () => {
+  // A link whose other participant the scene does not show cannot bracket words,
+  // so its column is the straight stem, reserved down past every plaque.
   const nodes = tree().descendants();
   const item = plaque(['root'], true);
-  const fallback = { kind: 'fallback', drawing: { marks: [], link: { endpoints: ['root', 'right'] } } };
+  const fallback = { kind: 'fallback', drawing: { marks: [], link: { endpoints: ['root', 'absent'] } } };
   const stems = plaqueConnectorObstacles([fallback], nodes);
   const original = placeStagePlaques([item], nodes).get(0);
   const result = placeStagePlaques([item], nodes, [...plaqueTreeObstacles(nodes), ...stems],

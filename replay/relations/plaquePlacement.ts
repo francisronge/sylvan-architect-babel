@@ -2,8 +2,10 @@ import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from '../categoryTextLayout.ts';
 import { CATEGORY_FALLBACK_GLYPH_WIDTH, CATEGORY_LINE_HEIGHT, nominalLabelWidth, TERMINAL_ATTACHMENT_Y } from '../rendererMetrics.ts';
+import { TREE_ROW_HEIGHT } from '../treeSpacing.ts';
 import { isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf } from '../replaySurfaceNotation.ts';
 import { cubicIntersectsRect } from './curveClearance.ts';
+import { coveredWordSpan } from './fallbackSpans.ts';
 import {
   caseFeatureComposition,
   collectionPlaque,
@@ -51,6 +53,8 @@ export type PlaqueRect = ObstacleRect & {
   caseRoute?: CaseArrowRoute;
   blocksConnectors?: boolean; connectorAttachment?: string;
   connectorInk?: { x: number; y: number; width: number; height: number };
+  /** A neutral link's participant column (plaqueConnectorObstacles). */
+  linkColumn?: boolean;
   /** A fixed native plaque's footprint: a plaque, not syntax or a connector. */
   plaqueShell?: boolean;
   /** A sampled movement trajectory: like a plaque, it keeps the full gap when syntax gets a narrower one. */
@@ -343,25 +347,55 @@ export function plaqueTreeObstacles(nodes: Node[], measureCategoryText?: Categor
   return rectangles;
 }
 
-/** Reserve the straight stems below neutral-link witnesses before placing plaques.
- * A link that brackets its words instead (fallbackGeometry.ts) draws below the
- * words; the column stays reserved, and its floor still clears every plaque. */
+/** Reserve each neutral link's participant columns before placing plaques.
+ * A link between two shown participants brackets the words each covers
+ * (fallbackGeometry.ts): its brackets hang below all syntax over the link, its
+ * lane runs beneath them and its labels beneath the lane, and the lane drops
+ * below each plaque it comes near. A bracket underlines its participant's words,
+ * so the column under a participant covering words reaches from its lowest label
+ * down past every plaque: a plaque there would take the bracket away from its
+ * words. A participant covering no word marks its place with a tick in the row
+ * of words and paints nothing above it, so its column starts in that row and ends
+ * one tree row below the syntax over the link, keeping the label-height clearance
+ * it keeps above; below that a plaque keeps its pocket through the link's moment.
+ * A link that does not bracket (a participant missing from the scene) keeps the
+ * straight stem column under each shown participant. */
 export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[]): PlaqueRect[] {
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   const included = new Set(nodes);
   const bottom = Math.max(0, ...nodes.map(node => node.y + 175));
-  const ids = new Set(items.flatMap(item => item.kind === 'fallback'
-    ? item.drawing.link?.endpoints ?? [] : []));
-  return [...ids].flatMap(id => {
-    const anchor = byId.get(id);
-    if (!anchor) return [];
+  let syntax: PlaqueRect[] | undefined;
+  // The word box plaqueTreeObstacles reserves for a terminal.
+  const wordBox = (node: Node): PlaqueRect | null => {
+    if (!included.has(node)) return null;
+    const width = nominalLabelWidth(String(node.data.word || resolveLeafSurface(node)));
+    return { x: node.x - width / 2, y: node.y + 65, width, height: 110 };
+  };
+  const columns = new Map<string, PlaqueRect>();
+  const column = (anchor: Node, floor?: number) => {
     const subtree = anchor.descendants().filter(node => included.has(node));
     const bounds = boundingRect(plaqueTreeObstacles(subtree));
     // Allow a label-height of clearance for the estimated text centre. The
     // browser attaches to measured ink; neither attachment nor path is moved.
-    const x = bounds.x + bounds.width / 2, y = Math.max(...subtree.map(node => node.y)) - 42;
-    return [{ x: x - 42, y, width: 84, height: bottom - y, extendsDownward: true }];
-  });
+    const x = bounds.x + bounds.width / 2 - 42, y = (floor ?? Math.max(...subtree.map(node => node.y))) - 42;
+    const rect: PlaqueRect = floor === undefined ? { x, y, width: 84, height: bottom - y, extendsDownward: true, linkColumn: true }
+      : { x, y, width: 84, height: floor + TREE_ROW_HEIGHT + 42 - y, linkColumn: true };
+    columns.set(JSON.stringify(rect), rect);
+  };
+  for (const item of items) {
+    const link = item.kind === 'fallback' ? item.drawing.link : undefined;
+    if (!link) continue;
+    const anchors = link.endpoints.map(id => byId.get(id));
+    const spans = anchors.length === 2 && anchors[0] && anchors[1] && anchors[0] !== anchors[1]
+      ? anchors.map(anchor => coveredWordSpan(anchor!, wordBox)) : undefined;
+    const xs = spans?.flatMap(span => span.tick !== null ? [span.tick - 42, span.tick + 42] : span.runs.flatMap(run => [run.x1, run.x2]));
+    const [x1, x2] = xs?.length ? [Math.min(...xs), Math.max(...xs)] : [NaN, NaN];
+    const floor = Math.max(...(syntax ??= plaqueTreeObstacles(nodes))
+      .filter(box => box.x < x2 && box.x + box.width > x1).map(box => box.y + box.height));
+    if (spans && Number.isFinite(floor)) spans.forEach((span, index) => column(anchors[index]!, span.tick === null ? undefined : floor));
+    else for (const anchor of anchors) if (anchor) column(anchor);
+  }
+  return [...columns.values()];
 }
 
 /** `realizedForm`: a realization group's plate (realizationDisplay.ts). It attaches at its word when
@@ -1442,13 +1476,13 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       const kept = [priorCandidate, incumbent].find(box => box && box === placement);
       const location = placement ? kept ? kept.location : 'local' : 'below';
       if (!placement) {
-        // A connector's lower lane clears all plaques, so its stems extend past
-        // every below-tree plaque. Each column clear of the stems descends past
-        // its own collisions; the landing nearest the subtree's ideal spot wins,
-        // so a blocked column cannot send the plaque down through unrelated syntax.
+        // A below-tree plaque stands in no link's column, whose lane may run lower
+        // than the column reaches. Each column clear of the link columns descends past
+        // its own collisions; the landing nearest the subtree's ideal spot wins, so a
+        // blocked column cannot send the plaque down through unrelated syntax.
         const idealX = domainBounds.x + domainBounds.width / 2 - width / 2;
         const top = domainBounds.y + domainBounds.height + 60;
-        const stems = occupied.filter(box => box.extendsDownward);
+        const stems = occupied.filter(box => box.extendsDownward || box.linkColumn);
         const gap = 24 + 1e-6;
         const descend = (x: number): number => {
           let y = top;

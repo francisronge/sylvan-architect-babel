@@ -634,11 +634,16 @@ including an authored wordless category witness. It never averages a phrase's
 terminal positions into a light target between words. Target measurements follow
 the displayed text through zoom and pan; illumination does not assign pronunciation.
 
-Plaque placement reserves syntax, movement trajectories and the straight stems
-of neutral links across the complete stage. Small plaques try measured nearby gaps when the usual pockets are blocked;
+Plaque placement reserves syntax, movement trajectories and the participant columns
+of neutral links across the complete stage. A link between two shown participants
+brackets their words: the column under a participant covering words runs from its
+lowest label down past every plaque, while one covering no word, marked only by a tick
+in the row of words, reserves from that row to one tree row below the syntax over the
+link. A link that cannot bracket keeps a straight stem column under each shown
+participant. Small plaques try measured nearby gaps when the usual pockets are blocked;
 large plaques retain their below-subtree placement. A carried plaque keeps its
 offset unless new stage geometry occupies it. Neutral lower connectors retain straight stems and separate lanes. Plaques
-yield to their reserved stems; the lower lanes clear plaque bottoms. They also drop below tree text of
+yield to their reserved columns; the lower lanes clear plaque bottoms. They also drop below tree text of
 the stage that their turns or runs would cross, to the nearest gap within one tree row; where unrelated text
 leaves no such gap, they keep their local floor rather than descend beneath it. Visible tree text is
 painted in front of every neutral connector: a mask hides the connector only under the letters and their dark

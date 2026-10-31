@@ -18,24 +18,26 @@ const record = corpus.records.find(entry => entry.id === 'replay-regressions/rev
 const subject = 'plaque(5:1 theta theme)@mV';
 const offset = plaque => [Math.round(plaque.rect.x - plaque.anchor.x), Math.round(plaque.rect.y - plaque.anchor.y)];
 
-// Since its stage's Agree claims draw Case on their paths (Francis, 30 Oct 2026), a
-// pocket 173 units away opens at frame 55 and the early pocket would cost 501, so the
-// trade of PR #285 keeps the grid until frame 55, where new syntax (bookBase) takes its
-// pocket, and it moves once. Approval: { by: 'Francis', on: '2026-10-30', note: '1. Yes.
-// (accepting the Case-on-Agree layouts: n4-13 Location grid 1.17× reach;
-// review-workspace-boundaries theme grid moves at step 55)' }, in the lead session.
-test('a θ-grid keeps its pocket in stage 8 until new syntax takes it at frame 55, then holds one pocket', () => {
+// Since its stage's Agree claims draw Case on their paths (Francis, 30 Oct 2026), main
+// kept this grid at [66, -15] into stage 8 and moved it 175 units at frame 55, where new
+// syntax (bookBase) takes that pocket (approved then as a trade-off: '1. Yes. (accepting
+// the Case-on-Agree layouts: n4-13 Location grid 1.17× reach; review-workspace-boundaries
+// theme grid moves at step 55)', lead session). Neutral links now reserve only the space
+// they draw (plaqueConnectorObstacles), and a nearer pocket clear of bookBase opens: the
+// grid takes it where stage 8 begins and holds it, 0.59 of its reach instead of 0.65 and
+// then 0.97, with no move at frame 55.
+test('a θ-grid leaves a pocket its stage lays out syntax in where stage 8 begins, then holds one pocket', () => {
   const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: [52, 53, 54, 55, 56] });
   const pockets = frames.map(frame => ({ frame: frame.frame, stage: frame.stage,
     offset: offset(frame.plaques.find(plaque => plaque.id === subject)) }));
   assert.deepEqual(pockets.map(({ stage }) => stage), [7, 8, 8, 8, 8]);
-  assert.deepEqual(pockets.map(({ offset }) => offset), [[66, -15], [66, -15], [66, -15], [174, 120], [174, 120]],
+  assert.deepEqual(pockets.map(({ offset }) => offset), [[-459, 38], [-476, -64], [-476, -64], [-476, -64], [-476, -64]],
     JSON.stringify(pockets));
-  // The move at frame 55 is owned: that frame paints the bookBase label in the earlier pocket.
-  const [, , before, at] = frames, prior = before.plaques.find(plaque => plaque.id === subject);
-  const box = prior.rect, overlaps = b => b.x < box.x + box.width && box.x < b.x + b.width && b.y < box.y + box.height && box.y < b.y + b.height;
-  assert(at.texts.some(text => text.id === 'bookBase:category' && text.boxes.some(overlaps)));
-  assert(!before.texts.some(text => text.id === 'bookBase:category' && text.boxes.some(overlaps)));
+  // bookBase, painted from frame 55, stays clear of the pocket the grid holds through stage 8.
+  const at = frames[3], held = at.plaques.find(plaque => plaque.id === subject).rect;
+  const overlaps = b => b.x < held.x + held.width && held.x < b.x + b.width && b.y < held.y + held.height && held.y < b.y + b.height;
+  assert(at.texts.some(text => text.id === 'bookBase:category'));
+  assert(!at.texts.some(text => text.id === 'bookBase:category' && text.boxes.some(overlaps)));
   assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject} ${found.measure}`), []);
 });
 

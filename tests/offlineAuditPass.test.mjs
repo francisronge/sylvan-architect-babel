@@ -9,10 +9,9 @@ import { promisify } from 'node:util';
 
 const script = fileURLToPath(new URL('../scripts/auditReplayVisuals.mjs', import.meta.url));
 const run = promisify(execFile);
-// One analysis with findings in both audits, so equal reports are not empty ones.
-// Its visual findings are listed distant plaques; its camera findings are listed
-// first-paint jumps and settled-path differences.
-const RECORD = 'replay-regressions/waiting-root-continuity.json#';
+// Two analyses with findings in both audits between them, so equal reports are not
+// empty ones: the first has listed distant plaques, the second listed first-paint jumps.
+const RECORD = 'replay-regressions/sol-spanish-qr.json#/analyses/';
 const VISUAL = ['--audit', 'visual', '--viewports', 'desktop,desktop-large'];
 const CAMERA = ['--audit', 'camera', '--viewports', 'desktop,mobile'];
 
@@ -23,15 +22,15 @@ test('one pass reports each audit exactly as its own run does', async t => {
   const out = name => path.join(directory, `${name}.json`);
   await Promise.all([audit(...VISUAL, '--out', out('visual')), audit(...CAMERA, '--out', out('camera'))]);
   const { stdout } = await audit(...VISUAL, '--out', out('shared-visual'), ...CAMERA, '--out', out('shared-camera'));
-  assert.match(stdout, /Visual audit: 1 analyses, .* in one pass with the camera audit/);
-  assert.match(stdout, /Camera audit: 1 analyses, .* in one pass with the visual audit/);
+  assert.match(stdout, /Visual audit: 2 analyses, .* in one pass with the camera audit/);
+  assert.match(stdout, /Camera audit: 2 analyses, .* in one pass with the visual audit/);
   const read = name => {
     const { durationMs, jobs, sharedWith, ...report } = JSON.parse(readFileSync(out(name), 'utf8'));
     return report;
   };
   for (const name of ['visual', 'camera']) {
     const own = read(name);
-    assert.equal(own.records, 1);
+    assert.equal(own.records, 2);
     assert.deepEqual(own.errors, []);
     assert.ok(own.findings.length > 0, `${name}: the record has findings to compare`);
     assert.deepEqual(read(`shared-${name}`), own, name);
