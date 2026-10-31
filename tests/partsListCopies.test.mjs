@@ -174,3 +174,30 @@ test('a copy of a very deep source is reported as too deep, not by a crash', () 
   assert.equal(issue?.stageIndex, 0);
   assert.match(issue?.message, /the subtree copied from "d0" nests deeper than 256 levels/);
 });
+
+// Sol review on #340 (284f669): a copy's generated descendant id replaced an
+// unrelated node of an earlier stage, so q's child silently became "cat".
+test('a copy may not rename a node an earlier stage defined for something else', () => {
+  const earlier = stage(['q', 'p'], [{ id: 'low/n', label: 'N', word: 'dog' }, { children: ['low/n'], id: 'q', label: 'Q' },
+    { id: 'n', label: 'N', word: 'cat' }, { children: ['n'], id: 'p', label: 'P' }]);
+  const { issue } = expandPartsListAnalysis({ derivationStages: [earlier, stage(['q', 'p', 'low'], [{ id: 'low', copyOf: 'p' }])] });
+  assert.match(issue?.message, /would name a descendant "low\/n", which already names another node, defined in stage 1/);
+  // The same copy written again in a later stage keeps naming its own descendants.
+  const recopied = expandPartsListAnalysis({ derivationStages: [
+    stage(['p'], [{ id: 'n', label: 'N', word: 'cat' }, { children: ['n'], id: 'p', label: 'P' }]),
+    stage(['p', 'low'], [{ id: 'low', copyOf: 'p' }]),
+    stage(['p', 'low'], [{ id: 'n', label: 'N', word: 'cat', silent: true }, { id: 'low', copyOf: 'p' }])
+  ] });
+  assert.equal(recopied.issue, undefined, recopied.issue?.message);
+  assert.equal(recopied.analysis.derivationStages[2].workspaceForest[1].children[0].silent, true);
+});
+
+// Sol review on #340 (284f669): a copy entry dropped fields such as
+// tokenIndex that an ordinary node would have had checked.
+test('a copy entry carries only id, copyOf, label, word, silent and lineageId', () => {
+  const base = [{ id: 'n', label: 'N', word: 'car' }];
+  for (const field of ['tokenIndex', 'surfaceSpan', 'mystery']) {
+    const { issue } = expandPartsListAnalysis({ derivationStages: [stage(['n'], base), stage(['n', 'low'], [{ id: 'low', copyOf: 'n', [field]: 999 }])] });
+    assert.match(issue?.message, new RegExp(`nodes\\[0\\]\\.${field}: expected no ${field}; a copy entry has only id, copyOf, label, word, silent and lineageId`));
+  }
+});

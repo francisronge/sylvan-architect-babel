@@ -14,6 +14,9 @@
 
 const PARTS_LIST_STAGE_FIELDS = ['statement', 'stageRecord', 'relations', 'workspace', 'nodes', 'realizations'];
 const REQUIRED_PARTS_LIST_STAGE_FIELDS = ['statement', 'stageRecord', 'relations', 'workspace', 'nodes'];
+// A copy entry takes everything else from the node it copies, so a field it
+// would otherwise drop unchecked is rejected instead.
+const COPY_ENTRY_FIELDS = ['id', 'copyOf', 'label', 'word', 'silent', 'lineageId'];
 
 // The expanded forest is bounded like the spelling check's reading of it:
 // saved analyses stay far below these limits.
@@ -58,10 +61,12 @@ const describeReceived = (value) => (typeof value === 'undefined' ? 'a missing f
  * inside it is named copyId/sourceId. A copy waits for the copies of its stage
  * that it reaches, so a copy of a copy sees that copy expanded. A copy may
  * reach a node another copy of the stage names only through that copy's own
- * root, and two copies may not name the same node. Faults are collected and
- * the same one is reported whatever order the entries are listed in.
+ * root, and two copies may not name the same node. A copied node's name may
+ * already exist only as that same copy's descendant from an earlier stage
+ * (`copyOwners`, kept across stages). Faults are collected and the same one
+ * is reported whatever order the entries are listed in.
  */
-const expandStageCopies = (stage, path, define, definitionOf, stageIds, fail) => {
+const expandStageCopies = (stage, path, define, definitionOf, stageIds, copyOwners, existingStageOf, fail) => {
   const copies = stage.nodes.map((node, nodeIndex) => ({ node, nodeIndex })).filter(({ node }) => Object.hasOwn(node, 'copyOf'));
   if (!copies.length) return;
   const copyIds = new Set(copies.map(({ node }) => node.id));
@@ -131,6 +136,9 @@ const expandStageCopies = (stage, path, define, definitionOf, stageIds, fail) =>
             const [first, second] = [namedBy.get(childTarget), { node: entry, nodeIndex }].sort((a, b) => a.nodeIndex - b.nodeIndex);
             problem(1, first.nodeIndex, -1, 'copyOf', first.node.copyOf, 'copies whose descendant ids are distinct',
               `the copies ${quoted(first.node.id)} and ${quoted(second.node.id)} would both name a descendant ${quoted(childTarget)}`);
+          } else if (definitionOf(childTarget) && copyOwners.get(childTarget) !== entry.id) {
+            note(1, 'copyOf', entry.copyOf, 'a copy whose descendant ids are new',
+              `copying ${from} would name a descendant ${quoted(childTarget)}, which already names another node, defined in stage ${existingStageOf(childTarget) + 1}; give the copy an id whose descendants are new`);
           } else {
             targets.add(childTarget);
             namedBy.set(childTarget, { node: entry, nodeIndex });
@@ -182,6 +190,7 @@ const expandStageCopies = (stage, path, define, definitionOf, stageIds, fail) =>
     const [first] = problems.sort((a, b) => a.rank - b.rank || a.nodeIndex - b.nodeIndex || a.seq - b.seq);
     fail(...first.args);
   }
+  namedBy.forEach(({ node }, id) => copyOwners.set(id, node.id));
 };
 
 /**
@@ -202,6 +211,9 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
 
   // id -> { node, stageIndex, nodeIndex }: the latest definition of each node.
   const definitions = new Map();
+  // copied node id -> the copy that names it, so a later copy cannot rename
+  // a node that belongs to something else.
+  const copyOwners = new Map();
   let analysisNodes = 0;
   try {
     stages.forEach((stage, stageIndex) => {
@@ -241,6 +253,8 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
         if (copy) {
           if (!isNonblankString(node.copyOf)) fail(`${nodePath}.copyOf`, node.copyOf, 'the id of the node this entry copies');
           if (Object.hasOwn(node, 'children')) fail(`${nodePath}.children`, node.children, 'no children; a copy takes its structure from the node it copies');
+          const extra = Object.keys(node).find(field => !COPY_ENTRY_FIELDS.includes(field));
+          if (extra !== undefined) fail(`${nodePath}.${extra}`, node[extra], `no ${extra}; a copy entry has only ${COPY_ENTRY_FIELDS.slice(0, -1).join(', ')} and ${COPY_ENTRY_FIELDS.at(-1)}`);
         }
         if ((!copy || Object.hasOwn(node, 'label')) && !isNonblankString(node.label)) fail(`${nodePath}.label`, node.label, 'a nonblank string');
         if (Object.hasOwn(node, 'children')) {
@@ -263,7 +277,7 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
       stage.nodes.forEach((node, nodeIndex) => definitions.set(node.id, { node, stageIndex, nodeIndex }));
 
       expandStageCopies(stage, path, (id, node, nodeIndex) => definitions.set(id, { node, stageIndex, nodeIndex }),
-        id => definitions.get(id)?.node, stageIds, fail);
+        id => definitions.get(id)?.node, stageIds, copyOwners, id => definitions.get(id)?.stageIndex, fail);
 
       // Every node this stage lists must resolve and stay acyclic, even one that
       // no root reaches yet.
