@@ -122,17 +122,55 @@ test('a copy fails at once when its source lists one node twice, however deep', 
   assert.match(issue.message, /lists "n40" more than once/);
 });
 
-// Codex review on #340: whether a copy waits for another copy's descendants
-// must not depend on the order the two entries are listed in.
-test('a copy of structure that names another copy\'s descendant waits for that copy', () => {
-  const run = (copies) => expandPartsListAnalysis({ derivationStages: [
+// Codex review on #340: a copy reaching a node that another copy of its stage
+// names (c/n) read it before or after it existed, depending on entry order.
+// Now it fails the same way in both orders; copying the copy itself works.
+test('a copy may reach another copy of its stage only through that copy, in any entry order', () => {
+  const run = (copies, p = ['c/n']) => expandPartsListAnalysis({ derivationStages: [
     stage(['q'], [{ id: 'n', label: 'N', word: 'car' }, { children: ['n'], id: 'q', label: 'Q' }]),
-    stage(['p', 'z'], [...copies, { children: ['c/n'], id: 'p', label: 'P' }])
+    stage(['q', 'z'], [...copies, { children: p, id: 'p', label: 'P' }])
   ] });
-  for (const copies of [[{ id: 'z', copyOf: 'p' }, { id: 'c', copyOf: 'q' }], [{ id: 'c', copyOf: 'q' }, { id: 'z', copyOf: 'p' }]]) {
-    const { analysis, issue } = run(copies);
+  const z = { id: 'z', copyOf: 'p' };
+  const c = { id: 'c', copyOf: 'q' };
+  for (const copies of [[z, c], [c, z]]) {
+    assert.match(run(copies).issue?.message, /reaches "c\/n", which the copy "c" in this stage also names; copy "c" itself instead/);
+    const { analysis, issue } = run(copies, ['c']);
     assert.equal(issue, undefined, issue?.message);
-    const z = analysis.derivationStages[1].workspaceForest[1];
-    assert.deepEqual([z.id, z.children[0].id, z.children[0].word], ['z', 'z/c/n', 'car']);
+    const copied = analysis.derivationStages[1].workspaceForest[1];
+    assert.deepEqual([copied.id, copied.children[0].id, copied.children[0].children[0].id], ['z', 'z/c', 'z/c/n']);
   }
+});
+
+// Codex review on #340 (758115a): an authored id that merely starts with a
+// copy's id is not that copy's descendant.
+test('a copy of an authored node whose id starts with the copy\'s id is an ordinary copy', () => {
+  const { analysis, issue } = expandPartsListAnalysis({ derivationStages: [
+    stage(['a/n'], [{ id: 'a/n', label: 'N', word: 'cat' }]),
+    stage(['a/n', 'a'], [{ id: 'a', copyOf: 'a/n', silent: true }])
+  ] });
+  assert.equal(issue, undefined, issue?.message);
+  assert.deepEqual(analysis.derivationStages[1].workspaceForest[1], { id: 'a', label: 'N', word: 'cat', silent: true, children: [] });
+});
+
+// Codex review on #340 (758115a): two copies naming the same descendant let
+// the later one overwrite the other's word, depending on entry order.
+test('two copies that would name the same descendant fail, in any entry order', () => {
+  const run = (copies) => expandPartsListAnalysis({ derivationStages: [
+    stage(['a', 'b'], [{ id: 'y', label: 'N', word: 'dog' }, { id: 'x/y', label: 'N', word: 'cat' },
+      { children: ['x/y'], id: 'a', label: 'A' }, { children: ['y'], id: 'b', label: 'B' }]),
+    stage(['c'], copies)
+  ] });
+  const c = { id: 'c', copyOf: 'a' };
+  const cx = { id: 'c/x', copyOf: 'b' };
+  assert.match(run([c, cx]).issue?.message, /the copies "c" and "c\/x" would both name a descendant "c\/x\/y"/);
+  assert.match(run([cx, c]).issue?.message, /the copies "c\/x" and "c" would both name a descendant "c\/x\/y"/);
+});
+
+// Codex review on #340 (758115a): a 4,000-node source overflowed the stack
+// before the depth limit was checked.
+test('a copy of a very deep source is reported as too deep, not by a crash', () => {
+  const chain = Array.from({ length: 4000 }, (_, index) => ({ id: `d${index}`, label: 'X', children: index < 3999 ? [`d${index + 1}`] : [] }));
+  const { issue } = expandPartsListAnalysis({ derivationStages: [stage(['k'], [...chain, { id: 'k', copyOf: 'd0' }])] });
+  assert.equal(issue?.stageIndex, 0);
+  assert.match(issue?.message, /the subtree copied from "d0" nests deeper than 256 levels/);
 });

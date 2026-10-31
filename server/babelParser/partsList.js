@@ -53,6 +53,138 @@ const describeReceived = (value) => (typeof value === 'undefined' ? 'a missing f
         : `a ${typeof value}`);
 
 /**
+ * Expands one stage's copy entries into ordinary definitions. Each copy takes
+ * the copied node's current label, fields and complete subtree, and every node
+ * inside it is named copyId/sourceId. A copy waits for the copies of its stage
+ * that it reaches, so a copy of a copy sees that copy expanded. A copy may
+ * reach a node another copy of the stage names only through that copy's own
+ * root, and two copies may not name the same node. Faults are collected and
+ * the same one is reported whatever order the entries are listed in.
+ */
+const expandStageCopies = (stage, path, define, definitionOf, stageIds, fail) => {
+  const copies = stage.nodes.map((node, nodeIndex) => ({ node, nodeIndex })).filter(({ node }) => Object.hasOwn(node, 'copyOf'));
+  if (!copies.length) return;
+  const copyIds = new Set(copies.map(({ node }) => node.id));
+  const namedBy = new Map(); // copied node id -> the copy that names it
+  const reads = []; // copied nodes reached that another copy may name
+  const problems = [];
+  const problem = (rank, nodeIndex, seq, field, value, expectedForm, detail) => problems.push({ rank, nodeIndex, seq,
+    args: [`${path}.nodes[${nodeIndex}].${field}`, value, expectedForm, 'DERIVATION_PARTS_LIST_VALID', detail] });
+  let copiedNodes = 0;
+
+  // Iterative, so a source of any depth reaches the diagnostics below.
+  const reachesWaiting = (sourceId, waiting) => {
+    const seen = new Set();
+    const stack = [sourceId];
+    while (stack.length) {
+      const id = stack.pop();
+      if (seen.has(id)) continue;
+      seen.add(id);
+      if (waiting.has(id)) return true;
+      const children = definitionOf(id)?.children;
+      if (Array.isArray(children)) for (const child of children) stack.push(child);
+    }
+    return false;
+  };
+
+  const expand = ({ node: entry, nodeIndex }) => {
+    let seq = 0;
+    const note = (rank, field, value, expectedForm, detail) => problem(rank, nodeIndex, seq++, field, value, expectedForm, detail);
+    const from = quoted(entry.copyOf);
+    // Each copied node gets one name, so a source reached twice would stand at
+    // two positions; stopping there also keeps the walk linear.
+    const targets = new Set();
+    const copyNode = (sourceId, targetId, depth, visiting, throughCopies) => {
+      if (sourceId.includes('/') || !definitionOf(sourceId)) reads.push({ entry, nodeIndex, seq: seq++, sourceId, throughCopies });
+      if (depth >= MAX_EXPANDED_DEPTH) {
+        note(2, 'copyOf', entry.copyOf, `a copied subtree at most ${MAX_EXPANDED_DEPTH} levels deep`,
+          `the subtree copied from ${from} nests deeper than ${MAX_EXPANDED_DEPTH} levels`);
+        return null;
+      }
+      const source = definitionOf(sourceId);
+      if (!source) {
+        note(3, 'copyOf', entry.copyOf, 'the id of a node defined in this or an earlier stage', depth === 0
+          ? `no node ${from} is defined in this or an earlier stage`
+          : `no node ${quoted(sourceId)} beneath ${from} is defined in this or an earlier stage`);
+        return null;
+      }
+      if ((copiedNodes += 1) > MAX_STAGE_NODES) {
+        fail(`${path}.nodes[${nodeIndex}].copyOf`, entry.copyOf, 'a workspace within Babel\'s size limits', 'DERIVATION_PARTS_LIST_VALID',
+          'the copies in this stage expand to more nodes than Babel reads');
+      }
+      visiting.add(sourceId);
+      const inner = copyIds.has(sourceId) ? [...throughCopies, sourceId] : throughCopies;
+      const copied = { id: targetId };
+      Object.entries(source).forEach(([key, value]) => { if (key !== 'children' && key !== 'id') copied[key] = value; });
+      if (Object.hasOwn(source, 'children')) {
+        copied.children = (Array.isArray(source.children) ? source.children : []).map(childId => {
+          const childTarget = `${entry.id}/${childId}`;
+          if (visiting.has(childId)) {
+            note(2, 'copyOf', entry.copyOf, 'a copied subtree free of cycles', `the subtree copied from ${from} contains ${quoted(childId)} inside itself`);
+          } else if (targets.has(childTarget)) {
+            note(2, 'copyOf', entry.copyOf, 'a copied subtree in which each node stands at one position',
+              `the subtree copied from ${from} lists ${quoted(childId)} more than once; each node stands at only one position`);
+          } else if (stageIds.has(childTarget)) {
+            note(1, 'copyOf', entry.copyOf, 'a copy whose descendant ids are new',
+              `copying ${from} would name a descendant ${quoted(childTarget)}, which this stage also lists`);
+          } else if (namedBy.has(childTarget)) {
+            const [first, second] = [namedBy.get(childTarget), { node: entry, nodeIndex }].sort((a, b) => a.nodeIndex - b.nodeIndex);
+            problem(1, first.nodeIndex, -1, 'copyOf', first.node.copyOf, 'copies whose descendant ids are distinct',
+              `the copies ${quoted(first.node.id)} and ${quoted(second.node.id)} would both name a descendant ${quoted(childTarget)}`);
+          } else {
+            targets.add(childTarget);
+            namedBy.set(childTarget, { node: entry, nodeIndex });
+            copyNode(childId, childTarget, depth + 1, visiting, inner);
+          }
+          return childTarget;
+        });
+      }
+      visiting.delete(sourceId);
+      if (targetId !== entry.id) define(targetId, copied, nodeIndex);
+      return copied;
+    };
+    const root = copyNode(entry.copyOf, entry.id, 0, new Set(), []);
+    if (!root) return;
+    // A copy takes the copied node's word. Restating that same word changes
+    // nothing; any other word would be a second definition, so it fails.
+    if (Object.hasOwn(entry, 'word') && entry.word !== root.word) {
+      note(4, 'word', entry.word, `no word, or the copied node's own word ${root.word === undefined ? '(it has none)' : quoted(root.word)}; a copy takes its structure from the node it copies`);
+    }
+    for (const field of ['label', 'silent', 'lineageId']) if (Object.hasOwn(entry, field)) root[field] = entry[field];
+    define(entry.id, root, nodeIndex);
+  };
+
+  let pending = copies;
+  while (pending.length) {
+    const waiting = new Set(pending.map(({ node }) => node.id));
+    const ready = pending.filter(({ node }) => !reachesWaiting(node.copyOf, waiting));
+    if (!ready.length) {
+      // The remaining copies wait on one another: some copy contains itself.
+      const { node, nodeIndex } = pending[0];
+      problem(2, nodeIndex, -1, 'copyOf', node.copyOf, node.copyOf === node.id ? 'the id of another node' : 'copies that do not contain one another',
+        node.copyOf === node.id ? `node ${quoted(node.id)} copies itself` : `copy ${quoted(node.id)} contains itself through the node it copies`);
+      break;
+    }
+    ready.forEach(expand);
+    pending = pending.filter(copy => !ready.includes(copy));
+  }
+
+  // A copy reaching a node that another copy of this stage names, other than
+  // through that copy's root, would read it before or after it is renamed
+  // depending on entry order.
+  for (const { entry, nodeIndex, seq, sourceId, throughCopies } of reads) {
+    const owner = namedBy.get(sourceId);
+    if (!owner || throughCopies.includes(owner.node.id)) continue;
+    problem(0, nodeIndex, seq, 'copyOf', entry.copyOf, 'a copy that reaches another copy of its stage only through that copy',
+      `the subtree copied from ${quoted(entry.copyOf)} reaches ${quoted(sourceId)}, which ${owner.node === entry ? 'this copy itself' : `the copy ${quoted(owner.node.id)} in this stage`} also names; copy ${quoted(owner.node.id)} itself instead`);
+  }
+  if (problems.length) {
+    const [first] = problems.sort((a, b) => a.rank - b.rank || a.nodeIndex - b.nodeIndex || a.seq - b.seq);
+    fail(...first.args);
+  }
+};
+
+/**
  * Expands one parts-list analysis into nested workspace forests.
  *
  * Returns { form, analysis } where analysis is unchanged for the nested form.
@@ -130,92 +262,8 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
       });
       stage.nodes.forEach((node, nodeIndex) => definitions.set(node.id, { node, stageIndex, nodeIndex }));
 
-      // A copy entry becomes ordinary definitions: the copied node's current
-      // label, words and subtree, each descendant named copyId/descendantId.
-      // A copy may copy another copy of this stage once that one is expanded.
-      let copiedNodes = 0;
-      let pending = stage.nodes.map((node, nodeIndex) => ({ node, nodeIndex })).filter(({ node }) => Object.hasOwn(node, 'copyOf'));
-      const pendingIds = () => new Set(pending.map(({ node }) => node.id));
-      // A copy waits for every pending copy it reaches, including one whose
-      // descendants (pendingId/...) it names, so entry order never matters.
-      const subtreeHasPending = (id, waiting, seen = new Set()) => {
-        if (seen.has(id)) return false;
-        seen.add(id);
-        if (waiting.has(id) || [...waiting].some(pendingId => id.startsWith(`${pendingId}/`))) return true;
-        if (!definitions.has(id)) return false;
-        const children = definitions.get(id).node.children;
-        return Array.isArray(children) && children.some(child => subtreeHasPending(child, waiting, seen));
-      };
-      while (pending.length) {
-        const waiting = pendingIds();
-        const ready = pending.filter(({ node }) => definitions.has(node.copyOf) && node.copyOf !== node.id
-          && !subtreeHasPending(node.copyOf, waiting));
-        if (!ready.length) {
-          const { node, nodeIndex } = pending[0];
-          const copyPath = `${path}.nodes[${nodeIndex}].copyOf`;
-          if (node.copyOf === node.id) fail(copyPath, node.copyOf, 'the id of another node', 'DERIVATION_PARTS_LIST_VALID', `node ${quoted(node.id)} copies itself`);
-          if (!definitions.has(node.copyOf)) {
-            fail(copyPath, node.copyOf, 'the id of a node defined in this or an earlier stage', 'DERIVATION_PARTS_LIST_VALID',
-              `no node ${quoted(node.copyOf)} is defined in this or an earlier stage`);
-          }
-          fail(copyPath, node.copyOf, 'copies that do not contain one another', 'DERIVATION_PARTS_LIST_VALID',
-            `copy ${quoted(node.id)} contains itself through the node it copies`);
-        }
-        for (const { node: entry, nodeIndex } of ready) {
-          const copyPath = `${path}.nodes[${nodeIndex}].copyOf`;
-          // Each copied node gets one name, copyId/sourceId, so a source reached
-          // twice would stand twice; failing then also bounds the walk.
-          const targets = new Set();
-          const copyNode = (sourceId, targetId, depth, visiting) => {
-            if (depth >= MAX_EXPANDED_DEPTH || visiting.has(sourceId)) {
-              fail(copyPath, entry.copyOf, `a copied subtree at most ${MAX_EXPANDED_DEPTH} levels deep and free of cycles`, 'DERIVATION_PARTS_LIST_VALID',
-                `the subtree copied from ${quoted(entry.copyOf)} cannot be expanded`);
-            }
-            const source = definitions.get(sourceId)?.node;
-            if (!source) {
-              fail(copyPath, entry.copyOf, 'a copied node whose subtree is defined', 'DERIVATION_PARTS_LIST_VALID',
-                `no node ${quoted(sourceId)} beneath ${quoted(entry.copyOf)} is defined in this or an earlier stage`);
-            }
-            visiting.add(sourceId);
-            const copied = { id: targetId };
-            Object.entries(source).forEach(([key, value]) => { if (key !== 'children' && key !== 'id') copied[key] = value; });
-            const sourceChildren = Array.isArray(source.children) ? source.children : [];
-            if ((copiedNodes += 1) > MAX_STAGE_NODES) {
-              fail(copyPath, entry.copyOf, 'a workspace within Babel\'s size limits', 'DERIVATION_PARTS_LIST_VALID',
-                'the copies in this stage expand to more nodes than Babel reads');
-            }
-            if (Object.hasOwn(source, 'children')) {
-              copied.children = sourceChildren.map(childId => {
-                const childTarget = `${entry.id}/${childId}`;
-                if (!visiting.has(childId) && targets.has(childTarget)) {
-                  fail(copyPath, entry.copyOf, 'a copied subtree in which each node stands at one position', 'DERIVATION_PARTS_LIST_VALID',
-                    `the subtree copied from ${quoted(entry.copyOf)} lists ${quoted(childId)} more than once; each node stands at only one position`);
-                }
-                targets.add(childTarget);
-                if (stageIds.has(childTarget)) {
-                  fail(copyPath, entry.copyOf, 'a copy whose descendant ids are new', 'DERIVATION_PARTS_LIST_VALID',
-                    `copying ${quoted(entry.copyOf)} would name a descendant ${quoted(childTarget)}, which this stage also lists`);
-                }
-                copyNode(childId, childTarget, depth + 1, visiting);
-                return childTarget;
-              });
-            }
-            visiting.delete(sourceId);
-            if (targetId !== entry.id) definitions.set(targetId, { node: copied, stageIndex, nodeIndex });
-            return copied;
-          };
-          const root = copyNode(entry.copyOf, entry.id, 0, new Set());
-          // A copy takes the copied node's word. Restating that same word changes
-          // nothing; any other word would be a second definition, so it fails.
-          if (Object.hasOwn(entry, 'word') && entry.word !== root.word) {
-            fail(`${path}.nodes[${nodeIndex}].word`, entry.word, `no word, or the copied node's own word ${root.word === undefined ? '(it has none)' : quoted(root.word)}; a copy takes its structure from the node it copies`);
-          }
-          for (const field of ['label', 'silent', 'lineageId']) if (Object.hasOwn(entry, field)) root[field] = entry[field];
-          definitions.set(entry.id, { node: root, stageIndex, nodeIndex });
-        }
-        const done = new Set(ready.map(({ node }) => node.id));
-        pending = pending.filter(({ node }) => !done.has(node.id));
-      }
+      expandStageCopies(stage, path, (id, node, nodeIndex) => definitions.set(id, { node, stageIndex, nodeIndex }),
+        id => definitions.get(id)?.node, stageIds, fail);
 
       // Every node this stage lists must resolve and stay acyclic, even one that
       // no root reaches yet.
