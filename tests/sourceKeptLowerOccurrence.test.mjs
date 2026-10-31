@@ -25,3 +25,20 @@ test('the camera carry leaves out a lower occurrence its movement emptied, as it
   assert.ok(carryReference(before, after('landing')).includes('v'), 'the rest is still held');
   assert.deepEqual(paintedShift(before, after('source')), paintedShift(before, after('landing')));
 });
+
+// A head `s` with its word moves to a landing under `top`; the renderer names a
+// word after its owner, so with the lower occurrence keeping `s` its word
+// leaves as `L::__leaf` and no daughter id survives.
+const head = painted([['top', 500, 0, null], ['t', 0, 220, 'top'], ['vp', 1000, 220, 'top'], ['s', 600, 440, 'vp'],
+  ['s::__leaf', 600, 660, 's'], ['v', 1400, 440, 'vp'], ['v::__leaf', 1400, 660, 'v']]);
+const headAfter = spelling => {
+  const landing = spelling === 'landing' ? 's' : 'L', lower = spelling === 'landing' ? 'copy' : 's';
+  return painted([['top', 500, 0, null], ['t', 0, 220, 'top'], ['land', 300, 220, 'top'], [landing, 300, 440, 'land'],
+    [`${landing}::__leaf`, 300, 660, landing], ['vp', 925, 220, 'top'], [lower, 600, 440, 'vp'],
+    ['v', 1250, 440, 'vp'], ['v::__leaf', 1250, 660, 'v']]);
+};
+
+test('the camera carry leaves out a moved head\'s lower occurrence that keeps its id, though its word is renamed', () => {
+  assert.ok(!carryReference(head, headAfter('source')).includes('s'), 'the emptied lexical lower occurrence is no reference');
+  assert.deepEqual(paintedShift(head, headAfter('source')), paintedShift(head, headAfter('landing')));
+});

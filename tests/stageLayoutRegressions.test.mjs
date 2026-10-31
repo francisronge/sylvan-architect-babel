@@ -99,7 +99,7 @@ test('Opus n4-12, source ID kept at the lower occurrence: V′ closes on NP ich 
   const bug = 'n4-12-source-kept';
   assert.ok(point(bug, 70, 'Vbar_gl').x - point(bug, 70, 'NP_ich').x < 1000, 'V′ stands far from NP ich');
   assert.deepEqual(faultsAt(bug, 69), []);
-  assert.deepEqual(faultsAt(bug, 77).filter(fault => fault.distance >= 200), []);
+  assert.deepEqual(faultsAt(bug, 77), []);
 });
 
 test('Sol n4-14, source ID kept at the lower occurrence: the parked temporal PP waits where it merges', () => {

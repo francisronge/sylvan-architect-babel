@@ -50,10 +50,10 @@ function lineage(nodes: PaintedNodes, id: string) {
 
 /** Shared syntax the camera holds still across a stage crossing. A node is left
  * out when its ancestors shared by both frames change (a moved constituent), or
- * when it lost every painted daughter to another place and paints none now:
- * the lower occurrence of a movement that keeps the moved phrase's id while the
- * movement takes its material, held no more than the new lower occurrence it
- * would be had the landing kept the id. It
+ * when it painted daughters before and paints none now: the lower occurrence of
+ * a movement that keeps the moved phrase's id while the movement takes its
+ * material (or a moved head's word), held no more than the new lower
+ * occurrence it would be had the landing kept the id. It
  * is also left out when it is lowered: a parent is inserted or removed between
  * it and its old root, so its painted ancestry before no longer begins its
  * ancestry after (growth above the old root is not lowering). The ancestors of
@@ -63,10 +63,12 @@ function lineage(nodes: PaintedNodes, id: string) {
  * that, every shared node does. */
 export function carryReference(before: PaintedNodes, after: PaintedNodes) {
   const shared = [...after.keys()].filter(id => before.has(id));
-  // Shared nodes with no painted daughter now, one of whose daughters before is painted elsewhere.
+  // Shared nodes that painted a daughter before and paint none now. A moved
+  // head's word is renamed with its owner (`s::__leaf` becomes `L::__leaf`),
+  // so no daughter id need survive.
   const parentsAfter = new Set([...after.values()].map(node => node.parentId));
-  const emptied = new Set([...before].filter(([id, node]) => after.has(id) && node.parentId && after.has(node.parentId)
-    && before.has(node.parentId) && !parentsAfter.has(node.parentId)).map(([, node]) => node.parentId!));
+  const emptied = new Set([...before.values()].map(node => node.parentId)
+    .filter((id): id is string => Boolean(id) && before.has(id!) && after.has(id!) && !parentsAfter.has(id)));
   const unmoved = shared.filter(id => {
     if (emptied.has(id)) return false;
     const prior = lineage(before, id).filter(ancestor => after.has(ancestor));
