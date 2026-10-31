@@ -69,7 +69,8 @@
       "id": "relative-clause-waiting-clearance",
       "source": "../replay-regressions/relative-clause-waiting-clearance.json",
       "mechanisms": ["multiple-roots", "ordinary-wrapper", "later-movement"],
-      "expect": {"minWorkspaceRoots": 2, "minMerges": 1, "minMovementMoments": 1}
+      "expect": {"minWorkspaceRoots": 2, "minMerges": 1, "minMovementMoments": 1},
+      "allow": {"finalCoordinates": true, "reason": "Its object scrambling keeps the source ID at the lower occurrence; the room the object leaves now closes at that movement (frame 54), as it does when the landing keeps the ID, so the final tree narrows from 5,791 to 4,536 units. Replay, plan and motion faults are unchanged.", "from": "b95c477bc34dd47d4305b4c43faf1163fc1efb84b64d32334f00a46678d73ced", "to": "c3b473a62cf430d52be218df88edecd1e96f4ddae7fc57da01620e7031b84dae"}
     },
     {
       "id": "phase-edge-retained-sister-contour",
