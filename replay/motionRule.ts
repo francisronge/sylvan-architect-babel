@@ -96,6 +96,19 @@ export const NOTICEABLE_MOTION_GROWTH = 0.1;
 export const noticeableMotion = (fault: { distance: number }, base?: { distance: number }) => base === undefined ? fault.distance >= NOTICEABLE_MOTION
   : fault.distance - base.distance >= Math.max(NOTICEABLE_MOTION, base.distance * NOTICEABLE_MOTION_GROWTH);
 
+/** Each frame's semantic step key (stage, kind, operation, target, relation and
+ * occurrence). Faults name their step by it, so an inserted, removed or
+ * reordered frame elsewhere does not make an unchanged fault look new. */
+export function replayStepKeys(frames: readonly any[]): string[] {
+  const seen = new Map<string, number>();
+  return frames.map(frame => {
+    const identity = JSON.stringify([frame.stage, frame.kind, frame.operation, frame.target, frame.relationIndex]);
+    const occurrence = seen.get(identity) ?? 0;
+    seen.set(identity, occurrence + 1);
+    return `${identity}#${occurrence}`;
+  });
+}
+
 export function replayMotionFaults({ frames }: { frames: readonly any[] }, { threshold = MOTION_FAULT_THRESHOLD }: { threshold?: number } = {}): any[] {
   const points = frames.map(frame => new Map<string, any>(frame.points.map(point => [point.id, point])));
   const painted = (index: number) => new Map<string, { x: number; y: number; parentId: string | null }>(frames[index].points.map(point => [point.id, { x: point.x, y: point.y, parentId: point.parent }]));
@@ -110,15 +123,7 @@ export function replayMotionFaults({ frames }: { frames: readonly any[] }, { thr
     return before && after ? { x: after.x + carried[index].x - before.x, y: after.y + carried[index].y - before.y } : undefined;
   };
   const length = shift => Math.hypot(shift.x, shift.y);
-  // Faults name their step semantically, so an inserted or removed frame elsewhere
-  // does not make an unchanged fault look new.
-  const seen = new Map();
-  const stepKeys = frames.map(frame => {
-    const identity = JSON.stringify([frame.stage, frame.kind, frame.operation, frame.target, frame.relationIndex]);
-    const occurrence = seen.get(identity) ?? 0;
-    seen.set(identity, occurrence + 1);
-    return `${identity}#${occurrence}`;
-  });
+  const stepKeys = replayStepKeys(frames);
   const faults = [];
   for (let index = 1; index < frames.length; index++) {
     const { kind, operation, target, links = [] } = frames[index], current = points[index], prior = points[index - 1];
