@@ -46,7 +46,7 @@ test('recovered optional word addresses render quietly and survive Tree Bank rel
     ] }
   ] });
   const payload = { analyses: [analysis('a'), analysis('b')] }, raw = JSON.stringify(payload);
-  const recovered = { ...normalizeParseBundle(payload, 'xbar', sentence, 'gpt', true),
+  const recovered = { ...normalizeParseBundle(payload, 'minimalism', sentence, 'gpt', true),
     sentence, rawModelOutput: createRawOutputArtifact(raw) };
   const server = await startBrowserTestServer({ root });
   const output = process.env.BABEL_WORKFLOW_EVIDENCE || await mkdtemp(path.join(os.tmpdir(), 'babel-token-recovery-'));
@@ -100,7 +100,7 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
   for (const stage of stages) for (const node of stage.workspaceForest) if (node.id === 'tp_root') node.label = 'IP';
   const distinct = { ...normalizeParseBundle({ analyses: [
     { derivationStages: saved.analyses[0].derivationStages }, { derivationStages: stages }
-  ] }, 'xbar', 'Mia laughed.', 'gpt', true), sentence: 'Mia laughed.' };
+  ] }, 'minimalism', 'Mia laughed.', 'gpt', true), sentence: 'Mia laughed.' };
   assert.notDeepEqual(distinct.analyses[0].finalForest, distinct.analyses[1].finalForest);
   const malformedText = 'not a JSON object 🙂\n';
   let malformed;
