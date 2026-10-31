@@ -1371,7 +1371,7 @@ function holdLoweredSubtrees(context: Context) {
  * ink there (currentRootCompaction.ts); it comes no nearer than leaves its parent
  * where it stood before. The phrase keeps its own shape. Kept only where the
  * movement's motion faults shrink, every check holds (checkLifetimeShift), no
- * trajectory newly runs through a label (keepsLabelsClear), and Replay's plaque
+ * trajectory runs into a label, or deeper into one it grazed (keepsLabelsClear), and Replay's plaque
  * layout stands every plaque, in every step, no farther from its anchor than
  * before (keepsPlaqueDistances). */
 function seatLandings(context: Context) {
@@ -1537,24 +1537,38 @@ function checkLifetimeShift(context: Context, k: number, shift: LifetimeShift) {
   return '';
 }
 
-/** Whether `shift` leaves every trajectory clear of each tree label it did not
- * already run through, in every step it changes: a trajectory's sampled path
- * (PlaqueRoom `marks`) against the labels' and words' ink. */
+/** Whether `shift` runs no trajectory deeper into any tree label than it ran
+ * before, in every step it changes: a trajectory's sampled path (PlaqueRoom
+ * `marks`) against the ink of each label and word, known by the node it names
+ * (`connectorAttachment`), so a label the shift carries along is the same label.
+ * How deep a path runs into a label is the least side of their overlap, so a
+ * path that newly enters a label, or runs farther into one it grazed, is refused.
+ * Branch ink is not a label. */
 function keepsLabelsClear(context: Context, shift: LifetimeShift) {
   const marks = context.plaques.marks;
   if (!marks) return true;
-  const crossed = (j: number, frame: Painted) => {
+  const depths = (j: number, frame: Painted) => {
     const paths = marks(context.scenes[j].step, frame).filter(mark => (mark as PlaqueRect).trajectory);
-    const labels = context.inkOf(context.scenes[j], [...frame.values()]);
-    return new Set(labels.filter(label => paths.some(path => path.x < label.x + label.width && label.x < path.x + path.width
-      && path.y < label.y + label.height && label.y < path.y + path.height)).map(label => label.connectorAttachment ?? `${label.x},${label.y}`));
+    const result = new Map<string, number>();
+    for (const label of context.inkOf(context.scenes[j], [...frame.values()])) {
+      if (!label.connectorAttachment) continue;
+      for (const path of paths) {
+        const depth = Math.min(Math.min(path.x + path.width, label.x + label.width) - Math.max(path.x, label.x),
+          Math.min(path.y + path.height, label.y + label.height) - Math.max(path.y, label.y));
+        if (depth > 0) result.set(label.connectorAttachment, Math.max(result.get(label.connectorAttachment) ?? 0, depth));
+      }
+    }
+    return result;
   };
   for (let j = shift.start; j < shift.end; j++) {
-    const was = crossed(j, context.frames[j]);
-    for (const label of crossed(j, shift.view(j))) if (!was.has(label)) return false;
+    const was = depths(j, context.frames[j]);
+    for (const [label, depth] of depths(j, shift.view(j))) if (depth > (was.get(label) ?? 0) + LABEL_DEPTH_TOLERANCE) return false;
   }
   return true;
 }
+
+/** How much deeper a trajectory may run into a label it already ran into: the rounding of a path carried with its label. */
+const LABEL_DEPTH_TOLERANCE = 1;
 
 /** How much farther a plaque may stand: the rounding of a pocket carried with its anchor. */
 const PLAQUE_DISTANCE_TOLERANCE = 1;

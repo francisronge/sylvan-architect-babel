@@ -180,8 +180,9 @@ nearer than leaves the parent where it stood before. The phrase keeps its own
 shape. Keep this only when the movement's motion shrinks, no step moves syntax
 it does not own farther or newly breaks continuity, every frame stays ordered,
 the moved ink comes no nearer other ink than that clearance where it was not
-already nearer, no branch newly crosses text, no trajectory newly runs through a
-tree label, stages keep their size, and Replay's own plaque layout, run over the
+already nearer, no branch newly crosses text, no trajectory runs into a tree
+label or word, or deeper into one it already grazed (each label judged as itself
+wherever the seat carries it; branch ink is not a label), stages keep their size, and Replay's own plaque layout, run over the
 seated coordinates, stands every plaque in every step no farther from its anchor
 than before (within one unit). That includes the landing's own plaques:
 travelling with their anchor does not keep their pocket clear of the syntax they
