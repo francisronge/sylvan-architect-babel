@@ -31,7 +31,7 @@ test('a shared-feature label reads as a phrase with no head category', () => {
 });
 
 test('set notation reads as an unlabelled phrase unless it may be a complex head or names its label', () => {
-  for (const label of ['{T, vP}', '{DP, vP}', '{T[uφ:_], vP}', '{DP, {T, vP}}'])
+  for (const label of ['{T, vP}', '{DP, vP}', '{T[uφ:_], vP}', '{DP, {T, vP}}', '{⟨φ,φ⟩, CP}', '{<φ,φ>, CP}'])
     assert.deepEqual(reading(label), { kind: 'phrase', head: '', labelling: 'unlabelled', members: [] }, label);
   // {v, V} may be a complex head; {T, {T, vP}} is Chomsky's 1995 labelled set.
   for (const label of ['{v, V}', '{T, {T, vP}}', '{T, vP, DP}', '{the, cat}', '{uφ}', '{T, vP'])

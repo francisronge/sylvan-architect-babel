@@ -71,7 +71,7 @@ const SHARED_FEATURE = /^(?:⟨([^⟨⟩,]+),([^⟨⟩,]+)⟩|<([^<>,]+),([^<>,]
 const FEATURE_NAME = /^[A-Za-z\p{Script=Greek}][\p{L}\p{N}]*$/u;
 const PLACEHOLDER = /^[αβγδ]$/u;
 const ROOT = /^√(?:(P)|[\p{L}\p{N}_-]*)(⁰|°|\^?0|[′’'])?$/u;
-const OPENERS: Record<string, string> = { '{': '}', '[': ']', '(': ')', '⟨': '⟩', '〈': '〉' };
+const OPENERS: Record<string, string> = { '{': '}', '[': ']', '(': ')', '⟨': '⟩', '〈': '〉', '<': '>' };
 
 // The two members of {α, β}, split at the one top-level comma; undefined unless
 // the braces enclose the whole text.
