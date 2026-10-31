@@ -80,3 +80,13 @@ test('Codex c1-007, source ID kept at the lower occurrence: the ba-object moveme
   assert.notEqual(before.stage, after.stage);
   assert.deepEqual(faultsAt('c1-007-source-kept', 58).filter(fault => fault.kind === 'unowned-motion'), []);
 });
+
+// The compound verb 寄给 waits in its V′ through stages 2 and 3 and then moves to
+// Asp, leaving t_V under the source ID. Refining that V′ against the final tree,
+// where only t_V stands, must not widen the room the verb waits beside, which
+// t_V would then cross at the movement.
+test('Codex c1-007, source ID kept at the lower occurrence: the compound verb waits beside its VP and V-to-Asp moves nothing it does not own', () => {
+  const bug = 'c1-007-source-kept';
+  assert.ok(point(bug, 55, 'lowerVP').x - point(bug, 55, 'sendGiveV').x < 1500, 'the waiting verb stands far from its VP');
+  assert.deepEqual(faultsAt(bug, 56), []);
+});
