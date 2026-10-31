@@ -23,22 +23,34 @@ const point = (frame, node) => measured.frames[frame - 1].points.find(item => it
 
 test('the fixture was measured', () => assert.equal(measured.error, undefined, measured.error));
 
-// Una (D) and profesora's NP stood 525 apart all their lives. The phrase keeps
-// that fork at the sibling gap from its first frame, source and landing alike.
-test('a landing\'s head and host keep the sibling gap over the phrase\'s whole life', () => {
+// Una (D) and profesora's NP stand at the normal layout's spacing all their
+// lives: a seat never narrows a fork inside the landing (Francis, 31 Oct 2026).
+test('a landing keeps its own shape', () => {
   const spans = measured.frames.flatMap((frame, index) => {
     const d = point(index + 1, 'sd'), np = point(index + 1, 'snp');
     return d && np ? [Math.round(np.x - d.x)] : [];
   });
   assert.ok(spans.length > 20);
-  assert.deepEqual([...new Set(spans)], [375]);
+  assert.deepEqual([...new Set(spans)], [525]);
 });
 
-// Seated beside the raised verb, the subject moves IP's centre less at its
-// movement: 307 before, and the corpus gate's bound against main is 210.28.
-test('a landing stands near enough its sister that the phrase above keeps its shape', () => {
-  const ip = replayMotionFaults(measured).find(fault => fault.frame === 33 && fault.node === 'ip')?.distance ?? 0;
-  assert.ok(ip < 210.28, `IP shape-motion ${ip}`);
+// From the subject's A-movement on, no node of the landed subject stands nearer
+// a node of its row than ordinary sisters stand (375, centre to centre).
+test('a landing never stands nearer its neighbours than ordinary sisters', () => {
+  const landing = measured.frames.findIndex(frame => frame.points.some(item => item.id === 'sh'));
+  assert.ok(landing > 0, 'the subject lands');
+  for (let index = landing; index < measured.frames.length; index++) {
+    const points = measured.frames[index].points, inside = new Set(['sh']);
+    for (let grown = true; grown;) {
+      grown = false;
+      for (const item of points) if (item.parent && inside.has(item.parent) && !inside.has(item.id)) { inside.add(item.id); grown = true; }
+    }
+    const above = new Set();
+    for (let id = 'sh'; id; id = points.find(item => item.id === id)?.parent) above.add(id);
+    for (const a of points.filter(item => inside.has(item.id)))
+      for (const b of points.filter(item => !inside.has(item.id) && !above.has(item.id) && Math.abs(item.y - a.y) < 1e-6))
+        assert.ok(Math.abs(b.x - a.x) >= 375 - 1e-6, `frame ${index + 1}: ${a.id} ${Math.round(Math.abs(b.x - a.x))} from ${b.id}`);
+  }
 });
 
 // At the Quantifier Raising crossing everything under the new IP segment drops a

@@ -8,7 +8,7 @@ import { closingAt, workspaceContinuityReflows } from './workspaceShapeReflows.t
 import { keepsPlaqueRoom, type PlaqueRoom } from './plaqueRoom.ts';
 import { plaqueTreeObstacles } from './relations/plaquePlacement.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
-import { COMPACT_INK_CLEARANCE, HEAD_HOST_INK_GAP } from './currentRootCompaction.ts';
+import { COMPACT_INK_CLEARANCE } from './currentRootCompaction.ts';
 import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import type { PlaqueRect } from './relations/plaquePlacement.ts';
@@ -1359,22 +1359,21 @@ function holdLoweredSubtrees(context: Context) {
   }
 }
 
-/** Seats a movement's landing as near the sister it joins as its ink allows.
+/** Seats a movement's landing nearer the sister it joins, never nearer than
+ * ordinary sisters stand.
  *
  * A landing that joins an existing parent beside a sister is laid out at its
  * stage's own spacing, which can stand it far from that sister: the parent then
- * recentres far over the new pair at the movement, and the phrase above it, which
- * keeps its daughters, changes shape. From the movement on, the landing stands
- * nearer its sister, its ink COMPACT_INK_CLEARANCE from all other ink on that
- * side (the clearance the receiving component's compaction keeps,
- * currentRootCompaction.ts), and no nearer than leaves its parent where it stood
- * before. Where a fork inside the landing keeps a head and its host wider than
- * the sibling gap while their ink stands more than HEAD_HOST_INK_GAP apart, the
- * phrase keeps that fork at the sibling gap over its whole life, source and
- * landing alike, when that lets the landing stand nearer: it never changes shape.
- * Kept only where the movement's motion faults shrink, every check holds
- * (checkLifetimeShift), and Replay's plaque layout stands every plaque, in every
- * step, no farther from its anchor than before (keepsPlaqueDistances). */
+ * recentres far over the new pair at the movement. From the movement on, the
+ * landing may stand nearer its sister, but every node it carries keeps
+ * TREE_SIBLING_GAP, the normal layout's spacing of sisters, from each node of
+ * its row on that side, and its ink keeps COMPACT_INK_CLEARANCE from all other
+ * ink there (currentRootCompaction.ts); it comes no nearer than leaves its parent
+ * where it stood before. The phrase keeps its own shape. Kept only where the
+ * movement's motion faults shrink, every check holds (checkLifetimeShift), no
+ * trajectory newly runs through a label (keepsLabelsClear), and Replay's plaque
+ * layout stands every plaque, in every step, no farther from its anchor than
+ * before (keepsPlaqueDistances). */
 function seatLandings(context: Context) {
   const { scenes } = context;
   const faultSum = (k: number, prior: Painted, now: Painted) => replayMotionFaults({ frames: [motionFrame(scenes[k - 1].step, prior, getNodeId),
@@ -1397,57 +1396,37 @@ function seatLandings(context: Context) {
     const side = landing.x < sister.x ? 1 : -1;
     const was = faultSum(k, before, after);
     if (was <= 1) continue;
-    // The forks inside the landing that hold a head and its host wider than the sibling gap.
-    const forks = new Map<string, number>();
-    landing.each(node => {
-      const parts = daughters(after, node);
-      if (parts.length !== 2) return;
-      for (const [head, host] of [[parts[0], parts[1]], [parts[1], parts[0]]]) {
-        const headNodes = head.descendants().filter(member => after.has(getNodeId(member)));
-        if (headNodes.some(member => daughters(after, member).length > 1) || !daughters(after, host).length) continue;
-        const headInk = context.inkOf(scenes[k], headNodes);
-        const hostInk = context.inkOf(scenes[k], host.descendants().filter(member => after.has(getNodeId(member))));
-        if (!headInk.length || !hostInk.length) break;
-        const gap = head === parts[0] ? Math.min(...hostInk.map(box => box.x)) - Math.max(...headInk.map(box => box.x + box.width))
-          : Math.min(...headInk.map(box => box.x)) - Math.max(...hostInk.map(box => box.x + box.width));
-        const amount = Math.min(gap - HEAD_HOST_INK_GAP, Math.abs(head.x - host.x) - TREE_SIBLING_GAP);
-        // Each daughter closes half the amount on the fork's centre, which stays.
-        if (amount > 1e-6) { forks.set(getNodeId(parts[0]), amount / 2); forks.set(getNodeId(parts[1]), -amount / 2); }
-        break;
+    // How far the landing may come toward its sister in every frame it stands in
+    // from the movement on: each of its nodes keeps the sibling gap from the nodes
+    // of its row on that side, and its ink keeps the clearance from other ink there.
+    let room = Infinity;
+    for (let j = k; j < scenes.length; j++) {
+      const frame = frames[j], node = frame.get(landingId);
+      if (!node) break;
+      const own = new Set(node.descendants().map(getNodeId)), above = new Set(node.ancestors().map(getNodeId));
+      const members = node.descendants().filter(member => frame.has(getNodeId(member)));
+      const neighbours = [...frame.values()].filter(other => !own.has(getNodeId(other)) && !above.has(getNodeId(other)));
+      for (const a of members) for (const b of neighbours) {
+        const space = side * (b.x - a.x);
+        if (Math.abs(a.y - b.y) < 1e-6 && space >= -1e-6) room = Math.min(room, space - TREE_SIBLING_GAP);
       }
-    });
-    for (const inward of forks.size ? [forks, new Map<string, number>()] : [forks]) {
-      // How far the landing may come toward its sister, with these forks kept:
-      // its ink keeps the clearance from all other ink on that side in every frame
-      // it stands in from the movement on.
-      const trial = applyLifetimeShift(context, k, inward, landingId, 0);
-      if (!trial) continue;
-      let room = Infinity;
-      for (let j = k; j < scenes.length; j++) {
-        const frame = trial.view(j), node = frame.get(landingId);
-        if (!node) break;
-        const own = new Set(node.descendants().map(getNodeId)), above = new Set(node.ancestors().map(getNodeId));
-        const mine = context.inkOf(scenes[j], node.descendants().filter(member => frame.has(getNodeId(member))));
-        const others = context.inkOf(scenes[j], [...frame.values()].filter(other => !own.has(getNodeId(other)) && !above.has(getNodeId(other))));
-        for (const a of mine) for (const b of others) {
-          if (Math.min(a.y + a.height, b.y + b.height) <= Math.max(a.y, b.y)) continue;
-          const space = side > 0 ? b.x - a.x - a.width : a.x - b.x - b.width;
-          if (space >= -1e-6) room = Math.min(room, space);
-        }
+      const mine = context.inkOf(scenes[j], members), others = context.inkOf(scenes[j], neighbours);
+      for (const a of mine) for (const b of others) {
+        if (Math.min(a.y + a.height, b.y + b.height) <= Math.max(a.y, b.y)) continue;
+        const space = side > 0 ? b.x - a.x - a.width : a.x - b.x - b.width;
+        if (space >= -1e-6) room = Math.min(room, space - COMPACT_INK_CLEARANCE);
       }
-      trial.undo();
-      room -= COMPACT_INK_CLEARANCE;
-      if (!(room > 1e-6) || !Number.isFinite(room)) continue;
-      // No farther than leaves the parent where it stood before the movement.
-      const carry = carryAt(scenes, k, before, after);
-      const back = 2 * side * (before.get(parentId)!.x - (after.get(parentId)!.x - carry.x));
-      held ??= context.plaqueDistances?.();
-      const shift = applyLifetimeShift(context, k, inward, landingId, side * (back > 1e-6 ? Math.min(room, back) : room));
-      if (!shift) continue;
-      if (!checkLifetimeShift(context, k, shift) && faultSum(k, shift.view(k - 1), shift.view(k)) < was - 1
-        && keepsPlaqueDistances(context, held, shift)) { shift.commit(); held = undefined; break; }
-      shift.undo();
     }
+    if (!(room > 1e-6) || !Number.isFinite(room)) continue;
+    // No farther than leaves the parent where it stood before the movement.
+    const carry = carryAt(scenes, k, before, after);
+    const back = 2 * side * (before.get(parentId)!.x - (after.get(parentId)!.x - carry.x));
+    held ??= context.plaqueDistances?.();
+    const shift = applyLifetimeShift(context, k, landingId, side * (back > 1e-6 ? Math.min(room, back) : room));
+    if (!shift) continue;
+    if (!checkLifetimeShift(context, k, shift) && faultSum(k, shift.view(k - 1), shift.view(k)) < was - 1
+      && keepsLabelsClear(context, shift) && keepsPlaqueDistances(context, held, shift)) { shift.commit(); held = undefined; continue; }
+    shift.undo();
   }
 }
 
@@ -1476,16 +1455,10 @@ type LifetimeShift = { start: number; end: number; repainted: Painted[]; moved: 
  * on, in every canvas that paints it; null when a canvas spans the movement. The
  * frames from the first changed one are repainted, but kept only on `commit`;
  * `undo` restores the coordinates. */
-function applyLifetimeShift(context: Context, k: number, inward: ReadonlyMap<string, number>, landing: string, by: number): LifetimeShift | null {
+function applyLifetimeShift(context: Context, k: number, landing: string, by: number): LifetimeShift | null {
   const { scenes, frames, coordinates, firstScene, lastScene, paint } = context;
   if (lastScene.get(scenes[k - 1].canvas)! >= k) return null;
-  // Each daughter of a packed fork carries what stands below it at the movement,
-  // from the frame each piece first appears in.
-  const carried = new Map<string, number>();
-  for (const [id, amount] of inward) frames[k].get(id)?.each(member => { carried.set(getNodeId(member), (carried.get(getNodeId(member)) ?? 0) + amount); });
-  let start = k;
-  for (const id of carried.keys()) for (let j = 0; j < start; j++) if (frames[j].has(id)) { start = j; break; }
-  const end = scenes.length;
+  const start = k, end = scenes.length;
   const painted = new Map<SyntaxNode, Set<string>>();
   for (let j = start; j < end; j++) {
     const ids = painted.get(scenes[j].canvas) ?? new Set<string>();
@@ -1499,10 +1472,9 @@ function applyLifetimeShift(context: Context, k: number, inward: ReadonlyMap<str
     const after = firstScene.get(canvas)! >= k;
     const next = new Map(points);
     root.each(node => {
-      let dx = carried.get(getNodeId(node)) ?? 0;
-      if (after && node.ancestors().some(ancestor => getNodeId(ancestor) === landing && ids.has(landing))) dx += by;
       const point = points.get(getNodeId(node));
-      if (dx && point) next.set(getNodeId(node), { x: point.x + dx, y: point.y });
+      if (after && point && node.ancestors().some(ancestor => getNodeId(ancestor) === landing && ids.has(landing)))
+        next.set(getNodeId(node), { x: point.x + by, y: point.y });
     });
     saved.set(canvas, points);
     coordinates.set(canvas, next);
@@ -1563,6 +1535,25 @@ function checkLifetimeShift(context: Context, k: number, shift: LifetimeShift) {
     for (const crossing of branchCrossings(frame, shifted, measureCategoryText)) if (!crossed.has(crossing)) return `branch at ${j + 1}`;
   }
   return '';
+}
+
+/** Whether `shift` leaves every trajectory clear of each tree label it did not
+ * already run through, in every step it changes: a trajectory's sampled path
+ * (PlaqueRoom `marks`) against the labels' and words' ink. */
+function keepsLabelsClear(context: Context, shift: LifetimeShift) {
+  const marks = context.plaques.marks;
+  if (!marks) return true;
+  const crossed = (j: number, frame: Painted) => {
+    const paths = marks(context.scenes[j].step, frame).filter(mark => (mark as PlaqueRect).trajectory);
+    const labels = context.inkOf(context.scenes[j], [...frame.values()]);
+    return new Set(labels.filter(label => paths.some(path => path.x < label.x + label.width && label.x < path.x + path.width
+      && path.y < label.y + label.height && label.y < path.y + path.height)).map(label => label.connectorAttachment ?? `${label.x},${label.y}`));
+  };
+  for (let j = shift.start; j < shift.end; j++) {
+    const was = crossed(j, context.frames[j]);
+    for (const label of crossed(j, shift.view(j))) if (!was.has(label)) return false;
+  }
+  return true;
 }
 
 /** How much farther a plaque may stand: the rounding of a pocket carried with its anchor. */
