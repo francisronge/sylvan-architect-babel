@@ -232,6 +232,7 @@ It includes:
 - Output quality can vary with model behavior and service availability.
 - Any single tree should be treated as a committed analysis proposal, not final theoretical truth.
 - The former public Vercel app is temporarily paused; current development and benchmark work run locally.
+- On the hosted app, a generation that runs past about 4¾ minutes stops with a "Generation took too long" message. Nothing is retried automatically; try again, or choose a lower effort, which usually answers faster.
 
 ## Project direction
 

@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -23,6 +23,7 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
   const records = manifests.flatMap(value => value.records), ids = new Set(records.map(record => record.id));
   if (ids.size !== records.length) throw Error('Record IDs must be unique across manifests');
   allowAddedFixtures(records, baselineRoot, candidateRoot);
+  allowFingerprintedFixtures(manifests.slice(1).flatMap(value => value.records), candidateRoot);
   const layout = { width, height, direction }, scratch = await mkdtemp(path.join(tmpdir(), 'babel-corpus-'));
   try {
     // Separate processes load each checkout's modules and dependency installation.
@@ -48,6 +49,7 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
         uniqueInputs: new Set(records.map(record => record.inputSha256)).size,
         recordsWithoutMechanismLabels: records.filter(record => !record.mechanisms.length).length,
         changedAnalyses: compared.filter(record => record.changedFrames?.length).length, failures: failures.length,
+        removableAllows: compared.filter(record => record.removableAllow).map(record => record.id),
         toleratedMotionFaults: compared.reduce((count, record) => count + (record.motion?.tolerated.length ?? 0), 0),
         exceptedMotionFaults: compared.reduce((count, record) => count + (record.motion?.excepted.length ?? 0), 0),
         existingContinuityFaults: snapshots[0].records.reduce((count, record) => count + (record.continuity?.length ?? 0), 0),
@@ -176,19 +178,43 @@ export async function measureCheckouts(roots, records, layout, { scratch, timeou
   });
 }
 
+/** `file` relative to `directory`, or null when it lies outside it. */
+const inside = (directory, file) => {
+  const relative = file && path.relative(path.resolve(directory), path.resolve(file));
+  return !relative || relative.startsWith('..') || path.isAbsolute(relative) ? null : relative;
+};
+
 /** A record read from a file inside the candidate checkout that the base
  * checkout lacks (a fixture the change adds) cannot regress its Replay, relation
  * plan, final layout or completed widths from the base, which never had it: the
  * base's rendering of it is the behavior the change replaces. Those comparisons
- * are allowed with that reason; its motion, continuity and geometry are still
- * judged against the base's layout of the same input. Mutates `records`. */
+ * are waived with that reason (`motionOnly`); its motion, continuity and
+ * geometry are still judged against the base's layout of the same input.
+ * Mutates `records`. */
 export function allowAddedFixtures(records, baselineRoot, candidateRoot) {
-  const candidate = path.resolve(candidateRoot), baseline = path.resolve(baselineRoot);
   for (const record of records) {
-    const relative = record.source && path.relative(candidate, path.resolve(record.source));
-    if (!relative || relative.startsWith('..') || path.isAbsolute(relative) || existsSync(path.join(baseline, relative))) continue;
-    record.allow = { ...record.allow, replay: true, plan: true, finalCoordinates: true, completedWidthGrowth: true,
-      reason: `${relative} is new in this change; the base checkout has no copy to compare its Replay with.` };
+    const relative = inside(candidateRoot, record.source);
+    if (!relative || existsSync(path.join(path.resolve(baselineRoot), relative))) continue;
+    record.motionOnly = `${relative} is new in this change; the base checkout has no copy to compare its Replay with.`;
+  }
+  return records;
+}
+
+/** An archive record of a committed fixture analysis the candidate's layout
+ * fingerprint covers has its Replay, relation plan, final layout and widths
+ * reviewed through that fingerprint (verify:replay-offline), so this
+ * comparison judges it by motion, continuity, geometry and movement only.
+ * The run decides this from the candidate's own fingerprint each time; no
+ * manifest can claim it. Mutates `records`. */
+export function allowFingerprintedFixtures(records, candidateRoot) {
+  const fixtures = path.join(path.resolve(candidateRoot), 'fixtures');
+  const file = path.join(fixtures, 'replay-snapshots', 'fixture-layout.json');
+  const reviewed = new Set(existsSync(file) ? Object.keys(JSON.parse(readFileSync(file, 'utf8')).records ?? {}) : []);
+  for (const record of records) {
+    const relative = inside(fixtures, record.source)?.split(path.sep).join('/');
+    if (!relative || !reviewed.has(`${relative}#${record.selector ?? ''}`)) continue;
+    record.motionOnly ??= `A committed fixture: its Replay and layout changes are reviewed through fixtures/replay-snapshots/fixture-layout.json `
+      + '(verify:replay-offline), so this comparison judges it by motion, continuity, geometry and movement only.';
   }
   return records;
 }

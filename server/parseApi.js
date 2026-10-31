@@ -112,12 +112,12 @@ export const validateParseBody = (body) => {
 export const parseFromBodyWithProviders = async (
   body,
   providers = { research: parseSentenceWithResearchModel },
-  { abortSignal } = {}
+  { abortSignal, deadlineAt } = {}
 ) => {
   abortSignal?.throwIfAborted();
   const { sentence, framework, modelId, settings } = validateParseBody(body);
   try {
-    const bundle = await providers.research(sentence, framework, modelId, { settings, abortSignal });
+    const bundle = await providers.research(sentence, framework, modelId, { settings, abortSignal, deadlineAt });
     return { ...bundle, sentence };
   } catch (error) {
     // A failure after the spell-out check carries the word list Babel derived
@@ -132,8 +132,12 @@ export const parseFromBodyWithProviders = async (
 
 export const parseFromBody = async (body, options) => parseFromBodyWithProviders(body, undefined, options);
 
-/** Both HTTP entry points cancel work only when the response connection closes early. */
-export const parseFromRequest = async (req, res, parse = parseFromBody) => {
+/**
+ * Both HTTP entry points cancel work only when the response connection closes early.
+ * `deadlineAt` (epoch ms) is a host's hard stop for the provider call; the
+ * hosted function passes one, the Express runtime does not.
+ */
+export const parseFromRequest = async (req, res, parse = parseFromBody, { deadlineAt } = {}) => {
   const controller = new AbortController();
   const onClose = () => {
     if (!res.writableFinished) {
@@ -144,7 +148,7 @@ export const parseFromRequest = async (req, res, parse = parseFromBody) => {
   try {
     if (req.aborted || res.destroyed) onClose();
     controller.signal.throwIfAborted();
-    return await parse(req.body, { abortSignal: controller.signal });
+    return await parse(req.body, { abortSignal: controller.signal, ...(deadlineAt === undefined ? {} : { deadlineAt }) });
   } finally {
     res.removeListener('close', onClose);
   }
