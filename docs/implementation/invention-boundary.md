@@ -3,6 +3,8 @@
 `derivationStages` is the only authored linguistic source. The compiler may:
 
 - expand an exact prior-stage `refId`;
+- expand an authored parts-list `copyOf` entry into the copied node's subtree,
+  naming each copied node `copyId/originalId` from the two authored ids;
 - clone authored nodes without changing their linguistic scalar fields;
 - validate surface order and derive `tokenIndex` / `surfaceSpan` alignment;
 - resolve authored `relations` anchors without inventing relation labels.
