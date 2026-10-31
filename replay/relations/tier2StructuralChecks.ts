@@ -1,3 +1,4 @@
+import { readCategoryLabel } from '../categoryLabel.ts';
 import { explicitCoreferenceParticipants } from './explicitCoreference.ts';
 import { hasIndependentCaseEndpoints, isUnestablishedCaseValue } from './featureEvidence.ts';
 import { prepareLocalDislocationContent } from './localDislocationContent.ts';
@@ -180,7 +181,16 @@ export const evaluateStructuralCheck = (
         || `phase ${ids('phase').join(',')} does not contain all authored domain, edge and head anchors`;
       const head = ids('phase.head')[0];
       if (!head) return true;
-      const category = (id: string) => String(currentIndex.nodes.get(id)?.[0]?.label ?? '').replace(/[\u2032'\u2019]/gu, '').replace(/(.)P$/u, '$1');
+      // Categories come from the shared notation reader, so v*, v[uφ], v{uφ}
+      // and v⁰ share one spine with v, v′ and v*P. As in phase-edge recovery,
+      // the spine never runs through a compound label (V+v) or one the reader
+      // declines.
+      const shapeOf = (text?: string | null) => {
+        const shape = readCategoryLabel(text);
+        return shape && !shape.compound ? shape : undefined;
+      };
+      const label = (id: string) => currentIndex.nodes.get(id)?.[0]?.label;
+      const headCategory = shapeOf(label(head))?.head ?? '';
       // The authored phase head can be inside a complex head. Follow only
       // its unambiguous same-category spine, never an arbitrary ancestor.
       const projections = new Set<string>();
@@ -192,10 +202,16 @@ export const evaluateStructuralCheck = (
         if (parents.length !== 1) break;
         const parent = parents[0];
         if (visited.has(parent) || currentIndex.nodes.get(parent)?.length !== 1
-          || !category(head) || category(parent) !== category(head)) break;
+          || !headCategory || shapeOf(label(parent))?.head !== headCategory) break;
         const siblings = currentIndex.nodes.get(parent)![0].children ?? [];
-        if (foundComplement && siblings.some(sibling => sibling.id !== child
-          && String(sibling.label) === category(head))) break;
+        // A sister head of the same category, alone or as any member of a
+        // compound head (v+T, T+v), competes for the spine: inside the
+        // complex head it makes the head ambiguous, above the complement it
+        // heads a higher shell. Stop there.
+        if (siblings.some(sibling => {
+          const shape = readCategoryLabel(sibling.label);
+          return sibling.id !== child && shape?.kind === 'head' && shape.members.includes(headCategory);
+        })) break;
         visited.add(parent);
         if (domains.every(domain => domain !== child && currentIndex.parentIds.get(domain)?.has(parent))) foundComplement = true;
         if (foundComplement) projections.add(parent);

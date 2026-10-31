@@ -152,7 +152,8 @@
       "id": "showcase-79-de-v2-wh",
       "source": "../showcase/movement.json",
       "selector": "/cases/0",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"plan": true, "reason": "The phase head v[active] reads as the category v, so the stage-2 Transfer candidate no longer reports that v has no same-category projection; that candidate still fails because no transfer domain is authored. Only that diagnostic string leaves the plan: every drawn item, Replay frame and motion fault is unchanged.", "from": "079892a3305202c588208ea42ecb925bbed0975afcd7d776dff482ade5ab4ee1", "to": "3cc3239b64f515266efe45aa89a158cc81f4c607f0fef77945876546f4185070"}
     },
     {
       "id": "showcase-01-en-passive-raising",
