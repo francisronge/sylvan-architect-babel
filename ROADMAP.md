@@ -34,6 +34,8 @@ syntactic rules. Desktop remains the primary experience.
      saved runs) stay neutral by design: structure ignores role names, so it
      cannot tell redundant naming from a contradictory claim, which must not
      draw.
+   - After a failed parse in Derivation Replay, the sentence input stays
+     visible: the failure panel has no dismiss control.
    - Mobile calibration and a desktop minimum-zoom clamp.
    - Step-order work kept from the October rewrite
      (`refactor/replay-step-order-kernel`): just-in-time order and head
@@ -41,11 +43,17 @@ syntactic rules. Desktop remains the primary experience.
      moved existing layouts, because today's stage layout depends on frame
      history. They wait for a stage layout that is planned from the
      derivation's states rather than its frame order. The same work owns the
-     listed camera jumps where unmoved syntax shifts 27–78 px when a stage
+     listed camera jumps where unmoved syntax shifts 27–66 px when a stage
      begins or inside a stage (`STAGE_RELAYOUT`, `RELAYOUT_WITHIN_STAGE` in
      `tests/helpers/cameraExceptions.mjs`). Its first prototype
      (`refactor/stage-layout-from-finished-tree`) did not meet the
-     zero-regression bar.
+     zero-regression bar. The crossings where a movement closes its room now
+     hold the rest of the syntax still (the stage plan's held carry). The
+     within-stage jumps are parents inserted above a host together with a new
+     sister: a centred parent then moves either the host sideways (camera
+     jump, attachment motion) or the spine above it (shape motion); letting the
+     host's leaves keep one contour slot across its row change moved the fault
+     from the camera to the motion gate (measured 31 Oct).
 3. Recognition:
    - Neutral relations can earn a shared-lineage coindex or a single-host
      plaque from structure alone; the adjunction fork stays off because

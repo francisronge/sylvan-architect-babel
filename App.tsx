@@ -17,7 +17,7 @@ import {
 import TreeVisualizer from './components/AsyncTreeVisualizer';
 import RootLogo from './components/RootLogo';
 import LoadingMark from './components/LoadingMark';
-import FailurePanel, { dismissesFailure } from './components/FailurePanel';
+import FailurePanel from './components/FailurePanel';
 import { submitsSentence } from './components/sentenceSubmitKey';
 import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
 import { 
@@ -131,13 +131,10 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     []
   );
   const sporeLayerRef = useRef<HTMLDivElement>(null);
-  const sentenceInputRef = useRef<HTMLTextAreaElement>(null);
-  const activeTabButtonRef = useRef<HTMLButtonElement>(null);
   const [input, setInput] = useState('The farmer eats the pig');
-  // A failure and its downloads stay until the next generation starts or the
-  // user dismisses it, also while the model or effort for that next request is
-  // being chosen.
-  const { loading, error, needsKey, generate, clearFailure, dismissFailure, resetGeneration, reportError } = useGeneration();
+  // A failure and its downloads stay until the next generation starts, also
+  // while the model or effort for that next request is being chosen.
+  const { loading, error, needsKey, generate, clearFailure, resetGeneration, reportError } = useGeneration();
   useSporeDrift(sporeLayerRef, spores, loading);
   const [analysisBundle, setAnalysisBundle] = useState<ParseBundle | null>(null);
   const [activeParseIndex, setActiveParseIndex] = useState(0);
@@ -209,16 +206,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
   // Replay gives the input bar's space to the tree and its panel; a new sentence
   // is entered from Canopy or Notes. A running generation or a failure keeps the
-  // bar, because it carries their progress and diagnostics, until the failure
-  // is dismissed.
+  // bar, because it carries their progress and diagnostics.
   const hideInputForReplay = activeTab === 'derivation' && Boolean(activeParse) && !loading && !error;
-  // Dismissal closes only the failure display: the analysis, Parse, paused Replay
-  // frame, draft, Tree Bank and footer key notice stay, and nothing is requested.
-  // Focus moves to a control that remains, because Replay then removes the bar.
-  const dismissShownFailure = () => {
-    (activeTab === 'derivation' && activeParse ? activeTabButtonRef : sentenceInputRef).current?.focus();
-    dismissFailure();
-  };
   const acceptDevAnalysis = useCallback((bundle: ParseBundle, options: DevAnalysisOptions) => {
     setInitialReplayPosition(null);
     setAnalysisBundle(bundle);
@@ -661,7 +650,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               {NAV_TABS.map((tab) => (
                 <button
                   key={tab.id}
-                  ref={activeTab === tab.id ? activeTabButtonRef : undefined}
                   disabled={!activeParse}
                   onClick={() => changeTab(tab.id)}
                   aria-current={activeTab === tab.id ? 'page' : undefined}
@@ -689,11 +677,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                   inert={!isInputVisible}
                   className={`absolute left-1/2 -translate-x-1/2 z-30 w-full max-w-3xl px-4 md:px-8 transition-[opacity,transform] duration-700 ${isInputVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none'}`}
                   style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
-                  onKeyDown={(event) => {
-                    if (!error || !dismissesFailure(event.nativeEvent)) return;
-                    event.preventDefault();
-                    dismissShownFailure();
-                  }}
                 >
                   <div className="glass-dark rounded-[2.5rem] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden">
                     <div className="flex items-center justify-between px-5 md:px-7 py-3 md:py-3.5 border-b border-white/5 bg-black/30">
@@ -730,7 +713,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           generationRecord={error.generationRecord}
                           sentence={error.request?.sentence}
                           inputTokens={error.inputTokens}
-                          onDismiss={dismissShownFailure}
                         >
                           {needsKey && (
                             <div className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-200">
@@ -744,7 +726,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                       <form onSubmit={handleParse} className="flex gap-3 md:gap-4 items-end">
                         <div className="flex-1 relative">
                           <textarea
-                            ref={sentenceInputRef}
                             aria-label="Sentence to analyze"
                             className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 md:p-4 text-emerald-50 serif italic placeholder:text-emerald-900/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all resize-none h-16 md:h-20 text-base md:text-lg shadow-inner leading-relaxed"
                             placeholder={`Plant a ${framework === 'xbar' ? 'Generative' : 'Minimalist'} linguistic seed...`}

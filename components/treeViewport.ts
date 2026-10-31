@@ -91,11 +91,40 @@ export function advanceFittedCamera(
  * median coordinate shift of the syntax the crossing leaves in place
  * (carryReference in replay/cameraCarry.ts), removing the common translation
  * between the two layouts; residual layout changes still move. A moved
- * constituent, or syntax lowered under a newly inserted parent, travels on screen. */
-export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes, carry: CarryOptions = {}) {
-  const shift = paintedShift(before, after, carry);
-  if (!shift.x && !shift.y) return pose;
-  return { x: pose.x - shift.x * pose.k, y: pose.y - shift.y * pose.k, k: pose.k };
+ * constituent, or syntax lowered under a newly inserted parent, travels on screen.
+ * Where the stage plan records the syntax a movement's closing leaves in place
+ * (`carry.held`), the pose holds that syntax still, and a tie between two
+ * blocks follows the wider unmoved syntax (paintedShift), unless, given the
+ * `view`, either would first paint shared syntax farther beyond it than the
+ * ordinary carry. */
+export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes, carry: CarryOptions = {},
+  view?: ViewportRect) {
+  const carried = (options: CarryOptions) => {
+    const shift = paintedShift(before, after, options);
+    return !shift.x && !shift.y ? pose : { x: pose.x - shift.x * pose.k, y: pose.y - shift.y * pose.k, k: pose.k };
+  };
+  const held = carried(carry);
+  if (!view) return held;
+  // Holding the plan's held syntax still, or one block of a tie, may leave
+  // other shared syntax farther beyond the view than the ordinary carry would:
+  // then the ordinary carry stands, so a crossing never paints syntax farther off.
+  const ordinary = carried({ closing: carry.closing, tie: false });
+  if (ordinary.x === held.x && ordinary.y === held.y) return held;
+  return beyondView(pose, ordinary, before, after, view) < beyondView(pose, held, before, after, view) ? ordinary : held;
+}
+
+/** How far, at most, a first pose paints shared syntax that stood within the
+ * view before the crossing beyond that view. */
+function beyondView(pose: { x: number; y: number; k: number }, first: { x: number; y: number; k: number },
+  before: PaintedNodes, after: PaintedNodes, view: ViewportRect) {
+  const outside = (x: number, y: number) => Math.max(view.left - x, x - view.right, view.top - y, y - view.bottom, 0);
+  let most = 0;
+  for (const [id, point] of after) {
+    const prior = before.get(id);
+    if (!prior || outside(pose.x + prior.x * pose.k, pose.y + prior.y * pose.k)) continue;
+    most = Math.max(most, outside(first.x + point.x * first.k, first.y + point.y * first.k));
+  }
+  return most;
 }
 
 /** Retain an accepted fit; correct overflow with the least translation and scale reduction. */

@@ -139,10 +139,6 @@ The bottom control panel supports:
 The console appears in Canopy and Notes. Derivation Replay leaves its space to
 the tree and the Replay panel; return to Canopy to enter a new sentence. Replay
 keeps the console only while a request is running or a failure is shown.
-Dismiss a failure with its close button or Escape: you return to the analysis
-and paused frame you were reading, your draft and Tree Bank stay, and no request
-is made. Download its raw output or failure record first if you want them; the
-next request clears the failure in any case.
 
 ### 5) Parse execution flow
 

@@ -104,8 +104,6 @@ test('an acceptance error still releases the loading state', async () => {
 test('opening saved work and external restoration retain their distinct reset behavior', () => {
   const failed = { loading: true, error: { message: 'key missing' }, needsKey: true };
   assert.deepEqual(generationReducer(failed, { type: 'clear-failure' }), { loading: true, error: null, needsKey: false });
-  assert.deepEqual(generationReducer(failed, { type: 'dismiss-failure' }), { loading: true, error: null, needsKey: true },
-    'dismissing the failure display keeps the footer key notice');
   assert.deepEqual(generationReducer(failed, { type: 'reset' }), initialGenerationState);
   const previewError = { message: 'Unable to load preview bundle: HTTP 404' };
   assert.deepEqual(generationReducer(failed, { type: 'report-error', error: previewError }), { ...failed, error: previewError });
