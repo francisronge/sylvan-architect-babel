@@ -17,9 +17,9 @@ import { movementPresentations } from './helpers/replayInvariants.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const manifestPath = path.join(root, 'fixtures/replay-corpus/manifest.json');
 const corpus = await loadCorpusManifest(manifestPath);
-// The controls judge the comparator under strict rules. A manifest `allow` that
-// admits one change's intended Replay difference from main does not apply here,
-// where a checkout is compared with itself.
+// The controls judge the comparator under strict rules. A manifest `allow`
+// covers one change from main and would fail as stale here, where a checkout
+// is compared with itself.
 const records = corpus.records.filter(record => ['spanish-head-and-ordinary-wrapper',
   'tier2-witness-persistence', 'malformed-exact-with-independent-verdict'].includes(record.id))
   .map(record => ({ ...record, allow: {} }));
@@ -108,16 +108,18 @@ test('an approved motion exception covers its fault within its bound, and only i
 
 test('a fingerprinted fixture fails on motion, not on a reviewed Replay, plan or final-layout change', async () => {
   const { fixtureRecords } = await import('../scripts/buildCorpusArchiveManifest.mjs');
-  const { allow } = fixtureRecords().records[0];
+  const { allowFingerprintedFixtures } = await import('../scripts/compareReplayCorpus.mjs');
+  const [{ motionOnly }] = allowFingerprintedFixtures(fixtureRecords().records.slice(0, 1), root);
+  assert.match(motionOnly, /fixture-layout\.json/);
   const changed = structuredClone(snapshot), record = changed.records[0], final = record.frames.at(-1);
   record.replaySha256 = 'changed Replay'; record.planSha256 = 'changed plan';
   final.widths[0].width += 200;
   final.points[0].x += 200;
   record.frames[0].points[0].x -= 40;
   const judged = list => faults(compareCorpusSnapshots(snapshot, changed, list).slice(0, 1));
-  assert(!judged([{ ...records[0], allow }]).some(kind => ['replay-change', 'relation-plan-change', 'final-coordinate-change',
+  assert(!judged([{ ...records[0], motionOnly }]).some(kind => ['replay-change', 'relation-plan-change', 'final-coordinate-change',
     'completed-width-growth'].includes(kind)), 'reviewed through the layout fingerprint');
-  assert(judged([{ ...records[0], allow }]).includes('new-motion-fault'), 'a 40-unit joining jump still fails');
+  assert(judged([{ ...records[0], motionOnly }]).includes('new-motion-fault'), 'a 40-unit joining jump still fails');
   assert.deepEqual(new Set(judged(records)), new Set(['replay-change', 'relation-plan-change', 'final-coordinate-change',
     'completed-width-growth', 'new-motion-fault']), 'a maintained corpus record keeps its strict allow rules');
 });
@@ -432,7 +434,77 @@ test('a fixture the change adds is compared by motion only, never one the base a
     { id: 'old', source: pathModule.join(head, 'fixtures', 'old.json'), allow: {} },
     { id: 'new', source: pathModule.join(head, 'fixtures', 'new.json'), allow: {} },
     { id: 'outside', source: pathModule.join(tmpdir(), 'elsewhere.json'), allow: {} }], base, head);
-  assert.deepEqual(records.map(record => Boolean(record.allow.replay)), [false, true, false]);
-  assert.match(records[1].allow.reason, /new in this change/);
-  assert.equal(records[1].allow.completedWidthGrowth, true);
+  assert.deepEqual(records.map(record => Boolean(record.motionOnly)), [false, true, false]);
+  assert.match(records[1].motionOnly, /new in this change/);
+});
+
+test('a corpus allow entry covers only the change it was written for', async () => {
+  const { comparisonSha256 } = await import('../scripts/replayCorpusInputs.mjs');
+  // The change the entry was written for: a new Replay and a moved final point.
+  const changed = structuredClone(snapshot), record = changed.records[0];
+  record.replaySha256 = 'changed Replay';
+  record.frames.at(-1).points[0].x += 0.5;
+  const written = { replay: true, finalCoordinates: true, reason: 'The intended change.',
+    from: comparisonSha256(snapshot.records[0]), to: comparisonSha256(record) };
+  const judged = (baseline, candidate, allow) => compareCorpusSnapshots(baseline, candidate, [{ ...records[0], allow }])[0];
+  const kinds = (...args) => judged(...args).violations.map(violation => violation.kind);
+  assert.deepEqual(kinds(snapshot, changed, written), [], 'it waives the change it was measured for');
+  assert.deepEqual(judged(snapshot, changed, written).fingerprints, { baseline: written.from, candidate: written.to },
+    'the report gives the fingerprints an entry names');
+  // After it merges the base measures `to`. A later change to the same record's
+  // Replay and final tree is a different change: the entry hides neither.
+  const later = structuredClone(changed);
+  later.records[0].replaySha256 = 'a later Replay';
+  later.records[0].frames.at(-1).points[0].x += 30;
+  assert.deepEqual(kinds(changed, later, written), ['stale-allow', 'replay-change', 'final-coordinate-change']);
+  // Nor does it cover a further change on the branch it was written on.
+  assert.deepEqual(kinds(snapshot, later, written), ['stale-allow', 'replay-change', 'final-coordinate-change']);
+  // Merged and unchanged, it covers nothing and is reported as removable, but an
+  // unrelated PR does not fail for it.
+  assert.deepEqual(kinds(changed, structuredClone(changed), written), []);
+  assert.equal(judged(changed, structuredClone(changed), written).removableAllow, true);
+  // It waives only what it names.
+  assert.deepEqual(kinds(snapshot, changed, { ...written, finalCoordinates: false }), ['final-coordinate-change']);
+});
+
+/** A scratch manifest of one minimal analysis; `write(fields)` rewrites its record. */
+async function withManifest(body) {
+  const scratch = await mkdtemp(path.join(tmpdir(), 'corpus-manifest-'));
+  try {
+    await writeFile(path.join(scratch, 'analysis.json'), JSON.stringify({ sentence: 'Mia', derivationStages: [
+      { statement: 'S', stageRecord: 'R', relations: [], workspaceForest: [{ id: 'n', label: 'N', word: 'Mia' }] }] }));
+    await body(scratch, fields => writeFile(path.join(scratch, 'manifest.json'),
+      JSON.stringify({ schemaVersion: 1, records: [{ id: 'mia', source: 'analysis.json', ...fields }] })));
+  } finally { await rm(scratch, { recursive: true, force: true }); }
+}
+
+test('a manifest allow entry must name the change it covers', () => withManifest(async (scratch, write) => {
+  const allow = { replay: true, reason: 'The intended change.', from: 'a'.repeat(64), to: 'b'.repeat(64) };
+  await write({ allow });
+  assert.deepEqual((await loadCorpusManifest(path.join(scratch, 'manifest.json'))).records[0].allow, allow);
+  for (const unbound of [{ replay: true, reason: 'Never expires.' }, { ...allow, to: undefined }, { ...allow, to: allow.from },
+    { ...allow, from: 'main' }, { ...allow, replay: false }, { ...allow, reason: ' ' }, { ...allow, motionOnly: 'claimed' }]) {
+    await write({ allow: unbound });
+    await assert.rejects(loadCorpusManifest(path.join(scratch, 'manifest.json')), /fingerprints\.baseline and fingerprints\.candidate/,
+      JSON.stringify(unbound));
+  }
+  await write({ motionOnly: 'claimed' });
+  assert.equal((await loadCorpusManifest(path.join(scratch, 'manifest.json'))).records[0].motionOnly, undefined,
+    'only the run decides that a record is judged by motion alone');
+}));
+
+test('only archive fixtures the candidate fingerprints are judged by motion alone', async () => {
+  const { allowFingerprintedFixtures } = await import('../scripts/compareReplayCorpus.mjs');
+  const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
+  const head = mkdtempSync(path.join(tmpdir(), 'corpus-head-'));
+  mkdirSync(path.join(head, 'fixtures', 'replay-snapshots'), { recursive: true });
+  writeFileSync(path.join(head, 'fixtures', 'replay-snapshots', 'fixture-layout.json'),
+    JSON.stringify({ records: { 'reviewed.json#': {}, 'many.json#/analyses/1': {} } }));
+  const records = allowFingerprintedFixtures([
+    { id: 'reviewed', source: path.join(head, 'fixtures', 'reviewed.json'), selector: '' },
+    { id: 'many-0', source: path.join(head, 'fixtures', 'many.json'), selector: '/analyses/0' },
+    { id: 'many-1', source: path.join(head, 'fixtures', 'many.json'), selector: '/analyses/1' },
+    { id: 'outside', source: path.join(tmpdir(), 'reviewed.json'), selector: '' }], head);
+  assert.deepEqual(records.map(record => Boolean(record.motionOnly)), [true, false, true, false]);
+  await rm(head, { recursive: true, force: true });
 });
