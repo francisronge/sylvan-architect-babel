@@ -47,6 +47,8 @@ export function blockReason(failing) {
     `Read each failure (gh pr checks <n> -R ${REPOSITORY}) and act on it now, or state in your reply`,
     'how each is already being handled (which fix is running, and that the PR is watched).',
     'Never call a PR ready or its checks passing while it is listed here.',
+    'Keep the reply you were about to give in full: answer this in one added line, and if a listed PR',
+    'is outside your task, say so and leave it to the agent that owns it.',
     `Ignored: ${ignored}.`,
   ].join('\n');
 }
