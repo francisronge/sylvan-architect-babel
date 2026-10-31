@@ -162,13 +162,15 @@
       "id": "showcase-54-en-double-object",
       "source": "../showcase/agreement-and-case.json",
       "selector": "/cases/7",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "reason": "The sentence capital belongs to the final sentence's first word, once it stands there. The subject's lower copy in vP reads \"she\" in frames 1-43, where main showed \"She\"; the raised subject keeps \"She\". Only that word's casing changes: every step, every coordinate and the motion faults are unchanged."}
     },
     {
       "id": "showcase-79-de-v2-wh",
       "source": "../showcase/movement.json",
       "selector": "/cases/0",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "reason": "The sentence capital belongs to the final sentence's first word, once it stands there. The wh-phrase's intermediate copy reads \"was\" in frames 23-30, where main showed \"Was\"; the fronted copy keeps \"Was\". Only that word's casing changes: every step, every coordinate and the motion faults are unchanged."}
     },
     {
       "id": "showcase-01-en-passive-raising",
