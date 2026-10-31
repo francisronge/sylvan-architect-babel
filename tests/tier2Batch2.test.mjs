@@ -227,6 +227,28 @@ test('Transfer reads the phase head and its projections through category notatio
   }
 });
 
+test('Transfer stops its phase-head spine at a second head of the same category in any notation', () => {
+  // A higher v shell (its own head h2) is not a projection of the lower phase head.
+  const shells = (head, higherHead) => [node('outer', 'vP', [leaf('b'), node('outerBar', "v'", [
+    leaf('h2', { label: higherHead, word: undefined, silent: true }),
+    node('phase', 'vP', [leaf('a'), node('vbar', "v'", [leaf('h', { label: head, word: undefined, silent: true }),
+      node('vp', 'VP', [leaf('obj')])])])])])];
+  for (const [head, higherHead] of [['v', 'v'], ['v', 'v[uφ]'], ['v*', 'v'], ['v[uφ]', 'v*']]) {
+    const tree = shells(head, higherHead), name = `${head} below ${higherHead}`;
+    assert(has(inspect(relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'a' }), tree), 'transfer.domain'), name);
+    assert(!has(inspect(relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'b' }), tree), 'transfer.domain'), name);
+  }
+});
+
+test('Transfer reads a compound complex head the same in either member order', () => {
+  const tree = complex => [node('phase', 'vP', [leaf('a'), node('vbar', "v'", [
+    node('cx', complex, [leaf('V', { label: 'V', word: 'saw' }), leaf('h', { label: 'v', word: undefined, silent: true })]),
+    node('vp', 'VP', [leaf('obj')])])])];
+  const record = relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'a' });
+  assert.equal(has(inspect(record, tree('v+V')), 'transfer.domain'), has(inspect(record, tree('V+v')), 'transfer.domain'));
+  assert(has(inspect(record, tree('v')), 'transfer.domain'), 'a complex head labelled v stays on the spine');
+});
+
 test('Transfer and cyclic feature claims do not repeat equivalent marks', () => {
   const transfer = inspect(relation({ phase: 'root', edge: ['a', 'b'], complement: 'vp' }));
   assert.equal(transfer.items.filter(item => item.domainStyle === 'transfer-edge').length, 2);

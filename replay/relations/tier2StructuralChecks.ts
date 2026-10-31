@@ -181,18 +181,15 @@ export const evaluateStructuralCheck = (
         || `phase ${ids('phase').join(',')} does not contain all authored domain, edge and head anchors`;
       const head = ids('phase.head')[0];
       if (!head) return true;
-      // Read the head category through the shared notation reader, so v*,
-      // v[uφ], v{uφ} and v⁰ belong to the same spine as v, v′ and v*P.
-      const label = (id: string) => currentIndex.nodes.get(id)?.[0]?.label;
-      // A label the reader declines keeps the plain reading (primes and a final
-      // P removed).
-      const headCategory = (text?: string | null) => readCategoryLabel(text)?.head
-        ?? String(text ?? '').replace(/[\u2032'\u2019]/gu, '').replace(/(.)P$/u, '$1');
-      const category = (id: string) => headCategory(label(id));
-      const isHeadOf = (text: string | undefined, headName: string) => {
+      // Categories come from the shared notation reader, so v*, v[uφ], v{uφ}
+      // and v⁰ share one spine with v, v′ and v*P. As in phase-edge recovery,
+      // a compound label (V+v) or one the reader declines has no category here.
+      const shapeOf = (text?: string | null) => {
         const shape = readCategoryLabel(text);
-        return shape ? shape.kind === 'head' && shape.head === headName : String(text) === headName;
+        return shape && !shape.compound ? shape : undefined;
       };
+      const label = (id: string) => currentIndex.nodes.get(id)?.[0]?.label;
+      const headCategory = shapeOf(label(head))?.head ?? '';
       // The authored phase head can be inside a complex head. Follow only
       // its unambiguous same-category spine, never an arbitrary ancestor.
       const projections = new Set<string>();
@@ -204,9 +201,12 @@ export const evaluateStructuralCheck = (
         if (parents.length !== 1) break;
         const parent = parents[0];
         if (visited.has(parent) || currentIndex.nodes.get(parent)?.length !== 1
-          || !category(head) || category(parent) !== category(head)) break;
+          || !headCategory || shapeOf(label(parent))?.head !== headCategory) break;
         const siblings = currentIndex.nodes.get(parent)![0].children ?? [];
-        if (foundComplement && siblings.some(sibling => sibling.id !== child && isHeadOf(sibling.label, category(head)))) break;
+        if (foundComplement && siblings.some(sibling => {
+          const shape = shapeOf(sibling.label);
+          return sibling.id !== child && shape?.kind === 'head' && shape.head === headCategory;
+        })) break;
         visited.add(parent);
         if (domains.every(domain => domain !== child && currentIndex.parentIds.get(domain)?.has(parent))) foundComplement = true;
         if (foundComplement) projections.add(parent);
