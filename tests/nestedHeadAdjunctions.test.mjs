@@ -32,3 +32,52 @@ test('nested-head-adjunctions.json: every painted parent is whole and every land
   assert.deepEqual(checkWholeParent(replay), []);
   assert.deepEqual(checkLandingAttached(replay), []);
 });
+
+// A segment goes to a later movement only when that movement's own landing
+// path introduces it. Otherwise the earlier movement keeps it.
+const firstPainted = (prepared, id) => prepared.playbackSteps.findIndex(step => frameStructure(step).displayed.has(id));
+const momentIn = (prepared, stageIndex, relationIndex) => prepared.playbackSteps.findIndex(step => step.replayKind === 'relation'
+  && step.replayRelationIdentity?.stageIndex === stageIndex && step.replayRelationIdentity.relationIndex === relationIndex);
+
+test('nested-head-adjunctions.json: a later landing no movement path introduces leaves the segment over it with the earlier movement', () => {
+  // Variant: the object clitic claim keeps a registered head-movement name but
+  // proves no movement (its source shares no lineage with himHigh), so its
+  // landing path is empty. relativeComplexHead stays with the subject clitic's
+  // moment instead of being built by construction before its own daughter.
+  const variant = structuredClone(record);
+  variant.derivationStages[1].relations[2] = { relation: 'head movement', anchors: { landing: 'himHigh', source: 'airportN' } };
+  const prepared = prepareReplay({ ...variant, includePlayback: true });
+  assert.equal(firstPainted(prepared, 'relativeComplexHead'), momentIn(prepared, 1, 1));
+  assert.equal(firstPainted(prepared, 'relativeSubjectHead'), momentIn(prepared, 1, 1));
+});
+
+test('a later landing whose path is a landing wrapper keeps the wrapper, and the earlier head movement keeps its complex', () => {
+  // Hand-built: stage 2 raises sees to T (complex tc) and then Mia to Spec-TP.
+  // tp keeps its id, so the A-movement's path is its wrapper tbar. A wrapper
+  // path needs the landing's parent to exist in the preceding stage, and an
+  // earlier landing's path ends below any such parent, so this control can
+  // only confirm that each movement keeps what it introduces.
+  const leaf = (id, label, extra = {}) => ({ id, label, ...extra });
+  const verbPhrase = (subject, verb) => ({ id: 'vp', label: 'v', children: [subject, { id: 'vbar', label: 'v', children: [
+    leaf('v', 'v', { silent: true }), { id: 'bigvp', label: 'V', children: [verb, leaf('bo', 'D', { word: 'Bo' })] }] }] });
+  const mia = leaf('mia', 'D', { word: 'Mia', lineageId: 'mia-chain' }), see = leaf('see', 'V', { word: 'sees', lineageId: 'see-chain' });
+  const t = leaf('t', 'T', { silent: true });
+  const wrapped = {
+    sentence: 'Mia sees Bo',
+    derivationStages: [
+      { statement: 'Build the clause.', stageRecord: 'Merge the verb with its object, then v, the subject and T.', relations: [],
+        workspaceForest: [{ id: 'tp', label: 'T', children: [t, verbPhrase(mia, see)] }] },
+      { statement: 'Raise the verb to T and the subject to Spec-TP.', stageRecord: 'The verb adjoins to T; the subject moves above T-bar.',
+        relations: [
+          { relation: 'head movement', anchors: { landing: 'see', source: 'seeTrace' }, priorAnchors: { source: 'see' } },
+          { relation: 'A-movement', anchors: { landing: 'mia', source: 'miaTrace' }, priorAnchors: { source: 'mia' } }],
+        workspaceForest: [{ id: 'tp', label: 'T', children: [mia, { id: 'tbar', label: 'T', children: [
+          { id: 'tc', label: 'T', children: [see, t] },
+          verbPhrase(leaf('miaTrace', 'D', { word: 'Mia', silent: true, lineageId: 'mia-chain' }),
+            leaf('seeTrace', 'V', { word: 'sees', silent: true, lineageId: 'see-chain' }))] }] }] }]
+  };
+  const prepared = prepareReplay({ ...structuredClone(wrapped), includePlayback: true });
+  assert.equal(firstPainted(prepared, 'tc'), momentIn(prepared, 1, 0));
+  assert.equal(firstPainted(prepared, 'tbar'), momentIn(prepared, 1, 1));
+  assert.deepEqual([...checkWholeParent(prepared), ...checkLandingAttached(prepared)], []);
+});
