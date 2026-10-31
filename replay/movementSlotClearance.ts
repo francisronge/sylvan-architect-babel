@@ -34,9 +34,13 @@ const cache = new WeakMap<Reservations, Reservations>();
  * every occupant it paints: from the source's arrival until the lower occurrence
  * leaves its parent, the occupant of each frame moves outward from the sister by
  * the largest clearance any of those frames needs. The movement moment keeps the
- * parent's motion, and the source's arrival owns the change. When the occupants
- * would then run into other syntax, they and the sister each take half of the
- * clearance, so their parent keeps its place. When the source clears its own
+ * parent's motion, and the source's arrival owns the change. Either the
+ * occupants take the whole clearance, or they and the sister each take half so
+ * their parent keeps its place. Moving the occupants alone re-centres every
+ * ancestor: the fork above tightens when the parent moves toward its own
+ * sister and widens when it moves away. When both pass the checks below, the
+ * occupants move alone unless the split leaves no painted fork wider in any
+ * frame either changes. When the source clears its own
  * sister but runs into the sister of an ancestor, that ancestor's slot is sized
  * the same way.
  *
@@ -126,6 +130,20 @@ export function reserveMovementSlotClearance({ steps, sizes, coordinates, direct
     return candidate;
   };
 
+  // Whether no fork painted under `plan` is wider than under `other` in frames
+  // `from` to `to`. Both plans paint the same nodes.
+  const noForkWider = (plan: Reservations, other: Reservations, from: number, to: number) => {
+    for (let index = from; index <= to; index++) {
+      const own = paint(index, plan).nodes, theirs = paint(index, other).nodes;
+      for (const node of own.values()) {
+        const daughters = paintedChildren(node, own), compared = paintedChildren(theirs.get(getNodeId(node))!, theirs);
+        for (let at = 1; at < daughters.length; at++) if (Math.abs(daughters[at].x - daughters[at - 1].x)
+          > Math.abs(compared[at].x - compared[at - 1].x) + EPSILON) return false;
+      }
+    }
+    return true;
+  };
+
   for (let moment = 1; moment < frames.length; moment++) {
     if (frames[moment].step.replayKind !== 'relation') continue;
     for (const movement of currentWorkspaceMovements(frames[moment].step, paint(moment - 1).nodes, paint(moment).nodes)) {
@@ -201,13 +219,14 @@ export function reserveMovementSlotClearance({ steps, sizes, coordinates, direct
       const dx = sign * distance * (direction === 'rtl' ? -1 : 1);
       const occupant: Move = { first, last, root: occupantAt, dx };
       const sisterMove: Move = { first: arrival(moment - 1, sisterId), last: departure(moment - 1, sisterId, forkId), root: () => sisterId!, dx: -dx / 2 };
-      for (const moves of [[occupant], [{ ...occupant, dx: dx / 2 }, sisterMove]]) {
+      const accepted = [[occupant], [{ ...occupant, dx: dx / 2 }, sisterMove]].flatMap(moves => {
         const candidate = translated(moves);
-        if (candidate && accepts(candidate, Math.min(...moves.map(move => move.first)), Math.max(...moves.map(move => move.last)))) {
-          result = candidate;
-          break;
-        }
-      }
+        return candidate && accepts(candidate, Math.min(...moves.map(move => move.first)), Math.max(...moves.map(move => move.last)))
+          ? [candidate] : [];
+      });
+      const from = Math.min(occupant.first, sisterMove.first), to = Math.max(occupant.last, sisterMove.last);
+      if (accepted.length === 2 && noForkWider(accepted[1], accepted[0], from, to)) result = accepted[1];
+      else if (accepted.length) result = accepted[0];
     }
   }
   cache.set(coordinates, result);

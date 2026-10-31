@@ -113,3 +113,62 @@ test('a widened slot that ends before a later stage inserts a parent adds no mot
   assert.deepEqual(before, [], 'the trace joins its new parent in place');
   assert.deepEqual(after, [], 'widening the slot defers no jump to the inserted parent');
 });
+
+// The held slot of `heldSlot`, one level down: TP stands beside its own sister
+// XP under CP, to its right (`right`) or left. Beside a sister on the right,
+// the source moving alone would carry TP away from XP and widen the fork
+// above, so the source and TP's other daughter each take half and TP keeps its
+// place. Beside a sister on the left, the source moving alone carries TP toward
+// XP and tightens that fork, so the source moves alone.
+function nestedSlot(right) {
+  const node = (id, label, children) => ({ id, label, ...(children ? { children } : {}) });
+  const word = (id, text) => ({ id, label: text, word: text });
+  const forest = (...roots) => ({ id: 'forest', label: '', replayOrigin: { kind: 'workspace' }, children: roots });
+  const host = first => {
+    const tp = node('P', 'TP', [first, node('sis', 'VP', [word('c', 'gamma')])]), xp = node('X', 'XP', [word('d', 'delta')]);
+    return node('G', 'CP', right ? [tp, xp] : [xp, tp]);
+  };
+  const phrase = id => node(id, 'DP', [word('a', 'alpha'), word('b', 'beta')]);
+  const x = right ? 1200 : -600;
+  const held = { G: [(450 + x) / 2, 0], P: [450, 220], sis: [600, 440], c: [600, 660], X: [x, 220], d: [x, 440] };
+  const frames = [
+    { canvas: host(phrase('src')), kind: 'micro', operation: 'ExternalMerge', target: 'G',
+      at: { ...held, src: [300, 440], a: [150, 660], b: [450, 660] } },
+    { canvas: forest(phrase('land'), host(node('t', 't'))), kind: 'relation', operation: 'movement', target: 'land',
+      at: { land: [-1300, 0], a: [-1450, 220], b: [-1150, 220], ...held, t: [300, 440] } }
+  ];
+  const steps = frames.map(({ canvas, kind, operation, target, at }, index) => ({
+    replayCanvasData: canvas, replayFrameIndex: 0, replayStageStepIndex: index, replayKind: kind, operation, targetNodeId: target,
+    replayVisibleNodeIds: Object.keys(at),
+    ...(kind === 'relation' ? { replayRelationIdentity: { stageIndex: 0, relationIndex: 0 }, replayRelationLinks: [{ authoredRelationKey: '0:0',
+      renderFamily: 'trajectory', priorSourceNodeId: 'src', witnessNodeId: 't', targetNodeId: 'land' }] } : {})
+  }));
+  const coordinates = new Map(frames.map(({ canvas, at }) => [canvas,
+    new Map([['forest', { x: 0, y: -220 }], ...Object.entries(at).map(([id, [x, y]]) => [id, { x, y }])])]));
+  const sizes = new Map([[0, [4000, 1000]]]);
+  const planned = reserveMovementSlotClearance({ steps, sizes, coordinates, direction: 'ltr' });
+  return frames.map(frame => {
+    const root = d3.hierarchy(frame.canvas); applyVizIds(root);
+    const visible = new Set(Object.keys(frame.at));
+    return new Map(layoutSyntaxTree(root, sizes.get(0), 'ltr', planned.get(frame.canvas), visible).descendants()
+      .filter(laid => visible.has(getNodeId(laid))).map(laid => [getNodeId(laid), laid]));
+  });
+}
+
+test('a widened slot keeps its parent in place when moving the source alone would widen the fork above', () => {
+  const painted = nestedSlot(true);
+  assert.ok(painted[0].get('src').x < 300, 'the source moves away from its sister');
+  for (const nodes of painted) {
+    assert.equal(nodes.get('P').x, 450, 'the slot\'s parent keeps its place');
+    assert.equal(nodes.get('X').x - nodes.get('P').x, 750, 'the fork above the slot keeps its width');
+  }
+});
+
+test('a widened slot moves the source alone when that tightens the fork above', () => {
+  const painted = nestedSlot(false);
+  assert.ok(painted[0].get('src').x < 300, 'the source moves away from its sister');
+  for (const nodes of painted) {
+    assert.equal(nodes.get('sis').x, 600, 'the sister keeps its place');
+    assert.ok(nodes.get('P').x - nodes.get('X').x < 1050, 'the fork above the slot tightens');
+  }
+});

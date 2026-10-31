@@ -91,15 +91,18 @@ for (const [name, change] of changes) test(`${name} still invalidates unchanged-
   assert.deepEqual(steps, original);
 });
 
-test('entry 24 frames 17–20: displayed The/the does not split D and N ranks', () => {
+test('entry 24 frames 17–20: the relative-clause subject keeps one form and does not split D and N ranks', () => {
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/reviewed-construction.json', import.meta.url)))
     .cases.find(entry => entry.reviewNumber === 24);
   const original = JSON.stringify(record);
   const result = prepareReplay({ ...record, includePlayback: true }), steps = result.playbackSteps;
   const snapshots = JSON.stringify(steps.map(step => step.replayCanvasData));
   const stage = 2, groups = buildStageLayoutGroups(steps, result.replayDerivationFrames);
+  // "the students" is never first in the final sentence, so it keeps one
+  // lowercase form. Main showed "The" until "which" moved in front of it, a
+  // case flip on a word that had not moved; the ranks must hold either way.
   assert.equal(find(steps[16].replayCanvasData, 'dStudents').word, 'the');
-  assert.equal(find(steps[16].replayCanvasData, 'dStudents::__leaf').word, 'The');
+  assert.equal(find(steps[16].replayCanvasData, 'dStudents::__leaf').word, 'the');
   assert.equal(find(steps[18].replayCanvasData, 'dStudents::__leaf').word, 'the');
   for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
     const size = stageTreeLayoutSize(steps, stage, width, height, groups);
