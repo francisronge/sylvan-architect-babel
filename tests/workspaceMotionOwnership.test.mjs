@@ -75,12 +75,23 @@ test('an exact new extraction wrapper owns its retained host, never its outside 
   assert.deepEqual(result.stationary, ['subject']);
 });
 
-test('a new movement daughter on an existing projection owns only that receiving interior', () => {
+test('a movement daughter on an existing projection releases the same syntax whichever occurrence keeps the source ID', () => {
+  // The same movement written three ways: fresh IDs at both occurrences, the
+  // landing keeping the source ID, and the lower occurrence keeping it. None
+  // releases the receiving interior (lead decision 30 Oct 2026: reserved during
+  // construction; the 8 Oct expectation was an unowned-motion shape).
   const before = view(fork('clause', atom('head'), fork('host', fork('bar', atom('source'), atom('object')))));
-  const current = view(fork('clause', atom('head'), fork('host', atom('landing'), fork('bar', atom('witness'), atom('object')))));
-  const result = motion(before, current, relation());
-  assert.deepEqual(names(result.owned), ['bar', 'host', 'landing', 'object', 'source', 'witness']);
-  assert.deepEqual(result.stationary, ['head']);
+  const forms = [
+    [view(fork('clause', atom('head'), fork('host', atom('landing'), fork('bar', atom('witness'), atom('object'))))), relation()],
+    [view(fork('clause', atom('head'), fork('host', atom('source'), fork('bar', atom('witness'), atom('object'))))), relation({ targetNodeId: 'source' })],
+    [view(fork('clause', atom('head'), fork('host', atom('landing'), fork('bar', atom('source', ''), atom('object'))))), relation({ witnessNodeId: 'source' })]
+  ];
+  for (const [current, step] of forms) {
+    const result = motion(before, current, step);
+    assert(!result.owned.has('object') && !result.owned.has('bar'), 'the receiving interior is not released');
+    assert.deepEqual(result.stationary, ['head', 'object']);
+  }
+  const [[current]] = forms;
   for (const override of [{ authoredRelationKey: '0:0' }, { movementTransition: false }, { priorSourceNodeId: 'head' }]) {
     const invalid = motion(before, current, relation(override));
     assert(!invalid.owned.has('object'), 'an unrelated or unproved insertion cannot release the existing interior');

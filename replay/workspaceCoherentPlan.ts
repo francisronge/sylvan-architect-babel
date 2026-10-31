@@ -7,6 +7,7 @@ import {
   WORKSPACE_INITIAL_CLEARANCE_CORRECTIONS,
   WORKSPACE_SEED_CLEARANCE_CORRECTIONS
 } from './workspaceClearancePreference.ts';
+import { workspaceDepartureJump, workspaceLeftBehindIds } from './workspaceDepartureGuard.ts';
 import {
   earlierWorkspaceForks,
   prepareWorkspaceHistoryGuard,
@@ -126,6 +127,7 @@ export function planCoherentWorkspace({ scenes, baseline, direction, render, met
   let preferred: ReadonlyMap<number, ReadonlyMap<string, Point>> = new Map([...candidates].map(([id, items]) => [id, items.at(-1)!.positions]));
   const referencePreferences = preferred;
   const parts = new Map(intrinsic.flatMap(frame => [...frame.nodes.values()].map(part => [part.incarnation, part])));
+  const leftBehind = workspaceLeftBehindIds(intrinsic);
   const preparedAt = performance.now();
   const controls = [...parts.values()].flatMap(part => part.children.slice(1).map((_, index) => ({ part, index: index + 1 })))
     .sort((a, b) => a.part.first - b.part.first || a.part.incarnation - b.part.incarnation || a.index - b.index);
@@ -276,7 +278,11 @@ export function planCoherentWorkspace({ scenes, baseline, direction, render, met
         }
       }
       improvements.sort((a, b) => compareWorkspaceVisualScores(a.candidate.score, b.candidate.score));
+      // A waiting daughter's fork may not buy final-tree preference with a
+      // farther jump where the daughter departs (workspaceDepartureJump).
+      const departureJump = workspaceDepartureJump(control.part, leftBehind), acceptedJump = departureJump?.(best.frames);
       for (const improvement of improvements) {
+        if (departureJump && departureJump(improvement.candidate.frames) > acceptedJump! + 1e-6) continue;
         const next = placeRigidGroups(improvement.candidate.graph, referenceFrames);
         if (next.accepted === false)
           continue;

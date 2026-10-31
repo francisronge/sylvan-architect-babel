@@ -55,6 +55,8 @@ export type PlaqueRect = ObstacleRect & {
   plaqueShell?: boolean;
   /** A sampled movement trajectory: like a plaque, it keeps the full gap when syntax gets a narrower one. */
   trajectory?: boolean;
+  /** Which path a sampled trajectory box belongs to, stable across layouts of one step. */
+  trajectoryKey?: string;
   /** The plaques this box does not block, by plaqueIdentity and claimIdentity: a binding
    * domain's outline grows around the plaques attached inside its domain. */
   enclosedPlaques?: ReadonlySet<string> };

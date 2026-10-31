@@ -163,12 +163,13 @@ function changedPlaqueAttachments(before: d3.HierarchyPointNode<SyntaxNode>[], a
   return changed;
 }
 
-function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
-  abstractionMode = false, protectedNodeIds = new Set<string>(), measureCategoryText, measurePlaqueText, measureTreeInk, treeLabelRuns, measureTreeLabel }: StageLayoutInput, geometry?: StageGeometry) {
+function stageLayouts(input: StageLayoutInput, geometry?: StageGeometry) {
+  const { steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
+    abstractionMode = false, protectedNodeIds = new Set<string>(), measureCategoryText, measurePlaqueText, measureTreeInk, treeLabelRuns, measureTreeLabel } = input;
   const stageSize = stageTreeLayoutSize(steps, stageIndex, width, height, layoutGroups);
   const reservations = geometry?.reservations ?? (stageSize ? buildStageCoordinateReservations(steps, stageIndex, stageSize,
     index => stageTreeLayoutSize(steps, index, width, height, layoutGroups), direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel,
-    { plan, measurePlaqueText }) : null);
+    { plan, measurePlaqueText, schedule: plaqueScheduleOver(input) }) : null);
   const hierarchy = (canvas: SyntaxNode) => {
     const root = d3.hierarchy(cloneSyntaxTree(canvas)!);
     applyVizIds(root);
@@ -242,6 +243,14 @@ function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
     reservations?.get(completedCanvas));
   // The crossing into this stage takes the carry's tie rule only where its plan closed there.
   return { scenes, completedTree, closing: closesOnEntry(reservations) };
+}
+
+/** Replay's plaque schedule for `input` over given left-to-right stage
+ * coordinates, as the plain (not abstracted) tree paints them: what a closing
+ * that seats a landing must leave every plaque as near as (StagePlaques
+ * `schedule`). Its stage sizes, like the closing's, do not depend on the viewport. */
+export function plaqueScheduleOver(input: StageLayoutInput) {
+  return (coordinates: MeasuredStageCoordinates) => buildReplayPlaqueSchedule({ ...input, direction: 'ltr', abstractionMode: false }, coordinates);
 }
 
 export type ReplayPlaqueSchedule = {
@@ -1005,6 +1014,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       return nodes;
     })();
     const layout = new Map(scheduled), held = new Set<number>(), left = new Set<number>();
+    let keepAgain: (() => void) | undefined;
     const before = shownBefore;
     const moved = before ? [...scheduled].filter(([index, placement]) => {
       const prior = before.placements.get(identityOf(items[index]));
@@ -1063,6 +1073,16 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
           layout.set(index, scheduled.get(index)!); held.delete(index); lost.add(index); later = undefined; changed = true;
         }
       }
+      // A plaque let go because another plaque's scheduled pocket was in its way is judged
+      // again once the plaques free to move at this step (below) stand where they keep:
+      // one shown first here can take a pocket other than its scheduled one.
+      keepAgain = () => {
+        later = undefined;
+        for (const index of candidates.keys()) if (!held.has(index) && !lost.has(index)) {
+          const kept = holds(index);
+          if (kept) { layout.set(index, kept); held.add(index); later = undefined; }
+        }
+      };
     }
     // Nor does a plaque free to move take a pocket that syntax or a mark of this stage
     // will take while it is still shown beside a still anchor: it takes the first pocket
@@ -1129,6 +1149,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       }
       if (kept) { layout.set(index, kept); held.add(index); chosen.add(index); current = undefined; }
     }
+    if (chosen.size) keepAgain?.();
     // When rows leave a Case plaque, its shell fits the rows that remain at that step,
     // in its pocket (presentShell).
     for (const [index, placement] of layout) {

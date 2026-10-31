@@ -11,7 +11,7 @@ import { replayMotionFaults } from '../scripts/replayMotionContinuity.mjs';
 // coordinates at 1600x948), each at the step where the stage layout failed.
 const root = fileURLToPath(new URL('../', import.meta.url));
 const { analyses } = JSON.parse(await readFile(new URL('./data/stage-layout-regressions.json', import.meta.url), 'utf8'));
-const { records } = await buildCorpusSnapshot(root, Object.entries(analyses).map(([bug, { source, ...input }]) =>
+const { records } = await buildCorpusSnapshot(root, Object.entries(analyses).map(([bug, { source, provenance, ...input }]) =>
   ({ id: bug, input: { ...input, includePlayback: true }, expect: {} })), { width: 1600, height: 948, direction: 'ltr' });
 const measured = Object.fromEntries(records.map(record => [record.id, record]));
 // Frame numbers are 1-based, as Replay shows them.
@@ -71,4 +71,22 @@ test('Opus n4-21: closing the room 本を leaves does not jump the clause it sta
 
 test('Sol n4-36: the book NP waits near where the relative clause merges with it', () => {
   assert.ok(faultsAt(32, 51).every(fault => fault.distance < 1000), 'the book NP jumps when it merges');
+});
+
+// An analysis with the lower occurrence keeping the source ID: the movement that
+// opens a stage owns no more syntax than it would with the landing keeping that ID.
+test('Codex c1-007, source ID kept at the lower occurrence: the ba-object movement opening stage 4 moves nothing it does not own', () => {
+  const [before, after] = [48, 49].map(frame => measured['c1-007-source-kept'].frames[frame - 1]);
+  assert.notEqual(before.stage, after.stage);
+  assert.deepEqual(faultsAt('c1-007-source-kept', 49).filter(fault => fault.kind === 'unowned-motion'), []);
+});
+
+// The compound verb 寄给 waits in its V′ through stages 2 and 3 and then moves to
+// Asp, leaving t_V under the source ID. Refining that V′ against the final tree,
+// where only t_V stands, must not widen the room the verb waits beside, which
+// t_V would then cross at the movement.
+test('Codex c1-007, source ID kept at the lower occurrence: the compound verb waits beside its VP and V-to-Asp moves nothing it does not own', () => {
+  const bug = 'c1-007-source-kept';
+  assert.ok(point(bug, 46, 'lowerVP').x - point(bug, 46, 'sendGiveV').x < 1500, 'the waiting verb stands far from its VP');
+  assert.deepEqual(faultsAt(bug, 47), []);
 });

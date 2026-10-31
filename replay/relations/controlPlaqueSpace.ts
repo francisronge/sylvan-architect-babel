@@ -51,7 +51,8 @@ export function controlPlaqueObstacles(items: RelationPlanItem[], nodes: Node[],
     route.slice(1).forEach((point, index) => {
       const from = route[index];
       obstacles.push({ x: Math.min(from.x, point.x) - 5, y: Math.min(from.y, point.y) - 5,
-        width: Math.abs(point.x - from.x) + 10, height: Math.abs(point.y - from.y) + 10, trajectory: true });
+        width: Math.abs(point.x - from.x) + 10, height: Math.abs(point.y - from.y) + 10, trajectory: true,
+        trajectoryKey: `control:${item.relationRef.stageIndex}:${item.relationRef.relationIndex}` });
     });
   }
   return obstacles;

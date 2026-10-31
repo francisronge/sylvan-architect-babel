@@ -6,7 +6,7 @@ import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from 
 import { isUnderTriangulation, markTriangulatedNodes } from './triangulation.ts';
 import { categoryTextLayout } from './categoryTextLayout.ts';
 import { buildStageCoordinateReservations, closesOnEntry, recordClosingEntry } from './stageCoordinates.ts';
-import { buildReplayPlaqueSchedule, stageTreeLayoutSize, type StageLayoutInput, type MeasuredStageCoordinates, type ReplayPlaqueSchedule } from './stageCamera.ts';
+import { buildReplayPlaqueSchedule, plaqueScheduleOver, stageTreeLayoutSize, type StageLayoutInput, type MeasuredStageCoordinates, type ReplayPlaqueSchedule } from './stageCamera.ts';
 import type { TreeCoordinateReservation } from './treeLayout.ts';
 import { nativeRelationPlaqueRects, prepareStagePlaqueRequests } from './relations/plaquePlacement.ts';
 import { resolveDisplayedTrajectoryAttachments } from './relations/renderPlan.ts';
@@ -220,7 +220,7 @@ export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress:
     const size = sizeForStage(stageIndex);
     stages.set(stageIndex, size ? buildStageCoordinateReservations(input.steps, stageIndex, size, sizeForStage,
       input.direction, input.measureCategoryText, input.measureTreeInk, input.treeLabelRuns, input.measureTreeLabel,
-      { plan: input.plan, measurePlaqueText: input.measurePlaqueText }) : new Map());
+      { plan: input.plan, measurePlaqueText: input.measurePlaqueText, schedule: plaqueScheduleOver(input) }) : new Map());
   }
   const ordinals = new Map(canvases(job.input).map((canvas, index) => [canvas, index]));
   const coordinates = new Map([...stages].map(([stageIndex, reservations]) => [stageIndex,

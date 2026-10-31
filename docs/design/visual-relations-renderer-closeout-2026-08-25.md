@@ -170,6 +170,32 @@ and an exact landing that turns an existing unary projection into a binary fork
 around its sole retained child. Adding a daughter to an existing fork does not
 release unrelated peers. Ordinary merges retain all internal subtree offsets.
 
+A movement's landing that joins an existing parent beside a sister need not
+stand at its stage's own spacing. From the movement on it may stand nearer that
+sister, but never nearer than ordinary sisters stand (Francis, 31 Oct 2026):
+every node it carries keeps the sibling gap (375 units, centre to centre) from
+each node of its row on that side, its measured ink keeps the receiving
+component's clearance (34 units) from all other ink there, and it comes no
+nearer than leaves the parent where it stood before. The phrase keeps its own
+shape. Keep this only when the movement's motion shrinks, no step moves syntax
+it does not own farther or newly breaks continuity, every frame stays ordered,
+the moved ink comes no nearer other ink than that clearance where it was not
+already nearer, no branch newly crosses text, no trajectory runs into a tree
+label or word, or deeper into one it already grazed (each label judged as itself
+wherever the seat carries it; branch ink is not a label), stages keep their size, and Replay's own plaque layout, run over the
+seated coordinates, stands every plaque in every step no farther from its anchor
+than before (within one unit). That includes the landing's own plaques:
+travelling with their anchor does not keep their pocket clear of the syntax they
+now pass.
+
+Each stage is laid out on its own, so a stage crossing can shift syntax that no
+step moves. Unmoved syntax that shifts rigidly keeps its place relative to the
+camera carry from the crossing on. A leaf that keeps its row while the syntax
+around it drops a row (a parent inserted above its sister) cannot: it stays
+where it stands, and its sister side, with all it carries, stands nearer it by
+its sideways jump, or failing that by the largest of three quarters, a half or a
+quarter of it that every check allows.
+
 An unbranched moving source must not sit farther out than its replacement lower
 occurrence when both occupy the same parent slot beside stationary siblings.
 The compact lower slot may be reserved throughout the source's construction.
@@ -1003,10 +1029,20 @@ Carry one rigid translation through its compatible construction lifetime;
 introduce the new parent and daughters only at their owning step.
 Settle movement source and receiving slots together before following ordinary
 and movement wrappers backward. Later wrappers cannot undo an accepted movement
-contraction. A peer containing the current movement source may recenter over
+contraction. A source that keeps its ID around its new lower occurrence is that
+occurrence's slot, exactly as when the lower occurrence keeps the source's ID.
+A peer containing the current movement source may recenter over
 its authored lower occurrence; unrelated peers must retain their positions.
+When the peer at the parent's other end recenters, the receiving host waits that
+far from its wrapper's slot, so the parent keeps its centre at the movement.
+Where that slot does not clear, and only after every exact slot is reserved, the
+host takes its wrapper's slot if that paints no more noticeable motion over the
+frames it waits through and the movement than its own place, and otherwise
+waits as near the still slot as it clears where that paints less.
 Accept the placement only when current ink remains clear, unrelated components
-stay stationary, and no earlier completed workspace widens. Check both node spans
+stay stationary, and no earlier completed workspace widens; the nearest wait may
+widen a completed forest by at most 1% (a host waiting as its own workspace),
+never a root. Check both node spans
 and measured painted bounds for each root and the whole forest; a long word can
 extend beyond stationary outer nodes. Source-containing
 hosts retain their own contour rule. Authored syntax and later geometry remain
