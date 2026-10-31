@@ -26,8 +26,6 @@ const LOWERED_SUBTREE = 'Accepted (camera, fixes A+B): at a stage crossing whose
 const CROSSING_CENTRE = 'Accepted (camera, fixes A+B): entering a new stage, an axis the camera has to pan is centred at the '
   + 'retained zoom, so the settled pose differs by a few pixels (or, with a lowered subtree, more) from a direct selection.';
 
-const WIDER_THETA_LABEL = 'Accepted trade-off (theta letters, 29 Oct): What is the Theme of bought and ends the embedded clause that say takes, so it correctly shows both grids\u2019 letters; the shared lifetime-contour layout amplifies that wider label into a different layout of this tree.';
-const WIDER_THETA_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-29', note: 'Asked \u201c\u03b8 fix: accept that one tree\u2019s slightly bigger jump (shared-landing-source: the correctly wider \u201cWhat\u201d label shifts syntax 196 units at frame 41 and moves the say grid\u2019s plaque), so it can merge?\u201d: \u201c1. YES IDC, IF IT\u2019S NOT SIGNIFICANT DON\u2019T ASK ME.\u201d (lead session, 29 Oct)', accepts: at });
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
@@ -49,8 +47,6 @@ export const EXCEPTIONS = [
     { mobile: { '53>54': 144.66 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/reviewed-construction.json#/cases/0', 'first-paint-continuity', 'off-canvas:moved', 'stage 12',
     { mobile: { '43>44': 57.45 } }),
-  x(MOVED_OFF_CANVAS, 'replay-regressions/sol-spanish-qr.json#/analyses/1', 'first-paint-continuity', 'off-canvas:moved', 'stage 3',
-    { mobile: { '27>28': 27.4 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/workspace-component-lifetime.json#/cases/2', 'first-paint-continuity', 'off-canvas:moved', 'stage 5',
     { mobile: { '53>54': 144.66 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/dissolved-constituent-rebuild.json#', 'first-paint-continuity', 'jump:relayout', 'stage 5',
@@ -81,14 +77,6 @@ export const EXCEPTIONS = [
     { desktop: { '47>46': 77.96 }, mobile: { '47>46': 28.52 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/diverse-recovery.json#/examples/3/analysis', 'first-paint-continuity', 'jump:camera', 'stage 6',
     { desktop: { '46>47': 68.81 }, mobile: { '46>47': 33.14 } }),
-  x(STAGE_RELAYOUT + ' ' + WIDER_THETA_LABEL, 'replay-regressions/shared-landing-source.json#', 'first-paint-continuity', 'jump:camera', 'stage 1',
-    { desktop: { '34>33': 38.62 } }, WIDER_THETA_APPROVAL({ desktop: { '34>33': 38.62 } })),
-  x(STAGE_RELAYOUT + ' ' + WIDER_THETA_LABEL, 'replay-regressions/shared-landing-source.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
-    { desktop: { '33>34': 34.44 }, mobile: { '33>34': 28.09 } }, WIDER_THETA_APPROVAL({ desktop: { '33>34': 34.44 }, mobile: { '33>34': 28.09 } })),
-  x(STAGE_RELAYOUT, 'replay-regressions/sol-spanish-qr.json#/analyses/1', 'first-paint-continuity', 'off-canvas:unmoved', 'stage 3',
-    { mobile: { '27>28': 27.4 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/sol-spanish-qr.json#/analyses/1', 'first-paint-continuity', 'off-canvas:unmoved', 'stage 4',
-    { mobile: { '30>31': 59.47 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/workspace-spanish-continuity.json#', 'first-paint-continuity', 'jump:camera', 'stage 1',
     { desktop: { '7>6': 51.01 }, mobile: { '7>6': 29.98 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/workspace-spanish-continuity.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
@@ -136,10 +124,6 @@ export const EXCEPTIONS = [
     { desktop: { '29>28': 64.82 } },
     { by: 'Francis Ronge', on: '2026-10-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
       accepts: { desktop: { '40>39': 64.82 } } }),
-  x(CROSSING_CENTRE, 'replay-regressions/successive-cyclic-source.json#/cases/0', 'settled-path-independence', 'retention', 'stage 12',
-    { desktop: { '99>100': 9.61 } },
-    { by: 'Francis Ronge', on: '2026-10-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
-      accepts: { desktop: { '121>122': 9.61 } } }),
   x(LOWERED_SUBTREE, 'replay-regressions/unproven-second-landing.json#', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 4',
     { desktop: { '19>20': 196.81 }, mobile: { '19>20': 71.74 } },
     { by: 'Francis Ronge', on: '2026-10-24', note: 'Camera fixes A+B accepted 22 Oct ("1-3 looks good"); after the fixture regained its stages before T-to-C (so T-to-C shows as movement) the same jump measures 196.81 (was 195.14), accepted on the side-by-side on 24 Oct in the lead session: "It looks good."',

@@ -18,8 +18,6 @@
  * failure, so it is never listed.
  * Reviewed against the first native run of the gate (Chromium, 18 October). */
 
-const PLAQUE_CROWDED = 'Accepted (catalog #3; ROADMAP Explicitly Not Active, Francis on 23 and 24 Oct): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
-  + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 const MOBILE = 'mobile canvas: role label/landing past the canvas edge';
 const STAGE_CROSSING = 'Open (stage-crossing layout): entering the last stage at 43>44, the subject movement relays out the clause, so '
   + '了, 走 and the matrix T slide into the raised subject\'s gap (the motion comparator\'s remaining frame-44 motion). '
@@ -29,8 +27,6 @@ const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, r
 
 export const EXCEPTIONS = [
   x(MOBILE, CATALOGUE(2), 'first-paint-continuity', 'off-canvas:moved', 'stage 7', { mobile: { '52>53': 30.59 } }),
-  x(PLAQUE_CROWDED, CATALOGUE(6), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; v; experiencer; j)@relativeSubject',
-    { desktop: { '11-34': 1.19 }, mobile: { '11-34': 1.19 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'first-paint-continuity', 'jump:stage-coordinates', 'stage 4',
     { desktop: { '34>35': 77.67 }, mobile: { '34>35': 38.15 } },
     { by: 'Francis Ronge', on: '2026-10-21', note: 'Accepted on the plaque-gap side-by-side review '
