@@ -207,6 +207,26 @@ test('Transfer uses one SOD and each accessible DP outline without a phase-head 
   assert(!has(inspect(relation({ ...record.anchors, accessibleDPs: 'obj' }), tree), 'transfer.domain'));
 });
 
+test('Transfer reads the phase head and its projections through category notation', () => {
+  // v* (strong phase head) and v[uφ] (a feature bundle) are both the category v
+  // (Chomsky 2001, 2008), whatever notation the bar and phrase labels use.
+  const vTree = (head, bar, phrase) => [node('phase', phrase, [leaf('a'), node('vbar', bar, [
+    leaf('h', { label: head, word: undefined, silent: true }), node('vp', 'VP', [leaf('obj')])])])];
+  const record = relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'a' });
+  for (const labels of [['v', "v'", 'vP'], ['v*', "v*'", 'v*P'], ['v*', "v'", 'vP'], ['v[uφ]', "v'", 'vP'],
+    ['v*[uφ]', 'v′', 'v*P'], ['v{uφ}', "v*'", 'vP'], ['v⁰', "v'", 'vP']]) {
+    const result = inspect(record, vTree(...labels));
+    assert(has(result, 'transfer.domain'), labels.join(' / '));
+    assert.deepEqual(result.items.filter(item => item.domainStyle === 'transfer-edge').map(item => item.rootNodeId), ['a'], labels.join(' / '));
+    assert.deepEqual(result.items.filter(item => item.kind === 'fong-component').map(item => [item.componentLabel, item.headNodeId]),
+      [['SOD', 'vp']], labels.join(' / '));
+  }
+  // A head of another category never borrows the v projections.
+  for (const labels of [['T[uφ]', "v'", 'vP'], ['v*', "T'", 'TP']]) {
+    assert(!has(inspect(record, vTree(...labels)), 'transfer.domain'), labels.join(' / '));
+  }
+});
+
 test('Transfer and cyclic feature claims do not repeat equivalent marks', () => {
   const transfer = inspect(relation({ phase: 'root', edge: ['a', 'b'], complement: 'vp' }));
   assert.equal(transfer.items.filter(item => item.domainStyle === 'transfer-edge').length, 2);
