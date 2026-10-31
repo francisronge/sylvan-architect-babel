@@ -110,3 +110,29 @@ test('both frameworks explain copyOf', () => {
     assert.match(buildSystemInstruction(framework), /- copyOf is the id of a node defined in this or an earlier stage\./);
   }
 });
+
+// Codex review on #340: a source that lists one child several times made the
+// copy walk that subtree once per listing, so 21 nodes expanded to a million.
+test('a copy fails at once when its source lists one node twice, however deep', () => {
+  const chain = Array.from({ length: 40 }, (_, index) => ({ id: `n${index}`, label: 'X', children: [`n${index + 1}`, `n${index + 1}`] }));
+  const nodes = [...chain, { id: 'n40', label: 'N', word: 'car' }, { id: 'k', label: 'K' }];
+  const started = Date.now();
+  const { issue } = expandPartsListAnalysis({ derivationStages: [stage(['k'], nodes), stage(['k'], [{ id: 'low', copyOf: 'n0' }])] });
+  assert.ok(Date.now() - started < 1000, 'the copy is rejected without walking every repetition');
+  assert.match(issue.message, /lists "n40" more than once/);
+});
+
+// Codex review on #340: whether a copy waits for another copy's descendants
+// must not depend on the order the two entries are listed in.
+test('a copy of structure that names another copy\'s descendant waits for that copy', () => {
+  const run = (copies) => expandPartsListAnalysis({ derivationStages: [
+    stage(['q'], [{ id: 'n', label: 'N', word: 'car' }, { children: ['n'], id: 'q', label: 'Q' }]),
+    stage(['p', 'z'], [...copies, { children: ['c/n'], id: 'p', label: 'P' }])
+  ] });
+  for (const copies of [[{ id: 'z', copyOf: 'p' }, { id: 'c', copyOf: 'q' }], [{ id: 'c', copyOf: 'q' }, { id: 'z', copyOf: 'p' }]]) {
+    const { analysis, issue } = run(copies);
+    assert.equal(issue, undefined, issue?.message);
+    const z = analysis.derivationStages[1].workspaceForest[1];
+    assert.deepEqual([z.id, z.children[0].id, z.children[0].word], ['z', 'z/c/n', 'car']);
+  }
+});

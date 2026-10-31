@@ -133,12 +133,16 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
       // A copy entry becomes ordinary definitions: the copied node's current
       // label, words and subtree, each descendant named copyId/descendantId.
       // A copy may copy another copy of this stage once that one is expanded.
+      let copiedNodes = 0;
       let pending = stage.nodes.map((node, nodeIndex) => ({ node, nodeIndex })).filter(({ node }) => Object.hasOwn(node, 'copyOf'));
       const pendingIds = () => new Set(pending.map(({ node }) => node.id));
+      // A copy waits for every pending copy it reaches, including one whose
+      // descendants (pendingId/...) it names, so entry order never matters.
       const subtreeHasPending = (id, waiting, seen = new Set()) => {
-        if (seen.has(id) || !definitions.has(id)) return false;
+        if (seen.has(id)) return false;
         seen.add(id);
-        if (waiting.has(id)) return true;
+        if (waiting.has(id) || [...waiting].some(pendingId => id.startsWith(`${pendingId}/`))) return true;
+        if (!definitions.has(id)) return false;
         const children = definitions.get(id).node.children;
         return Array.isArray(children) && children.some(child => subtreeHasPending(child, waiting, seen));
       };
@@ -159,6 +163,9 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
         }
         for (const { node: entry, nodeIndex } of ready) {
           const copyPath = `${path}.nodes[${nodeIndex}].copyOf`;
+          // Each copied node gets one name, copyId/sourceId, so a source reached
+          // twice would stand twice; failing then also bounds the walk.
+          const targets = new Set();
           const copyNode = (sourceId, targetId, depth, visiting) => {
             if (depth >= MAX_EXPANDED_DEPTH || visiting.has(sourceId)) {
               fail(copyPath, entry.copyOf, `a copied subtree at most ${MAX_EXPANDED_DEPTH} levels deep and free of cycles`, 'DERIVATION_PARTS_LIST_VALID',
@@ -173,9 +180,18 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
             const copied = { id: targetId };
             Object.entries(source).forEach(([key, value]) => { if (key !== 'children' && key !== 'id') copied[key] = value; });
             const sourceChildren = Array.isArray(source.children) ? source.children : [];
+            if ((copiedNodes += 1) > MAX_STAGE_NODES) {
+              fail(copyPath, entry.copyOf, 'a workspace within Babel\'s size limits', 'DERIVATION_PARTS_LIST_VALID',
+                'the copies in this stage expand to more nodes than Babel reads');
+            }
             if (Object.hasOwn(source, 'children')) {
               copied.children = sourceChildren.map(childId => {
                 const childTarget = `${entry.id}/${childId}`;
+                if (!visiting.has(childId) && targets.has(childTarget)) {
+                  fail(copyPath, entry.copyOf, 'a copied subtree in which each node stands at one position', 'DERIVATION_PARTS_LIST_VALID',
+                    `the subtree copied from ${quoted(entry.copyOf)} lists ${quoted(childId)} more than once; each node stands at only one position`);
+                }
+                targets.add(childTarget);
                 if (stageIds.has(childTarget)) {
                   fail(copyPath, entry.copyOf, 'a copy whose descendant ids are new', 'DERIVATION_PARTS_LIST_VALID',
                     `copying ${quoted(entry.copyOf)} would name a descendant ${quoted(childTarget)}, which this stage also lists`);
