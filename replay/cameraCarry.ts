@@ -56,6 +56,12 @@ function lineage(nodes: PaintedNodes, id: string) {
  * unless the lowered words keep their place beside what is left; with none of
  * that, every shared node does. */
 export function carryReference(before: PaintedNodes, after: PaintedNodes) {
+  return carryReferences(before, after).reference;
+}
+
+/** The carry reference (`carryReference`) and the shared syntax whose shared
+ * ancestors are unchanged (`unmoved`), which it is drawn from. */
+function carryReferences(before: PaintedNodes, after: PaintedNodes): { reference: string[]; unmoved: string[] } {
   const shared = [...after.keys()].filter(id => before.has(id));
   const unmoved = shared.filter(id => {
     const prior = lineage(before, id).filter(ancestor => after.has(ancestor));
@@ -66,18 +72,18 @@ export function carryReference(before: PaintedNodes, after: PaintedNodes) {
     const prior = lineage(before, id), current = lineage(after, id);
     return prior.some((ancestor, index) => ancestor !== current[index]);
   }));
-  if (!lowered.size) return unmoved.length ? unmoved : shared;
+  if (!lowered.size) return { reference: unmoved.length ? unmoved : shared, unmoved };
   const over = new Set([...lowered].flatMap(id => lineage(after, id)));
   const held = unmoved.filter(id => !lowered.has(id) && !over.has(id));
-  if (held.length > MIN_HELD) return held;
-  if (!held.length) return unmoved;
+  if (held.length > MIN_HELD) return { reference: held, unmoved };
+  if (!held.length) return { reference: unmoved, unmoved };
   // A lowered subtree whose words keep their place beside the few held nodes
   // (the stage plan held it where it stands after the crossing): those nodes are
   // the reference, so the subtree only drops its row and nothing else moves.
   const parents = new Set([...lowered].map(id => after.get(id)!.parentId));
   const words = [...lowered].filter(id => !parents.has(id));
   const shift = (ids: string[]) => middle(ids.map(id => after.get(id)!.x - before.get(id)!.x));
-  return Math.abs(shift(words) - shift(held)) <= CARRY_TOLERANCE ? held : unmoved;
+  return { reference: Math.abs(shift(words) - shift(held)) <= CARRY_TOLERANCE ? held : unmoved, unmoved };
 }
 
 const middle = (values: number[]) => {
@@ -87,32 +93,57 @@ const middle = (values: number[]) => {
 
 /** `closing`: the stage plan closed a movement's room at this crossing
  * (closeMovementGaps records it; stageCoordinates.closesOnEntry reads it). */
-export type CarryOptions = { closing?: boolean };
+export type CarryOptions = {
+  closing?: boolean;
+  /** The syntax the carry holds still: at a crossing whose movement closes the
+   * room it leaves, the stage plan records the shared syntax that closing does
+   * not move (stageCoordinates.entryCarry), so the closing side slides and the
+   * rest stays where it was. */
+  held?: readonly string[];
+  /** Break a tie in a narrowed reference toward the wider unmoved syntax
+   * (`paintedShift`); false takes the plain median, as the screen does where
+   * the tie's end would paint shared syntax farther beyond its view. */
+  tie?: boolean;
+};
 
 /** Shifts within this many tree units count as one block (`carriedMedian`). */
 const CARRY_TOLERANCE = 1;
 
 /** The median of a reference's shifts. With an even count whose middle shifts
  * differ, every shift between them moves the reference as little in total.
- * Ordinarily the carry takes their midpoint. At a crossing where the plan's own
- * closing moves one side of a movement's room (`closing`), the midpoint would
- * move both sides by half the closing; the carry then takes the end that more
- * of the reference shares (within CARRY_TOLERANCE), if at least a quarter of it
- * does, so the block that holds still stays still, and otherwise the midpoint. */
-export function carriedMedian(values: number[], closing = false) {
+ * Ordinarily the carry takes their midpoint, which moves both blocks by half
+ * their difference; given `tie`, the median shift of wider syntax the reference
+ * was drawn from, it takes the end nearer that instead, so the block the rest
+ * of the syntax agrees with stays still. At a crossing where the plan's own
+ * closing moves one side of a movement's room (`closing`), the carry takes the
+ * end that more of the reference shares (within CARRY_TOLERANCE), if at least a
+ * quarter of it does, so the block that holds still stays still, and otherwise
+ * the midpoint. */
+export function carriedMedian(values: number[], closing = false, tie?: number) {
   values.sort((a, b) => a - b);
   const low = values[(values.length - 1) >> 1], high = values[values.length >> 1];
-  if (!closing || high - low <= CARRY_TOLERANCE) return (low + high) / 2;
+  if (high - low <= CARRY_TOLERANCE) return (low + high) / 2;
   const near = (value: number) => values.filter(other => Math.abs(other - value) <= CARRY_TOLERANCE).length;
   const lows = near(low), highs = near(high), block = values.length / 4;
+  const byTie = () => tie === undefined || Math.abs(Math.abs(tie - low) - Math.abs(tie - high)) <= CARRY_TOLERANCE ? (low + high) / 2
+    : Math.abs(tie - low) < Math.abs(tie - high) ? low : high;
+  if (!closing) return byTie();
   return lows > highs && lows >= block ? low : highs > lows && highs >= block ? high : (low + high) / 2;
 }
 
 /** The median shift, after minus before, of the camera's carry reference
- * (`carriedMedian`). */
-export function paintedShift(before: PaintedNodes, after: PaintedNodes, { closing = false }: CarryOptions = {}) {
-  const reference = carryReference(before, after);
+ * (`carriedMedian`), restricted to the plan's `held` syntax where it records
+ * some. A tie in a reference narrower than the unmoved shared syntax (a lowered
+ * crossing, or a held one) is broken toward the median of that unmoved syntax. */
+export function paintedShift(before: PaintedNodes, after: PaintedNodes, { closing = false, held, tie = true }: CarryOptions = {}) {
+  const references = carryReferences(before, after), { unmoved } = references;
+  const keep = held && new Set(held), kept = keep ? references.reference.filter(id => keep.has(id)) : [];
+  const reference = kept.length ? kept : references.reference;
   if (!reference.length) return { x: 0, y: 0 };
-  return { x: carriedMedian(reference.map(id => after.get(id)!.x - before.get(id)!.x), closing),
-    y: carriedMedian(reference.map(id => after.get(id)!.y - before.get(id)!.y), closing) };
+  const axis = (of: (point: { x: number; y: number }) => number) => {
+    const shifts = (ids: string[]) => ids.map(id => of(after.get(id)!) - of(before.get(id)!));
+    const wider = tie && reference.length < unmoved.length ? carriedMedian(shifts(unmoved)) : undefined;
+    return carriedMedian(shifts(reference), closing, wider);
+  };
+  return { x: axis(point => point.x), y: axis(point => point.y) };
 }
