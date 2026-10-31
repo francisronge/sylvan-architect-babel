@@ -63,7 +63,7 @@ const parseErrorFromResponse = async (response: Response): Promise<ParseServiceE
 
 export const parseSentence = async (
   sentence: string,
-  framework: 'xbar' | 'minimalism' = 'xbar',
+  framework: 'xbar' | 'minimalism' = 'minimalism',
   modelId: string,
   settings: Record<string, string>
 ): Promise<ParseBundle> => {

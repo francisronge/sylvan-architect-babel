@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { formatApiError, parseFromBody, parseFromBodyWithProviders } from '../server/parseApi.js';
+import { formatApiError, parseFromBody, parseFromBodyWithProviders, validateParseBody } from '../server/parseApi.js';
 import { ParseApiError } from '../server/babelParser.js';
 
 test('a request must name its model: no model, a legacy route or an unknown model is rejected before any provider call', async (t) => {
@@ -92,4 +92,10 @@ test('a failure returns the word list Babel derived, only once the model\'s spel
   const notReached = await parseFromBodyWithProviders({ sentence, framework: 'xbar', modelId: 'openai:gpt-6-astra' },
     { research: fail(undefined) }).catch(error => error);
   assert.equal('inputTokens' in formatApiError(notReached).body.error, false);
+});
+
+test('a request that names no framework is analyzed under Minimalism', () => {
+  const body = { sentence: 'Mia laughed.', modelId: 'openai:gpt-6-astra' };
+  assert.equal(validateParseBody(body).framework, 'minimalism');
+  assert.equal(validateParseBody({ ...body, framework: 'xbar' }).framework, 'xbar');
 });

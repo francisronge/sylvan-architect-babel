@@ -96,8 +96,8 @@ Babel is designed around forced commitment within each analysis: Babel evaluates
 
 Babel includes two theory modes:
 
+- `Minimalist Program` (the default, using Bare Phrase Structure)
 - `X-Bar Theory`
-- `Minimalist Program`
 
 Click the active theory pill in the header to toggle between them.
 
@@ -216,7 +216,7 @@ It includes:
 
 ## Practical research workflow
 
-1. Choose a framework (X-bar or Minimalism).
+1. Choose a framework (Minimalism, the default, or X-bar).
 2. Parse a sentence.
 3. Inspect the final structure in Canopy.
 4. Inspect derivational behavior in Derivation Replay.
