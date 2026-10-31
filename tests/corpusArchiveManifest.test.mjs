@@ -3,10 +3,13 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { fixtureRecords, runRecords } from '../scripts/buildCorpusArchiveManifest.mjs';
 import { loadCorpusManifest } from '../scripts/replayCorpusInputs.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
+
+const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
 const withScratch = async use => {
   const scratch = await mkdtemp(path.join(tmpdir(), 'babel-archive-manifest-'));
@@ -30,7 +33,8 @@ test('the archive manifest names every committed fixture analysis that has a sav
   }
 }));
 
-test('fixture records the layout fingerprint covers are judged by motion, not by their Replay; others stay strict', () => withScratch(async scratch => {
+test('fixture records name no allowance; the run judges the ones the layout fingerprint covers by motion', () => withScratch(async scratch => {
+  const { allowFingerprintedFixtures } = await import('../scripts/compareReplayCorpus.mjs');
   const fixtures = path.join(scratch, 'fixtures'), stage = { statement: 'S', stageRecord: 'R', relations: [],
     workspaceForest: [{ id: 'n', label: 'N', word: 'Mia' }] };
   await mkdir(path.join(fixtures, 'replay-snapshots'), { recursive: true });
@@ -38,10 +42,12 @@ test('fixture records the layout fingerprint covers are judged by motion, not by
   await writeFile(path.join(fixtures, 'unreviewed.json'), JSON.stringify({ sentence: 'Mia', derivationStages: [stage] }));
   await writeFile(path.join(fixtures, 'replay-snapshots', 'fixture-layout.json'), JSON.stringify({ records: { 'reviewed.json#': {} } }));
   const { records } = fixtureRecords(fixtures);
-  assert.deepEqual(records.map(record => [path.basename(record.source), record.allow && Object.keys(record.allow).filter(key => record.allow[key] === true)]),
-    [['reviewed.json', ['replay', 'plan', 'finalCoordinates', 'completedWidthGrowth']], ['unreviewed.json', undefined]]);
-  assert.match(records[0].allow.reason, /fixture-layout\.json/);
-  assert(fixtureRecords().records.every(record => record.allow?.replay), 'every committed fixture record is fingerprinted');
+  assert(records.every(record => record.allow === undefined), 'an archive manifest carries no allow entry');
+  assert.deepEqual(allowFingerprintedFixtures(records, scratch).map(record => [path.basename(record.source), Boolean(record.motionOnly)]),
+    [['reviewed.json', true], ['unreviewed.json', false]]);
+  assert.match(records[0].motionOnly, /fixture-layout\.json/);
+  assert(allowFingerprintedFixtures(fixtureRecords().records, repoRoot).every(record => record.motionOnly),
+    'every committed fixture record is fingerprinted');
 }));
 
 test('run records name every analysis of each saved attempt and skip runs without one', () => withScratch(async scratch => {
