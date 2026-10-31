@@ -151,7 +151,7 @@ When you submit a sentence, Babel shows:
 
 An ambiguous sentence may have more than one meaning and more than one corresponding tree. Babel's internal parse bundle preserves every supplied distinct analysis rather than imposing a two-parse ceiling.
 
-The parse selector exposes `Parse 1`, `Parse 2`, and any additional analyses. Selecting one switches Replay and the labeled bracketing to that analysis.
+The parse selector exposes `Parse 1`, `Parse 2`, and any additional analyses. Selecting one switches Replay to that analysis.
 
 ### 7) Replay
 
@@ -171,15 +171,7 @@ It includes:
 
 This view is designed to expose process, not just endpoint.
 
-### 8) Labeled bracketing
-
-The `Labeled Bracketing` button beside Replay opens the final tree's labeled bracketing over the tree, without moving it:
-
-- Labeled bracketing derived from each final root (Miles Shang notation)
-- One-click copy for bracketed notation
-- A link to Miles Shang's syntax tree generator, for a classic tree workflow outside Babel's renderer
-
-### 9) Output artifacts
+### 8) Output artifacts
 
 The authored model output is exactly `derivationStages`. Every stage has four required fields:
 
@@ -194,7 +186,7 @@ Babel validates those stages, replays them, and derives the final forest, surfac
 
 These outputs are intended for both human reading and downstream inspection workflows.
 
-### 10) Tree Bank
+### 9) Tree Bank
 
 `Tree Bank` is Babel's local save-and-reopen workspace.
 

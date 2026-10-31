@@ -21,8 +21,8 @@ Keep credentials out of artifacts, repositories and public CI.
 npm run qualification:codex:app
 ```
 
-Open `http://127.0.0.1:8454/`. The sentence box, framework selector, Replay,
-labeled bracketing and browser-local Tree Bank are the real app components. GPT-6.1
+Open `http://127.0.0.1:8454/`. The sentence box, framework selector, Replay and
+browser-local Tree Bank are the real app components. GPT-6.1
 Sol at high effort is the default; GPT-6 Astra and GPT-6 Sol are also
 available. Each Parse runs the OAuth runner once and saves its artifacts under
 `~/Library/Application Support/Babel/codex-qualification`. The app fingerprints

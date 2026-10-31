@@ -9,8 +9,6 @@ import { useDevPreview, type DevAnalysisOptions, type SavedPreview } from './hoo
 import type { TreeBankEntrySummary } from './services/treeBankStore';
 import { reopenedReplayStep } from './services/treeBankRecords';
 import { TreeBankView, TreeBankDeleteDialog } from './components/TreeBankView';
-import { BracketingPanel, type CopyStatus } from './components/BracketingPanel';
-import { copyTextToClipboard } from './services/clipboard';
 import {
   ParseBundle,
   ParseResult
@@ -26,7 +24,6 @@ import {
   Sparkles,
   Zap,
   Brain,
-  Brackets,
   ChevronUp,
   ChevronDown,
   Key,
@@ -104,8 +101,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const inferModelRouteFromModel = useCallback((modelUsed?: string): ModelMode =>
     MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID, [MODEL_OPTIONS, DEFAULT_MODEL_ID]);
   const appContainerRef = useRef<HTMLDivElement>(null);
-  const copyStatusTimeoutRef = useRef<number | null>(null);
-  const copyAttemptRef = useRef(0);
   const showcaseMode = useMemo(() => {
     if (typeof window === 'undefined') return false;
     const value = new URLSearchParams(window.location.search).get('showcase');
@@ -129,11 +124,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   useSporeDrift(sporeLayerRef, spores, loading);
   const [analysisBundle, setAnalysisBundle] = useState<ParseBundle | null>(null);
   const [activeParseIndex, setActiveParseIndex] = useState(0);
-  const [bracketingOpen, setBracketingOpen] = useState(false);
-  const bracketingButtonRef = useRef<HTMLButtonElement>(null);
-  const workspaceRef = useRef<HTMLElement>(null);
-  const [inputBar, setInputBar] = useState<HTMLDivElement | null>(null);
-  const [inputBarInset, setInputBarInset] = useState(0);
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [isInputVisible, setIsInputVisible] = useState(!showcaseMode);
   const [abstractionMode, setAbstractionMode] = useState(false);
@@ -141,25 +131,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const [parsedFramework, setParsedFramework] = useState<'xbar' | 'minimalism'>('minimalism');
   const [modelRoute, setModelRoute] = useState<ModelMode>(DEFAULT_MODEL_ID);
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('high');
-  const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
-  const showCopyStatus = useCallback((status: CopyStatus) => {
-    if (copyStatusTimeoutRef.current !== null) {
-      window.clearTimeout(copyStatusTimeoutRef.current);
-      copyStatusTimeoutRef.current = null;
-    }
-    setCopyStatus(status);
-    if (status === 'copied') {
-      copyStatusTimeoutRef.current = window.setTimeout(() => {
-        setCopyStatus('idle');
-        copyStatusTimeoutRef.current = null;
-      }, 2000);
-    }
-  }, []);
-  // A later copy or a newly accepted analysis supersedes a pending write's outcome.
-  const resetCopyStatus = useCallback(() => {
-    copyAttemptRef.current += 1;
-    showCopyStatus('idle');
-  }, [showCopyStatus]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState<string | null>(null);
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
@@ -174,10 +145,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const rememberReplayPosition = useCallback((step: number) => {
     if (activeParse) replayPositions.current.set(activeParse, step);
   }, [activeParse]);
-  const closeBracketing = useCallback((returnFocus: boolean) => {
-    setBracketingOpen(false);
-    if (returnFocus) bracketingButtonRef.current?.focus();
-  }, []);
   const changeParse = (index: number) => {
     const analysis = analysisBundle?.analyses[index];
     setInitialReplayPosition(analysis ? replayPositions.current.get(analysis) ?? null : null);
@@ -185,11 +152,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   };
   const toggleTreeBank = () => {
     setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
-    setBracketingOpen(false);
     setWorkspaceView(current => current === 'treeBank' ? 'arboretum' : 'treeBank');
   };
   const activeDisplayTree = activeDisplay?.displayTree ?? null;
-  const milesNotation = activeDisplay?.notation ?? '';
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) > 1;
   const selectedModel = getResearchModel(modelRoute)!;
   const selectedModelLabel = selectedModel.label;
@@ -201,7 +166,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
   const acceptDevAnalysis = useCallback((bundle: ParseBundle, options: DevAnalysisOptions) => {
     setInitialReplayPosition(null);
-    setBracketingOpen(false);
     setAnalysisBundle(bundle);
     const nextSentence = String(options.sentence || '').trim();
     if (nextSentence) {
@@ -220,18 +184,16 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setReasoningEffort(coerceReasoningEffortForRoute(modelRoute, options.reasoningEffort));
     }
     setActiveParseIndex(0);
-    resetCopyStatus();
     setIsInputVisible(true);
     setIsInputExpanded(true);
     setWorkspaceView('arboretum');
     resetGeneration();
-  }, [modelRoute, reasoningEffort, coerceModelRoute, resetGeneration, resetCopyStatus]);
+  }, [modelRoute, reasoningEffort, coerceModelRoute, resetGeneration]);
 
   const acceptSavedPreview = useCallback((preview: SavedPreview) => {
     const { bundle, sentence, framework: nextFramework, captureMode } = preview;
     const nextRoute = coerceModelRoute(preview.modelRoute || inferModelRouteFromModel(bundle.modelUsed));
     setInitialReplayPosition(null);
-    setBracketingOpen(false);
     setAnalysisBundle(bundle);
     setParsedSentence(sentence);
     setInput(sentence);
@@ -240,12 +202,11 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setModelRoute(nextRoute);
     setReasoningEffort(coerceReasoningEffortForRoute(nextRoute, preview.reasoningEffort || reasoningEffort));
     setActiveParseIndex(0);
-    resetCopyStatus();
     setWorkspaceView('arboretum');
     resetGeneration();
     setIsInputVisible(!(showcaseMode || captureMode));
     setIsInputExpanded(!(showcaseMode || captureMode));
-  }, [showcaseMode, reasoningEffort, coerceModelRoute, inferModelRouteFromModel, resetGeneration, resetCopyStatus]);
+  }, [showcaseMode, reasoningEffort, coerceModelRoute, inferModelRouteFromModel, resetGeneration]);
 
   const devCaptureMode = useDevPreview({
     analysisBundle,
@@ -258,27 +219,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   useEffect(() => {
     setReasoningEffort((current) => coerceReasoningEffortForRoute(modelRoute, current));
   }, [modelRoute]);
-
-  // How far the shown sentence bar reaches up from the workspace's bottom edge.
-  // The bar grows with a failure or an expanded body; the side control keeps
-  // above it. The observer reports once when it starts, then on every resize.
-  useEffect(() => {
-    const workspace = workspaceRef.current;
-    if (!inputBar || !workspace || !isInputVisible) return;
-    const measure = () => {
-      const inset = Math.max(0, workspace.getBoundingClientRect().bottom - inputBar.getBoundingClientRect().top);
-      setInputBarInset(previous => Math.abs(previous - inset) < 0.5 ? previous : inset);
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(inputBar);
-    observer.observe(workspace);
-    inputBar.addEventListener('transitionend', measure);
-    return () => {
-      observer.disconnect();
-      inputBar.removeEventListener('transitionend', measure);
-    };
-  }, [inputBar, isInputVisible]);
-  const sideControlInset = inputBar && isInputVisible ? inputBarInset : 0;
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -300,14 +240,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     };
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (copyStatusTimeoutRef.current !== null) {
-        window.clearTimeout(copyStatusTimeoutRef.current);
-      }
-    };
-  }, []);
-
   const handleParse = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (loading) return;
@@ -318,8 +250,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     });
     if (!request) return;
 
-    // The bracketing would otherwise float over the progress screen.
-    setBracketingOpen(false);
     setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
     await generate(request, data => {
       setInitialReplayPosition(null);
@@ -330,8 +260,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setParsedSentence(request.sentence);
       setParsedFramework(framework);
       setActiveParseIndex(0);
-      resetCopyStatus();
-    });
+      });
   };
 
   const handleSaveCurrentTree = async () => {
@@ -363,8 +292,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       // Canopy or Notes save is replaced by the frame Replay reports.
       if (view === 'derivation' && replayStep !== null) replayPositions.current.set(selected, replayStep);
       setInitialReplayPosition(reopenStep);
-      setBracketingOpen(false);
-      setAnalysisBundle(bundle);
+        setAnalysisBundle(bundle);
       setParsedSentence(entry.sentence);
       setInput(entry.sentence);
       setFramework(entry.framework);
@@ -375,18 +303,10 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setActiveParseIndex(entry.activeParseIndex);
       setAbstractionMode(savedAbstraction);
       clearFailure();
-      resetCopyStatus();
-      setIsInputVisible(true);
+        setIsInputVisible(true);
       setIsInputExpanded(true);
       setWorkspaceView('arboretum');
     });
-  };
-
-  const copyNotation = async (text: string) => {
-    if (!text.trim()) return;
-    const attempt = ++copyAttemptRef.current;
-    const copied = await copyTextToClipboard(text);
-    if (attempt === copyAttemptRef.current) showCopyStatus(copied ? 'copied' : 'failed');
   };
 
   const toggleFullscreen = async () => {
@@ -586,7 +506,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
           {treeBank.error}
         </div>
       )}
-      <main ref={workspaceRef} data-babel-workspace="true" className="flex-1 relative flex flex-col overflow-hidden">
+      <main data-babel-workspace="true" className="flex-1 relative flex flex-col overflow-hidden">
         {isTreeBankView && (
           <TreeBankView
             entries={treeBank.entries} loading={treeBank.loading} error={treeBank.error}
@@ -658,55 +578,11 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
 
         {!isTreeBankView && (
           <>
-            {/* Replay is Babel's only view. Its side control opens the final
-                tree's labeled bracketing over the tree, in the place the view
-                tabs held, so the tree keeps the same fitted width. It stands
-                at mid-height, or above the sentence bar when the bar reaches
-                that high (a failure on a phone). It never leaves the top of the
-                workspace, and its layer is above the bar's for the case where
-                the bar is taller than the workspace. */}
-            <div data-babel-tree-controls="right" className="absolute right-4 md:right-8 translate-y-1/2 z-40 flex flex-col gap-3 md:gap-4"
-              style={{ bottom: `min(calc(100% - 16px - 1.75rem), max(50%, calc(${Math.round(sideControlInset) + 12}px + 1.75rem)))` }}>
-              <button
-                ref={bracketingButtonRef}
-                type="button"
-                disabled={!activeParse || !milesNotation}
-                onClick={() => setBracketingOpen(open => !open)}
-                aria-label="Labeled Bracketing"
-                aria-expanded={bracketingOpen}
-                aria-controls={bracketingOpen ? 'babel-bracketing' : undefined}
-                className={`group relative w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all border shadow-2xl disabled:opacity-20 disabled:cursor-not-allowed ${
-                  bracketingOpen
-                  ? 'moss-gradient text-white border-emerald-400/50 shadow-[0_0_20px_rgba(6,78,59,0.4)] scale-110'
-                  : 'glass-dark text-emerald-600/60 border-white/5 hover:text-emerald-400 hover:border-white/10 hover:scale-105'
-                }`}
-              >
-                <Brackets size={18} className="md:w-[22px] md:h-[22px]" />
-                {!bracketingOpen && (
-                  <span aria-hidden="true" className="absolute right-full mr-5 px-4 py-2 rounded-xl bg-black/90 backdrop-blur-xl text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400 opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-white/10 whitespace-nowrap shadow-2xl translate-x-2 group-hover:translate-x-0">
-                    Labeled Bracketing
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {/* The bracketing's own layer spans the workspace above the side
-                control, the Replay panel and the sentence bar, and stops short
-                of the control so it stays reachable. The panel scrolls within
-                this layer. */}
-            {bracketingOpen && activeParse && milesNotation && (
-              <div className="pointer-events-none absolute inset-0 z-[60] flex items-center justify-end p-4 pr-[4.75rem] md:p-8 md:pr-[6.5rem]">
-                <BracketingPanel id="babel-bracketing" notation={milesNotation} copyStatus={copyStatus}
-                  onCopy={(text) => void copyNotation(text)} onClose={closeBracketing} />
-              </div>
-            )}
-
             {!hideShowcaseInput && !devCaptureMode && (
               <>
                 {/* Input UI. A hidden panel or collapsed body stays mounted for its
                     transition, so inert keeps its controls out of focus order. */}
                 <div
-                  ref={setInputBar}
                   data-babel-tree-controls="bottom"
                   aria-hidden={!isInputVisible}
                   inert={!isInputVisible}

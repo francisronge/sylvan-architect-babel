@@ -153,25 +153,29 @@ growing the current monolith and do not build two Babel implementations.
 4. Done 31 Oct 2026, by Francis's decision that Babel is just Replay: Canopy
    and Notes are retired, and Replay is the only view. Its last frame is the
    finished tree, and each `stageRecord` stays visible with its Replay frames.
-   The labeled bracketing, its copy and the Miles Shang link moved to a button
-   beside Replay. Decide separately, after auditing actual use, whether
-   labeled bracketing and Miles Shang output remain as exports or are retired.
+   Francis decided the same day that labeled bracketing and Miles Shang output
+   are not in the public app; they may return later as an option of the
+   `/research` workbench. The notation code (`services/milesNotation.ts`)
+   stays, unused by the public app.
 5. Keep a small Research link in the main menu or header. It opens `/research`
    without discarding the current analysis or Tree Bank.
-6. Collapse the sentence input bar after generation, designed with the rest of
-   the product UI. Francis deferred this on 31 Oct 2026; until then the bar
-   stays visible below Replay and the Replay panel stands above it. The design
+6. Move the sentence input bar out of the way while a parse is shown,
+   designed with the rest of the product UI. Francis's direction (31 Oct
+   2026): a small control in a corner or at the top, such as "Try another
+   sentence", takes the user out of the parse and back to the default area,
+   where the input bar shows again; it must be clean. Not built yet; until
+   then the bar stays visible below Replay and the Replay panel stands above
+   it, and PR #343 (Replay as the only view) waits for this design. The design
    must leave the tree visible in a short window and on a phone showing a
    failure. Measured in CI screenshots of PR #343 on 31 Oct 2026: at 1440×460
    with the bar expanded, the workspace is about 281px tall and the bar
    reaches to about 79px from its top. On a 390×640 phone a failure makes the
    bar about 415px tall in a 325px workspace. At 390×1000 a failure makes it
    about 432px of 685px, and at 1440×1000 a failure also leaves no tree. Even
-   without a failure, the expanded bar, the parse
-   selector and the Replay panel leave no visible tree at 1440×700 and a tree
-   a few pixels tall at 390×1000; the tree reads well at 1440×1000. Replay's
-   controls and the Labeled Bracketing button stay reachable at every one of
-   these sizes.
+   without a failure, the expanded bar, the parse selector and the Replay
+   panel leave no visible tree at 1440×700 and a tree a few pixels tall at
+   390×1000; the tree reads well at 1440×1000. Replay's controls stay
+   reachable at every one of these sizes.
 
 ### 3C. Research Workbench At `/research`
 
@@ -397,7 +401,6 @@ review authority, and correction path.
   public/research boundary. Babel must never silently switch providers.
 - Whether contract-review artifacts live primarily inside `/research`, as
   generated click-through files, or both.
-- Whether labeled bracketing and Miles Shang output remain supported exports.
 - Every provider/model launch, cost ceiling, and model manifest.
 - Contract/recovery adoptions after empirical comparison.
 - Reviewer and methods authority for claim-bearing benchmark stages.
