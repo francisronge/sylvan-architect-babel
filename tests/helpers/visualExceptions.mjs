@@ -14,6 +14,11 @@ const PLAQUE_CROWDED = 'Accepted (catalog #3; ROADMAP Explicitly Not Active, Fra
   + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 
 const STABLE_FARTHER_NOTE = '27 Oct, in chat: asked "Plaques that would jump take the farther stretch-clear pocket?", Francis answered "Yes"';
+const WIDER_THETA_LABEL = 'Accepted trade-off (theta letters, 29 Oct): What is the Theme of bought and ends the embedded clause that say takes, so it correctly shows both grids\u2019 letters; the shared lifetime-contour layout amplifies that wider label into a different layout of this tree.';
+const WIDER_THETA_NOTE = 'Asked \u201c\u03b8 fix: accept that one tree\u2019s slightly bigger jump (shared-landing-source: the correctly wider \u201cWhat\u201d label shifts syntax 196 units at frame 41 and moves the say grid\u2019s plaque), so it can merge?\u201d: \u201c1. YES IDC, IF IT\u2019S NOT SIGNIFICANT DON\u2019T ASK ME.\u201d (lead session, 29 Oct)';
+const LANDING_ROOM = 'Accepted trade-off (#333, 31 Oct): keeping a movement\u2019s landing room during construction and a waiting verb beside its phrase lays this tree out differently, so these plaques stand farther from their words until the end of Replay.';
+const LANDING_ROOM_NOTE = 'Asked \u201cShould #333 ship, accepting two small flaws? 1) In the Spanish sentence, one phrase re-centres by 307 units when the subject lands (limit 210). 2) In the English sentence, three small plaques sit a bit farther from their words than usual.\u201d after viewing the comparison page main b82e630 vs #333 ac7fe9f: \u201cyep it\'s fine\u201d (primary Claude Code session, 31 Oct)';
+const LANDING_ROOM_APPROVAL = (note, at) => ({ by: 'Francis Ronge', on: '2026-10-31', note, accepts: at });
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
@@ -75,6 +80,18 @@ export const EXCEPTIONS = [
     'plaque(3:1 clauseType: declarative personal infinitive)@infinitivalC', { desktop: { '27-42': 1.2 }, 'desktop-large': { '27-42': 1.2 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/reviewed-construction.json#/cases/2', 'mark-distance', 'plaque',
     'plaque(0:1 theta theme)@vRestored', { desktop: { '10-13': 1.12 }, 'desktop-large': { '10-13': 1.12 } }),
+  x(PLAQUE_CROWDED + ' ' + LANDING_ROOM, 'replay-regressions/shared-landing-source.json#', 'mark-distance', 'plaque',
+    'plaque(0:0 theta Agent/Theme)@buyV', { desktop: { '26-33': 1.22, '34-46': 1.19 }, 'desktop-large': { '26-33': 1.22, '34-46': 1.19 } },
+    LANDING_ROOM_APPROVAL('Frames 26-33 are main\'s entry, unchanged and listed for the reason given; this answer covers only frames 34-46, '
+      + 'though an approval names the whole entry. ' + LANDING_ROOM_NOTE,
+      { desktop: { '26-33': 1.22, '34-46': 1.19 }, 'desktop-large': { '26-33': 1.22, '34-46': 1.19 } })),
+  x(PLAQUE_CROWDED + ' ' + WIDER_THETA_LABEL + ' ' + LANDING_ROOM, 'replay-regressions/shared-landing-source.json#', 'mark-distance', 'plaque',
+    'plaque(0:3 theta Agent/propositional Content)@sayV', { desktop: { '29-46': 1.77 }, 'desktop-large': { '29-46': 1.77 } },
+    LANDING_ROOM_APPROVAL('Accepted 29 Oct at 1.67 (frames 29-33) and 1.65 (frames 34-46): ' + WIDER_THETA_NOTE + '. Then at 1.77 (frames 29-46): '
+      + LANDING_ROOM_NOTE, { desktop: { '29-46': 1.77 }, 'desktop-large': { '29-46': 1.77 } })),
+  x(PLAQUE_CROWDED + ' ' + LANDING_ROOM, 'replay-regressions/shared-landing-source.json#', 'mark-distance', 'plaque',
+    'plaque(0:6 tense: past)@buyV', { desktop: { '32-46': 1.22 }, 'desktop-large': { '32-46': 1.22 } },
+    LANDING_ROOM_APPROVAL(LANDING_ROOM_NOTE, { desktop: { '32-46': 1.22 }, 'desktop-large': { '32-46': 1.22 } })),
   x(PLAQUE_CROWDED, 'replay-regressions/sol-spanish-qr.json#/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:0 theta Agent/Theme)@v', { desktop: { '31-33': 1.19 }, 'desktop-large': { '31-33': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-distance', 'plaque',

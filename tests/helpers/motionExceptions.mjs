@@ -22,6 +22,9 @@ const WIDER_THETA_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-29', not
 const widerTheta = (subject, at) => ({ reason: WIDER_THETA_LABEL, record: 'fixture:replay-regressions/shared-landing-source.json#', rule: 'motion',
   subtype: 'unowned-motion', subject, at, approval: WIDER_THETA_APPROVAL(at) });
 
+const SUBJECT_LANDING_REASON = 'Accepted trade-off (#333, 31 Oct): when the subject lands at frame 28 (subject A-chain), IP re-centres under its new parent by 307 units. Main slides C 1018 units at that step with nothing to own the motion, and C and IP 190 units each; this change removes the slide of C, leaving only IP’s re-centring.';
+const SUBJECT_LANDING_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-31', note: 'Asked “Should #333 ship, accepting two small flaws? 1) In the Spanish sentence, one phrase re-centres by 307 units when the subject lands (limit 210). 2) In the English sentence, three small plaques sit a bit farther from their words than usual.” after viewing the comparison page main b82e630 vs #333 ac7fe9f: “yep it\'s fine” (primary Claude Code session, 31 Oct)', accepts: at });
+
 export const EXCEPTIONS = [
   x('relative-clause-waiting-clearance', 'attachment-site-motion', 'letterInnerNBar', { '-': { '51': 678.46 } }),
   x('relative-clause-waiting-clearance', 'attachment-site-motion', 'relativeCP', { '-': { '51': 428.6 } }),
@@ -36,4 +39,6 @@ export const EXCEPTIONS = [
   lowered('shape-motion', 'matrixI', { '-': { '44': 92.19 } }),
   lowered('shape-motion', 'matrixVP', { '-': { '44': 92.19 } }),
   ...['buyV', 'embeddedI', 'maryNP', 'thatC'].map(subject => widerTheta(subject, { '-': { '34': 283.59 } })),
+  { reason: SUBJECT_LANDING_REASON, record: 'fixture:replay-regressions/sol-spanish-qr.json#/analyses/1', rule: 'motion', subtype: 'shape-motion',
+    subject: 'ip', at: { '-': { '28': 307.04 } }, approval: SUBJECT_LANDING_APPROVAL({ '-': { '28': 307.04 } }) },
 ];
