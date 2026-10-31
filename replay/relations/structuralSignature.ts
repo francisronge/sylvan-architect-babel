@@ -293,7 +293,7 @@ export const structuralSignature = (input: StructuralSignatureInput): Structural
       id, resolved: true, duplicate: (current.counts.get(id) ?? 0) > 1,
       shape: children.length ? 'nonterminal' : 'terminal',
       label: node.label,
-      ...(shape ? { level, category: shape.head } : {}),
+      ...(shape ? { level, ...(shape.head ? { category: shape.head } : {}) } : {}),
       annotations: labelAnnotations(node.label),
       hasWord: Boolean(node.word?.trim()),
       silent: entry.silent,
@@ -304,12 +304,12 @@ export const structuralSignature = (input: StructuralSignatureInput): Structural
       pronounced: pronouncedWords(current, id),
       whollySilent: subtreeTerminalIds(node).every(terminal => current.byId.get(terminal)?.silent || !current.byId.get(terminal)?.node.word?.trim()),
       ...(node.lineageId ? { lineageId: node.lineageId, lineageOccurrences: current.lineages.get(node.lineageId) ?? 0 } : {}),
-      segmentOfParent: Boolean(children.length && shape && parentShape && !shape.compound && !parentShape.compound
+      segmentOfParent: Boolean(children.length && shape?.head && parentShape && !shape.compound && !parentShape.compound
         && shape.head === parentShape.head && (level === 'phrase' || level === 'bar') && level === parentLevel),
-      sameCategoryAsParent: Boolean(shape && parentShape && !shape.compound && !parentShape.compound
+      sameCategoryAsParent: Boolean(shape?.head && parentShape && !shape.compound && !parentShape.compound
         && shape.head === parentShape.head),
       ...(parent ? { parent: {
-        id: String(parent.id), label: parent.label, ...(parentShape ? { level: parentLevel, category: parentShape.head } : {}),
+        id: String(parent.id), label: parent.label, ...(parentShape ? { level: parentLevel, ...(parentShape.head ? { category: parentShape.head } : {}) } : {}),
         childCount: parent.children?.length ?? 0, ...(prior ? { isNew: !prior.byId.has(String(parent.id)) } : {})
       } } : {})
     };

@@ -343,7 +343,7 @@ export const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: r
  * item, "洗" over "洗", or prose, "T-projection"), the same exact label. */
 const projectsParent = (node: SyntaxNode, parent: SyntaxNode): boolean => {
   const category = readCategoryLabel(parent.label), text = String(parent.label ?? '').trim();
-  return category ? headCategory(node) === category.head
+  return category ? Boolean(category.head) && headCategory(node) === category.head
     : Boolean(text) && !readCategoryLabel(node.label) && String(node.label ?? '').trim() === text;
 };
 
