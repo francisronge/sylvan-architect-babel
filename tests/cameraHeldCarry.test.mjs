@@ -3,6 +3,7 @@ import test from 'node:test';
 import { paintedShift } from '../replay/cameraCarry.ts';
 import { carryCamera } from '../components/treeViewport.ts';
 import { auditCameraRecord } from './helpers/cameraTrace.mjs';
+import { checkFirstPaintContinuity } from './helpers/cameraInvariants.mjs';
 import { VIEWPORTS } from './helpers/visualFrames.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
@@ -56,4 +57,28 @@ test('the held carry yields to the ordinary carry where it would paint shared sy
   assert.deepEqual(carryCamera(pose, before, after, { held: ['held'] }, view), { x: 200, y: 0, k: 1 });
   const wide = { left: -1000, right: 1000, top: -10, bottom: 10 };
   assert.deepEqual(carryCamera(pose, before, after, { held: ['held'] }, wide), pose);
+});
+
+test('the tie carry yields where it would hide unmoved syntax, even when it paints the farthest node less far off', () => {
+  // The lowered tie above, plus one reattached node that both carries paint far
+  // off. The tie's end paints that node 750 px off instead of 900, but takes two
+  // unmoved words 70 px off the canvas that the ordinary carry keeps in view
+  // (GPT-6.1 Sol's reproduction in the review of #348).
+  const before = new Map([['pred', point(0, 0)], ['ana', point(-100, 100, 'pred')], ['core', point(100, 100, 'pred')],
+    ['v', point(80, 200, 'core')], ['venga', point(120, 200, 'core')], ['anaWord', point(-100, 300, 'ana')],
+    ['vengaWord', point(120, 300, 'venga')], ['moved', point(0, 200, 'ana')]]);
+  const after = new Map([['pred', point(5, 0)], ['ana', point(-100, 100, 'pred')], ['core', point(110, 100, 'pred')],
+    ['head', point(-20, 200, 'core')], ['v', point(60, 300, 'head')], ['venga', point(420, 200, 'core')],
+    ['anaWord', point(-100, 300, 'ana')], ['vengaWord', point(420, 300, 'venga')], ['moved', point(-1000, 200, 'core')]]);
+  const pose = { x: 250, y: 0, k: 1 }, view = { left: 0, right: 600, top: 0, bottom: 700 };
+  const first = carryCamera(pose, before, after, {}, view);
+  assert.deepEqual(first, carryCamera(pose, before, after, { tie: false }, view));
+  const frame = (nodes, stage) => ({ stage, nodes: new Map([...nodes].map(([id, node]) => {
+    const ancestors = [];
+    for (let at = node.parentId; at && nodes.has(at); at = nodes.get(at).parentId) ancestors.push(at);
+    return [id, { ...node, ancestors }];
+  })) });
+  const findings = checkFirstPaintContinuity({ canvas: { width: 600, height: 700 }, frames: [frame(before, 0), frame(after, 1)],
+    passes: [{ name: 'forward', steps: [{ from: 0, to: 1, before: pose, first, settled: first }] }] });
+  assert.equal(findings.some(finding => finding.subtype === 'off-canvas:unmoved'), false);
 });

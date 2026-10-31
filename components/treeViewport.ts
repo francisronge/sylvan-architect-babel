@@ -95,8 +95,8 @@ export function advanceFittedCamera(
  * Where the stage plan records the syntax a movement's closing leaves in place
  * (`carry.held`), the pose holds that syntax still, and a tie between two
  * blocks follows the wider unmoved syntax (paintedShift), unless, given the
- * `view`, either would first paint shared syntax farther beyond it than the
- * ordinary carry. */
+ * `view`, either would first paint any shared syntax that stood within it
+ * farther beyond it than the ordinary carry. */
 export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes, carry: CarryOptions = {},
   view?: ViewportRect) {
   const carried = (options: CarryOptions) => {
@@ -106,25 +106,20 @@ export function carryCamera(pose: { x: number; y: number; k: number }, before: P
   const held = carried(carry);
   if (!view) return held;
   // Holding the plan's held syntax still, or one block of a tie, may leave
-  // other shared syntax farther beyond the view than the ordinary carry would:
-  // then the ordinary carry stands, so a crossing never paints syntax farther off.
+  // shared syntax farther beyond the view than the ordinary carry would: then
+  // the ordinary carry stands, so a crossing never paints any syntax that stood
+  // in view farther off than the ordinary carry would.
   const ordinary = carried({ closing: carry.closing, tie: false });
   if (ordinary.x === held.x && ordinary.y === held.y) return held;
-  return beyondView(pose, ordinary, before, after, view) < beyondView(pose, held, before, after, view) ? ordinary : held;
-}
-
-/** How far, at most, a first pose paints shared syntax that stood within the
- * view before the crossing beyond that view. */
-function beyondView(pose: { x: number; y: number; k: number }, first: { x: number; y: number; k: number },
-  before: PaintedNodes, after: PaintedNodes, view: ViewportRect) {
   const outside = (x: number, y: number) => Math.max(view.left - x, x - view.right, view.top - y, y - view.bottom, 0);
-  let most = 0;
+  const beyond = (first: { x: number; y: number; k: number }, point: { x: number; y: number }) =>
+    outside(first.x + point.x * first.k, first.y + point.y * first.k);
   for (const [id, point] of after) {
     const prior = before.get(id);
-    if (!prior || outside(pose.x + prior.x * pose.k, pose.y + prior.y * pose.k)) continue;
-    most = Math.max(most, outside(first.x + point.x * first.k, first.y + point.y * first.k));
+    if (prior && !outside(pose.x + prior.x * pose.k, pose.y + prior.y * pose.k) && beyond(held, point) > beyond(ordinary, point) + 1e-6)
+      return ordinary;
   }
-  return most;
+  return held;
 }
 
 /** Retain an accepted fit; correct overflow with the least translation and scale reduction. */
