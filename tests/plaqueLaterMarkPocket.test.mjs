@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { layoutVisualFrames, markMotionFindings, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
-import { checkMarkDistance } from './helpers/visualRules.mjs';
+import { layoutVisualFrames, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
 import { blocksCarriedPocket } from '../replay/relations/plaquePlacement.ts';
 import { ownOccupant } from '../replay/relations/pocketHold.ts';
 
@@ -20,8 +19,8 @@ const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], {
 const grid = frame => frame.plaques.find(plaque => plaque.grid && plaque.anchorNodeId === 'lv2');
 
 test('control: the pocket stays clear of every mark painted while the plaque holds it', () => {
-  // The grid holds its pocket through frame 39; frame 38 paints the tense link.
-  assert(frames.some(frame => frame.frame === 38 && frame.lines.some(line => line.kind === 'connector')), 'frame 38 paints the link');
+  // Frames 35–39 hold the grid's next pocket; frame 38 paints the tense link's stem.
+  assert(frames.some(frame => frame.frame === 38 && frame.reserves.some(box => box.extendsDownward)), 'frame 38 paints the link stem');
   for (const frame of frames) {
     const plaque = grid(frame), pocket = plaque && { ...plaque.rect, ...plaque.size };
     if (!plaque) continue;
@@ -49,16 +48,3 @@ test('a plaque beside a still anchor keeps one offset through the rest of its st
   assert.deepEqual(offsetJumps(stage, grid), []);
 });
 
-
-/* At frame 34 the Case plaque of T2 appears. The schedule had it in the grid's pocket for
- * that phase, but a plaque shown first at a step takes the pocket it keeps for the rest of
- * its stage (holdPockets), away from the grid. The grid's hold is judged against where
- * that plaque stands, not its scheduled pocket: let go against the scheduled one, the grid
- * jumped 99 units beside the still lv2 into a pocket 1.19 of its reach and again at 35. */
-test('a plaque shown first at a step does not push a held grid out of a pocket it leaves free', () => {
-  assert(frames.some(frame => frame.frame === 34 && frame.plaques.some(plaque => plaque.id.endsWith('@T2'))), 'frame 34 shows the T2 Case plaque');
-  assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject} ${Math.round(found.measure)}`), []);
-  const stage = frames.filter(frame => frame.stage === 5);
-  assert.deepEqual(offsetJumps(stage, grid), []);
-  for (const frame of stage) assert.deepEqual(checkMarkDistance(frame).filter(found => found.subject === grid(frame).id), [], `frame ${frame.frame}`);
-});

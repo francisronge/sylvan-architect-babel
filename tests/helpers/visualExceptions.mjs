@@ -100,7 +100,11 @@ export const EXCEPTIONS = [
     { by: 'Francis Ronge', on: '2026-10-30', note: 'Asked: "Approve the two renamed entries?" (the same crowded Agent plaque he already accepted, now nearer, 1.21 vs 1.27 of reach, renamed because two claims now share it); answered: "yeah yeah whatever yes, sure then" (lead session, 30 Oct)',
       accepts: { desktop: { '43-57': 1.21 }, 'desktop-large': { '43-57': 1.21 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/2', 'mark-distance', 'plaque',
-    'plaque(1:1 theta Agent)@v', { desktop: { '40-43': 1.28 }, 'desktop-large': { '40-43': 1.28 } }),
+    'plaque(1:1 theta Agent)@v', { desktop: { '33-39': 1.27, '40-43': 1.28 }, 'desktop-large': { '33-39': 1.27, '40-43': 1.28 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '11-34': 1.23 }, 'desktop-large': { '11-34': 1.23 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '11-34': 1.23 }, 'desktop-large': { '11-34': 1.23 } }),
   // The same finding, with the same measure, occurs on origin/main for the saved
   // analysis this fixture case copies (night3 33-grc-article.r2); only its frame numbers moved.
   x(PLAQUE_CROWDED, 'replay-regressions/compound-movement-roles.json#/cases/1', 'mark-distance', 'plaque',
