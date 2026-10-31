@@ -207,6 +207,62 @@ test('Transfer uses one SOD and each accessible DP outline without a phase-head 
   assert(!has(inspect(relation({ ...record.anchors, accessibleDPs: 'obj' }), tree), 'transfer.domain'));
 });
 
+test('Transfer reads the phase head and its projections through category notation', () => {
+  // v* (strong phase head) and v[uφ] (a feature bundle) are both the category v
+  // (Chomsky 2001, 2008), whatever notation the bar and phrase labels use.
+  const vTree = (head, bar, phrase) => [node('phase', phrase, [leaf('a'), node('vbar', bar, [
+    leaf('h', { label: head, word: undefined, silent: true }), node('vp', 'VP', [leaf('obj')])])])];
+  const record = relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'a' });
+  for (const labels of [['v', "v'", 'vP'], ['v*', "v*'", 'v*P'], ['v*', "v'", 'vP'], ['v[uφ]', "v'", 'vP'],
+    ['v*[uφ]', 'v′', 'v*P'], ['v{uφ}', "v*'", 'vP'], ['v⁰', "v'", 'vP']]) {
+    const result = inspect(record, vTree(...labels));
+    assert(has(result, 'transfer.domain'), labels.join(' / '));
+    assert.deepEqual(result.items.filter(item => item.domainStyle === 'transfer-edge').map(item => item.rootNodeId), ['a'], labels.join(' / '));
+    assert.deepEqual(result.items.filter(item => item.kind === 'fong-component').map(item => [item.componentLabel, item.headNodeId]),
+      [['SOD', 'vp']], labels.join(' / '));
+  }
+  // A head of another category never borrows the v projections.
+  for (const labels of [['T[uφ]', "v'", 'vP'], ['v*', "T'", 'TP']]) {
+    assert(!has(inspect(record, vTree(...labels)), 'transfer.domain'), labels.join(' / '));
+  }
+});
+
+test('Transfer stops its phase-head spine at a second head of the same category in any notation', () => {
+  // A higher v shell (its own head h2) is not a projection of the lower phase head.
+  const shells = (head, higherHead) => [node('outer', 'vP', [leaf('b'), node('outerBar', "v'", [
+    leaf('h2', { label: higherHead, word: undefined, silent: true }),
+    node('phase', 'vP', [leaf('a'), node('vbar', "v'", [leaf('h', { label: head, word: undefined, silent: true }),
+      node('vp', 'VP', [leaf('obj')])])])])])];
+  // A compound higher head (v+T, T+v) is still a second v head, in either member order.
+  for (const [head, higherHead] of [['v', 'v'], ['v', 'v[uφ]'], ['v*', 'v'], ['v[uφ]', 'v*'],
+    ['v*', 'v+T'], ['v*', 'T+v'], ['v[uφ]', 'v+T'], ['v[uφ]', 'T+v']]) {
+    const tree = shells(head, higherHead), name = `${head} below ${higherHead}`;
+    assert(has(inspect(relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'a' }), tree), 'transfer.domain'), name);
+    assert(!has(inspect(relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'b' }), tree), 'transfer.domain'), name);
+  }
+});
+
+test('Transfer rejects a complex head holding a second head of the phase head category', () => {
+  // Inside v(h, h2) neither v head uniquely owns the spine, so the domain is claimed by neither.
+  for (const [head, other] of [['v*', 'v'], ['v[uφ]', 'v'], ['v', 'v'], ['v', 'v*+T']]) {
+    const tree = [node('phase', 'vP', [leaf('edge'), node('bar', 'v′', [
+      node('complex', 'v', [leaf('h', { label: head, word: undefined, silent: true }), leaf('h2', { label: other, word: undefined, silent: true })]),
+      node('vp', 'VP', [leaf('obj')])])])];
+    const result = inspect(relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'edge' }), tree);
+    assert(!has(result, 'transfer.domain'), `${head} beside ${other}`);
+    assert(!result.items.some(item => item.kind === 'fong-component'), `${head} beside ${other}`);
+  }
+});
+
+test('Transfer reads a compound complex head the same in either member order', () => {
+  const tree = complex => [node('phase', 'vP', [leaf('a'), node('vbar', "v'", [
+    node('cx', complex, [leaf('V', { label: 'V', word: 'saw' }), leaf('h', { label: 'v', word: undefined, silent: true })]),
+    node('vp', 'VP', [leaf('obj')])])])];
+  const record = relation({ phaseHead: 'h', transferredDomain: 'vp', phaseEdge: 'a' });
+  assert.equal(has(inspect(record, tree('v+V')), 'transfer.domain'), has(inspect(record, tree('V+v')), 'transfer.domain'));
+  assert(has(inspect(record, tree('v')), 'transfer.domain'), 'a complex head labelled v stays on the spine');
+});
+
 test('Transfer and cyclic feature claims do not repeat equivalent marks', () => {
   const transfer = inspect(relation({ phase: 'root', edge: ['a', 'b'], complement: 'vp' }));
   assert.equal(transfer.items.filter(item => item.domainStyle === 'transfer-edge').length, 2);
