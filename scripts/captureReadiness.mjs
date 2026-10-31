@@ -34,13 +34,6 @@ export async function waitForCanopyPaint(page, { timeout = 30_000 } = {}) {
   return inspectPaintedTree(page);
 }
 
-export async function waitForNotesPaint(page, { timeout = 30_000 } = {}) {
-  await page.getByRole('heading', { name: 'Derivational Notes', exact: true }).waitFor({ state: 'visible', timeout });
-  await page.waitForFunction(() => document.fonts.status === 'loaded'
-    && !document.querySelector('svg[data-babel-tree]'), null, { timeout });
-  await waitForFiniteAnimations(page, { timeout });
-}
-
 async function waitForFiniteAnimations(page, { timeout }) {
   await page.waitForFunction(() => !document.getAnimations().some(animation => {
     const end = animation.effect?.getComputedTiming().endTime;

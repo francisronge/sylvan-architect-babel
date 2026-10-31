@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 import { collectPronouncedTerminalSequence } from '../replay/pronouncedTerminals.ts';
 import { finalForestForAnalysis } from '../replay/finalForest.ts';
 import { openCaptureSession } from './browserSession.mjs';
-import { waitForReplayPaint, waitForCanopyPaint, waitForNotesPaint } from './captureReadiness.mjs';
+import { waitForReplayPaint } from './captureReadiness.mjs';
 import { assertReplayCapturePayload } from './replayCapturePayload.mjs';
 import { escapeHtml } from './escapeHtml.mjs';
 
@@ -77,8 +77,6 @@ const writeViewer = (frameCount) => {
     <button id="next">Next</button>
     <input id="slider" type="range" min="0" max="${lastFrame}" value="0">
     <div class="label">Frame <span id="index">1</span> / ${frameCount}</div>
-    <button id="canopy">Canopy</button>
-    <button id="notes">Notes</button>
   </div>
   <main><img id="shot" alt="Replay frame" src="replay-00.png?v=${assetVersion}"></main>
   <script>
@@ -98,8 +96,6 @@ const writeViewer = (frameCount) => {
     slider.addEventListener('input', () => show(slider.value));
     document.getElementById('prev').addEventListener('click', () => show(Number(slider.value) - 1));
     document.getElementById('next').addEventListener('click', () => show(Number(slider.value) + 1));
-    document.getElementById('canopy').addEventListener('click', () => { shot.src = imageSrc('canopy.png'); label.textContent = 'Canopy'; });
-    document.getElementById('notes').addEventListener('click', () => { shot.src = imageSrc('notes.png'); label.textContent = 'Notes'; });
     window.addEventListener('keydown', (event) => {
       if (event.key === 'ArrowLeft') show(Number(slider.value) - 1);
       if (event.key === 'ArrowRight') show(Number(slider.value) + 1);
@@ -127,7 +123,6 @@ try {
     window.__BABEL_DEV_SET_ANALYSIS__(bundle, options);
     window.__BABEL_DEV_SET_CAPTURE_MODE__(true);
     window.__BABEL_DEV_SET_INPUT_VISIBILITY__(false);
-    window.__BABEL_DEV_SET_TAB__('derivation');
   }, { bundle: parseBundle, options: { sentence, framework, modelRoute, reasoningEffort } });
   await page.waitForFunction(() => window.__BABEL_DEV_GET_REPLAY_STEP_COUNT__?.() > 0);
   const replayCount = await page.evaluate(() => window.__BABEL_DEV_GET_REPLAY_STEP_COUNT__());
@@ -147,17 +142,6 @@ try {
     frames.push({ requestedFrame: index, ...paint, file,
       payloadSha256: sha256(JSON.stringify(payload)), screenshotSha256: sha256(fs.readFileSync(path.join(outDir, file))) });
   }
-  await page.evaluate(() => window.__BABEL_DEV_SET_TAB__('tree'));
-  summary.canopyPaint = await waitForCanopyPaint(page);
-  session.assertHealthy();
-  await page.screenshot({ path: path.join(outDir, 'canopy.png'), fullPage: true });
-  await page.evaluate(() => window.__BABEL_DEV_SET_TAB__('notes'));
-  await waitForNotesPaint(page);
-  session.assertHealthy();
-  await page.screenshot({ path: path.join(outDir, 'notes.png'), fullPage: true });
-  session.assertHealthy();
-  summary.canopy = path.join(outDir, 'canopy.png');
-  summary.notes = path.join(outDir, 'notes.png');
   writeViewer(replayCount);
   summary.ok = true;
 } catch (error) {

@@ -41,8 +41,12 @@ test('the hidden sentence panel is inert, so its controls leave the focus order'
 test('icon and toggle controls expose their visible names and states to assistive technology', () => {
   const shown = render('');
   const button = text => new RegExp(`<button[^>]*>(?:(?!</button>).)*${text}(?:(?!</button>).)*</button>`, 's').exec(shown)?.[0] ?? '';
-  assert.match(button('Canopy'), /aria-current="page"/, 'the active view tab is marked current');
-  assert.doesNotMatch(button('Notes'), /aria-current/);
+  // Replay is the only view, so no view tabs remain; the side control opens
+  // the bracketing, which needs an analysis.
+  assert.doesNotMatch(shown, />(Canopy|Notes|Derivation Replay)</, 'no view tabs remain');
+  assert.match(button('Labeled Bracketing'), /aria-label="Labeled Bracketing"/);
+  assert.match(button('Labeled Bracketing'), /aria-expanded="false"/);
+  assert.match(button('Labeled Bracketing'), /\bdisabled=""/, 'the bracketing waits for an analysis');
   assert.match(button('Constituent Glyphing'), /aria-pressed="false"/);
   assert.match(shown, /<button[^>]*title="Collapse"[^>]*aria-label="Collapse"/);
   assert.match(shown, /<button[^>]*title="Hide Control Panel"[^>]*aria-label="Hide Control Panel"/);

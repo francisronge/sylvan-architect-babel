@@ -7,8 +7,9 @@ import { deriveAnalysisDisplay } from './services/analysisDisplay';
 import { useTreeBank } from './hooks/useTreeBank';
 import { useDevPreview, type DevAnalysisOptions, type SavedPreview } from './hooks/useDevPreview';
 import type { TreeBankEntrySummary } from './services/treeBankStore';
+import { reopenedReplayStep } from './services/treeBankRecords';
 import { TreeBankView, TreeBankDeleteDialog } from './components/TreeBankView';
-import { DerivationNotesView, type CopyStatus } from './components/DerivationNotesView';
+import { BracketingPanel, type CopyStatus } from './components/BracketingPanel';
 import { copyTextToClipboard } from './services/clipboard';
 import {
   ParseBundle,
@@ -23,13 +24,11 @@ import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/res
 import { 
   RotateCcw, 
   Sparkles,
-  Layers,
   Zap,
   Brain,
-  FileText,
+  Brackets,
   ChevronUp,
   ChevronDown,
-  FlameKindling,
   Key,
   Triangle,
   EyeOff,
@@ -38,14 +37,6 @@ import {
   Check,
   Archive
 } from 'lucide-react';
-
-type AppTab = 'tree' | 'derivation' | 'notes';
-
-const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number; className?: string }>; label: string }> = [
-  { id: 'tree', icon: Layers, label: 'Canopy' },
-  { id: 'derivation', icon: FlameKindling, label: 'Derivation Replay' },
-  { id: 'notes', icon: FileText, label: 'Notes' },
-];
 
 const formatModelLabel = (modelUsed: string | undefined, models = GENERATION_MODEL_IDS.map(id => getResearchModel(id)!)): string => {
   const model = String(modelUsed || '').trim();
@@ -138,7 +129,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   useSporeDrift(sporeLayerRef, spores, loading);
   const [analysisBundle, setAnalysisBundle] = useState<ParseBundle | null>(null);
   const [activeParseIndex, setActiveParseIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState<AppTab>('tree');
+  const [bracketingOpen, setBracketingOpen] = useState(false);
+  const bracketingButtonRef = useRef<HTMLButtonElement>(null);
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [isInputVisible, setIsInputVisible] = useState(!showcaseMode);
   const [abstractionMode, setAbstractionMode] = useState(false);
@@ -179,9 +171,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const rememberReplayPosition = useCallback((step: number) => {
     if (activeParse) replayPositions.current.set(activeParse, step);
   }, [activeParse]);
-  const changeTab = (tab: AppTab) => {
-    setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
-    setActiveTab(tab);
+  const closeBracketing = () => {
+    setBracketingOpen(false);
+    bracketingButtonRef.current?.focus();
   };
   const changeParse = (index: number) => {
     const analysis = analysisBundle?.analyses[index];
@@ -190,11 +182,11 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   };
   const toggleTreeBank = () => {
     setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
+    setBracketingOpen(false);
     setWorkspaceView(current => current === 'treeBank' ? 'arboretum' : 'treeBank');
   };
   const activeDisplayTree = activeDisplay?.displayTree ?? null;
   const milesNotation = activeDisplay?.notation ?? '';
-  const derivationalNoteParagraphs = activeDisplay?.stageRecords ?? [];
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) > 1;
   const selectedModel = getResearchModel(modelRoute)!;
   const selectedModelLabel = selectedModel.label;
@@ -204,12 +196,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const reasoningControlLabel = selectedModel.controls[0].label;
   const isTreeBankView = workspaceView === 'treeBank';
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
-  // Replay gives the input bar's space to the tree and its panel; a new sentence
-  // is entered from Canopy or Notes. A running generation or a failure keeps the
-  // bar, because it carries their progress and diagnostics.
-  const hideInputForReplay = activeTab === 'derivation' && Boolean(activeParse) && !loading && !error;
   const acceptDevAnalysis = useCallback((bundle: ParseBundle, options: DevAnalysisOptions) => {
     setInitialReplayPosition(null);
+    setBracketingOpen(false);
     setAnalysisBundle(bundle);
     const nextSentence = String(options.sentence || '').trim();
     if (nextSentence) {
@@ -228,7 +217,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setReasoningEffort(coerceReasoningEffortForRoute(modelRoute, options.reasoningEffort));
     }
     setActiveParseIndex(0);
-    setActiveTab('tree');
     resetCopyStatus();
     setIsInputVisible(true);
     setIsInputExpanded(true);
@@ -237,9 +225,10 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   }, [modelRoute, reasoningEffort, coerceModelRoute, resetGeneration, resetCopyStatus]);
 
   const acceptSavedPreview = useCallback((preview: SavedPreview) => {
-    const { bundle, sentence, framework: nextFramework, tab, captureMode } = preview;
+    const { bundle, sentence, framework: nextFramework, captureMode } = preview;
     const nextRoute = coerceModelRoute(preview.modelRoute || inferModelRouteFromModel(bundle.modelUsed));
     setInitialReplayPosition(null);
+    setBracketingOpen(false);
     setAnalysisBundle(bundle);
     setParsedSentence(sentence);
     setInput(sentence);
@@ -248,7 +237,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setModelRoute(nextRoute);
     setReasoningEffort(coerceReasoningEffortForRoute(nextRoute, preview.reasoningEffort || reasoningEffort));
     setActiveParseIndex(0);
-    setActiveTab(tab);
     resetCopyStatus();
     setWorkspaceView('arboretum');
     resetGeneration();
@@ -260,7 +248,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     analysisBundle,
     onAnalysis: acceptDevAnalysis,
     onPreview: acceptSavedPreview,
-    onTab: setActiveTab,
     onInputVisibility: setIsInputVisible,
     onError: reportError
   });
@@ -307,6 +294,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     });
     if (!request) return;
 
+    // The bracketing would otherwise float over the progress screen.
+    setBracketingOpen(false);
     setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
     await generate(request, data => {
       setInitialReplayPosition(null);
@@ -317,7 +306,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setParsedSentence(request.sentence);
       setParsedFramework(framework);
       setActiveParseIndex(0);
-      setActiveTab('tree');
       resetCopyStatus();
     });
   };
@@ -333,7 +321,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       framework: parsedFramework,
       activeParseIndex,
       bundle: analysisBundle,
-      view: activeTab,
+      view: 'derivation' as const,
       replayStep: activeParse ? replayPositions.current.get(activeParse) ?? null : null,
       abstractionMode,
       treeSnapshotDataUrl: captureVisibleTreeSnapshot()
@@ -346,8 +334,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     if (loading) return;
     await treeBank.open(summary.id, ({ entry, bundle, view, replayStep, abstractionMode: savedAbstraction }) => {
       const selected = bundle.analyses[entry.activeParseIndex];
-      if (replayStep !== null) replayPositions.current.set(selected, replayStep);
-      setInitialReplayPosition(replayStep);
+      const reopenStep = reopenedReplayStep(view, replayStep);
+      // Only a saved Replay frame is remembered; the last-frame request for a
+      // Canopy or Notes save is replaced by the frame Replay reports.
+      if (view === 'derivation' && replayStep !== null) replayPositions.current.set(selected, replayStep);
+      setInitialReplayPosition(reopenStep);
+      setBracketingOpen(false);
       setAnalysisBundle(bundle);
       setParsedSentence(entry.sentence);
       setInput(entry.sentence);
@@ -357,7 +349,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setModelRoute(nextModelRoute);
       setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, bundle.requestedReasoningEffort || reasoningEffort));
       setActiveParseIndex(entry.activeParseIndex);
-      setActiveTab(view);
       setAbstractionMode(savedAbstraction);
       clearFailure();
       resetCopyStatus();
@@ -612,20 +603,18 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
             </div>
           )}
 
-          {!loading && activeParse && activeDisplayTree && (activeTab === 'tree' || activeTab === 'derivation') ? (
+          {!loading && activeParse && activeDisplayTree ? (
             <TreeVisualizer
               initialReplayStep={initialReplayPosition ?? undefined}
               autoPlay={initialReplayPosition === null}
               onReplayStepChange={rememberReplayPosition}
               data={activeDisplayTree}
-              animated={activeTab === 'derivation'}
+              animated
               derivationStages={activeParse.derivationStages}
               abstractionMode={abstractionMode}
               sentence={parsedSentence}
               inputTokens={replayInputTokens}
             />
-          ) : activeParse && activeTab === 'notes' ? (
-            <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copyStatus={copyStatus} onCopy={(text) => void copyNotation(text)} />
           ) : !loading && (
             <div className="w-full h-full flex flex-col items-center justify-center text-emerald-900/10 gap-10">
               <div className="relative">
@@ -645,29 +634,40 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
 
         {!isTreeBankView && (
           <>
-            {/* Navigation Sidebar */}
+            {/* Replay is Babel's only view. Its side control opens the final
+                tree's labeled bracketing over the tree, in the place the view
+                tabs held, so the tree keeps the same fitted width. */}
             <div data-babel-tree-controls="right" className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-3 md:gap-4">
-              {NAV_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  disabled={!activeParse}
-                  onClick={() => changeTab(tab.id)}
-                  aria-current={activeTab === tab.id ? 'page' : undefined}
-                  className={`group relative w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all border shadow-2xl disabled:opacity-20 disabled:cursor-not-allowed ${
-                    activeTab === tab.id
-                    ? 'moss-gradient text-white border-emerald-400/50 shadow-[0_0_20px_rgba(6,78,59,0.4)] scale-110'
-                    : 'glass-dark text-emerald-600/60 border-white/5 hover:text-emerald-400 hover:border-white/10 hover:scale-105'
-                  }`}
-                >
-                  <tab.icon size={18} className="md:w-[22px] md:h-[22px]" />
-                  <span className="absolute right-full mr-5 px-4 py-2 rounded-xl bg-black/90 backdrop-blur-xl text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400 opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-white/10 whitespace-nowrap shadow-2xl translate-x-2 group-hover:translate-x-0">
-                    {tab.label}
+              <button
+                ref={bracketingButtonRef}
+                type="button"
+                disabled={!activeParse || !milesNotation}
+                onClick={() => setBracketingOpen(open => !open)}
+                aria-label="Labeled Bracketing"
+                aria-expanded={bracketingOpen}
+                aria-controls={bracketingOpen ? 'babel-bracketing' : undefined}
+                className={`group relative w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all border shadow-2xl disabled:opacity-20 disabled:cursor-not-allowed ${
+                  bracketingOpen
+                  ? 'moss-gradient text-white border-emerald-400/50 shadow-[0_0_20px_rgba(6,78,59,0.4)] scale-110'
+                  : 'glass-dark text-emerald-600/60 border-white/5 hover:text-emerald-400 hover:border-white/10 hover:scale-105'
+                }`}
+              >
+                <Brackets size={18} className="md:w-[22px] md:h-[22px]" />
+                {!bracketingOpen && (
+                  <span aria-hidden="true" className="absolute right-full mr-5 px-4 py-2 rounded-xl bg-black/90 backdrop-blur-xl text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400 opacity-0 group-hover:opacity-100 pointer-events-none transition-all border border-white/10 whitespace-nowrap shadow-2xl translate-x-2 group-hover:translate-x-0">
+                    Labeled Bracketing
                   </span>
-                </button>
-              ))}
+                )}
+              </button>
+              {bracketingOpen && activeParse && milesNotation && (
+                <div className="absolute right-full top-1/2 -translate-y-1/2 mr-4 z-50">
+                  <BracketingPanel id="babel-bracketing" notation={milesNotation} copyStatus={copyStatus}
+                    onCopy={(text) => void copyNotation(text)} onClose={closeBracketing} />
+                </div>
+              )}
             </div>
 
-            {!hideShowcaseInput && !hideInputForReplay && !devCaptureMode && (
+            {!hideShowcaseInput && !devCaptureMode && (
               <>
                 {/* Input UI. A hidden panel or collapsed body stays mounted for its
                     transition, so inert keeps its controls out of focus order. */}

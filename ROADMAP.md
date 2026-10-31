@@ -34,8 +34,8 @@ syntactic rules. Desktop remains the primary experience.
      saved runs) stay neutral by design: structure ignores role names, so it
      cannot tell redundant naming from a contradictory claim, which must not
      draw.
-   - After a failed parse in Derivation Replay, the sentence input stays
-     visible: the failure panel has no dismiss control.
+   - After a failed parse, the failure panel in the sentence input has no
+     dismiss control.
    - Mobile calibration and a desktop minimum-zoom clamp.
    - Step-order work kept from the October rewrite
      (`refactor/replay-step-order-kernel`): just-in-time order and head
@@ -141,8 +141,7 @@ growing the current monolith and do not build two Babel implementations.
 1. Make the first screen the usable product: sentence input, Minimalism or
    X-bar, and Generate, following the existing product unless iteration reveals
    a real reason to change it. Do not add a marketing landing page before it.
-2. Keep Canopy, Derivation Replay, Tree Bank, ambiguity selection, save, and
-   export. Preserve the established visual design unless a concrete product
+2. Keep Replay, Tree Bank, ambiguity selection, save, and export. Preserve the established visual design unless a concrete product
    defect requires change.
 3. Hide provider, model, and reasoning controls. Babel uses one empirically
    selected model and a bounded server-selected generation policy while
@@ -151,12 +150,17 @@ growing the current monolith and do not build two Babel implementations.
    backend retention honestly through appropriate About and Privacy surfaces.
    Raw responses, hashes, provider settings, token use, latency, and other
    research details never appear in the ordinary public workspace.
-4. Retire Notes as a top-level view. `stageRecord` remains part of every stage
-   and stays visible with its corresponding Replay frame. Decide separately,
-   after auditing actual use, whether labeled bracketing and Miles Shang output
-   remain as exports or are retired.
+4. Done 31 Oct 2026, by Francis's decision that Babel is just Replay: Canopy
+   and Notes are retired, and Replay is the only view. Its last frame is the
+   finished tree, and each `stageRecord` stays visible with its Replay frames.
+   The labeled bracketing, its copy and the Miles Shang link moved to a button
+   beside Replay. Decide separately, after auditing actual use, whether
+   labeled bracketing and Miles Shang output remain as exports or are retired.
 5. Keep a small Research link in the main menu or header. It opens `/research`
    without discarding the current analysis or Tree Bank.
+6. Collapse the sentence input bar after generation, designed with the rest of
+   the product UI. Francis deferred this on 31 Oct 2026; until then the bar
+   stays visible below Replay and the Replay panel stands above it.
 
 ### 3C. Research Workbench At `/research`
 

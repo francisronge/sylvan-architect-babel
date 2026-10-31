@@ -9,7 +9,7 @@ import { copyTextToClipboard } from '../services/clipboard.ts';
 
 const require = createRequire(import.meta.url);
 const compiled = await build({
-  entryPoints: [new URL('../components/DerivationNotesView.tsx', import.meta.url).pathname],
+  entryPoints: [new URL('../components/BracketingPanel.tsx', import.meta.url).pathname],
   bundle: true, write: false, platform: 'node', format: 'esm', jsx: 'automatic',
   plugins: [{ name: 'local-test-dependencies', setup(builder) {
     builder.onResolve({ filter: /^[^./]/ }, ({ path: specifier }) => ({
@@ -17,30 +17,33 @@ const compiled = await build({
     }));
   } }]
 });
-const { DerivationNotesView } = await import(
+const { BracketingPanel } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled.outputFiles[0].text).toString('base64')}`
 );
 const notation = '[TP [DP Mia] [T’ [T ∅] [VP laughed]]]';
-const render = copyStatus => renderToStaticMarkup(React.createElement(DerivationNotesView, {
-  paragraphs: ['Mia merges with T’.'], notation, copyStatus, onCopy: () => {}
+const render = copyStatus => renderToStaticMarkup(React.createElement(BracketingPanel, {
+  id: 'babel-bracketing', notation, copyStatus, onCopy: () => {}, onClose: () => {}
 }));
 
-test('Notes offers one final-tree bracketing and does not claim derivation or movement indices', () => {
+test('the bracketing panel offers one final-tree bracketing and does not claim derivation or movement indices', () => {
   const html = render('idle');
-  assert.equal((html.match(/<button/g) || []).length, 1);
+  assert.match(html, /^<div id="babel-bracketing" role="dialog" aria-label="Labeled Bracketing"/);
+  assert.deepEqual([...html.matchAll(/<button[^>]*>(?:(?!<\/button>).)*<\/button>/gs)]
+    .map(([button]) => /aria-label="([^"]+)"/.exec(button)?.[1] ?? button.replace(/<[^>]+>/g, '')),
+  ['Close labeled bracketing', 'Copy Bracketing'], 'one close control and one copy');
   assert.equal(html.split(notation).length - 1, 1, 'the bracketing appears once');
-  assert.match(html, />Copy Canopy</);
+  assert.match(html, /href="https:\/\/mshang\.ca\/syntree\/"/, 'the Miles Shang link stays with the bracketing');
   assert.match(html, /Final Tree · Miles Shang Notation/);
   assert.doesNotMatch(html, /Derivation Code|Movement Indexed|Copy Derivation/);
   assert.doesNotMatch(html, /role="alert"/);
 });
 
-test('Notes reports a confirmed copy and a refused one', () => {
+test('the bracketing panel reports a confirmed copy and a refused one', () => {
   assert.match(render('copied'), />Copied to Soil</);
   const failed = render('failed');
   assert.doesNotMatch(failed, /Copied to Soil/);
   assert.match(failed, /role="alert"[^>]*>The browser blocked clipboard access/);
-  assert.match(failed, />Copy Canopy</, 'the copy stays available to retry');
+  assert.match(failed, />Copy Bracketing</, 'the copy stays available to retry');
 });
 
 test('clipboard copies succeed only once the browser accepts the text', async () => {
