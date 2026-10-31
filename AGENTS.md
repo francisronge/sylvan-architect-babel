@@ -88,7 +88,12 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
   text they realize.
 - `workspace` names the current roots; `nodes` lists only the nodes the stage
   introduces or changes, children as node ids. A node keeps its latest
-  definition until redefined. `server/babelParser/partsList.js` expands this into
+  definition until redefined. An entry naming `copyOf` is a new occurrence of
+  another node's current structure: Babel gives it that node's label, fields and
+  complete subtree, naming each copied node `copyId/originalId`; the entry may
+  restate the copied word but not change it, carries only `id`, `copyOf`,
+  `label`, `word`, `silent` and `lineageId`, and may not contain itself or
+  name a node that already belongs to something else. `server/babelParser/partsList.js` expands this into
   the nested `workspaceForest` before any other check, so parsing, Replay and
   saved records read one form. Analyses authored as nested forests with `refId`,
   including every saved record, are read unchanged; one analysis cannot mix forms.
@@ -252,6 +257,7 @@ once its mistake can no longer happen.
 | A plaque does not jump while its anchor holds. | `plaque-teleport` in `verify:replay-offline` (CI) |
 | A restated claim shares its plaque; one node never shows two plaques with the same content. | `duplicate-plaque` in `verify:replay-offline` (CI), for plaques with a face (rows or a theta grid) that serve different claims; a Case or agreement path's faceless plaque is not checked |
 | A label shows each index letter once, every letter belongs to a dependency containing its node (a movement chain, an identity coindex, a theta grid, or the authored label or word), and a shared restated plaque keeps each claim's letters. | `one-letter-per-label`, `label-index-owned`, `restated-letters-kept` in `tests/replayInvariants.test.mjs` (`verify:all`) |
+| A corpus allow entry covers only the change it was written for: its `from` and `to` fingerprints must match the comparison, and an entry that no longer matches fails until removed. | `stale-allow` in `scripts/replayCorpusInputs.mjs` (`verify:corpus`, CI job `corpus-motion`); `tests/replayCorpusComparator.test.mjs` |
 | Every layout change is reviewed, never regenerated blind. | Layout fingerprint in `verify:replay-offline` |
 | A check judges the layout the browser paints, not another plan. | Shared camera fit; measured-layout test in `tests/replayCorpusComparator.test.mjs` |
 | Painted frames and motion stay clean. | `verify:browser-visual` before merge, on macOS |

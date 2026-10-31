@@ -34,8 +34,6 @@ syntactic rules. Desktop remains the primary experience.
      saved runs) stay neutral by design: structure ignores role names, so it
      cannot tell redundant naming from a contradictory claim, which must not
      draw.
-   - After a failed parse, the failure panel in the sentence input has no
-     dismiss control.
    - Mobile calibration and a desktop minimum-zoom clamp.
    - Step-order work kept from the October rewrite
      (`refactor/replay-step-order-kernel`): just-in-time order and head

@@ -22,6 +22,15 @@ const bundle = { ...saved, sentence: 'Mia laughed.', inputTokens: ['Mia', 'laugh
   ambiguityDetected: true, analyses: [saved.analyses[0], saved.analyses[0]] };
 const sentenceInput = page => page.getByRole('textbox', { name: 'Sentence to analyze' });
 
+/** Screen box of the painted syntax labels: how large the camera shows the tree. */
+const paintedTreeBox = page => page.locator('svg[data-babel-tree]').evaluate(svg => {
+  const boxes = [...svg.querySelectorAll('.node-group text')].filter(text => text.textContent.trim())
+    .map(text => text.getBoundingClientRect()).filter(box => box.width > 0 && box.height > 0);
+  if (!boxes.length) return { width: 0, height: 0 };
+  return { width: Math.max(...boxes.map(box => box.right)) - Math.min(...boxes.map(box => box.left)),
+    height: Math.max(...boxes.map(box => box.bottom)) - Math.min(...boxes.map(box => box.top)) };
+});
+
 /** Replay is the only view, so it keeps the sentence input exactly as the
  * retired Canopy showed it: the same bar, centred at the bottom of the
  * workspace, with its collapse and hide controls, ready for the next sentence.
@@ -328,6 +337,8 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             await pauseReplayAt(page, 4);
             await assertReplayWithInput(page);
             if (width === 1440) await assertTreeUncovered(page);
+            const treeBefore = await paintedTreeBox(page);
+            assert.ok(treeBefore.width > 0 && treeBefore.height > 0, 'the frame shows its tree');
             await page.screenshot({ path: path.join(output, `recovery-before-${engine}-${width}.png`) });
             // A new sentence is entered beside the paused Replay; each failure
             // returns to the same analysis and frame.
@@ -374,11 +385,39 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
                 await inspection.waitFor();
                 await page.getByRole('button', { name: 'Close inspection', exact: true }).click();
                 assert.equal(await page.getByRole('dialog').count(), 0);
+                // Escape inside the inspection closes only the inspection.
+                await page.getByRole('button', { name: 'Inspect failed output', exact: true }).click();
+                await page.getByRole('dialog').waitFor();
+                await page.keyboard.press('Escape');
+                await page.getByRole('dialog').waitFor({ state: 'detached' });
+                assert.equal(await page.getByRole('alert').count(), 1, 'Escape in the inspection keeps the failure');
                 await waitForReplayPaint(page, 4);
               }
               observations.push({ engine, width, kind, selectedAnalysis: 2, replayStep: 4, paused: true });
             }
             await page.screenshot({ path: path.join(output, `recovery-after-${engine}-${width}.png`) });
+            // Dismissing the failure from the keyboard returns to the same
+            // analysis and paused frame. The sentence bar stays in Replay, so
+            // focus moves to the sentence box with the draft, and nothing is
+            // requested.
+            await page.getByRole('button', { name: 'Dismiss failure', exact: true }).focus();
+            await page.keyboard.press('Enter');
+            await page.getByRole('button', { name: 'Dismiss failure', exact: true }).waitFor({ state: 'detached' });
+            await waitForReplayPaint(page, 4);
+            assert.equal(await page.getByRole('alert').count(), 0, 'the dismissed failure is gone');
+            assert.equal(await page.getByRole('button', { name: 'Parse 2', exact: true }).getAttribute('aria-pressed'), 'true');
+            assert.equal(await page.getByRole('slider', { name: 'Replay frame' }).inputValue(), '4');
+            assert.equal(await page.getByRole('button', { name: 'Play', exact: true }).count(), 1);
+            assert.ok(await sentenceInput(page).evaluate(input => input === document.activeElement), 'focus moves to the sentence box');
+            assert.equal(await sentenceInput(page).inputValue(), failedDraft, 'dismissal keeps the failed draft');
+            await assertReplayWithInput(page);
+            // The tree takes back the space the failure held, at the size it had
+            // before the failure, not the strip it was fitted into above it.
+            const treeAfter = await paintedTreeBox(page);
+            assert.ok(treeAfter.width >= 0.8 * treeBefore.width && treeAfter.height >= 0.8 * treeBefore.height,
+              `the dismissed failure's space returns to the tree: ${JSON.stringify({ treeBefore, treeAfter })}`);
+            await page.screenshot({ path: path.join(output, `recovery-dismissed-${engine}-${width}.png`) });
+            assert.equal(requests, 6, 'dismissal makes no request');
             await page.getByRole('button', { name: 'Save to Tree Bank', exact: true }).click();
             await page.getByRole('button', { name: 'Saved', exact: true }).waitFor();
             const stored = await readTreeBankSnapshot(page);
@@ -500,6 +539,15 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
         await page.getByText('Fixture request interrupted.', { exact: true }).waitFor();
         assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue(), bundle.sentence);
+        // Escape in the sentence input dismisses the failure and leaves the
+        // input, its draft and its focus for a retry.
+        await page.getByRole('textbox', { name: 'Sentence to analyze' }).focus();
+        await page.keyboard.press('Escape');
+        await page.getByText('Fixture request interrupted.', { exact: true }).waitFor({ state: 'detached' });
+        assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue(), bundle.sentence);
+        assert.ok(await page.getByRole('textbox', { name: 'Sentence to analyze' })
+          .evaluate(input => input === document.activeElement), 'focus stays in the sentence input');
+        assert.equal(requests.length, 1, 'dismissal makes no request');
         failRequest = false;
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
         await ready();

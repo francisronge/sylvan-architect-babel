@@ -138,6 +138,10 @@ The bottom control panel supports:
 
 The console stays below Replay, so a new sentence can be entered at any time;
 the Replay panel stands above it.
+Dismiss a failure with its close button or Escape: you return to the analysis
+and paused frame you were reading, your draft and Tree Bank stay, and no request
+is made. Download its raw output or failure record first if you want them; the
+next request clears the failure in any case.
 
 ### 5) Parse execution flow
 
