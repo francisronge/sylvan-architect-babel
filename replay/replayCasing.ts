@@ -55,6 +55,35 @@ export const authoredDeterminerHasNominalComplement = (forest: readonly SyntaxNo
   return result;
 };
 
+/** Movements whose landing pronounces the sentence's first word, with the
+ * step where each first appears. */
+const overtInitialMovements = (steps: readonly PlaybackStep[], initialKey: string) => {
+  const found = new Map<string, { moment: number; priorSourceNodeId: string; targetNodeId: string }>();
+  steps.forEach((step, moment) => (step.replayRelationLinks || []).forEach(link => {
+    const priorSourceNodeId = String(link.priorSourceNodeId || link.sourceNodeId || '');
+    const targetNodeId = String(link.targetNodeId || '');
+    const key = `${priorSourceNodeId}>${targetNodeId}`;
+    if (!priorSourceNodeId || !targetNodeId || found.has(key) || !isResolvedMovementLink(link) || !step.replayCanvasData)
+      return;
+    const landing = findNodeByName(step.replayCanvasData, targetNodeId);
+    const words = landing ? collectOvertLeafNodeIdsInOrder(landing).map(id => findNodeByName(landing, id)) : [];
+    if (words.some(word => normalizeToken(String(word?.word || word?.label || '').trim()) === initialKey))
+      found.set(key, { moment, priorSourceNodeId, targetNodeId });
+  }));
+  return [...found.values()];
+};
+
+const findNodeByName = (root: SyntaxNode, name: string): SyntaxNode | undefined => {
+  if (String(root.id || '') === name || root.aliasIds?.some(id => String(id) === name))
+    return root;
+  for (const child of root.children || []) {
+    const found = findNodeByName(child, name);
+    if (found)
+      return found;
+  }
+  return undefined;
+};
+
 export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sentenceInitialSurface: string): PlaybackStep[] => {
   const initialKey = normalizeToken(sentenceInitialSurface);
   if (!initialKey)
@@ -63,7 +92,8 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
   const lowercaseInitial = caseSurfaceInitial(sentenceInitialSurface, 'lower');
   if (uppercaseInitial === lowercaseInitial)
     return steps;
-  return steps.map((step) => {
+  const movements = overtInitialMovements(steps, initialKey);
+  return steps.map((step, stepIndex) => {
     if (!step.replayCanvasData)
       return step;
     const clonedCanvas = cloneSyntaxTree(step.replayCanvasData);
@@ -125,6 +155,15 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
         leaf: SyntaxNode;
         silent: boolean;
       } => Boolean(entry));
+    // The first pronounced word of each workspace in the stage's own
+    // structure, selected yet or not (future scaffolding excluded).
+    const firstStageLeafIds = new Map<SyntaxNode, string>();
+    leafIds.forEach(leafId => {
+      const info = exactNodes.get(leafId)!;
+      const workspace = leafWorkspaces.get(leafId)!;
+      if (!info.layout && !info.silent && !firstStageLeafIds.has(workspace))
+        firstStageLeafIds.set(workspace, leafId);
+    });
     const firstPronouncedLeafIds = new Map<SyntaxNode, string>();
     currentLeaves.forEach(({ leaf, silent }) => {
       const workspace = leafWorkspaces.get(String(leaf.id || ''))!;
@@ -151,7 +190,16 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
         const landing = nodesByName.get(String(link.targetNodeId || ''));
         return landing && collectOvertLeafNodeIdsInOrder(landing).includes(leafId);
       });
-      const nextSurface = leafId && leafId === firstPronouncedLeafIds.get(leafWorkspaces.get(leafId)!)
+      // A phrase that an overt movement will carry to the front stands, until
+      // it first moves, in its base position. Where the stage's structure puts
+      // pronounced words before that position (a base object after its verb),
+      // it is not sentence-initial, even while those words are still to be
+      // selected.
+      const contains = (id: string) => collectOvertLeafNodeIdsInOrder(nodesByName.get(id) ?? {} as SyntaxNode).includes(leafId);
+      const awaitsMovement = firstStageLeafIds.get(leafWorkspaces.get(leafId)!) !== leafId
+        && movements.some(move => move.moment > stepIndex && contains(move.priorSourceNodeId))
+        && !movements.some(move => move.moment <= stepIndex && contains(move.targetNodeId));
+      const nextSurface = leafId && leafId === firstPronouncedLeafIds.get(leafWorkspaces.get(leafId)!) && !awaitsMovement
         ? (detachedForest ? surface : authoredLowercaseSource && !surfacedLanding ? authoredSurface : uppercaseInitial)
         : maybeLowercaseSentenceInitialFunctionSurface({
           surface,
