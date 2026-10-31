@@ -59,7 +59,13 @@ attaching it. A movement step owns the closing of the gap its phrase leaves
 it first removes the camera carry (`carryCamera`), as the screen does. Where the
 stage plan's own closing moves syntax across that boundary, the plan records it
 and the carry keeps the block that holds still instead of a tied midpoint
-(`carriedMedian`); everywhere else the carry is the plain median.
+(`carriedMedian`); everywhere else the carry is the plain median. Where the
+movement opening a stage closes the room it leaves, the plan also records the
+shared syntax that closing does not move (`stageCoordinates.entryCarry`), and
+the carry holds that syntax still while the closing side slides; the screen
+gives that up only where it would paint shared syntax farther beyond the view.
+A tie between two equal blocks of a narrowed reference (lowered or held) follows
+the block the rest of the unmoved syntax agrees with.
 Where a boundary inserts a parent above an existing subtree, the carry holds the
 syntax it does not lower (`carryReference`). When three nodes or fewer are left,
 it holds them only if the lowered words keep their place beside them, which the

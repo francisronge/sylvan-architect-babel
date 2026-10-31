@@ -31,6 +31,9 @@ interface FrameCameraLayout {
   /** The stage plan closed a movement's room at the crossing into this frame's
    * stage (stageCoordinates.closesOnEntry), so the camera carry there breaks a tie. */
   closesOnEntry?: boolean;
+  /** The syntax the camera carry into this frame's stage holds still
+   * (stageCoordinates.entryCarry). */
+  heldOnEntry?: readonly string[];
 }
 /** The stage's cyclic-linearization plate, which takes a column or row of the view. */
 const cyclicLinearizationPlate = (relationRenderPlan: RelationRenderPlan | null, stageIndex: number) => (
@@ -66,7 +69,8 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
     derivationFrameFitNodes,
     overlayFitBounds,
     visibleNodes,
-    closesOnEntry = false
+    closesOnEntry = false,
+    heldOnEntry
   } = layout;
   const hasCyclicLinearizationPlate = Boolean(cyclicLinearizationPlate(relationRenderPlan, activeDerivationFrameIndex));
   const compactViewport = isCompactViewport(containerWidth);
@@ -93,6 +97,7 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
       fitFallbackOverlays,
       stageIndex: activeDerivationFrameIndex,
       closesOnEntry,
+      heldOnEntry,
       controls: { top: uiBounds.top, right: uiBounds.right, bottom: uiBounds.bottom, panelTop: uiBounds.panelTop },
       paintedNodes: new Map(visibleNodes.map(node => [getNodeId(node),
         { x: node.x, y: node.y, parentId: node.parent ? getNodeId(node.parent) : null }]))
