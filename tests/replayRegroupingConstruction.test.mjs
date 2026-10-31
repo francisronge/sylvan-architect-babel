@@ -35,10 +35,11 @@ test('new syntax inside a regrouping parent\'s new child is built at its own ste
     node('vp', 'VP', leaf('see', 'V', 'see'), node('np', 'NP', leaf('cats', 'N', 'cats'), leaf('here', 'A', 'here'))));
   const micro = steps.filter(step => step.replayKind === 'micro');
   assert.deepEqual(micro.map(step => [step.operation, step.targetNodeId]),
-    [['LexicalSelect', 'here::__leaf'], ['Project', 'here'], ['ExternalMerge', 'np']]);
-  const [select, project] = micro.map(frameStructure);
-  assert.ok(select.children.get(null).includes('here::__leaf'), 'the new word stands as its own workspace');
-  assert.deepEqual(project.children.get('vp'), ['see', 'old'], 'the old N′ stays until the NP is built');
-  assert.deepEqual(frameStructure(micro[2]).children.get('vp'), ['see', 'np']);
+    [['LexicalSelect', 'here'], ['ExternalMerge', 'np']]);
+  const [select] = micro.map(frameStructure);
+  assert.ok(select.children.get(null).includes('here'), 'the new word stands with its category as its own workspace');
+  assert.deepEqual(select.children.get('here'), ['here::__leaf']);
+  assert.deepEqual(select.children.get('vp'), ['see', 'old'], 'the old N′ stays until the NP is built');
+  assert.deepEqual(frameStructure(micro[1]).children.get('vp'), ['see', 'np']);
   assert.deepEqual(checkStableConstruction(replay), []);
 });

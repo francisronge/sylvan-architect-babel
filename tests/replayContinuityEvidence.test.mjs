@@ -33,7 +33,9 @@ test('a retained lineage does not make newly added descendants already construct
   assertFirstVisibleAtConstruction(steps, 'two');
   const selection = steps.find(step => step.operation === 'LexicalSelect' && step.targetLabel === 'two');
   assert.ok(selection, 'the added word needs a selection step');
-  assert.ok(steps.indexOf(selection) < steps.indexOf(structuralTarget(steps, 'two')));
+  assert.equal(selection, structuralTarget(steps, 'two'), 'the word is selected with its category');
+  assert.equal(steps.find(step => step.replayVisibleNodeIds.includes('two::__leaf')), selection,
+    'the word does not appear before its selection');
 });
 
 test('an unchanged overt yield does not conceal a newly authored wrapper', () => {

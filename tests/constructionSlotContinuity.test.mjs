@@ -38,32 +38,33 @@ function setup(record, width, height, direction) {
 // its left-to-right layout (tests/helpers/rtlMirror.mjs).
 const directions = [...new Set([0, 1].flatMap(index => directionsFor(`replay-regressions/construction-slot-continuity.json#/cases/${index}`)))];
 for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of directions) {
-  test(`${width}px ${direction}: selected word waits at its projection and merge slot despite sentence casing`, () => {
+  test(`${width}px ${direction}: selected word and category wait at their merge slot despite sentence casing`, () => {
     const record = records[0], original = JSON.stringify(record), { steps, at } = setup(record, width, height, direction);
-    assert.equal(steps[14].operation, 'LexicalSelect'); assert.equal(steps[15].operation, 'Project');
-    assert(!at(15).has('vBase'), 'the projection remains hidden during selection');
-    const selected = at(15).get('vBase::__leaf');
-    for (const frame of [16, 17]) {
+    assert.equal(steps[11].operation, 'LexicalSelect'); assert.equal(steps[11].targetNodeId, 'vBase');
+    assert.equal(steps[12].operation, 'ExternalMerge');
+    assert(at(12).has('vBase'), 'the category is selected with its word');
+    const selected = at(12).get('vBase::__leaf');
+    for (const frame of [12, 13]) {
       const word = at(frame).get('vBase::__leaf');
-      close(word.x, selected.x, 'projection/merge retain the selected word x');
-      close(word.y, selected.y, 'projection/merge retain the selected word y');
-      close(at(frame).get('vBase').x, word.x, 'the new head is above the word');
+      close(word.x, selected.x, 'selection/merge retain the selected word x');
+      close(word.y, selected.y, 'selection/merge retain the selected word y');
+      close(at(frame).get('vBase').x, word.x, 'the head is above the word');
     }
     assert.equal(JSON.stringify(record), original, 'authored spelling and syntax are untouched');
   });
 
   test(`${width}px ${direction}: a future movement wrapper cannot deepen a current VP daughter`, () => {
     const record = records[1], original = JSON.stringify(record), { steps, at } = setup(record, width, height, direction);
-    assert.equal(steps[29].operation, 'ExternalMerge'); assert.equal(steps[32].replayKind, 'relation');
-    const last = at(32), v = last.get('l_baca_lower'), sister = last.get('l_appl_phrase');
+    assert.equal(steps[21].operation, 'ExternalMerge'); assert.equal(steps[24].replayKind, 'relation');
+    const last = at(24), v = last.get('l_baca_lower'), sister = last.get('l_appl_phrase');
     close(v.y, sister.y, 'current sisters occupy the same row');
-    for (let frame = 1; frame <= 32; frame++) {
+    for (let frame = 1; frame <= 24; frame++) {
       const current = at(frame), head = current.get('l_baca_lower'), word = current.get('l_baca_lower::__leaf');
       assert(!current.has('l_v_lexical_head_lower'), 'the future head complex stays hidden');
       if (head) close(head.y, v.y, 'the head keeps its current rank throughout construction');
       if (word) close(word.y, last.get('l_baca_lower::__leaf').y, 'its terminal shares that construction lifetime');
     }
-    const moved = at(33), wrapper = moved.get('l_v_lexical_head_lower');
+    const moved = at(25), wrapper = moved.get('l_v_lexical_head_lower');
     assert(wrapper, 'the wrapper appears at the owning movement');
     close(wrapper.y, moved.get('l_appl_phrase').y, 'the new wrapper takes the old daughter row');
     assert(moved.get('l_baca_lower').y > wrapper.y, 'only then does the retained head become a granddaughter');

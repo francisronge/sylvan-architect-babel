@@ -217,11 +217,11 @@ test('a movement the baseline shows fails when the candidate drops its moment, b
 });
 
 test('a first-stage chain whose landing construction builds is a lost movement, though the baseline draws no trajectory for it', () => {
-  // The rejected candidate built booksDP bottom-up before the chain's moment (frame 20 on main).
+  // The rejected candidate built booksDP bottom-up before the chain's moment (frame 17).
   const record = loadFixtureAnalyses().records.find(entry => entry.id === 'replay-regressions/receiving-head-material.json#').record;
   const baseline = prepareReplay({ ...structuredClone(record), includePlayback: true });
   const built = { ...baseline, playbackSteps: structuredClone(baseline.playbackSteps) };
-  Object.assign(built.playbackSteps[19], { replayKind: 'micro', operation: 'Project', replayRelationIdentity: undefined });
+  Object.assign(built.playbackSteps[16], { replayKind: 'micro', operation: 'Project', replayRelationIdentity: undefined });
   const before = movementPresentations(baseline, record), after = movementPresentations(built, record);
   assert.deepEqual(lostMovementPresentations(before, before), []);
   assert.deepEqual(lostMovementPresentations(before, after).map(fault => [fault.landing, fault.baseline.trajectory, fault.reason]),

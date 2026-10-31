@@ -121,7 +121,7 @@ for (const viewport of viewports) for (const direction of directions) {
       assert.ok((juan.x - word.x) * sign >= TREE_SIBLING_GAP, `${scene.step.replayFrameIndex}: ${word.x} vs ${juan.x}`);
     }
     // In this record the repaired plan adds no motion: only the V-to-v moment moves v.
-    assert.deepEqual(movers(scenes, direction), { 'f18 relation:verb1': { v0: [187.5, 220] } });
+    assert.deepEqual(movers(scenes, direction), { 'f15 relation:verb1': { v0: [187.5, 220] } });
     for (const id of ['juan', 'subjectDomain']) {
       const points = scenes.flatMap(scene => scene.nodes.has(id) ? [`${scene.nodes.get(id).x},${scene.nodes.get(id).y}`] : []);
       assert.equal(new Set(points).size, 1, `${id} keeps one position from its first frame`);
@@ -145,11 +145,11 @@ for (const viewport of viewports) for (const direction of directions) {
     // lower occurrence takes its compact slot and its ancestors recentre over it.
     const raised = [0, -440];
     assert.deepEqual(movers(scenes, direction), {
-      'f17 relation:rD1': { rJo: [-375, -440], rN: [-375, -440], 'rJo::__leaf': [-375, -440], 'rN::__leaf': [-375, -440],
+      'f13 relation:rD1': { rJo: [-375, -440], rN: [-375, -440], 'rJo::__leaf': [-375, -440], 'rN::__leaf': [-375, -440],
         rD0: [412.5, 0], rAP: [206.3, 0], rTCore: [103.1, 0] },
-      'f22 relation:rD2': { rJo: raised, rN: raised, 'rJo::__leaf': raised, 'rN::__leaf': raised,
+      'f18 relation:rD2': { rJo: raised, rN: raised, 'rJo::__leaf': raised, 'rN::__leaf': raised,
         rD1: [787.5, 0], rTP: [393.8, 0], rCCore: [196.9, 0] },
-      'f37 relation:mD1': { mVah: [-525, -440], 'mVah::__leaf': [-525, -440] }
+      'f30 relation:mD1': { mVah: [-525, -440], 'mVah::__leaf': [-525, -440] }
     });
   });
 }

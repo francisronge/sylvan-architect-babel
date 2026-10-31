@@ -93,7 +93,7 @@ test('a badge is mark text: it may not cover a label, even its own anchor\'s, in
 
 test('Sol n4-18-sv-long-v2: no anchor-set badge covers a label or plaque at the desktop Fits', () => {
   const record = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/anchor-set-badge-label-clearance.json', import.meta.url)));
-  const steps = Array.from({ length: 21 }, (_, index) => 71 + index);
+  const steps = Array.from({ length: 21 }, (_, index) => 57 + index);
   const frames = layoutVisualFrames(prepareVisualRecord(record), VIEWPORTS.filter(viewport => viewport.name !== 'mobile'), { steps });
   assert.equal(frames.length, 2 * steps.length);
   for (const frame of frames) {

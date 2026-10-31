@@ -138,16 +138,16 @@ test('control: within-stage-stability reports a camera change between micro-step
 });
 
 /* Historical defect #7 (catalog #7: bughunt 12-en-whose-relative a1, frames
- * 20→21). Before PR #77, a forward stage entry kept the previous pose under
+ * 20→21, now 16→17). Before PR #77, a forward stage entry kept the previous pose under
  * advanceFittedCamera without carrying it into the new stage's coordinates, and
  * began from the painted transform. Replaying that rule on this layout stays
  * flagged; the catalog test below checks the current camera. */
 const WHOSE = 'replay-regressions/visual-human-catalog.json#/cases/3/analyses/0';
 for (const name of ['desktop', 'wide-short', 'mobile']) test(`historical #7: the pre-#77 stage entry is flagged at ${name}`, () => {
   const trace = traceOf(WHOSE, name);
-  const before = passOf(trace, 'forward').find(entry => entry.to === 19).settled;
-  const settled = advanceFittedCamera(before, trace.direct[20], trace.frames[20].envelope, trace.view);
-  const historical = { ...trace, frames: [trace.frames[19], trace.frames[20]], direct: [trace.direct[19], trace.direct[20]],
+  const before = passOf(trace, 'forward').find(entry => entry.to === 15).settled;
+  const settled = advanceFittedCamera(before, trace.direct[16], trace.frames[16].envelope, trace.view);
+  const historical = { ...trace, frames: [trace.frames[15], trace.frames[16]], direct: [trace.direct[15], trace.direct[16]],
     passes: [{ name: 'forward', steps: [{ from: 0, to: 1, before, first: before, settled }] }] };
   const found = checkCameraTrace(historical).findings.map(finding => `${finding.rule}/${finding.subtype}`);
   assert(found.includes('first-paint-continuity/jump:stage-coordinates'), 'the step first paints the tree away from where it was');
@@ -173,7 +173,7 @@ test('catalog: camera findings match their listed exceptions exactly', () => {
     { unexpected: [], exceeded: [], stale: [] });
 });
 
-test('catalog #7: since PR #77, Next into frame 21 carries the view and paints the syntax in place', () => {
+test('catalog #7: since PR #77, Next into frame 17 carries the view and paints the syntax in place', () => {
   assert.deepEqual(catalog.filter(finding => finding.record === WHOSE && finding.rule !== 'within-stage-stability'), []);
 });
 
@@ -182,15 +182,15 @@ test('catalog #7: since PR #77, Next into frame 21 carries the view and paints t
  * Replayed on this layout, that refit stays flagged; keeping the stage's pose
  * passes both rules. */
 test('historical Prev refit: leaving a retained stage pose on Prev within the stage is flagged', () => {
-  const trace = traceOf(WHOSE), index = passOf(trace, 'next-then-prev').findIndex(entry => entry.from === 21 && entry.to === 20);
+  const trace = traceOf(WHOSE), index = passOf(trace, 'next-then-prev').findIndex(entry => entry.from === 17 && entry.to === 16);
   const prev = step(trace, 'next-then-prev', index);
-  assert(poseDistance(prev.before, trace.direct[20], trace.frames[20]) > 1, 'Next retained a view other than direct selection\'s');
+  assert(poseDistance(prev.before, trace.direct[16], trace.frames[16]) > 1, 'Next retained a view other than direct selection\'s');
   const replay = settled => {
     const broken = copy(trace);
     passOf(broken, 'next-then-prev')[index].settled = settled;
-    return checkCameraTrace(broken).findings.filter(finding => finding.frame === '22>21').map(finding => `${finding.rule}/${finding.subtype}`);
+    return checkCameraTrace(broken).findings.filter(finding => finding.frame === '18>17').map(finding => `${finding.rule}/${finding.subtype}`);
   };
-  assert.deepEqual(replay(trace.direct[20]), ['within-stage-stability/prev-refit']);
+  assert.deepEqual(replay(trace.direct[16]), ['within-stage-stability/prev-refit']);
   assert.deepEqual(replay(prev.before), []);
 });
 

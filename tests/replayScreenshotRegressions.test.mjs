@@ -89,8 +89,13 @@ test('saved lexical selection and projection headings identify the selected obje
     const select = steps.find(step => step.operation === 'LexicalSelect' && step.targetLabel === 'buy');
     assert(select, record.name);
     assert.equal(buildReplayPanelContent(select).heading, 'Select buy');
-    const project = steps.find(step => step.operation === 'Project' && step.targetLabel === 'V');
-    assert.equal(buildReplayPanelContent(project).heading, 'Project V');
+    // buy is selected with its category V, so only an authored phrase above V projects.
+    assert.equal(nodes(select.replayCanvasData).find(node => node.id === select.targetNodeId)?.label, 'V', record.name);
+    assert(visible(select, select.targetNodeId), record.name);
+    assert(!steps.some(step => step.operation === 'Project' && step.targetLabel === 'V'), record.name);
+    const project = steps.find(step => step.operation === 'Project' && step.targetLabel === 'VP');
+    if (record.name.endsWith('-xbar')) assert.equal(buildReplayPanelContent(project).heading, 'Project VP');
+    else assert.equal(project, undefined, `${record.name} authors no unary VP`);
   }
 });
 

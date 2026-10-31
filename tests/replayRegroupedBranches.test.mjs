@@ -42,10 +42,10 @@ test('new syntax inside a waiting regrouped daughter is built at its own steps',
     derivationStages: [stage(before), stage(after)], includePlayback: true });
   const steps = replay.playbackSteps.filter(step => step.replayFrameIndex === 1 && step.replayKind === 'micro');
   assert.deepEqual(steps.map(step => [step.operation, step.targetNodeId]),
-    [['ExternalMerge', 'x2'], ['LexicalSelect', 'e::__leaf'], ['Project', 'e'], ['ExternalMerge', 'z'], ['ExternalMerge', 'y2']]);
-  const [, , project, merge] = steps.map(frameStructure);
-  assert.equal(project.parent.get('d'), 'y', 'four stays in its preceding branch until ZP takes it');
-  assert.equal(project.parent.get('b'), 'x');
+    [['ExternalMerge', 'x2'], ['LexicalSelect', 'e'], ['ExternalMerge', 'z'], ['ExternalMerge', 'y2']]);
+  const [, select, merge] = steps.map(frameStructure);
+  assert.equal(select.parent.get('d'), 'y', 'four stays in its preceding branch until ZP takes it');
+  assert.equal(select.parent.get('b'), 'x');
   assert.deepEqual([merge.parent.get('d'), merge.parent.get('e'), merge.parent.get('b')], ['z', 'z', 'x']);
   assert.equal(merge.displayed.has('y'), false, 'YP has no material left once ZP is built');
   assert.deepEqual(checkStableConstruction(replay), []);
