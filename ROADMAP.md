@@ -160,7 +160,17 @@ growing the current monolith and do not build two Babel implementations.
    without discarding the current analysis or Tree Bank.
 6. Collapse the sentence input bar after generation, designed with the rest of
    the product UI. Francis deferred this on 31 Oct 2026; until then the bar
-   stays visible below Replay and the Replay panel stands above it.
+   stays visible below Replay and the Replay panel stands above it. The design
+   must leave the tree visible in a short window and on a phone showing a
+   failure. Measured in CI screenshots of PR #343 on 31 Oct 2026: at 1440×460
+   with the bar expanded, the workspace is about 281px tall and the bar
+   reaches to about 79px from its top. On a 390×640 phone a failure makes the
+   bar about 415px tall in a 325px workspace. At 390×1000 a failure makes it
+   about 432px of 685px. Even without a failure, the expanded bar, the parse
+   selector and the Replay panel leave no visible tree at 1440×700 and a tree
+   a few pixels tall at 390×1000; the tree reads well at 1440×1000. Replay's
+   controls and the Labeled Bracketing button stay reachable at every one of
+   these sizes.
 
 ### 3C. Research Workbench At `/research`
 

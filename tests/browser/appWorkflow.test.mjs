@@ -66,14 +66,49 @@ async function assertReplayControlsReachable(page) {
   assert.deepEqual(reach.covered, [], 'nothing covers the side control or the Replay controls');
 }
 
+/**
+ * The frame is drawn and its camera settled, without requiring a visible
+ * label. Only the cramped sizes use it (1440x460 with the bar expanded, a
+ * 390x640 phone showing a failure): there the sentence bar leaves the tree no
+ * room, which Francis deferred to the input-bar design (ROADMAP 3B.6, 31 Oct
+ * 2026). Every other size keeps waitForReplayPaint and its label check.
+ */
+async function waitForSettledFrame(page, index) {
+  await page.waitForFunction(index => {
+    const svg = document.querySelector('svg[data-babel-tree]');
+    const transform = svg?.querySelector(':scope > g')?.getAttribute('transform');
+    return svg?.dataset.babelRenderedStep === String(index) && svg.dataset.babelCameraSettledStep === String(index)
+      && !svg.hasAttribute('data-babel-viewport-pending') && document.fonts.status === 'loaded'
+      && transform && !/NaN|Infinity/.test(transform);
+  }, index);
+  await page.waitForFunction(() => !document.getAnimations().some(animation =>
+    Number.isFinite(animation.effect?.getComputedTiming().endTime) && (animation.pending || animation.playState === 'running')));
+}
+
+/** The tree shows: some label is drawn where a pointer reaches the tree itself,
+ * not a panel or bar covering it. waitForReplayPaint counts painted labels only.
+ * Used at 1440x1000. With the bar kept in Replay, smaller heights (1440x700,
+ * 390x844, 390x1000) leave the tree little or no uncovered room today; that
+ * belongs to the input-bar design (ROADMAP 3B.6). */
+async function assertTreeUncovered(page) {
+  const uncovered = await page.evaluate(() => [...document.querySelectorAll('svg[data-babel-tree] .node-group text')]
+    .filter(label => {
+      const box = label.getBoundingClientRect();
+      if (!label.textContent.trim() || box.width <= 0 || box.height <= 0) return false;
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      return Boolean(hit?.closest('svg[data-babel-tree]'));
+    }).length);
+  assert.ok(uncovered > 0, 'some tree label is visible and uncovered');
+}
+
 /** Prev, Next and Play answer a pointer: each moves Replay as it should. */
-async function clickReplayControls(page) {
+async function clickReplayControls(page, paint = waitForReplayPaint) {
   const frame = async () => Number(await page.getByRole('slider', { name: 'Replay frame' }).inputValue());
-  await pauseReplayAt(page, 2);
+  await pauseReplayAt(page, 2, paint);
   await page.getByRole('button', { name: 'Prev', exact: true }).click();
-  await waitForReplayPaint(page, 1);
+  await paint(page, 1);
   await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await waitForReplayPaint(page, 2);
+  await paint(page, 2);
   assert.equal(await frame(), 2);
   await page.getByRole('button', { name: 'Play', exact: true }).click();
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
@@ -81,13 +116,13 @@ async function clickReplayControls(page) {
 }
 
 /** A new analysis opens in Replay and plays; pause it on a chosen frame. */
-async function pauseReplayAt(page, frame) {
+async function pauseReplayAt(page, frame, paint = waitForReplayPaint) {
   const slider = page.getByRole('slider', { name: 'Replay frame' });
   await slider.waitFor();
   if (await page.getByRole('button', { name: 'Pause', exact: true }).count()) await page.getByRole('button', { name: 'Pause', exact: true }).click();
   const target = frame === 'last' ? Number(await slider.getAttribute('max')) : frame;
   await slider.fill(String(target));
-  await waitForReplayPaint(page, target);
+  await paint(page, target);
   return target;
 }
 
@@ -129,6 +164,7 @@ test('recovered optional word addresses render quietly and survive Tree Bank rel
         const finalFrame = await pauseReplayAt(page, 'last');
         assert.match(await page.locator('svg[data-babel-tree]').textContent(), /IP/);
         await assertReplayWithInput(page);
+        if (width === 1440) await assertTreeUncovered(page);
         await page.screenshot({ path: path.join(output, `token-recovery-${name}-${width}.png`) });
         await page.getByRole('button', { name: 'Save to Tree Bank', exact: true }).click();
         await page.getByRole('button', { name: 'Saved', exact: true }).waitFor();
@@ -292,6 +328,7 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             assert.match(await page.locator('svg[data-babel-tree]').textContent(), /IP/);
             await pauseReplayAt(page, 4);
             await assertReplayWithInput(page);
+            if (width === 1440) await assertTreeUncovered(page);
             await page.screenshot({ path: path.join(output, `recovery-before-${engine}-${width}.png`) });
             // A new sentence is entered beside the paused Replay; each failure
             // returns to the same analysis and frame.
@@ -674,13 +711,15 @@ test('the bracketing panel stays above the sentence bar and inside a short or ov
   try {
     browser = await chromium.launch({ headless: true });
     // At 1440x460 the parse selector, the Replay panel and the expanded
-    // sentence bar cannot all fit; the panel's controls must still answer.
+    // sentence bar cannot all fit: the panel's controls must still answer, but
+    // the tree has no room until the input-bar design (ROADMAP 3B.6).
     for (const [name, viewport, analysis, sentence, scrolls] of [
       ['short', { width: 1440, height: 460 }, bundle, bundle.sentence, false],
       ['compact', { width: 1440, height: 700 }, bundle, bundle.sentence, false],
       ['long-desktop', { width: 1440, height: 900 }, long, longSentence, true],
       ['long-mobile', { width: 390, height: 844 }, long, longSentence, true]
     ]) {
+      const paint = name === 'short' ? waitForSettledFrame : waitForReplayPaint;
       const context = await browser.newContext({ viewport });
       try {
         const page = await context.newPage(), errors = [];
@@ -689,11 +728,11 @@ test('the bracketing panel stays above the sentence bar and inside a short or ov
         await page.goto(server.url);
         await sentenceInput(page).fill(sentence);
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
-        await pauseReplayAt(page, 'last');
+        await pauseReplayAt(page, 'last', paint);
         assert.ok(await sentenceInput(page).isVisible(), 'the sentence bar stays expanded');
         await assertReplayControlsReachable(page);
-        await clickReplayControls(page);
-        await pauseReplayAt(page, 'last');
+        await clickReplayControls(page, paint);
+        await pauseReplayAt(page, 'last', paint);
         await page.getByRole('button', { name: 'Labeled Bracketing', exact: true }).click();
         await page.getByRole('dialog', { name: 'Labeled Bracketing' }).waitFor();
         const measured = await assertBracketingOnTop(page, { scrolls });
@@ -708,6 +747,8 @@ test('the bracketing panel stays above the sentence bar and inside a short or ov
   }
 });
 
+// The tree has no room here until the input-bar design (ROADMAP 3B.6); the
+// controls must still answer and stay on screen.
 test('on a short phone showing a failure, Replay and the bracketing still answer a pointer', { timeout: 120_000 }, async () => {
   const server = await startBrowserTestServer({ root });
   const output = process.env.BABEL_WORKFLOW_EVIDENCE || await mkdtemp(path.join(os.tmpdir(), 'babel-short-phone-'));
@@ -726,15 +767,15 @@ test('on a short phone showing a failure, Replay and the bracketing still answer
         await page.goto(server.url);
         await sentenceInput(page).fill(bundle.sentence);
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
-        await pauseReplayAt(page, 2);
+        await pauseReplayAt(page, 2, waitForSettledFrame);
         fail = true;
         await sentenceInput(page).fill('Nia laughed.');
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
         await page.getByRole('alert').filter({ hasText: 'Controlled provider interruption.' }).waitFor();
-        await waitForReplayPaint(page, 2);
+        await waitForSettledFrame(page, 2);
         await page.screenshot({ path: path.join(output, `short-phone-failure-${engine}-390x640.png`) });
         await assertReplayControlsReachable(page);
-        await clickReplayControls(page);
+        await clickReplayControls(page, waitForSettledFrame);
         await page.getByRole('button', { name: 'Labeled Bracketing', exact: true }).click();
         await page.getByRole('dialog', { name: 'Labeled Bracketing' }).waitFor();
         await page.screenshot({ path: path.join(output, `short-phone-bracketing-${engine}-390x640.png`) });
