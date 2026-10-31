@@ -14,7 +14,7 @@ import { layoutVisualFrames, prepareVisualRecord, VIEWPORTS } from './helpers/vi
  * painted only as a word, such as the trace t, used to keep its shell
  * attachment, which has no category label to measure and fell back to the bare
  * node point 53 units above the painted t. Francis, 29 October 2026, on Opus
- * n3-24-qu-evidential step 35: the arrowhead went through the t it points at and
+ * n3-24-qu-evidential step 35 (now step 29): the arrowhead went through the t it points at and
  * ended above it. */
 
 const record = JSON.parse(readFileSync(new URL('./helpers/wordLandingRecord.json', import.meta.url), 'utf8'));
@@ -32,8 +32,8 @@ const crosses = (d, cell) => samples(quadratic(d)).some(({ x, y }) =>
 const endsBelow = (point, cell) => point.y >= cell.y + cell.height && point.y <= cell.y + cell.height + 12
   && point.x >= cell.x - 12 && point.x <= cell.x + cell.width + 12;
 
-test('Opus n3-24 step 35: the head arrow ends just below the painted t of its retained landing', () => {
-  const [frame] = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: [35] });
+test('Opus n3-24 step 29: the head arrow ends just below the painted t of its retained landing', () => {
+  const [frame] = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: [29] });
   const arrow = frame.marks.find(mark => mark.id === 'trajectory-path(3:0)#1');
   assert(arrow, 'the head arrow from tV is shown');
   const landing = frame.texts.find(text => text.id === 'tI:word').cell;

@@ -33,8 +33,8 @@ test('Opus h1-014: the words of a moved wh-phrase carry no operator-variable lin
   // The binding painter letters the operator and its variable; the words of
   // [DP Which cake]₂ used to show the link's position among the stage's links.
   const replay = prepare('opus-h1-014-a1');
-  assert.equal(replay.playbackSteps.length, 114);
-  for (const step of [113, 114]) for (const includeRelationIndices of [true, false]) {
+  assert.equal(replay.playbackSteps.length, 102);
+  for (const step of [101, 102]) for (const includeRelationIndices of [true, false]) {
     const runs = treeLabelRunsForStep(replay, step - 1, undefined, { includeRelationIndices });
     assert.deepEqual([...new Set(runs.get('D_which::__leaf').map(run => run.text))], ['Which'], `step ${step}`);
     assert.deepEqual([...new Set(runs.get('N_cake::__leaf').map(run => run.text))], ['cake'], `step ${step}`);
@@ -46,7 +46,7 @@ test('Opus h1-014: the words of a moved wh-phrase carry no operator-variable lin
 test('Sol h1-070: a theta letter and an equal binding letter on one trace show the letter once', () => {
   // The allocator gives the argument rop the letter i of its relative chain, so
   // its theta letter and the operator-variable letter are one index; from step
-  // 56 the label read ropᵢᵢ. The binding letter now decorates the label that
+  // 44 the label read ropᵢᵢ. The binding letter now decorates the label that
   // already writes it, as it does for a written subscript.
   for (const key of ['sol-h1-070-a1', 'sol-h1-070-a2']) assert.deepEqual(checkOneLetterPerLabel(prepare(key)), [], key);
 });
@@ -92,7 +92,7 @@ test('Opus h1-093: a word that spells its token across a space times alike on ev
 
 test('Sol c1-013: a relation recovered as Case and as agreement with the same Case draws one Case path', () => {
   // wil agrees with jan and licenses its Case. Both recoveries drew the same
-  // nominative path and plaque under one identity, and from frame 24 one
+  // nominative path and plaque under one identity, and from frame 19 one
   // plaque took its twin's pocket. The agreement claim owns every authored
   // item of the Case claim, so it alone draws.
   const replay = prepare('sol-c1-013-a1');

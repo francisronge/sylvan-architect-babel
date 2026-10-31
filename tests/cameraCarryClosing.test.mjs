@@ -46,8 +46,8 @@ const painted = frame => new Map(frame.points.map(point => [point.id, { x: point
 // Frame numbers are 1-based, as Replay shows them.
 const crossing = (id, frame) => [measured[id].frames[frame - 2], measured[id].frames[frame - 1]];
 
-test('Arabic holdout: the tied crossing into frame 34 has no closing and keeps the midpoint carry', () => {
-  const [from, to] = crossing('holdout', 34);
+test('Arabic holdout: the tied crossing into frame 28 has no closing and keeps the midpoint carry', () => {
+  const [from, to] = crossing('holdout', 28);
   assert.notEqual(from.stage, to.stage);
   assert.equal(to.closing, undefined, 'the plan records no closing at this crossing');
   const midpoint = paintedShift(painted(from), painted(to)), tie = paintedShift(painted(from), painted(to), { closing: true });
@@ -55,11 +55,11 @@ test('Arabic holdout: the tied crossing into frame 34 has no closing and keeps t
   assert.equal(midpoint.x, -22.5);
 });
 
-test('Opus n4-12: the plan records its closing at the crossing into frame 81, and the carry it reads keeps the motion rule clean', () => {
-  const [from, to] = crossing('n4-12', 81);
+test('Opus n4-12: the plan records its closing at the crossing into frame 69, and the carry it reads keeps the motion rule clean', () => {
+  const [from, to] = crossing('n4-12', 69);
   assert.notEqual(from.stage, to.stage);
   assert.equal(to.closing, true, 'the plan records the closing at this crossing');
-  const faults = record => replayMotionFaults(record).filter(fault => fault.frame === 81 && fault.distance >= 20);
+  const faults = record => replayMotionFaults(record).filter(fault => fault.frame === 69 && fault.distance >= 20);
   assert.deepEqual(faults(measured['n4-12']), []);
   const unrecorded = { ...measured['n4-12'], frames: measured['n4-12'].frames.map(({ closing, ...frame }) => frame) };
   assert.ok(faults(unrecorded).length, 'without the record the midpoint carry jumps the attached syntax');

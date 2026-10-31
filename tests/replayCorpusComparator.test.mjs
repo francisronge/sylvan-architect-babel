@@ -17,8 +17,12 @@ import { movementPresentations } from './helpers/replayInvariants.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const manifestPath = path.join(root, 'fixtures/replay-corpus/manifest.json');
 const corpus = await loadCorpusManifest(manifestPath);
+// The controls judge the comparator under strict rules. A manifest `allow` that
+// admits one change's intended Replay difference from main does not apply here,
+// where a checkout is compared with itself.
 const records = corpus.records.filter(record => ['spanish-head-and-ordinary-wrapper',
-  'tier2-witness-persistence', 'malformed-exact-with-independent-verdict'].includes(record.id));
+  'tier2-witness-persistence', 'malformed-exact-with-independent-verdict'].includes(record.id))
+  .map(record => ({ ...record, allow: {} }));
 const snapshot = await buildCorpusSnapshot(root, records, { width: 1600, height: 948, direction: 'ltr' });
 const compare = candidate => compareCorpusSnapshots(snapshot, candidate, records);
 const faults = results => results.flatMap(record => record.violations.map(fault => fault.kind));
@@ -154,6 +158,32 @@ test('faults are matched by step, so an inserted frame neither invents nor hides
   assert.deepEqual(shifted.candidate.map(fault => fault.frame), baseline.map(fault => fault.frame + 1));
 });
 
+test('continuity faults and completed widths are matched by step, so a removed frame neither invents nor hides them', () => {
+  const frame = (stage, kind, operation, width) => ({ stage, kind, operation, target: `n${stage}`, points: [], links: [],
+    widths: kind === 'macro' ? [{ root: '@forest', width }] : [] });
+  const build = (frames, continuity) => {
+    const copy = structuredClone(snapshot);
+    Object.assign(copy.records[0], { frames, continuity });
+    return copy;
+  };
+  const fault = index => [{ index, rootId: 'n1', kind: 'unowned-component-motion' }];
+  const base = build([frame(0, 'micro', 'LexicalSelect'), frame(0, 'macro', 'Stage', 100), frame(1, 'macro', 'Stage', 300)], fault(2));
+  const kinds = candidate => compareCorpusSnapshots(base, candidate, records)[0].violations.map(violation => violation.kind);
+  // One construction frame fewer: every stage's completed state and its fault are unchanged.
+  const fewer = base.records[0].frames.slice(1);
+  assert.deepEqual(kinds(build(fewer, fault(1))), []);
+  // The same fault at another step, and a completed stage that widens, still fail.
+  assert.deepEqual(kinds(build(fewer, fault(0))), ['new-continuity-fault']);
+  const widened = structuredClone(fewer);
+  widened[1].widths[0].width += 1;
+  assert.deepEqual(kinds(build(widened, fault(1))), ['completed-width-growth']);
+  // An extra completed frame of a stage is judged against that stage, and one of
+  // a stage the baseline never completed fails.
+  const extra = [fewer[0], frame(0, 'macro', 'Stage', 1000), fewer[1]];
+  assert.deepEqual(kinds(build(extra, fault(2))), ['completed-width-growth']);
+  assert.deepEqual(kinds(build([...fewer, frame(2, 'macro', 'Stage', 300)], fault(1))), ['completed-width-unmatched']);
+});
+
 test('continuity faults are matched by step, so reordered frames neither invent nor hide one', () => {
   // Bottom-up construction merged a rebuilt V′ before selecting T, so an existing
   // continuity fault at that merge moved one frame earlier and was reported as new.
@@ -237,11 +267,11 @@ test('a movement the baseline shows fails when the candidate drops its moment, b
 });
 
 test('a first-stage chain whose landing construction builds is a lost movement, though the baseline draws no trajectory for it', () => {
-  // The rejected candidate built booksDP bottom-up before the chain's moment (frame 20 on main).
+  // The rejected candidate built booksDP bottom-up before the chain's moment (frame 17).
   const record = loadFixtureAnalyses().records.find(entry => entry.id === 'replay-regressions/receiving-head-material.json#').record;
   const baseline = prepareReplay({ ...structuredClone(record), includePlayback: true });
   const built = { ...baseline, playbackSteps: structuredClone(baseline.playbackSteps) };
-  Object.assign(built.playbackSteps[19], { replayKind: 'micro', operation: 'Project', replayRelationIdentity: undefined });
+  Object.assign(built.playbackSteps[16], { replayKind: 'micro', operation: 'Project', replayRelationIdentity: undefined });
   const before = movementPresentations(baseline, record), after = movementPresentations(built, record);
   assert.deepEqual(lostMovementPresentations(before, before), []);
   assert.deepEqual(lostMovementPresentations(before, after).map(fault => [fault.landing, fault.baseline.trajectory, fault.reason]),

@@ -61,7 +61,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
   const context = `${width}px ${direction}`;
   if (runs('fresh/german-embedded/0', direction)) test(`${context}: selecting finite I leaves all existing German objects stationary`, () => {
     const { frame, immutable } = setup('fresh/german-embedded/0', width, height, direction);
-    const before = frame(35), after = frame(36);
+    const before = frame(25), after = frame(26);
     assert.equal(before.step.replayKind, 'macro');
     assert.equal(after.step.operation, 'LexicalSelect');
     assert.equal(after.step.targetNodeId, 'embeddedI');
@@ -71,7 +71,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     for (const [id, node] of before.nodes) {
       const next = after.nodes.get(id);
       if (!next) continue;
-      assertPoint(next, node, `${id} at 35→36`);
+      assertPoint(next, node, `${id} at 25→26`);
       checked++;
     }
     assert(checked >= 30, 'the complete existing forest is checked');
@@ -85,7 +85,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
       const attachment = steps.findIndex((_, index) => index + 1 >= first
         && syntaxParent(frame(index + 1).nodes.get(id), frame(index + 1).nodes)) + 1;
       assert(first > 0 && attachment > first);
-      assert.equal(attachment, id === 'dassC' ? 44 : 47, 'first attachment remains the authored merge');
+      assert.equal(attachment, id === 'dassC' ? 34 : 37, 'first attachment remains the authored merge');
       for (const member of [id, `${id}::__leaf`]) {
         const appearance = steps.findIndex(step => step.replayVisibleNodeIds.includes(member)) + 1;
         const initial = frame(appearance).nodes.get(member);
@@ -105,21 +105,20 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
 
   if (runs('fresh/german-embedded/0', direction)) test(`${context}: the full auxiliary source survives selection, then moves at its relation`, () => {
     const { frame, immutable } = setup('fresh/german-embedded/0', width, height, direction);
-    const selected = frame(28), projected = frame(29), prior = frame(41), movement = frame(42);
+    // One step selects the word with its category.
+    const selected = frame(20), prior = frame(31), movement = frame(32);
     assert.equal(selected.step.operation, 'LexicalSelect');
-    assert.equal(selected.step.targetNodeId, 'wirdV::__leaf');
+    assert.equal(selected.step.targetNodeId, 'wirdV');
     assert(selected.nodes.has('wirdV::__leaf'));
-    assert(!selected.nodes.has('wirdV'));
-    assert.equal(projected.step.operation, 'Project');
-    assert(projected.nodes.has('wirdV'));
+    assert(selected.nodes.has('wirdV'));
     const sourceWord = selected.nodes.get('wirdV::__leaf');
-    for (let number = 28; number <= 41; number++) {
+    for (let number = 20; number <= 31; number++) {
       const current = frame(number);
       assertPoint(current.nodes.get('wirdV::__leaf'), sourceWord, `source word at frame ${number}`);
       assert.equal(current.nodes.get('wirdV::__leaf').data.word, 'wird');
       assert(!current.nodes.has('wirdTrace'), 'the lower occurrence waits for movement');
       assert(!current.step.replayRelationLinks.some(link => link.priorSourceNodeId === 'wirdV'));
-      if (number >= 29) assertPoint(current.nodes.get('wirdV'), projected.nodes.get('wirdV'),
+      assertPoint(current.nodes.get('wirdV'), selected.nodes.get('wirdV'),
         `source head at frame ${number}`);
     }
     assert.equal(movement.step.replayKind, 'relation');
@@ -137,8 +136,8 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
   });
 
   for (const [key, boundaries] of [
-    ['archive/english-negation-xbar-sol/0', [[30, 31], [42, 43]]],
-    ['holdout/swahili-passive/0', [[41, 42]]]
+    ['archive/english-negation-xbar-sol/0', [[24, 25], [35, 36]]],
+    ['holdout/swahili-passive/0', [[36, 37]]]
   ]) if (runs(key, direction)) test(`${context}: ${key} keeps previously stationary components at later construction boundaries`, () => {
     const { frame, immutable } = setup(key, width, height, direction);
     for (const [first, second] of boundaries) {

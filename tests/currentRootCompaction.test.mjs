@@ -35,8 +35,8 @@ function setup(record, width, height, direction) {
 }
 const close = (a, b, message) => assert(Math.abs(a - b) < 1e-6, `${message}: ${a} versus ${b}`);
 const examples = [
-  { key: 'compact-movement/astra-english', frame: 22, head: 'had', host: 'embeddedVPhase', fork: 'embeddedTBase' },
-  { key: 'compact-movement/sol-spanish', frame: 32, head: 'c', host: 'ip', fork: 'cbar' },
+  { key: 'compact-movement/astra-english', frame: 16, head: 'had', host: 'embeddedVPhase', fork: 'embeddedTBase' },
+  { key: 'compact-movement/sol-spanish', frame: 27, head: 'c', host: 'ip', fork: 'cbar' },
 ];
 
 // Planning is direction-free (right to left reflects the left-to-right plan), so

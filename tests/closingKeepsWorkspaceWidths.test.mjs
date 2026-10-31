@@ -10,9 +10,9 @@ import { loadCorpusManifest } from '../scripts/replayCorpusInputs.mjs';
 // corpus gate's layout (1600x948); a closing or hold may narrow it, never widen it.
 const root = fileURLToPath(new URL('../', import.meta.url));
 const guards = {
-  'ordinary-receiving-width-control': { frame: 27, root: 'p_ip', width: 1575 },
-  'relative-clause-waiting-clearance': { frame: 45, root: 'relativeIP', width: 1244.8065 },
-  'showcase-78-sw-relative': { frame: 44, root: 'dpBook', width: 2845.3125 }
+  'ordinary-receiving-width-control': { frame: 22, root: 'p_ip', width: 1575 },
+  'relative-clause-waiting-clearance': { frame: 38, root: 'relativeIP', width: 1244.8065 },
+  'showcase-78-sw-relative': { frame: 38, root: 'dpBook', width: 2845.3125 }
 };
 const manifest = await loadCorpusManifest(fileURLToPath(new URL('../fixtures/replay-corpus/manifest.json', import.meta.url)));
 const { records } = await buildCorpusSnapshot(root, manifest.records.filter(record => guards[record.id]),

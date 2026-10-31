@@ -132,26 +132,48 @@ export function compareCorpusSnapshots(baseline, candidate, records, { motionExc
       if (!previous || !next) { changedFrames.push({ frame: index + 1, missing: previous ? 'candidate' : 'baseline' }); continue; }
       const changes = pointChanges(previous.points, next.points);
       if (changes.length) changedFrames.push({ frame: index + 1, kind: next.kind, operation: next.operation, changes });
-      if (next.kind !== 'macro') continue;
+    }
+    // A stage's completed frame is compared with the same stage's completed
+    // frame, so a change in how many steps build a stage never compares two stages.
+    const completedFrames = frames => {
+      const seen = new Map();
+      return frames.map(frame => {
+        if (frame.kind !== 'macro') return null;
+        const occurrence = seen.get(frame.stage) ?? 0;
+        seen.set(frame.stage, occurrence + 1);
+        return JSON.stringify([frame.stage, occurrence]);
+      });
+    };
+    const oldCompleted = new Map(completedFrames(before.frames).flatMap((key, index) => key ? [[key, before.frames[index]]] : []));
+    // An extra completed frame is judged against its stage's last completed
+    // frame; one for a stage the baseline never completed cannot be judged.
+    const lastCompleted = new Map(before.frames.filter(frame => frame.kind === 'macro').map(frame => [frame.stage, frame]));
+    completedFrames(after.frames).forEach((key, index) => {
+      if (!key) return;
+      const previous = oldCompleted.get(key) ?? lastCompleted.get(after.frames[index].stage);
+      if (!previous) {
+        if (!record.allow.completedWidthGrowth) violations.push({ kind: 'completed-width-unmatched', frame: index + 1 });
+        return;
+      }
       const oldWidths = new Map(previous.widths.map(width => [width.root, width.width]));
-      for (const width of next.widths) {
+      for (const width of after.frames[index].widths) {
         const oldWidth = oldWidths.get(width.root), growth = oldWidth !== undefined && width.width > oldWidth + 1e-6;
         completedWidths.push({ frame: index + 1, root: width.root, before: oldWidth, after: width.width });
         if (growth && !record.allow.completedWidthGrowth) violations.push({ kind: 'completed-width-growth', frame: index + 1, root: width.root });
       }
-    }
+    });
     const finalBefore = before.frames.at(-1)?.points ?? [], finalAfter = after.frames.at(-1)?.points ?? [];
     const finalChanges = pointChanges(finalBefore, finalAfter);
     if (finalChanges.length && !record.allow.finalCoordinates) violations.push({ kind: 'final-coordinate-change' });
-    // Continuity faults, like motion faults, are matched by their step's semantic
-    // key, so reordering or inserting frames elsewhere cannot make one look new.
-    const continuityKey = ({ frames }) => {
-      const steps = replayStepKeys(frames);
-      return fault => JSON.stringify([steps[fault.index], fault.rootId, fault.kind]);
+    // Continuity faults are named by their step, as motion faults are, so a
+    // frame inserted or removed elsewhere neither invents nor hides one.
+    const continuityKey = snapshot => {
+      const steps = replayStepKeys(snapshot.frames);
+      return ({ index, ...fault }) => objectHash({ ...fault, step: steps[index] ?? `#${index}` });
     };
-    const oldKey = continuityKey(before), newKey = continuityKey(after);
-    const oldFaults = new Set(before.continuity.map(oldKey));
-    const newContinuityFaults = after.continuity.filter(fault => !oldFaults.has(newKey(fault)));
+    const oldFaults = new Set(before.continuity.map(continuityKey(before)));
+    const afterKey = continuityKey(after);
+    const newContinuityFaults = after.continuity.filter(fault => !oldFaults.has(afterKey(fault)));
     if (newContinuityFaults.length) violations.push({ kind: 'new-continuity-fault', faults: newContinuityFaults });
     // The motion rule decides ownership from each frame's own step, not from the
     // checkout's planner diagnostics. A fault the baseline already has still

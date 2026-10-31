@@ -147,28 +147,28 @@ test('the saved sideward copy retains one phrase-owned moment without head-only 
   const original = structuredClone(record);
   const replay = prepareReplay({ ...record, includePlayback: true });
   const steps = replay.playbackSteps;
-  assert.equal(steps.length, 47);
-  for (const frame of [20, 21]) {
+  assert.equal(steps.length, 40);
+  for (const frame of [16]) {
     const step = steps[frame - 1];
     assert(!step.replayVisibleNodeIds.includes('a_fvp'));
     assert(!step.replayVisibleNodeIds.includes('a_fdp'));
     assert(!find([step.replayCanvasData], 'a_fvp').replayLayoutOnly,
       'a phrase wrapper does not receive the special head-landing reservation');
   }
-  const link = steps[21].replayRelationLinks.find(link => link.authoredRelationKey === '1:0' && link.renderFamily === 'trajectory');
+  const link = steps[16].replayRelationLinks.find(link => link.authoredRelationKey === '1:0' && link.renderFamily === 'trajectory');
   assert.equal(link.trajectoryKind, 'phrasal');
   assert.equal(link.sourceNodeId, 'a_rdp');
   assert.equal(link.targetNodeId, 'a_fdp');
   assert.equal(link.priorSourceNodeId, 'a_rdp');
-  for (const id of ['a_fvp', 'a_fdp', 'a_fd', 'a_fn']) assert(steps[21].replayVisibleNodeIds.includes(id));
+  for (const id of ['a_fvp', 'a_fdp', 'a_fd', 'a_fn']) assert(steps[16].replayVisibleNodeIds.includes(id));
   assert.equal(replay.relationRenderPlan.frames[1].items.find(item => item.kind === 'trajectory'
     && item.relationRef.relationIndex === 0).trajectoryKind, 'sideward');
   assert.deepEqual(record, original);
 });
 
 for (const [name, path, select, frames, stageIndex, relationIndex] of [
-  ['Spanish intransitive v-to-T', '../fixtures/replay-regressions/workspace-spanish-continuity.json', value => value, 40, 2, 0],
-  ['Hungarian nested T-to-Foc', '../fixtures/replay-regressions/workspace-component-lifetime.json', value => value.cases.find(c => c.key === 'hungarian-dative/1'), 48, 5, 1]
+  ['Spanish intransitive v-to-T', '../fixtures/replay-regressions/workspace-spanish-continuity.json', value => value, 34, 2, 0],
+  ['Hungarian nested T-to-Foc', '../fixtures/replay-regressions/workspace-component-lifetime.json', value => value.cases.find(c => c.key === 'hungarian-dative/1'), 41, 5, 1]
 ]) test(`${name} preserves its genuine head movement and saved Replay schedule`, () => {
   const record = select(JSON.parse(fs.readFileSync(new URL(path, import.meta.url))));
   const original = structuredClone(record);

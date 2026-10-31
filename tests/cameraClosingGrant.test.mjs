@@ -44,8 +44,8 @@ test('Arabic relative: the audit grants the movement step its closing and would 
   const record = loadFixtureAnalyses().records.find(entry => entry.id === 'movement/holdout-transitions.json#/6').record;
   const real = traceCamera(prepareVisualRecord(record), CAMERA_VIEWPORTS.find(entry => entry.name === 'desktop'), { reversals: false });
   const forward = { ...real, passes: real.passes.filter(pass => pass.name === 'forward') };
-  assert(real.frames[14].closing.size > 0, 'the movement closes the gap it leaves');
-  assert.deepEqual(checkFirstPaintContinuity(forward).filter(finding => finding.frame === '14>15'), []);
+  assert(real.frames[13].closing.size > 0, 'the movement closes the gap it leaves');
+  assert.deepEqual(checkFirstPaintContinuity(forward).filter(finding => finding.frame === '13>14'), []);
   const ungranted = { ...forward, frames: forward.frames.map(entry => ({ ...entry, closing: undefined })) };
-  assert(checkFirstPaintContinuity(ungranted).some(finding => finding.frame === '14>15' && finding.subtype === 'jump:relayout'));
+  assert(checkFirstPaintContinuity(ungranted).some(finding => finding.frame === '13>14' && finding.subtype === 'jump:relayout'));
 });

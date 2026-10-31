@@ -15,11 +15,11 @@ const corners = (rect, pad = 0) => [rect.x - pad, rect.x + rect.width + pad]
 const closest = (ellipse, rect) => metric(ellipse, Math.max(rect.x, Math.min(ellipse.cx, rect.x + rect.width)),
   Math.max(rect.y, Math.min(ellipse.cy, rect.y + rect.height)));
 
-for (const [width, height] of [[1600, 1100], [390, 844]]) test(`${width}px: Korean frame 60 encloses IP ink and owned plaques while excluding CP, C′ and C`, () => {
+for (const [width, height] of [[1600, 1100], [390, 844]]) test(`${width}px: Korean frame 50 encloses IP ink and owned plaques while excluding CP, C′ and C`, () => {
   const original = JSON.stringify(record), replay = prepareReplay({ ...record, includePlayback: true });
   const layoutGroups = buildStageLayoutGroups(replay.playbackSteps, replay.replayDerivationFrames);
-  const stageIndex = replay.playbackSteps[59].replayFrameIndex, planFrame = replay.relationRenderPlan.frames[stageIndex];
-  const input = { steps: replay.playbackSteps, stageIndex, completedCanvas: replay.playbackSteps[59].replayCanvasData,
+  const stageIndex = replay.playbackSteps[49].replayFrameIndex, planFrame = replay.relationRenderPlan.frames[stageIndex];
+  const input = { steps: replay.playbackSteps, stageIndex, completedCanvas: replay.playbackSteps[49].replayCanvasData,
     plan: replay.relationRenderPlan, layoutGroups, width, height };
   const schedule = buildReplayPlaqueSchedule(input), space = measureStagePlaqueSpace(input), scene = space.scenes.at(-1);
   const byId = indexHierarchyNodesByIdAndAliases(scene.nodes), visible = new Set(scene.nodes);
@@ -28,7 +28,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) test(`${width}px: Kore
   const members = byId.get('ip').descendants().filter(node => visible.has(node)), memberIds = members.map(node => node.data.id);
   const content = members.flatMap(node => bindingDomainTreeRect([node]) ?? []);
   const outside = scene.nodes.filter(node => !members.includes(node)).flatMap(node => bindingDomainTreeRect([node]) ?? []);
-  const plaques = projectPlaqueLayout(selectReplayPlaqueLayout(schedule, stageIndex, 59), id => byId.get(id) ?? null);
+  const plaques = projectPlaqueLayout(selectReplayPlaqueLayout(schedule, stageIndex, 49), id => byId.get(id) ?? null);
   const owned = bindingDomainPlaques(memberIds, planFrame.items, plaques), rect = bindingDomainTreeRect(members);
   const ordinary = bindingDomainEllipse(rect, owned), ellipse = bindingDomainEllipse(rect, owned, content, outside);
   assert(ellipse.rx < ordinary.rx, 'excluding CP must not widen the IP ellipse');

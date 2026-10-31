@@ -59,9 +59,9 @@ for (const [name, make, stageIndex, parent, oldChild, wrapper, adjunct] of [
   assert(!steps.some(step => step.replayKind === 'micro' && step.targetNodeId === parent), 'the already-built IP is not rebuilt');
   assert.deepEqual(record, original, 'the saved authored analysis is unchanged');
   if (name === 'review #8 ellipsis') {
-    assert.equal(playbackSteps.length, 62, 'no extra construction moment is introduced');
-    assert.equal(playbackSteps.indexOf(merge) + 1, 56);
-    assert.deepEqual(steps.slice(0, mergeIndex).map(step => playbackSteps.indexOf(step) + 1), [52, 53, 54, 55]);
+    assert.equal(playbackSteps.length, 52, 'no extra construction moment is introduced');
+    assert.equal(playbackSteps.indexOf(merge) + 1, 47);
+    assert.deepEqual(steps.slice(0, mergeIndex).map(step => playbackSteps.indexOf(step) + 1), [44, 45, 46]);
   }
 });
 
