@@ -26,8 +26,10 @@ export type AutoCameraState = TreeCameraState & {
 
 /** Space the app's own controls take from the tree canvas: the sentence console,
  * the view tabs and the top bar. They float over the canvas, so they can appear
- * or leave without resizing it. */
-export type CameraControlBounds = { top: number; right: number; bottom: number };
+ * or leave without resizing it. The Replay panel stands on the console, so its
+ * top follows one measurement later; its height is fixed by the canvas
+ * (styles.css), so the top never moves with a step's text. */
+export type CameraControlBounds = { top: number; right: number; bottom: number; panelTop: number };
 
 /** Retained camera interaction state for one mounted tree, shared across frame draws. */
 export interface CameraSession {

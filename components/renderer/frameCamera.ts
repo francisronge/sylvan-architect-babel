@@ -93,7 +93,7 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
       fitFallbackOverlays,
       stageIndex: activeDerivationFrameIndex,
       closesOnEntry,
-      controls: { top: uiBounds.top, right: uiBounds.right, bottom: uiBounds.bottom },
+      controls: { top: uiBounds.top, right: uiBounds.right, bottom: uiBounds.bottom, panelTop: uiBounds.panelTop },
       paintedNodes: new Map(visibleNodes.map(node => [getNodeId(node),
         { x: node.x, y: node.y, parentId: node.parent ? getNodeId(node.parent) : null }]))
     }

@@ -22,6 +22,15 @@ const bundle = { ...saved, sentence: 'Mia laughed.', inputTokens: ['Mia', 'laugh
   ambiguityDetected: true, analyses: [saved.analyses[0], saved.analyses[0]] };
 const sentenceInput = page => page.getByRole('textbox', { name: 'Sentence to analyze' });
 
+/** Screen box of the painted syntax labels: how large the camera shows the tree. */
+const paintedTreeBox = page => page.locator('svg[data-babel-tree]').evaluate(svg => {
+  const boxes = [...svg.querySelectorAll('.node-group text')].filter(text => text.textContent.trim())
+    .map(text => text.getBoundingClientRect()).filter(box => box.width > 0 && box.height > 0);
+  if (!boxes.length) return { width: 0, height: 0 };
+  return { width: Math.max(...boxes.map(box => box.right)) - Math.min(...boxes.map(box => box.left)),
+    height: Math.max(...boxes.map(box => box.bottom)) - Math.min(...boxes.map(box => box.top)) };
+});
+
 /** Replay gives the sentence input's place to the tree and its panel, and
  * leaves no hidden control behind to receive focus. */
 async function assertReplayWithoutInput(page) {
@@ -239,6 +248,8 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             await page.getByRole('slider', { name: 'Replay frame' }).fill('4');
             await waitForReplayPaint(page, 4);
             await assertReplayWithoutInput(page);
+            const treeBefore = await paintedTreeBox(page);
+            assert.ok(treeBefore.width > 0 && treeBefore.height > 0, 'the frame shows its tree');
             await page.screenshot({ path: path.join(output, `recovery-before-${engine}-${width}.png`) });
             // A new sentence is entered from Canopy. Its failure keeps the input
             // in Replay, so the later attempts are retried from there.
@@ -315,6 +326,11 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             assert.ok(await page.getByRole('button', { name: 'Derivation Replay', exact: true })
               .evaluate(button => button === document.activeElement), 'focus moves to the current view');
             await assertReplayWithoutInput(page);
+            // The tree takes back the space the console held, at the size it had
+            // before the failure, not the strip it was fitted into above the console.
+            const treeAfter = await paintedTreeBox(page);
+            assert.ok(treeAfter.width >= 0.8 * treeBefore.width && treeAfter.height >= 0.8 * treeBefore.height,
+              `the dismissed failure's space returns to the tree: ${JSON.stringify({ treeBefore, treeAfter })}`);
             await page.screenshot({ path: path.join(output, `recovery-dismissed-${engine}-${width}.png`) });
             await page.getByRole('button', { name: 'Canopy', exact: true }).click();
             await waitForCanopyPaint(page);

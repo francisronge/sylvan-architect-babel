@@ -26,12 +26,13 @@ interface CameraFitGeometry {
   closesOnEntry: boolean;
   paintedNodes: PaintedNodes;
   /** A change frees or takes tree space as a resize does, so it refits too. The
-   * Replay panel and header are left out: their size follows each step's text,
+   * Replay header is left out: its text, and so its wrapping, follows each step,
    * and a stage keeps one camera. */
   controls?: CameraControlBounds;
 }
 const sameControls = (a: CameraControlBounds | undefined, b: CameraControlBounds | undefined) =>
-  a === b || Boolean(a && b && a.top === b.top && a.right === b.right && a.bottom === b.bottom);
+  a === b || Boolean(a && b && a.top === b.top && a.right === b.right && a.bottom === b.bottom
+    && a.panelTop === b.panelTop);
 export function createFittedCamera({ session, layout }: { session: CameraSession; layout: CameraFitGeometry }) {
   const {
     cameraRuntime,

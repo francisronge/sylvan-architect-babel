@@ -685,18 +685,23 @@ test('an unchanged Replay frame uses the space an app control frees', () => {
   const data = {}, auto = { current: null };
   const harness = createCameraHarness(Element, { width: 1440, height: 800, data, step: 4, animated: true, auto });
   const bounds = { minX: 0, maxX: 200, minY: 0, maxY: 100 };
-  const withConsole = { top: 0, right: 92, bottom: 460 };
+  const withConsole = { top: 0, right: 92, bottom: 460, panelTop: 253 };
   const layout = { g: harness.group, stagePlaqueContainmentBounds: bounds, stageFitContainmentBounds: bounds,
-    fitLeft: 16, fitRight: 1336, fitTop: 120, fitBottom: 340, controls: withConsole };
-  const squeezed = d3.zoomIdentity.translate(500, 120).scale(0.7);
-  const roomy = d3.zoomIdentity.translate(300, 140).scale(1.6);
+    fitLeft: 16, fitRight: 1336, fitTop: 250, fitBottom: 258, controls: withConsole };
+  const squeezed = d3.zoomIdentity.translate(660, 251).scale(0.06);
+  const roomy = d3.zoomIdentity.translate(300, 300).scale(1.6);
   const fit = transform => harness.run(() => createFittedCamera({ session: harness.session, layout }).applyFittedCamera(transform));
   fit(squeezed);
   // A retained camera may zoom out to a new fit but never in, so freed space alone is not used.
   assert.equal(fit(roomy).k, squeezed.k, 'the same frame and controls keep the accepted camera');
-  // The failure console is dismissed: the canvas keeps its size, the tree gains the space.
-  Object.assign(layout, { fitBottom: 600, controls: { ...withConsole, bottom: 16 } });
-  assert.equal(fit(roomy).k, roomy.k, 'the freed space is used at once');
+  // The failure console is dismissed. The canvas keeps its size; the first
+  // measurement finds the console gone while the Replay panel, which stands on
+  // it, still holds its old place.
+  Object.assign(layout, { controls: { ...withConsole, bottom: 16 } });
+  assert.equal(fit(squeezed).k, squeezed.k, 'the space is not free yet');
+  // The panel then moves down, and the tree takes the freed space at once.
+  Object.assign(layout, { fitBottom: 600, controls: { ...withConsole, bottom: 16, panelTop: 640 } });
+  assert.equal(fit(roomy).k, roomy.k, 'the freed space is used once the panel has moved');
   assert.equal(fit(roomy.scale(1.25)).k, roomy.k, 'and that fit is then kept for the frame');
 });
 
