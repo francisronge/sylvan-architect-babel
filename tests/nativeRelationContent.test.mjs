@@ -422,13 +422,13 @@ test('native theta reserves and paints the same content-sized grid for both tier
   }
 });
 
-test('Astra X-bar frames 35 and 36: native theta paints the persistent reserved positions', () => {
+test('Astra X-bar frames 31 and 32: native theta paints the persistent reserved positions', () => {
   const record = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)))
     .find(record => record.name === 'astra-xbar');
   const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
   const plan = compileRelationRenderPlan(record.derivationStages);
   const offsets = [];
-  for (const frameIndex of [34, 35]) {
+  for (const frameIndex of [30, 31]) {
     const stageIndex = steps[frameIndex].replayFrameIndex;
     const workspaceForest = record.derivationStages[stageIndex].workspaceForest;
     const items = plan.frames[stageIndex].items;

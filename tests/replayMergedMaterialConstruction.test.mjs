@@ -88,14 +88,14 @@ test('a repeat of an occurrence\'s material is its claim\'s copy only inside the
   const apart = compile(twoStages([object(), verb('buy'), verb('sell')], [branch('buyVP', 'VP', verb('buy'), object()),
     branch('sellVP', 'VP', verb('sell'), leaf('new', 'D', { word: 'it', lineageId: 'shared' }))], claim)).playbackSteps;
   assert.deepEqual(['new::__leaf', 'new', 'sellVP'].map(id => firstStepOf(apart, id)),
-    ['LexicalSelect new::__leaf', 'Project new', 'ExternalMerge sellVP']);
+    ['LexicalSelect new', 'LexicalSelect new', 'ExternalMerge sellVP'], 'it is selected with its D, then merged with sell');
   assertMomentAddsNothing(apart, moment(apart, 1, 0));
   // Joining the conjuncts gives the repeat its occurrence's root, but it was
   // still merged with sell, not beside an object that holds the occurrence.
   const joined = compile(twoStages([object(), verb('buy'), verb('sell')], [branch('both', '&P', branch('buyVP', 'VP', verb('buy'), object()),
     branch('sellVP', 'VP', verb('sell'), leaf('new', 'D', { word: 'it', lineageId: 'shared' })))], claim)).playbackSteps;
   assert.deepEqual(['new::__leaf', 'new', 'sellVP', 'both'].map(id => firstStepOf(joined, id)),
-    ['LexicalSelect new::__leaf', 'Project new', 'ExternalMerge sellVP', 'ExternalMerge both']);
+    ['LexicalSelect new', 'LexicalSelect new', 'ExternalMerge sellVP', 'ExternalMerge both']);
   assertMomentAddsNothing(joined, moment(joined, 1, 0));
   const remerged = twoStages([branch('vp', 'VP', verb('buy'), object())], [branch('top', 'XP',
     leaf('new', 'D', { word: 'it', lineageId: 'shared' }), branch('vp', 'VP', verb('buy'), object()))], claim);

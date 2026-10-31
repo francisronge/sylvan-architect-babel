@@ -142,8 +142,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [isInputVisible, setIsInputVisible] = useState(!showcaseMode);
   const [abstractionMode, setAbstractionMode] = useState(false);
-  const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
-  const [parsedFramework, setParsedFramework] = useState<'xbar' | 'minimalism'>('xbar');
+  const [framework, setFramework] = useState<'xbar' | 'minimalism'>('minimalism');
+  const [parsedFramework, setParsedFramework] = useState<'xbar' | 'minimalism'>('minimalism');
   const [modelRoute, setModelRoute] = useState<ModelMode>(DEFAULT_MODEL_ID);
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('high');
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
@@ -217,6 +217,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setInput(nextSentence);
     }
     if (options.framework) setFramework(options.framework);
+    // A record naming no framework predates Minimalism as the default, when an
+    // unnamed request was X-bar, so it keeps reading as X-bar.
     setParsedFramework(options.framework || bundle.analyses[0]?.provenance?.framework || 'xbar');
     if (options.modelRoute) {
       const nextRoute = coerceModelRoute(options.modelRoute);

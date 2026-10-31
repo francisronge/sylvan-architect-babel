@@ -28,7 +28,7 @@ const CATALOG = 'replay-regressions/visual-human-catalog.json#/cases';
 const DESKTOP = VIEWPORTS.filter(viewport => viewport.name !== 'mobile');
 // A clean frame with a plaque and 52 labels, for controlled breaks of production geometry.
 const sample = () => layoutVisualFrames(prepareVisualRecord(recordOf('replay-regressions/workspace-historical-continuity.json#/cases/4')),
-  [VIEWPORTS[0]], { steps: [33] })[0];
+  [VIEWPORTS[0]], { steps: [28] })[0];
 const blank = (zoom = 1) => ({ frame: 1, viewport: 'desktop', zoom, texts: [], plaques: [], lines: [] });
 const box = (x, y, width, height) => ({ x, y, width, height });
 const text = (node, kind, rect, extra = {}) => ({ id: `${node}:${kind}`, kind, text: node, boxes: [rect], halo: kind === 'word' ? 4 : 5,
@@ -97,7 +97,7 @@ test('control: line-clearance reports a spoke cut at a plaque, a lane through te
   // Stopping six marker units short (PR #76's gap) clears the outline by more than a pixel.
   spoke.paths = pathPolylines(`M 0 120 L ${400 - 6 * scale} 120 M ${600 + 6 * scale} 120 L 1000 120`);
   assert.deepEqual(checkLineClearance(frame), []);
-  // Catalog #4 as main cut it before PR #76, at frame 39 (1440×900): the spoke stops on the corner of [clauseType: declarative].
+  // Catalog #4 as main cut it before PR #76, at frame 39, now 33 (1440×900): the spoke stops on the corner of [clauseType: declarative].
   const historical = { ...blank(0.1401), plaques: [{ id: 'clauseType', text: 'clauseType: declarative', rect: box(1472.5, 375.4, 360, 129.2),
     radius: 14, claims: ['3:2'] }], lines: [{ id: 'spoke', kind: 'connector', halfWidth: 2.7, nodes: [], claims: ['3:3'],
     paths: [[{ x: 2277.6, y: 5.2 }, { x: 1832.5, y: 460.6 }], [{ x: 1789.5, y: 504.6 }, { x: 1693, y: 603.3 }]] }] };
@@ -122,7 +122,7 @@ test('control: line-clearance reports a spoke cut at a plaque, a lane through te
   assert.deepEqual(subjects(checkLineClearance(branches)), ['p->c w:word'], 'a branch meets its own child\'s label');
   branches.texts[0] = text('w', 'word', box(-100, 100, 100.5, 40));
   assert.deepEqual(checkLineClearance(branches), [], 'grazing the edge of a glyph box is not a crossing');
-  // Catalog #9 as main laid it out before #79, at frame 22 (1440×900): Qué hangs into Juan's branch.
+  // Catalog #9 as main laid it out before #79, at frame 22, now 19 (1440×900): Qué hangs into Juan's branch.
   const hanging = { ...blank(0.2271), texts: [text('what1::__leaf', 'word', box(3409, 1172.3, 143.1, 53.9))],
     lines: [{ id: 'juan->juan::__leaf', kind: 'branch', paths: [branchPoints({ x: 3438.8, y: 1100 }, { x: 3438.8, y: 1320 })],
       halfWidth: 2, nodes: ['juan', 'juan::__leaf'], claims: [] }] };
@@ -154,8 +154,8 @@ test('control: mark-distance reports a plaque left far from its anchor, as the a
     paths: [[{ x: far.rect.x - 10, y: far.rect.y }, { x: far.anchor.x, y: far.anchor.y }]] };
   assert.deepEqual(checkMarkDistance({ ...crowded, lines: [leader] }), [], 'a leader of its own claim ties it to syntax');
 
-  // Catalog #2 as main placed it before PR #74: [case: nominative] above the Swedish CP at frame 31 (1440×900),
-  // and [case: Nominative] above the German tree at frame 65.
+  // Catalog #2 as main placed it before PR #74: [case: nominative] above the Swedish CP at frame 31, now 28 (1440×900),
+  // and [case: Nominative] above the German tree at frame 65, now 56.
   for (const [zoom, rect, anchor] of [[0.1472, box(-114.6, -657.2, 360, 129.2), { x: 65.4, y: 0 }],
     [0.0766, box(2721.2, -312.9, 360, 129.2), { x: 2975.7, y: 220 }]]) {
     const [found] = checkMarkDistance({ ...blank(zoom), plaques: [{ id: 'nominative', text: 'case: nominative', rect, anchor, claims: [] }] });
@@ -169,10 +169,10 @@ test('control: mark-distance reports a plaque left far from its anchor, as the a
 
 test('control: duplicate-plaque reports one node showing the same plaque for two claims', () => {
   // Sol h1-038 (29 October held-out batch) showed two Agent grids on higherVbar at
-  // steps 37-38: the stage-2 theta claim and the stage-4 chain claim restating it.
+  // steps 37-38 (now 32-33): the stage-2 theta claim and the stage-4 chain claim restating it.
   const records = JSON.parse(readFileSync(new URL('./helpers/heldoutDefectRecords.json', import.meta.url), 'utf8'));
   const { sentence, inputTokens, derivationStages } = records['sol-h1-038-a1'];
-  const frames = layoutVisualFrames(prepareVisualRecord({ sentence, inputTokens, derivationStages }), [VIEWPORTS[0]], { steps: [36, 37, 38] });
+  const frames = layoutVisualFrames(prepareVisualRecord({ sentence, inputTokens, derivationStages }), [VIEWPORTS[0]], { steps: [31, 32, 33] });
   const agents = frame => frame.plaques.filter(plaque => plaque.anchorNodeId === 'higherVbar' && plaque.text === 'theta Agent');
   // The earlier grid paints once, keeping its pocket, and carries the restatement's moment.
   assert.deepEqual(frames.map(frame => agents(frame).map(plaque => plaque.claims)), [[['1:2', '3:1']], [['1:2', '3:1']], [['1:2', '3:1']]]);
@@ -361,8 +361,8 @@ test('mark-motion: plaques keep their pockets where main moved them beside a sti
   // Main moved each of these at the transition named (desktop): a nearer pocket at a
   // stage boundary, a pocket blocked only later in the stage, a pocket left at a stage
   // boundary for a mark the stage reveals later.
-  for (const [record, from] of [['showcase/scope-ellipsis-coordination.json#/cases/2/analyses/0', 52],
-    ['replay-regressions/visual-human-catalog.json#/cases/3/analyses/0', 26], ['showcase/agreement-and-case.json#/cases/5', 22]]) {
+  for (const [record, from] of [['showcase/scope-ellipsis-coordination.json#/cases/2/analyses/0', 38],
+    ['replay-regressions/visual-human-catalog.json#/cases/3/analyses/0', 22], ['showcase/agreement-and-case.json#/cases/5', 18]]) {
     const frames = layoutVisualFrames(prepareVisualRecord(recordOf(record)), [VIEWPORTS[0]], { steps: [from, from + 1] });
     assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject}`), [], record);
   }
@@ -382,7 +382,7 @@ test('control: branch-geometry reports a branch stretched over two rows and sist
     [['span', 'p->b', 110], ['sisters', 'p children', 110]]);
   assert.deepEqual(checkBranchGeometry({ ...rows, rowHeight: undefined }), [], 'frames without a known row are not tested');
 
-  // Catalog #24 as rejected preview 3e4b4dc laid it out at frame 44 (1440×900): rows reserved for a parent not yet
+  // Catalog #24 as rejected preview 3e4b4dc laid it out at frame 44, now 35 (1440×900): rows reserved for a parent not yet
   // inserted stretch C′→TP and T′→T, T′→VP over two rows beside one-row sisters (the C head, the subject).
   const at = { matrixClause: { x: 6597.2, y: 440 }, matrixTP: { x: 5795.6, y: 880 }, le: { x: 7398.8, y: 660 },
     subjectHigher: { x: 4717.5, y: 1100 }, matrixT: { x: 6161.3, y: 1320 }, matrixVP: { x: 6873.8, y: 1320 } };
@@ -479,7 +479,7 @@ for (const [number, record, subject, places, status] of CASES) test(`catalog #${
 test('catalog #5: each index letter is painted once at its label (fixed by #75), and painting every claimed letter repeats it', () => {
   // Before #75, operator-variable binding and quantifier raising each painted the chain's letter: a faint j beside a bright j.
   const everyLetter = () => () => ({ draw: 'glyph', label: null, alsoFor: [] });
-  for (const [analysis, label, frames] of [[1, 'objhigh', [23]], [0, 'subjhigh', [23, 24]]]) {
+  for (const [analysis, label, frames] of [[1, 'objhigh', [20]], [0, 'subjhigh', [20, 21]]]) {
     const replay = prepareReplay({ ...structuredClone(recordOf(`${CATALOG}/5/analyses/${analysis}`)), includePlayback: true });
     assert.deepEqual(checkOneLetterPerLabel(replay), []);
     const repeated = checkOneLetterPerLabel(replay, everyLetter);

@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import { type DerivationOperation, type SyntaxNode } from '../types.ts';
 import type { ReplayCompilation } from './compilationContext.ts';
 import { constructionAttachmentUpdates, hasUnreleasedRegrouping } from './constructionAttachments.ts';
-import { applyVizIds, replayOwnerId } from './displayIdentity.ts';
+import { applyVizIds, isReplayDisplayChild, replayOwnerId } from './displayIdentity.ts';
 import {
   buildReplayProgressLabel,
   buildStructuralReplayFallback,
@@ -456,12 +456,12 @@ export const finalizeStageReplay = (
         ...structuralProducers.keys(),
         ...relationProducers.keys()
       ].filter(nodeId => !availableNodeIds.has(nodeId)));
-      // A relation-owned occurrence appears whole at its moment. Its derived
-      // word leaf exists only on the canvas, so it waits with its owner.
-      const waitingOwners = new Set([...relationProducers.keys()].filter(nodeId => pendingIds.has(nodeId)));
+      // An occurrence appears whole at its own step or moment. Its derived
+      // word leaf exists only on the canvas and has no producer of its own,
+      // so it waits with its owner.
+      const waitingOwners = new Set(pendingIds);
       const hideWaitingWords = (node: SyntaxNode) => (node.children || []).forEach((child) => {
-        const owner = String(child.replayOrigin?.ownerId || node.id || '');
-        if (child.replayOrigin?.kind === 'word' && waitingOwners.has(owner) && child.id !== step.targetNodeId)
+        if (waitingOwners.has(String(node.id || '')) && isReplayDisplayChild(child, String(node.id || '')) && child.id !== step.targetNodeId)
           pendingIds.add(String(child.id || ''));
         hideWaitingWords(child);
       });

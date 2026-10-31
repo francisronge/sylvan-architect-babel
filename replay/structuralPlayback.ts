@@ -14,7 +14,7 @@ import {
   restoreReplacedChildren
 } from './constructionAttachments.ts';
 import { continuedLexicalLeafIds, renameContinuedOccurrences } from './continuedOccurrences.ts';
-import { applyVizIds, createReplayIdentityContext, getNodeId, type ReplayIdentityContext } from './displayIdentity.ts';
+import { applyVizIds, createReplayIdentityContext, getNodeId, isReplayDisplayChild, type ReplayIdentityContext } from './displayIdentity.ts';
 import { buildResolvedLinkTraceIndexMap, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
 import { buildStructuralReplayFallback } from './playbackFormatting.ts';
 import {
@@ -310,7 +310,12 @@ export const buildStructuralDerivationPlaybackSteps = ({
         }
       });
   };
-  const playbackSteps: PlaybackStep[] = nodesToReveal.flatMap((node) => {
+  const revealedNodeIds = new Set(nodesToReveal.map(getNodeId));
+  // A lexical item is selected with its category: the display word under an
+  // authored node {label, word} appears at that node's own step, never alone.
+  const isWordOfRevealedOwner = (node: HierNode): boolean => Boolean(node.parent)
+    && isReplayDisplayChild(node.data, getNodeId(node.parent!)) && revealedNodeIds.has(getNodeId(node.parent!));
+  const admit = (node: HierNode): boolean => {
     const nodeId = getNodeId(node);
     cumulativeVisibleNodeIds.add(nodeId);
     const updatesAttachment = pendingAttachmentNodeIds.delete(nodeId);
@@ -319,7 +324,19 @@ export const buildStructuralDerivationPlaybackSteps = ({
     if (unbuilt?.delete(nodeId) && !unbuilt.size)
       pendingRegroupings.delete(parentId);
     pendingReplacements.delete(String(node.data?.id || ''));
-    const surface = resolveLeafSurface(node);
+    return updatesAttachment;
+  };
+  const playbackSteps: PlaybackStep[] = nodesToReveal.flatMap((node) => {
+    if (isWordOfRevealedOwner(node))
+      return [];
+    const nodeId = getNodeId(node);
+    const selectedWords = (node.children || []).filter(child => visibleIds.has(getNodeId(child)) && isWordOfRevealedOwner(child));
+    let updatesAttachment = false;
+    [...selectedWords, node].forEach((admitted) => { updatesAttachment = admit(admitted) || updatesAttachment; });
+    // The word supplies the selection's surface and casing context.
+    const lexicalNode = selectedWords.length === 1 ? selectedWords[0] : node;
+    const lexicalNodeId = getNodeId(lexicalNode);
+    const surface = resolveLeafSurface(lexicalNode);
     const layoutVisibleNodeIds = new Set(cumulativeVisibleNodeIds);
     const expandedLayoutRoots = new Set<HierNode>();
     Array.from(cumulativeVisibleNodeIds).forEach((visibleNodeId) => {
@@ -335,7 +352,7 @@ export const buildStructuralDerivationPlaybackSteps = ({
     pendingRevealNodes.forEach((pendingNode) => {
       addReplayLayoutForNode(layoutVisibleNodeIds, pendingNode, cumulativeVisibleNodeIds, expandedLayoutRoots);
     });
-    const childNodes = (node.children || []).filter((child) => visibleIds.has(getNodeId(child)));
+    const childNodes = (node.children || []).filter((child) => visibleIds.has(getNodeId(child)) && !selectedWords.includes(child));
     const operation: DerivationOperation = childNodes.length === 0
       ? 'LexicalSelect'
       : (childNodes.length === 1 ? 'Project' : 'ExternalMerge');
@@ -374,15 +391,15 @@ export const buildStructuralDerivationPlaybackSteps = ({
     });
     const workspaceAfter = extractReplayWorkspaceLabels(visibleWorkspaceSnapshot);
     const visibleOvertLeafIds = collectPronouncedLeafNodeIdsInOrder(visibleWorkspaceSnapshot);
-    const rawTargetLabel = getReplayNodeLabel(node);
-    const targetLabel = childNodes.length === 0 && !isNotationLeaf(node.data)
+    const rawTargetLabel = getReplayNodeLabel(lexicalNode);
+    const targetLabel = childNodes.length === 0 && !isNotationLeaf(lexicalNode.data)
       ? maybeLowercaseSentenceInitialFunctionSurface({
         surface: rawTargetLabel,
         sentenceInitialSurface,
-        nodeId,
-        parentLabel: String(node.parent?.data?.label || '').trim(),
+        nodeId: lexicalNodeId,
+        parentLabel: String(lexicalNode.parent?.data?.label || '').trim(),
         visibleOvertLeafIds,
-        hasNominalComplement: hasDeterminerNominalComplement(node.parent?.data, node.parent?.parent?.data),
+        hasNominalComplement: hasDeterminerNominalComplement(lexicalNode.parent?.data, lexicalNode.parent?.parent?.data),
         isWorkspaceForest: visibleWorkspaceSnapshot?.replayOrigin?.kind === 'workspace'
       })
       : rawTargetLabel;
@@ -391,15 +408,15 @@ export const buildStructuralDerivationPlaybackSteps = ({
     const sourceLabels = childNodes.length > 0
       ? childNodes.map((child) => getReplayNodeLabel(child)).filter(Boolean)
       : [
-        isNotationLeaf(node.data) && isTraceLike(surface)
+        isNotationLeaf(lexicalNode.data) && isTraceLike(surface)
           ? preFrontingLexicalTargetLabel
           : maybeLowercaseSentenceInitialFunctionSurface({
-            surface: String(node.data.word || preFrontingLexicalTargetLabel || '').trim(),
+            surface: String(lexicalNode.data.word || preFrontingLexicalTargetLabel || '').trim(),
             sentenceInitialSurface,
-            nodeId,
-            parentLabel: String(node.parent?.data?.label || '').trim(),
+            nodeId: lexicalNodeId,
+            parentLabel: String(lexicalNode.parent?.data?.label || '').trim(),
             visibleOvertLeafIds,
-            hasNominalComplement: hasDeterminerNominalComplement(node.parent?.data, node.parent?.parent?.data),
+            hasNominalComplement: hasDeterminerNominalComplement(lexicalNode.parent?.data, lexicalNode.parent?.parent?.data),
             isWorkspaceForest: visibleWorkspaceSnapshot?.replayOrigin?.kind === 'workspace'
           })
       ].filter(Boolean);

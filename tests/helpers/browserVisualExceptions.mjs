@@ -28,18 +28,18 @@ const CATALOGUE = index => `replay-regressions/visual-human-catalog.json#/cases/
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
-  x(MOBILE, CATALOGUE(2), 'first-paint-continuity', 'off-canvas:moved', 'stage 7', { mobile: { '61>62': 30.59 } }),
+  x(MOBILE, CATALOGUE(2), 'first-paint-continuity', 'off-canvas:moved', 'stage 7', { mobile: { '52>53': 30.59 } }),
   x(PLAQUE_CROWDED, CATALOGUE(6), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; v; experiencer; j)@relativeSubject',
-    { desktop: { '14-43': 1.19 }, mobile: { '14-43': 1.19 } }),
+    { desktop: { '11-34': 1.19 }, mobile: { '11-34': 1.19 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'first-paint-continuity', 'jump:stage-coordinates', 'stage 4',
-    { desktop: { '43>44': 77.67 }, mobile: { '43>44': 38.15 } },
+    { desktop: { '34>35': 77.67 }, mobile: { '34>35': 38.15 } },
     { by: 'Francis Ronge', on: '2026-10-21', note: 'Accepted on the plaque-gap side-by-side review '
       + '("The movement jump is fine too."): the browser measure of the +1.16 px plaque-reach jump (#150) he accepted offline.',
       accepts: { desktop: { '43>44': 77.67 }, mobile: { '43>44': 38.15 } } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'rapid-motion', 'node-jump', '@view',
-    { desktop: { 'rapid:42>48': 274.7 } }),
+    { desktop: { 'rapid:33>39': 274.7 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'step-motion', 'node-jump', '@view',
-    { desktop: { '43>44': 274.7 } }),
+    { desktop: { '34>35': 274.7 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'settled-path-independence', 'retention', 'stage 4',
-    { mobile: { '43>44': 41.13 } })
+    { mobile: { '34>35': 41.13 } })
 ];

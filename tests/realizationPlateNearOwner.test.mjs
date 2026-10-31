@@ -10,14 +10,14 @@ import { returnsWithinReach } from '../replay/relations/pocketHold.ts';
  * its width. Francis, 27 October 2026, on Sol n4-26-tr-long-embedded: "Plaque very
  * low". Main sent plates wider than the 480-unit local pocket below their subtree;
  * this 590-unit plate for oku -DIK-AGR.3SG -(n)I stood 5.9 nearby reaches from its
- * verb, below the whole tree, from frame 77 on. */
+ * verb, below the whole tree, from frame 66 on. */
 
 const record = JSON.parse(readFileSync(new URL('./helpers/realizationPlateRecord.json', import.meta.url), 'utf8'));
 
 test('a wide realization plate stands by its owner, in the nearest pocket that stays clear', () => {
-  const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: Array.from({ length: 30 }, (_, i) => 77 + i) });
+  const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: Array.from({ length: 28 }, (_, i) => 66 + i) });
   const plates = frames.flatMap(frame => frame.plaques.filter(plaque => plaque.realization && plaque.id.includes('okuduğunu')));
-  assert.equal(plates.length, 30, 'the plate shows from frame 77');
+  assert.equal(plates.length, 28, 'the plate shows from frame 66');
   for (const plate of plates) {
     const size = plate.size ?? plate.rect;
     const distance = Math.hypot(plate.rect.x + size.width / 2 - plate.anchor.x, plate.rect.y + size.height / 2 - plate.anchor.y);

@@ -28,12 +28,12 @@ function setup(input,width,height,direction) {
 // its left-to-right layout (tests/helpers/rtlMirror.mjs).
 for(const [width,height]of [[1600,948],[390,844]])for(const direction of directionsFor('replay-regressions/receiving-head-slot.json#'))test(`${width}px ${direction}: successive movement wrappers retain the same outer attachment slot`,()=>{
   const original=JSON.stringify(record),{steps,scenes}=setup(record,width,height,direction);
-  const before=scenes[29].nodes,after=scenes[30].nodes;
-  assert.equal(steps[30].replayKind,'relation');
+  const before=scenes[25].nodes,after=scenes[26].nodes;
+  assert.equal(steps[26].replayKind,'relation');
   assert(!before.has('cliticizedI'));assert(after.has('cliticizedI'));
   close(before.get('finiteHost').x,after.get('cliticizedI').x,'the existing host occupies the new outer parent slot');
   close(before.get('finiteHost').y,after.get('cliticizedI').y,'the outer attachment row is retained');
-  for(const frame of [26,27,28,29])for(const id of ['matrixIP','matrixIbar','giuliaNP','matrixVP']) {
+  for(const frame of [22,23,24,25])for(const id of ['matrixIP','matrixIbar','giuliaNP','matrixVP']) {
     close(scenes[frame].nodes.get(id).x,after.get(id).x,`${id} does not reserve a later horizontal gap`);
     close(scenes[frame].nodes.get(id).y,after.get(id).y,`${id} keeps its row`);
   }
@@ -59,9 +59,9 @@ const ordinaryWrapper = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-r
 for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of directionsFor('replay-regressions/head-movement-ordinary-wrapper.json#')) {
   test(`${width}px ${direction}: movement followed by an ordinary wrapper uses one outer receiving slot`, () => {
     const original = JSON.stringify(ordinaryWrapper), { steps, scenes } = setup(ordinaryWrapper, width, height, direction);
-    const before = scenes[26].nodes, movement = scenes[27].nodes, merge = scenes[28].nodes;
-    assert.equal(steps[27].replayKind, 'relation');
-    assert.equal(steps[28].operation, 'ExternalMerge');
+    const before = scenes[21].nodes, movement = scenes[22].nodes, merge = scenes[23].nodes;
+    assert.equal(steps[22].replayKind, 'relation');
+    assert.equal(steps[23].operation, 'ExternalMerge');
     for (const axis of ['x', 'y']) {
       close(before.get('i_infl')[axis], movement.get('i_finite')[axis], 'the bare receiver occupies the complete landing slot');
       close(movement.get('i_finite')[axis], merge.get('i_complex')[axis], 'the later ordinary wrapper retains that outer slot');
@@ -77,7 +77,7 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
         merge.get(id).y - merge.get('i_finite').y, 'the compound keeps its internal ranks');
     }
     const receivingX = before.get('i_infl').x;
-    for (const scene of scenes.slice(0, 27)) if (scene.nodes.has('i_infl'))
+    for (const scene of scenes.slice(0, 22)) if (scene.nodes.has('i_infl'))
       close(scene.nodes.get('i_infl').x, receivingX, 'construction uses the same receiving slot throughout its lifetime');
     assert.equal(JSON.stringify(ordinaryWrapper), original, 'authored syntax, relation order and words are preserved');
   });
@@ -100,7 +100,7 @@ test('the combined receiving lifetime does not depend on occurrence-ID spelling'
 // its left-to-right layout (tests/helpers/rtlMirror.mjs).
 for (const direction of directionsFor('replay-regressions/ordinary-receiving-width-control.json#')) test(`${direction}: ordinary wrappers preserve an already compact movement receiver`, () => {
   const control = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/ordinary-receiving-width-control.json', import.meta.url)));
-  const { scenes } = setup(control, 1600, 948, direction), before = scenes[26].nodes;
+  const { scenes } = setup(control, 1600, 948, direction), before = scenes[21].nodes;
   const receivingTree = before.get('p_ip').descendants().filter(node => before.has(getNodeId(node)));
   const xs = receivingTree.map(node => node.x);
   assert(Math.max(...xs) - Math.min(...xs) <= 2426.976378643945 + 1e-6,

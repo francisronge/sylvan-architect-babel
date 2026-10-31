@@ -18,12 +18,12 @@ const parent = (node, nodes) => node.parent && nodes.has(getNodeId(node.parent))
 const material = (node, nodes) => [getNodeId(node), node.data.label, node.data.word, node.data.silent,
   (node.children ?? []).filter(child => nodes.has(getNodeId(child))).map(child => material(child, nodes))];
 const adjunctAttachments = {
-  'arabic-relative/4': [30, 31, 'mvb'],
-  'arabic-relative/5': [31, 32, 'rvb'],
-  'arabic-relative/6': [42, 43, 'mvb'],
-  'arabic-relative/7': [31, 32, 'rvb'],
-  'arabic-relative/8': [42, 43, 'mvb'],
-  'arabic-relative/9': [43, 44, 'mvb']
+  'arabic-relative/4': [24, 25, 'mvb'],
+  'arabic-relative/5': [25, 26, 'rvb'],
+  'arabic-relative/6': [35, 36, 'mvb'],
+  'arabic-relative/7': [25, 26, 'rvb'],
+  'arabic-relative/8': [35, 36, 'mvb'],
+  'arabic-relative/9': [36, 37, 'mvb']
 };
 
 function setup(record, width, height, direction) {

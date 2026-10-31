@@ -1191,8 +1191,7 @@ test('a persistent projected ancestor never reveals later descendants ahead of t
   assert.deepEqual(
     stageTwoSteps.map((step) => [step.replayKind, step.operation, step.targetNodeId]),
     [
-      ['micro', 'LexicalSelect', 'd_mia_embedded_cycle::__leaf'],
-      ['micro', 'Project', 'd_mia_embedded_cycle'],
+      ['micro', 'LexicalSelect', 'd_mia_embedded_cycle'],
       ['micro', 'Project', 'dp_external_embedded_cycle'],
       ['micro', 'ExternalMerge', 'vp_external_embedded_cycle'],
       ['relation', 'CyclicAgree', 'v_probe_embedded_cycle'],
@@ -1201,17 +1200,16 @@ test('a persistent projected ancestor never reveals later descendants ahead of t
   );
 
   const lexicalStep = stageTwoSteps[0];
-  const dProjectionStep = stageTwoSteps[1];
-  const dpProjectionStep = stageTwoSteps[2];
+  const dpProjectionStep = stageTwoSteps[1];
   assert.equal(
     new Set(lexicalStep.replayVisibleNodeIds).has('dp_external_embedded_cycle'),
     false,
     'selecting Mia must not reveal its DP shell'
   );
   assert.equal(
-    new Set(dProjectionStep.replayVisibleNodeIds).has('vp_external_embedded_cycle'),
+    new Set(lexicalStep.replayVisibleNodeIds).has('vp_external_embedded_cycle'),
     false,
-    'projecting D must not reveal the later vP host'
+    'selecting Mia with its D must not reveal the later vP host'
   );
   assert.equal(
     new Set(dpProjectionStep.replayVisibleNodeIds).has('vp_external_embedded_cycle'),
@@ -1292,7 +1290,7 @@ test('A-movement folds a complete phrasal landing before a following identity mo
     String(step.replayProgressLabel || '').startsWith('Stage 1/2')
   );
   assert.equal(
-    baseStageSteps.find((step) => step.targetNodeId === 'd_book_low::__leaf')?.targetLabel,
+    baseStageSteps.find((step) => step.targetNodeId === 'd_book_low')?.targetLabel,
     'the',
     'a determiner in the base object position must not inherit sentence-initial capitalization'
   );

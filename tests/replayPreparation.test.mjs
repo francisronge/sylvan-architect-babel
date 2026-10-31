@@ -86,7 +86,7 @@ test('worker preparation preserves all archived frames, decorations and render p
       assert.deepEqual(input, original);
       frames += prepared.playbackSteps.length;
     }
-    assert.equal(frames, 137);
+    assert.equal(frames, 120);
   } finally {
     await worker.terminate();
   }

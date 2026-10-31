@@ -27,7 +27,7 @@ export const validateParseBody = (body) => {
   }
 
   const sentence = typeof body.sentence === 'string' ? body.sentence : '';
-  const framework = typeof body.framework === 'string' ? body.framework.trim() : 'xbar';
+  const framework = typeof body.framework === 'string' ? body.framework.trim() : 'minimalism';
 
   if (!sentence.trim()) {
     throw new ParseApiError(

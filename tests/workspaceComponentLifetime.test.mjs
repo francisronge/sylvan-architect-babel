@@ -59,10 +59,10 @@ const runs = (key, direction) => key === 'english-late-adjunct/1' || directionsF
   `replay-regressions/workspace-component-lifetime.json#/cases/${cases.findIndex(row => row.key === key)}`).includes(direction);
 for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
   for (const [key, boundaries] of [
-    ['english-late-adjunct/1', [[47, 48]]],
-    ['dutch-auxiliary/0', [[53, 54]]],
-    ['hungarian-dative/1', [[33, 34], [38, 39]]],
-    ['turkish-relative/0', [[49, 50], [55, 56]]]
+    ['english-late-adjunct/1', [[37, 38]]],
+    ['dutch-auxiliary/0', [[45, 46]]],
+    ['hungarian-dative/1', [[26, 27], [31, 32]]],
+    ['turkish-relative/0', [[42, 43], [48, 49]]]
   ]) if (runs(key, direction)) test(`${width}px ${direction}: ${key} keeps unchanged syntax fixed at selection or relation-only entry`, () => {
     const run = setup(key, width, height, direction);
     for (const [a, b] of boundaries) stationary(run.frame(a), run.frame(b));
@@ -71,8 +71,8 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
 
   if (runs('english-late-adjunct/1', direction)) test(`${width}px ${direction}: the late adjunct keeps selection and its following merge continuous`, () => {
     const run = setup('english-late-adjunct/1', width, height, direction);
-    stationary(run.frame(47), run.frame(48));
-    const before = run.frame(48), after = run.frame(49);
+    stationary(run.frame(37), run.frame(38));
+    const before = run.frame(38), after = run.frame(39);
     assert.equal(after.step.operation, 'ExternalMerge');
     assert.equal(after.step.targetNodeId, 'matrixIbar');
     const oldRoot = before.nodes.get('matrixVP'), newRoot = after.nodes.get('matrixVP');
@@ -88,7 +88,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
   // Right to left as well: no controlled right-to-left change has yet been shown to fail it while the mirror check reports its record.
   test(`${width}px ${direction}: the Turkish source and real movement remain authored`, () => {
     const run = setup('turkish-relative/0', width, height, direction);
-    const before = run.frame(56), after = run.frame(57);
+    const before = run.frame(49), after = run.frame(50);
     assert(before.nodes.has('matrixVerb'));
     assert(!before.nodes.has('matrixVerbRaised'));
     assert.equal(before.nodes.get('matrixVerb::__leaf').data.word, 'okudu');

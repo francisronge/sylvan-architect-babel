@@ -46,12 +46,12 @@ const runs = (key, direction) => {
 for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
   if (runs('holdout/mandarin-negative-relative/0', direction)) test(`${width}px ${direction}: Mandarin's earlier T fork keeps its shape until subject movement`, () => {
     const { frame, unchanged } = setup('holdout/mandarin-negative-relative/0', width, height, direction);
-    const before = frame(15), movement = frame(19);
+    const before = frame(13), movement = frame(16);
     assert(!before.nodes.has('rcTProjection'));
     assert(movement.nodes.has('rcTProjection'));
     assertSamePoint(point(before.nodes.get('rcTP')), point(movement.nodes.get('rcTProjection')),
       'the earlier fork stays at the later fork with the same daughters, not at the higher landing parent');
-    for (const number of [14, 16, 17, 18, 15]) {
+    for (const number of [12, 14, 15, 13]) {
       assertSamePoint(point(frame(number).nodes.get('rcTP')), point(before.nodes.get('rcTP')),
         `frame ${number}: the earlier fork does not jump at the stage boundary`);
     }
@@ -63,11 +63,11 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     unchanged();
   });
   for (const [key, before, after] of [
-    ['fresh/portuguese-relative/0', 36, 37],
-    ['fresh/korean-particles/0', 41, 42],
-    ['fresh/korean-particles/0', 55, 56],
-    ['fresh/mandarin-topic/1', 30, 31],
-    ['fresh/mandarin-topic/3', 33, 34]
+    ['fresh/portuguese-relative/0', 29, 30],
+    ['fresh/korean-particles/0', 31, 32],
+    ['fresh/korean-particles/0', 45, 46],
+    ['fresh/mandarin-topic/1', 22, 23],
+    ['fresh/mandarin-topic/3', 25, 26]
   ]) if (runs(key, direction)) test(`${width}px ${direction}: ${key} reserves every existing node across ${before} → ${after}`, () => {
     const { frame, unchanged } = setup(key, width, height, direction);
     const previous = frame(before), next = frame(after);
@@ -80,8 +80,8 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
   });
   if (runs('fresh/portuguese-relative/0', direction)) test(`${width}px ${direction}: Portuguese loose heads keep their attachment positions across construction stages`, () => {
     const { frame, steps, unchanged } = setup('fresh/portuguese-relative/0', width, height, direction);
-    const before = frame(28);
-    for (const number of [29, 30, 31, 32, 33, 34, 35, 36, 37, 35, 29, 28]) {
+    const before = frame(21);
+    for (const number of [22, 23, 24, 25, 26, 27, 28, 29, 30, 28, 22, 21]) {
       const current = frame(number);
       for (const id of ['mT', 'mv', 'mV', 'bookArticle', 'bookN', 'rC', 'mC']) {
         assertSamePoint(point(current.nodes.get(id)), point(before.nodes.get(id)), `${id} in frame ${number}`);
@@ -93,7 +93,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
 
   if (runs('fresh/portuguese-relative/0', direction)) test(`${width}px ${direction}: Portuguese reservation does not move the jump to the preceding subject movement`, () => {
     const { frame } = setup('fresh/portuguese-relative/0', width, height, direction);
-    const before = frame(34), after = frame(35);
+    const before = frame(27), after = frame(28);
     for (const id of ['rT', 'rvHeadAtT', 'rVAtT', 'qEdge', 'rV', 'qBase']) {
       assertSamePoint(point(before.nodes.get(id)), point(after.nodes.get(id)), `${id} stays still when the subject moves`);
     }

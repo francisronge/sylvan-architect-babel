@@ -33,7 +33,7 @@ function positions(number, frame, width = 1596, height = 1016, direction = numbe
 }
 
 for (const [number, before, after, id, reference] of [
-  [8, 28, 29, 'a', 'chegou']
+  [8, 21, 22, 'a', 'chegou']
 ]) test(`entry ${number}, frames ${before}–${after}: ${id} keeps its place relative to ${reference}`, () => {
   const a = positions(number, before), b = positions(number, after);
   for (const nodes of [a, b]) for (const key of [id, reference]) assert(nodes.has(key), `${key} must be visible`);
@@ -44,8 +44,8 @@ for (const [number, before, after, id, reference] of [
     `${key} retains both coordinates at the stage boundary`);
 });
 
-test('entry 24, frames 22–25: the D and N of the students have equal sibling heights', () => {
-  for (const frame of [22, 23, 24, 25]) {
+test('entry 24, frames 17–20: the D and N of the students have equal sibling heights', () => {
+  for (const frame of [17, 18, 19, 20]) {
     const nodes = positions(24, frame), d = nodes.get('dStudents'), n = nodes.get('nStudents');
     assert(d && n);
     assert.equal(d.parent.data.id, n.parent.data.id);
@@ -56,7 +56,7 @@ test('entry 24, frames 22–25: the D and N of the students have equal sibling h
 
 test('entry 21: CP attachment beneath the retained V prime precedes adjunct merge', () => {
   const steps = replay(21).playbackSteps;
-  assert.equal(steps.length, 44, 'retained VP context does not gain another merge frame');
+  assert.equal(steps.length, 35, 'retained VP context does not gain another merge frame');
   const stage = steps.filter(step => step.replayFrameIndex === 2);
   const cpAttach = stage.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'mVbarCore');
   const adjunct = stage.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'mVbar');
@@ -81,8 +81,8 @@ const runs = (number, direction) => directionsFor(
   `replay-regressions/reviewed-construction.json#/cases/${cases.findIndex(entry => entry.reviewNumber === number)}`).includes(direction);
 for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
   if (runs(25, direction)) test(`entry 25, ${width}px ${direction}: the infinitival fork is not stretched before its subject arrives`, () => {
-    const before = positions(25, 22, width, height, direction);
-    const after = positions(25, 23, width, height, direction);
+    const before = positions(25, 17, width, height, direction);
+    const after = positions(25, 18, width, height, direction);
     assert(!before.has('tBarInf'));
     assert(after.has('tBarInf'));
     assert.equal(before.get('tpInf').y, after.get('tBarInf').y);
@@ -95,9 +95,9 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction o
     }
   });
   // Right to left as well: no controlled right-to-left change has yet been shown to fail it while the mirror check reports its record.
-  test(`entry 21, ${width}px ${direction}: frame 37 does not reserve an unbuilt V prime rank`, () => {
-    const before = positions(21, 37, width, height, direction);
-    const after = positions(21, 38, width, height, direction);
+  test(`entry 21, ${width}px ${direction}: frame 28 does not reserve an unbuilt V prime rank`, () => {
+    const before = positions(21, 28, width, height, direction);
+    const after = positions(21, 29, width, height, direction);
     const parent = before.get('mVP'), subject = before.get('mLow'), predicate = before.get('mVbarCore');
     assert.equal(subject.parent, parent);
     assert.equal(predicate.parent, parent);
@@ -144,7 +144,7 @@ test('entry 24: subject movement preserves the authored lower DP after its words
   const steps = replay(24).playbackSteps;
   const movementIndex = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1
     && step.replayRelationIdentity.relationIndex === 0);
-  assert.equal(movementIndex + 1, 19);
+  assert.equal(movementIndex + 1, 14);
   assert.deepEqual(find(steps[movementIndex - 1].replayCanvasData, 'dpStudentsBase').children.map(child => child.id),
     ['dStudents', 'nStudents'], 'the full source remains until the movement moment');
   for (const step of steps.slice(movementIndex)) {
