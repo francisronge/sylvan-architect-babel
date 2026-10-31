@@ -22,13 +22,29 @@ const bundle = { ...saved, sentence: 'Mia laughed.', inputTokens: ['Mia', 'laugh
   ambiguityDetected: true, analyses: [saved.analyses[0], saved.analyses[0]] };
 const sentenceInput = page => page.getByRole('textbox', { name: 'Sentence to analyze' });
 
-/** Replay is the only view, so it keeps the sentence input for the next
- * sentence; the tree measures the bar, so the Replay panel stands above it. */
+/** Replay is the only view, so it keeps the sentence input exactly as the
+ * retired Canopy showed it: the same bar, centred at the bottom of the
+ * workspace, with its collapse and hide controls, ready for the next sentence.
+ * The tree measures the bar, so the Replay panel stands above it. */
 async function assertReplayWithInput(page) {
   assert.ok(await sentenceInput(page).isVisible(), 'Replay keeps the sentence input');
-  const gap = await page.locator('[data-babel-replay-panel]').evaluate(panel =>
-    document.querySelector('[data-babel-tree-controls="bottom"]').getBoundingClientRect().top - panel.getBoundingClientRect().bottom);
-  assert.ok(gap >= 0, `the Replay panel stands above the input bar: ${gap}px between them`);
+  assert.ok(await sentenceInput(page).isEditable(), 'the sentence input accepts a new sentence in Replay');
+  assert.ok(await page.getByRole('button', { name: 'Analyze sentence', exact: true }).isEnabled());
+  for (const control of ['Collapse', 'Hide Control Panel']) {
+    assert.ok(await page.getByTitle(control, { exact: true }).isVisible(), `the bar keeps its ${control} control`);
+  }
+  const layout = await page.locator('[data-babel-tree-controls="bottom"]').evaluate(bar => {
+    const box = bar.getBoundingClientRect(), workspace = bar.closest('[data-babel-workspace]').getBoundingClientRect();
+    const panel = document.querySelector('[data-babel-replay-panel]').getBoundingClientRect();
+    return { centreOffset: box.left + box.width / 2 - (workspace.left + workspace.width / 2),
+      width: box.width, maxWidth: Math.min(768, workspace.width), bottomGap: workspace.bottom - box.bottom,
+      panelGap: box.top - panel.bottom, ariaHidden: bar.getAttribute('aria-hidden') };
+  });
+  assert.ok(Math.abs(layout.centreOffset) < 1, `the input bar stays centred: ${layout.centreOffset}px off`);
+  assert.ok(Math.abs(layout.width - layout.maxWidth) < 1, `the input bar keeps its width: ${layout.width}px`);
+  assert.ok(layout.bottomGap >= 0 && layout.bottomGap <= 40, `the input bar stays at the bottom: ${layout.bottomGap}px above it`);
+  assert.equal(layout.ariaHidden, 'false', 'the bar is shown, not hidden');
+  assert.ok(layout.panelGap >= 0, `the Replay panel stands above the input bar: ${layout.panelGap}px between them`);
 }
 
 /** A new analysis opens in Replay and plays; pause it on a chosen frame. */
@@ -79,6 +95,7 @@ test('recovered optional word addresses render quietly and survive Tree Bank rel
         await page.getByRole('button', { name: 'Parse 2', exact: true }).click();
         const finalFrame = await pauseReplayAt(page, 'last');
         assert.match(await page.locator('svg[data-babel-tree]').textContent(), /IP/);
+        await assertReplayWithInput(page);
         await page.screenshot({ path: path.join(output, `token-recovery-${name}-${width}.png`) });
         await page.getByRole('button', { name: 'Save to Tree Bank', exact: true }).click();
         await page.getByRole('button', { name: 'Saved', exact: true }).waitFor();
