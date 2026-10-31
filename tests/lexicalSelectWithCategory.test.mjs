@@ -39,6 +39,7 @@ test('a pronounced lexical item appears once, with its word and category togethe
 
 test('authored one-child nodes above the head still project, and a silent head is still selected', () => {
   const operations = new Map(steps.filter(step => step.sourceFrameIndex === 0).map(step => [step.targetNodeId, step.operation]));
-  assert.deepEqual([...operations], [['d', 'LexicalSelect'], ['n', 'LexicalSelect'], ['nbar', 'Project'], ['np', 'Project'],
+  // Built bottom-up: the complement NP is complete before D is selected to merge with it.
+  assert.deepEqual([...operations], [['n', 'LexicalSelect'], ['nbar', 'Project'], ['np', 'Project'], ['d', 'LexicalSelect'],
     ['dp', 'ExternalMerge']]);
 });

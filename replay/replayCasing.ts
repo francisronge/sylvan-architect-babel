@@ -4,7 +4,6 @@ import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelPars
 import { type SyntaxNode } from '../types.ts';
 import { replayOwnerId } from './displayIdentity.ts';
 import { readStructuralProjections } from './projectionStructure.ts';
-import { isResolvedMovementLink } from './movementLinks.ts';
 import { buildStructuralReplayFallback } from './playbackFormatting.ts';
 import {
   cloneSyntaxTree,
@@ -55,82 +54,136 @@ export const authoredDeterminerHasNominalComplement = (forest: readonly SyntaxNo
   return result;
 };
 
+type CasingLeaf = { leaf: SyntaxNode; silent: boolean };
+
+/** One frame's lexical leaves as casing reads them: visible current words in
+ * tree order, each with its parent and the syntax above it. A detached
+ * forest's workspace container is not syntax and is not an ancestor. */
+const readCasingFrame = (step: PlaybackStep, canvas: SyntaxNode) => {
+  const detachedForest = canvas.replayOrigin?.kind === 'workspace';
+  // Keep first-preorder lookup semantics, including aliases, while collecting
+  // parent and inherited flags once instead of searching a path for every leaf.
+  const exactNodes = new Map<string, {
+    parent: SyntaxNode | null;
+    silent: boolean;
+    layout: boolean;
+    ancestors: SyntaxNode[];
+  }>();
+  const nodesByName = new Map<string, SyntaxNode>();
+  const leafIds: string[] = [];
+  const visibleNodeIds = Array.isArray(step.replayVisibleNodeIds)
+    ? getReplayVisibleNodeIdSet(step)
+    : null;
+  const visit = (node: SyntaxNode, parent: SyntaxNode | null, silent: boolean, layout: boolean, ancestors: SyntaxNode[]) => {
+    silent = replayEffectiveSilence(node, silent);
+    // Invisible scaffolding may contain current visible syntax grafted beneath it.
+    layout = (!visibleNodeIds && layout)
+      || node.replayOrigin?.kind === 'layout' || Boolean((node as any).replayLayoutOnly);
+    const id = String(node.id || '');
+    if (!exactNodes.has(id))
+      exactNodes.set(id, { parent, silent, layout, ancestors });
+    for (const name of nodeNames(node)) {
+      if (!nodesByName.has(name))
+        nodesByName.set(name, node);
+    }
+    const children = Array.isArray(node.children) ? node.children : [];
+    if (!children.length && id && isLexicalLeaf(node))
+      leafIds.push(id);
+    const below = detachedForest && node === canvas ? ancestors : [...ancestors, node];
+    children.forEach(child => visit(child, node, silent, layout, below));
+  };
+  visit(canvas, null, false, false, []);
+  const currentLeaves = leafIds.map(leafId => {
+    const info = exactNodes.get(leafId)!;
+    const leaf = nodesByName.get(leafId);
+    const visible = !visibleNodeIds || visibleNodeIds.has(leafId)
+      || leaf?.aliasIds?.some(id => visibleNodeIds.has(String(id)));
+    return !info.layout && visible && leaf ? { leaf, silent: info.silent } : null;
+  }).filter((entry): entry is CasingLeaf => Boolean(entry));
+  // Separate workspace roots are not ordered before one another, so only
+  // pronounced words in a leaf's own tree precede it.
+  const pronouncedTrees = new Set<SyntaxNode>();
+  const preceded = new Set<SyntaxNode>();
+  currentLeaves.forEach(({ leaf, silent }) => {
+    const tree = exactNodes.get(String(leaf.id || ''))!.ancestors[0] ?? leaf;
+    if (pronouncedTrees.has(tree))
+      preceded.add(leaf);
+    if (!silent)
+      pronouncedTrees.add(tree);
+  });
+  return { exactNodes, nodesByName, currentLeaves, preceded };
+};
+
+const nodeNames = (node: SyntaxNode): string[] => [String(node.id || ''), ...(Array.isArray(node.aliasIds) ? node.aliasIds.map(String) : [])]
+  .filter(Boolean);
+
+/** The occurrence of the sentence's first word that nothing pronounced
+ * precedes in the final frame, with the syntax above it there. A silent one
+ * serves only where the final frame leaves that word unpronounced. */
+const finalInitialOccurrence = (steps: readonly PlaybackStep[], initialKey: string) => {
+  const finalStep = [...steps].reverse().find(step => step.replayCanvasData);
+  if (!finalStep?.replayCanvasData)
+    return null;
+  const frame = readCasingFrame(finalStep, finalStep.replayCanvasData);
+  const candidates = frame.currentLeaves.filter(({ leaf }) => !frame.preceded.has(leaf)
+    && normalizeToken(String(leaf.word || leaf.label || '').trim()) === initialKey);
+  const first = (candidates.find(({ silent }) => !silent) ?? candidates[0])?.leaf;
+  if (!first)
+    return null;
+  return {
+    names: new Set(nodeNames(first)),
+    ancestorNames: new Set(frame.exactNodes.get(String(first.id || ''))!.ancestors.flatMap(nodeNames))
+  };
+};
+
+/** Sentence-initial capitalization is orthography of the final pronounced
+ * sentence, not of intermediate workspaces. Only the occurrence that is first
+ * in the final sentence receives the generated capital, and only where it
+ * stands in its final position: nothing pronounced precedes it in its own
+ * tree, and every node above it is also above it in the final tree. A phrase
+ * waiting to move to the front, or an occurrence it leaves behind, shows its
+ * lowercase form; an occurrence that never moves keeps its capital from its
+ * first frame, so no word flips case while it stands still. Every other
+ * occurrence of the word loses only a generated capital
+ * (maybeLowercaseSentenceInitialFunctionSurface); names, nouns and I keep
+ * their authored form. */
 export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sentenceInitialSurface: string): PlaybackStep[] => {
   const initialKey = normalizeToken(sentenceInitialSurface);
   if (!initialKey)
     return steps;
   const uppercaseInitial = caseSurfaceInitial(sentenceInitialSurface, 'upper');
   const lowercaseInitial = caseSurfaceInitial(sentenceInitialSurface, 'lower');
-  if (uppercaseInitial === lowercaseInitial)
+  // A sentence that does not begin with a capital has none to give.
+  if (uppercaseInitial === lowercaseInitial || sentenceInitialSurface.trim() !== uppercaseInitial)
     return steps;
-  return steps.map((step) => {
-    if (!step.replayCanvasData)
+  const finalInitial = finalInitialOccurrence(steps, initialKey);
+  type CasingFrame = ReturnType<typeof readCasingFrame>;
+  const isFinalInitial = (leaf: SyntaxNode) => Boolean(finalInitial && nodeNames(leaf).some(name => finalInitial.names.has(name)));
+  const standsFinal = ({ exactNodes, preceded }: CasingFrame, leaf: SyntaxNode): boolean => {
+    const info = exactNodes.get(String(leaf.id || ''));
+    return Boolean(finalInitial && info && !preceded.has(leaf) && isFinalInitial(leaf)
+      && info.ancestors.every(node => nodeNames(node).some(name => finalInitial.ancestorNames.has(name))));
+  };
+  const frames = steps.map(step => {
+    const clonedCanvas = step.replayCanvasData ? cloneSyntaxTree(step.replayCanvasData) : null;
+    return clonedCanvas ? { clonedCanvas, frame: readCasingFrame(step, clonedCanvas) } : null;
+  });
+  // The occurrence stands in its final position only from the last frame that
+  // shows it anywhere else: a phrase built apart and then merged low to move
+  // later is still waiting.
+  const settledFrom = 1 + frames.reduce((last, entry, index) => entry?.frame.currentLeaves
+    .some(({ leaf }) => isFinalInitial(leaf) && !standsFinal(entry.frame, leaf)) ? index : last, -1);
+  return steps.map((step, stepIndex) => {
+    const entry = frames[stepIndex];
+    if (!entry)
       return step;
-    const clonedCanvas = cloneSyntaxTree(step.replayCanvasData);
-    if (!clonedCanvas)
-      return step;
-    // Separate workspaces keep the authored form of their first word, but a
-    // word preceded by visible pronounced material in its own workspace is
-    // never sentence-initial.
-    const detachedForest = clonedCanvas.replayOrigin?.kind === 'workspace';
+    const { clonedCanvas, frame } = entry;
     let changed = false;
-    // Keep first-preorder lookup semantics, including aliases, while collecting
-    // parent and inherited flags once instead of searching a path for every leaf.
-    const exactNodes = new Map<string, {
-      parent: SyntaxNode | null;
-      silent: boolean;
-      layout: boolean;
-    }>();
-    const nodesByName = new Map<string, SyntaxNode>();
-    const leafIds: string[] = [];
-    const leafWorkspaces = new Map<string, SyntaxNode>();
-    const visibleNodeIds = Array.isArray(step.replayVisibleNodeIds)
-      ? getReplayVisibleNodeIdSet(step)
-      : null;
-    const visit = (node: SyntaxNode, parent: SyntaxNode | null, silent: boolean, layout: boolean, workspace: SyntaxNode) => {
-      silent = replayEffectiveSilence(node, silent);
-      // Invisible scaffolding may contain current visible syntax grafted beneath it.
-      layout = (!visibleNodeIds && layout)
-        || node.replayOrigin?.kind === 'layout' || Boolean((node as any).replayLayoutOnly);
-      const id = String(node.id || '');
-      if (!exactNodes.has(id))
-        exactNodes.set(id, { parent, silent, layout });
-      for (const name of [id, ...(Array.isArray(node.aliasIds) ? node.aliasIds : [])]) {
-        const key = String(name || '');
-        if (!nodesByName.has(key))
-          nodesByName.set(key, node);
-      }
-      const children = Array.isArray(node.children) ? node.children : [];
-      if (!children.length && id && isLexicalLeaf(node)) {
-        leafIds.push(id);
-        if (!leafWorkspaces.has(id))
-          leafWorkspaces.set(id, workspace);
-      }
-      children.forEach(child => visit(child, node, silent, layout,
-        detachedForest && node === clonedCanvas ? child : workspace));
-    };
-    visit(clonedCanvas, null, false, false, clonedCanvas);
+    const { exactNodes, nodesByName, currentLeaves } = frame;
     // Read from structure, a phrase dominating a word directly (C over a raw 'Who')
     // names its projection, not the word's head; X-bar writes it as CP.
     const levels = readStructuralProjections([clonedCanvas]);
     const headsWord = (parent?: SyntaxNode | null) => !levels || !parent || levels.minimal(parent);
-    const currentLeaves = leafIds.map(leafId => {
-      const info = exactNodes.get(leafId)!;
-      const leaf = nodesByName.get(leafId);
-      const visible = !visibleNodeIds || visibleNodeIds.has(leafId)
-        || leaf?.aliasIds?.some(id => visibleNodeIds.has(String(id)));
-      return !info.layout && visible && leaf ? { leaf, silent: info.silent } : null;
-    })
-      .filter((entry): entry is {
-        leaf: SyntaxNode;
-        silent: boolean;
-      } => Boolean(entry));
-    const firstPronouncedLeafIds = new Map<SyntaxNode, string>();
-    currentLeaves.forEach(({ leaf, silent }) => {
-      const workspace = leafWorkspaces.get(String(leaf.id || ''))!;
-      if (!silent && !firstPronouncedLeafIds.has(workspace))
-        firstPronouncedLeafIds.set(workspace, String(leaf.id || ''));
-    });
     const casingByLeafId = new Map<string, string>();
     currentLeaves.forEach(({ leaf }) => {
       const surface = String(leaf.word || leaf.label || '').trim();
@@ -140,19 +193,8 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
       const parent = exactNodes.get(leafId)?.parent;
       if (!headsWord(parent) || !isSentenceInitialCaseAdjustableParent(parent?.label || leaf.label))
         return;
-      const authoredSurface = leaf.replayOrigin?.kind === 'word'
-        ? String(nodesByName.get(String(leaf.replayOrigin.ownerId || ''))?.word || '').trim()
-        : '';
-      // Selecting a source before its governor must not recase an authored lowercase form.
-      const authoredLowercaseSource = authoredSurface === lowercaseInitial;
-      const surfacedLanding = authoredLowercaseSource && (step.replayRelationLinks || []).some(link => {
-        if (!isResolvedMovementLink(link))
-          return false;
-        const landing = nodesByName.get(String(link.targetNodeId || ''));
-        return landing && collectOvertLeafNodeIdsInOrder(landing).includes(leafId);
-      });
-      const nextSurface = leafId && leafId === firstPronouncedLeafIds.get(leafWorkspaces.get(leafId)!)
-        ? (detachedForest ? surface : authoredLowercaseSource && !surfacedLanding ? authoredSurface : uppercaseInitial)
+      const nextSurface = leafId && stepIndex >= settledFrom && standsFinal(frame, leaf)
+        ? uppercaseInitial
         : maybeLowercaseSentenceInitialFunctionSurface({
           surface,
           sentenceInitialSurface,

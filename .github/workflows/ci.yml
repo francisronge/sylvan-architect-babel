@@ -133,8 +133,28 @@ jobs:
           NODE_COMPILE_CACHE: ${{ github.workspace }}/node_modules/.cache/node-compile
         run: node scripts/ciTestShard.mjs ${{ matrix.shard }}/6 tests/*.test.mjs
 
+  # Shards and the job that merges them must measure on one Node.js release:
+  # the corpus comparison refuses shards with different harnesses, and runner
+  # images cache different Node.js 24 releases while a new image rolls out.
+  # This job resolves the newest Node.js 24 once for the whole run.
+  node-release:
+    name: Resolve one Node.js 24 release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.node.outputs.node-version }}
+
+    steps:
+      - name: Set up the newest Node.js 24
+        id: node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+          check-latest: true
+
   replay-offline-shard:
     name: Static Replay geometry and camera (${{ matrix.shard }}/2)
+    needs: node-release
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -152,7 +172,7 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 24.x
+          node-version: ${{ needs.node-release.outputs.version }}
           cache: npm
 
       - name: Install locked dependencies
@@ -179,7 +199,7 @@ jobs:
 
   replay-offline:
     name: Static Replay geometry and camera
-    needs: replay-offline-shard
+    needs: [node-release, replay-offline-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -192,7 +212,7 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 24.x
+          node-version: ${{ needs.node-release.outputs.version }}
           cache: npm
 
       - name: Install locked dependencies
@@ -217,6 +237,7 @@ jobs:
 
   corpus-motion-shard:
     name: Replay motion against the PR base (${{ matrix.shard }}/2)
+    needs: node-release
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -242,7 +263,7 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 24.x
+          node-version: ${{ needs.node-release.outputs.version }}
           cache: npm
           cache-dependency-path: candidate/package-lock.json
 
@@ -278,7 +299,7 @@ jobs:
 
   corpus-motion:
     name: Replay motion against the PR base
-    needs: corpus-motion-shard
+    needs: [node-release, corpus-motion-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -300,7 +321,7 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: 24.x
+          node-version: ${{ needs.node-release.outputs.version }}
           cache: npm
           cache-dependency-path: candidate/package-lock.json
 
@@ -343,7 +364,7 @@ jobs:
 
   verify:
     name: Provider-free verification
-    needs: [contract, offline-tests, replay-offline-shard, replay-offline, corpus-motion-shard, corpus-motion]
+    needs: [contract, offline-tests, node-release, replay-offline-shard, replay-offline, corpus-motion-shard, corpus-motion]
     # GitHub treats a skipped required check as passing, so this job always
     # runs and fails unless every needed job succeeded.
     if: always()

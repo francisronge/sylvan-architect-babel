@@ -1,8 +1,9 @@
 /** Interleave bottom-up construction with authored relation moments and one completed Stage Record. */
+import * as d3 from 'd3';
 import { type DerivationOperation, type SyntaxNode } from '../types.ts';
 import type { ReplayCompilation } from './compilationContext.ts';
 import { constructionAttachmentUpdates, hasUnreleasedRegrouping } from './constructionAttachments.ts';
-import { isReplayDisplayChild, replayOwnerId } from './displayIdentity.ts';
+import { applyVizIds, isReplayDisplayChild, replayOwnerId } from './displayIdentity.ts';
 import {
   buildReplayProgressLabel,
   buildStructuralReplayFallback,
@@ -14,7 +15,7 @@ import {
   resolveRelationAnchorNodeId
 } from './relationAnchors.ts';
 import { orderRelationMoments } from './relationMomentOrder.ts';
-import { buildRenderableCommittedCanvasData } from './replayCanvas.ts';
+import { buildRenderableCommittedCanvasData, buildVisibleSyntaxSnapshotFromHierarchy, extractReplayWorkspaceLabels } from './replayCanvas.ts';
 import { mergeReplayDetailBlocks } from './replayPanelFormatting.ts';
 import type { ReplayStageContext } from './stageContext.ts';
 import { planStageRelations, type RelationPlacement } from './stageRelationPlan.ts';
@@ -28,6 +29,16 @@ import {
 } from './syntaxForest.ts';
 import { newReceivingHeadNodeIds } from './treeTransitions.ts';
 import { type PlaybackStep } from './types.ts';
+
+/** A step whose workspace labels are read from the syntax it shows. */
+const withShownWorkspaceLabels = (step: PlaybackStep): PlaybackStep => {
+  if (!step.replayCanvasData)
+    return step;
+  const hierarchy = d3.hierarchy<SyntaxNode>(step.replayCanvasData);
+  applyVizIds(hierarchy);
+  const visibleNodeIds = new Set((step.replayVisibleNodeIds || []).map(String));
+  return { ...step, workspaceAfter: extractReplayWorkspaceLabels(buildVisibleSyntaxSnapshotFromHierarchy({ root: hierarchy, visibleNodeIds })) };
+};
 
 /**
  * Preceding nodes each construction step attaches to their parent in the
@@ -189,6 +200,10 @@ export const finalizeStageReplay = (
       precedingStructuralVisibleNodeIds = visibleNodeIds;
       return { step, introducedVisibleNodeIds };
     });
+    // A step played at another position than it was built for shows other
+    // syntax than its workspace labels were read from; they are read again
+    // when it plays.
+    const repositionedSteps = new Set<PlaybackStep>();
     let pendingStructuralStepEntries = structuralStepEntries
       .filter(({ step }) => !shouldFoldStructuralStepIntoRelationFrame(step))
       .map((entry) => ({
@@ -246,10 +261,13 @@ export const finalizeStageReplay = (
             })
         }
       });
-      pendingStructuralStepEntries = [
-        ...beforeMovement.map(scrubDeferredVisibility),
-        ...afterMovement
-      ];
+      const builtOrder = pendingStructuralStepEntries;
+      pendingStructuralStepEntries = [...beforeMovement, ...afterMovement].map((entry, index) => {
+        const shown = beforeMovement.includes(entry) ? scrubDeferredVisibility(entry) : entry;
+        if (builtOrder[index] !== entry)
+          repositionedSteps.add(shown.step);
+        return shown;
+      });
     }
     const pendingStructuralSteps = pendingStructuralStepEntries.map((entry) => entry.step);
     const ordinaryStructuralNodeIds = new Set<string>();
@@ -549,10 +567,11 @@ export const finalizeStageReplay = (
         (node.children || []).forEach(indexCanvas);
       };
       indexCanvas(rebuilt.replayCanvasData);
-      stagePlaybackSteps.push(withPendingStructureHidden({
+      const emitted = withPendingStructureHidden({
         ...rebuilt,
         replayVisibleNodeIds: (rebuilt.replayVisibleNodeIds || []).filter(id => canvasIds.has(String(id)))
-      }));
+      });
+      stagePlaybackSteps.push(repositionedSteps.has(step) ? withShownWorkspaceLabels(emitted) : emitted);
       emittedStructuralSteps.add(stepIndex);
       return [];
     };

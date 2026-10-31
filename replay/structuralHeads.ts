@@ -51,6 +51,11 @@ export interface StructuralHeads {
   isHead: (node: ShapeNode) => boolean;
   /** The Bare Phrase Structure reader's answer where it gives one, else isHead. */
   isHeadPosition: (node: ShapeNode) => boolean;
+  /** Whether `node` is a leaf or a complex head: nothing phrasal projects into it. */
+  minimal: (node: ShapeNode) => boolean;
+  /** The daughter `parent` projects from (its head, or the lower projection or
+   * segment above the head), or undefined when no single daughter does. */
+  projectingDaughter: (parent: ShapeNode) => ShapeNode | undefined;
 }
 
 /** Read heads for one forest. Every node passed in later must belong to it. */
@@ -84,5 +89,11 @@ export const readStructuralHeads = (roots: readonly ShapeNode[]): StructuralHead
     const structural = bare?.positionKind(node);
     return structural ? structural === 'head' : isHead(node);
   };
-  return { isHead, isHeadPosition };
+  const projectingDaughter = (parent: ShapeNode): ShapeNode | undefined => {
+    const candidates = childrenOf(parent).filter(child => bare ? bare.projects(child, parent) : projects(child, parent));
+    if (candidates.length === 1) return candidates[0];
+    const heads = candidates.filter(minimal);
+    return heads.length === 1 ? heads[0] : undefined;
+  };
+  return { isHead, isHeadPosition, minimal, projectingDaughter };
 };
