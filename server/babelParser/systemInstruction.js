@@ -32,11 +32,12 @@ Each node keeps its latest definition until a later stage redefines it. List a n
 Each nodes entry has these required fields:
 - id: a nonblank string identifying this occurrence. Within one stage's nodes, each id appears once.
 - label: a nonblank string naming the syntactic item or category at this node. Label each node according to the selected framework, preserving the distinctions made in the analysis.
-Its optional fields are children, word, silent, and lineageId:
+Its optional fields are children, word, silent, lineageId, and copyOf:
 - children: an ordered array of node ids, the node's daughters from left to right. Each id names a node listed in this stage's nodes or defined in an earlier stage. Omit children, or use an empty array, for a leaf.
 - word is a string holding a terminal's lexical content. A wordless abstract item may remain wordless.
 - silent is a boolean. On a terminal, true means unpronounced in this stage, even if word retains lexical content. On a non-terminal, true means every terminal beneath it is unpronounced. Represent each occurrence's current status, not the status it will acquire later.
 - lineageId is a nonblank string shared by distinct occurrences of the same continuing syntactic object. It expresses identity, not a particular dependency type.
+- copyOf is the id of a node defined in this or an earlier stage. The entry is then a new occurrence with that node's structure as this stage defines it: Babel gives it the copied node's label, fields and complete subtree, and names each node inside the copy by this entry's id, a slash and the copied node's id, as in copy/original. An entry with copyOf has no children or word and may omit label; label, silent and lineageId, when given, apply to the entry itself.
 An occurrence keeps its id in every later stage, including when it is redefined. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id. Each id stands at only one position in the workspace: it is one root or the child of one parent, and never beneath itself. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis, including its choice of copy or trace representation.
 The nodes entries use only the fields defined above.
 
