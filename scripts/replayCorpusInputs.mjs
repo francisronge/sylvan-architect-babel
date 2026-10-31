@@ -7,6 +7,17 @@ import { matchFindings } from '../tests/helpers/findings.mjs';
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const objectHash = value => sha256(JSON.stringify(value));
 
+/** The comparisons a manifest `allow` entry can waive. */
+export const ALLOWANCES = ['replay', 'plan', 'finalCoordinates', 'completedWidthGrowth'];
+
+/** One checkout's measurement of a record, as far as an allowance can waive
+ * it: its Replay, relation plan and every frame's points and widths. An allow
+ * entry names the baseline's (`from`) and the candidate's (`to`), so it covers
+ * only the change it was measured for: once that change merges, the base
+ * measures `to` and the entry no longer applies. */
+export const comparisonSha256 = snapshot => objectHash({ replay: snapshot.replaySha256, plan: snapshot.planSha256,
+  frames: snapshot.frames });
+
 export function selectRecord(value, selector = '') {
   const keys = Array.isArray(selector) ? selector : String(selector).startsWith('/')
     ? selector.slice(1).split('/').map(key => key.replace(/~1/g, '/').replace(/~0/g, '~'))
@@ -54,10 +65,12 @@ export async function loadCorpusManifest(filename) {
     if (!Array.isArray(analysis.derivationStages) || !analysis.derivationStages.length || !sentence?.trim())
       throw Error(`${filename}: record ${index} (${id}) needs derivationStages and its original sentence`);
     const allow = record.allow ?? {};
-    if (Object.keys(allow).some(key => !['replay', 'plan', 'finalCoordinates', 'completedWidthGrowth', 'reason'].includes(key))
-      || Object.keys(allow).some(key => key !== 'reason' && typeof allow[key] !== 'boolean')
-      || Object.keys(allow).some(key => key !== 'reason' && allow[key]) && !allow.reason?.trim())
-      throw Error(`${id}: an intentional comparison exception needs a supported boolean and a reason`);
+    if (Object.keys(allow).length && (Object.keys(allow).some(key => ![...ALLOWANCES, 'reason', 'from', 'to'].includes(key))
+      || ALLOWANCES.some(key => allow[key] !== undefined && typeof allow[key] !== 'boolean')
+      || !ALLOWANCES.some(key => allow[key]) || !allow.reason?.trim()
+      || ![allow.from, allow.to].every(value => /^[0-9a-f]{64}$/.test(value ?? '')) || allow.from === allow.to))
+      throw Error(`${id}: an allow entry needs a supported boolean allowance, a reason, and the change it covers: `
+        + 'from and to are fingerprints.baseline and fingerprints.candidate of this record in the verify:corpus report');
     const input = { sentence, inputTokens, derivationStages: analysis.derivationStages, includePlayback: true };
     const expect = record.expect ?? {};
     const limits = ['minMovementMoments', 'maxMovementMoments', 'minMerges', 'minRealizationGroups', 'minWorkspaceRoots'];
@@ -108,14 +121,19 @@ export function lostMovementPresentations(baseline, candidate) {
 
 /** Compares each record's baseline and candidate snapshots. `motionExceptions`
  * are approved motion faults (tests/helpers/motionExceptions.mjs): a new or
- * worsened fault one covers within its bound is reported, not a violation. */
+ * worsened fault one covers within its bound is reported, not a violation.
+ * A record's `allow` waives its comparisons only when its `from` and `to` are
+ * this comparison's fingerprints; otherwise it waives nothing and fails as
+ * `stale-allow`, so it is removed once its change has merged. `motionOnly`
+ * (a reason the run itself sets, never a manifest) waives them all. */
 export function compareCorpusSnapshots(baseline, candidate, records, { motionExceptions = [] } = {}) {
   const old = new Map(baseline.records.map(record => [record.id, record]));
   const current = new Map(candidate.records.map(record => [record.id, record]));
   return records.map(record => {
     const before = old.get(record.id), after = current.get(record.id), violations = [];
     const inputIdentity = { id: record.id, source: record.source, selector: record.selector, rawSha256: record.rawSha256,
-      inputSha256: record.inputSha256, mechanisms: record.mechanisms, allow: record.allow };
+      inputSha256: record.inputSha256, mechanisms: record.mechanisms, allow: record.allow,
+      ...(record.motionOnly ? { motionOnly: record.motionOnly } : {}) };
     if (!before || !after) throw Error(`Snapshot missing manifest record ${record.id}`);
     if (before.error || after.error) return { ...inputIdentity, beforeError: before.error, afterError: after.error,
       violations: [{ kind: 'record-error' }] };
@@ -123,9 +141,14 @@ export function compareCorpusSnapshots(baseline, candidate, records, { motionExc
       if (snapshot.inputSha256 !== record.inputSha256) violations.push({ kind: 'input-mismatch' });
       if (snapshot.authoredBeforeSha256 !== snapshot.authoredAfterSha256) violations.push({ kind: 'authored-mutation' });
     }
+    const fingerprints = { baseline: comparisonSha256(before), candidate: comparisonSha256(after) };
+    const authored = Object.keys(record.allow ?? {}).length > 0;
+    const covers = authored && record.allow.from === fingerprints.baseline && record.allow.to === fingerprints.candidate;
+    if (authored && !covers) violations.push({ kind: 'stale-allow', from: record.allow.from, to: record.allow.to, ...fingerprints });
+    const allowed = Object.fromEntries(ALLOWANCES.map(key => [key, Boolean(record.motionOnly) || covers && record.allow[key] === true]));
     const replayChanged = before.replaySha256 !== after.replaySha256, planChanged = before.planSha256 !== after.planSha256;
-    if (replayChanged && !record.allow.replay) violations.push({ kind: 'replay-change' });
-    if (planChanged && !record.allow.plan) violations.push({ kind: 'relation-plan-change' });
+    if (replayChanged && !allowed.replay) violations.push({ kind: 'replay-change' });
+    if (planChanged && !allowed.plan) violations.push({ kind: 'relation-plan-change' });
     const changedFrames = [], completedWidths = [];
     for (let index = 0; index < Math.max(before.frames.length, after.frames.length); index++) {
       const previous = before.frames[index], next = after.frames[index];
@@ -152,19 +175,19 @@ export function compareCorpusSnapshots(baseline, candidate, records, { motionExc
       if (!key) return;
       const previous = oldCompleted.get(key) ?? lastCompleted.get(after.frames[index].stage);
       if (!previous) {
-        if (!record.allow.completedWidthGrowth) violations.push({ kind: 'completed-width-unmatched', frame: index + 1 });
+        if (!allowed.completedWidthGrowth) violations.push({ kind: 'completed-width-unmatched', frame: index + 1 });
         return;
       }
       const oldWidths = new Map(previous.widths.map(width => [width.root, width.width]));
       for (const width of after.frames[index].widths) {
         const oldWidth = oldWidths.get(width.root), growth = oldWidth !== undefined && width.width > oldWidth + 1e-6;
         completedWidths.push({ frame: index + 1, root: width.root, before: oldWidth, after: width.width });
-        if (growth && !record.allow.completedWidthGrowth) violations.push({ kind: 'completed-width-growth', frame: index + 1, root: width.root });
+        if (growth && !allowed.completedWidthGrowth) violations.push({ kind: 'completed-width-growth', frame: index + 1, root: width.root });
       }
     });
     const finalBefore = before.frames.at(-1)?.points ?? [], finalAfter = after.frames.at(-1)?.points ?? [];
     const finalChanges = pointChanges(finalBefore, finalAfter);
-    if (finalChanges.length && !record.allow.finalCoordinates) violations.push({ kind: 'final-coordinate-change' });
+    if (finalChanges.length && !allowed.finalCoordinates) violations.push({ kind: 'final-coordinate-change' });
     // Continuity faults are named by their step, as motion faults are, so a
     // frame inserted or removed elsewhere neither invents nor hides one.
     const continuityKey = snapshot => {
@@ -203,7 +226,7 @@ export function compareCorpusSnapshots(baseline, candidate, records, { motionExc
     if (lostMovements.length) violations.push({ kind: 'movement-not-shown', faults: lostMovements });
     if (after.invalid.length) violations.push({ kind: 'invalid-geometry', faults: after.invalid });
     if (after.expectationFailures.length) violations.push({ kind: 'mechanism-control-failed', failures: after.expectationFailures });
-    return { ...inputIdentity,
+    return { ...inputIdentity, fingerprints,
       hashes: { baseline: { authoredBefore: before.authoredBeforeSha256, authoredAfter: before.authoredAfterSha256,
         replay: before.replaySha256, plan: before.planSha256 }, candidate: { authoredBefore: after.authoredBeforeSha256,
         authoredAfter: after.authoredAfterSha256, replay: after.replaySha256, plan: after.planSha256 } },

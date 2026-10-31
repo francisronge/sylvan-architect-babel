@@ -252,6 +252,7 @@ once its mistake can no longer happen.
 | A plaque does not jump while its anchor holds. | `plaque-teleport` in `verify:replay-offline` (CI) |
 | A restated claim shares its plaque; one node never shows two plaques with the same content. | `duplicate-plaque` in `verify:replay-offline` (CI), for plaques with a face (rows or a theta grid) that serve different claims; a Case or agreement path's faceless plaque is not checked |
 | A label shows each index letter once, every letter belongs to a dependency containing its node (a movement chain, an identity coindex, a theta grid, or the authored label or word), and a shared restated plaque keeps each claim's letters. | `one-letter-per-label`, `label-index-owned`, `restated-letters-kept` in `tests/replayInvariants.test.mjs` (`verify:all`) |
+| A corpus allow entry covers only the change it was written for: its `from` and `to` fingerprints must match the comparison, and an entry that no longer matches fails until removed. | `stale-allow` in `scripts/replayCorpusInputs.mjs` (`verify:corpus`, CI job `corpus-motion`); `tests/replayCorpusComparator.test.mjs` |
 | Every layout change is reviewed, never regenerated blind. | Layout fingerprint in `verify:replay-offline` |
 | A check judges the layout the browser paints, not another plan. | Shared camera fit; measured-layout test in `tests/replayCorpusComparator.test.mjs` |
 | Painted frames and motion stay clean. | `verify:browser-visual` before merge, on macOS |

@@ -78,10 +78,24 @@ build a stage neither invents nor hides a fault.
 
 With `--fixtures`, a fixture the layout fingerprint covers is judged by motion,
 continuity, geometry and movement only; its Replay, plan, layout and width
-changes are reviewed through the fingerprint. A fixture the change adds is judged
-by motion, continuity and geometry only (`allowAddedFixtures`). Records of
-`fixtures/replay-corpus/manifest.json` keep their own `allow` rules; an
-intentional comparison exception needs an explicit reason. The manifest links
+changes are reviewed through the fingerprint (`allowFingerprintedFixtures`). A
+fixture the change adds is judged by motion, continuity and geometry only
+(`allowAddedFixtures`). The run decides both from the two checkouts each time;
+no manifest can claim them.
+
+A record of a manifest is judged strictly unless its `allow` entry covers this
+exact change. An intended Replay, plan, final-layout or width change needs
+`"allow": {"replay": true, …, "reason": "…", "from": "…", "to": "…"}`, where
+`from` and `to` are `fingerprints.baseline` and `fingerprints.candidate` of that
+record in the verify:corpus report: fingerprints of everything an allowance can
+waive (the Replay, the relation plan and every frame's points and widths) in
+the base and in this change. The entry waives only the comparisons it names, and
+only while both fingerprints match; a further change on the branch needs new
+fingerprints. Otherwise it waives nothing and fails as `stale-allow`. Once the
+change merges, the base measures `to`, so the next comparison reports the entry
+stale: remove it (removing an entry only tightens the check). The fingerprints
+are the same on macOS and on CI's Linux runners for the same sources (31 Oct
+2026, 140 records). The manifest links
 representative fixtures for movement and ordinary wrappers, later movement,
 separately established pronunciation, multiple roots, nonmovement construction,
 Tier 2 persistence and malformed claims. `--archive-manifest /private/index.json`
