@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { MOTION_FAULT_THRESHOLD, noticeableMotion, replayMotionFaults } from './replayMotionContinuity.mjs';
+import { MOTION_FAULT_THRESHOLD, noticeableMotion, replayMotionFaults, replayStepKeys } from './replayMotionContinuity.mjs';
 import { matchFindings } from '../tests/helpers/findings.mjs';
 
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
@@ -143,8 +143,15 @@ export function compareCorpusSnapshots(baseline, candidate, records, { motionExc
     const finalBefore = before.frames.at(-1)?.points ?? [], finalAfter = after.frames.at(-1)?.points ?? [];
     const finalChanges = pointChanges(finalBefore, finalAfter);
     if (finalChanges.length && !record.allow.finalCoordinates) violations.push({ kind: 'final-coordinate-change' });
-    const oldFaults = new Set(before.continuity.map(objectHash));
-    const newContinuityFaults = after.continuity.filter(fault => !oldFaults.has(objectHash(fault)));
+    // Continuity faults, like motion faults, are matched by their step's semantic
+    // key, so reordering or inserting frames elsewhere cannot make one look new.
+    const continuityKey = ({ frames }) => {
+      const steps = replayStepKeys(frames);
+      return fault => JSON.stringify([steps[fault.index], fault.rootId, fault.kind]);
+    };
+    const oldKey = continuityKey(before), newKey = continuityKey(after);
+    const oldFaults = new Set(before.continuity.map(oldKey));
+    const newContinuityFaults = after.continuity.filter(fault => !oldFaults.has(newKey(fault)));
     if (newContinuityFaults.length) violations.push({ kind: 'new-continuity-fault', faults: newContinuityFaults });
     // The motion rule decides ownership from each frame's own step, not from the
     // checkout's planner diagnostics. A fault the baseline already has still
