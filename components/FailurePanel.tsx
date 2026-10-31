@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, Download, Eye } from 'lucide-react';
+import { AlertTriangle, Download, Eye, X } from 'lucide-react';
 import { GenerationRecord, ParseFailure, RawOutputArtifact } from '../types';
 import { createFileDownloads, failureRecordBlob, rawOutputBlob } from './fileDownload';
 import ViewErrorBoundary from './ViewErrorBoundary';
@@ -37,8 +37,21 @@ interface FailurePanelProps {
   generationRecord?: GenerationRecord;
   sentence?: string;
   inputTokens?: string[];
+  /** Closes the failure display; the panel offers dismissal only when given. Its
+   * diagnostics and downloads are not kept anywhere else once it closes. */
+  onDismiss?: () => void;
   children?: React.ReactNode;
 }
+
+/** Escape dismisses a shown failure from anywhere in the console that holds it,
+ * except inside the inspection dialog, whose own Escape closes only itself
+ * (React delivers the dialog's key events to the panel through its portal),
+ * and while an input method is composing text. */
+export const dismissesFailure = (event: {
+  key: string; defaultPrevented: boolean; isComposing: boolean; target: EventTarget | null;
+}): boolean =>
+  event.key === 'Escape' && !event.defaultPrevented && !event.isComposing
+  && !(event.target as Partial<Element> | null)?.closest?.('dialog');
 
 const formatOffendingValue = (value: unknown): string => {
   if (typeof value === 'string') return value;
@@ -56,6 +69,7 @@ const FailurePanel: React.FC<FailurePanelProps> = ({
   generationRecord,
   sentence,
   inputTokens,
+  onDismiss,
   children
 }) => {
   const [inspecting, setInspecting] = useState(false);
@@ -128,6 +142,17 @@ const FailurePanel: React.FC<FailurePanelProps> = ({
           </Suspense>
         </ViewErrorBoundary></DiagnosticDialog>}
       </div>
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss failure"
+          title="Dismiss failure (Esc)"
+          className="-mr-1.5 -mt-1.5 shrink-0 rounded-xl p-1.5 text-rose-300/70 transition-colors hover:bg-rose-500/20 hover:text-rose-100"
+        >
+          <X size={14} />
+        </button>
+      )}
     </div>
   </div>
 );

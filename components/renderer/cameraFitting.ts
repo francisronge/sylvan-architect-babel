@@ -7,7 +7,7 @@ import {
 import { animateReplayCamera } from '../replayCameraMotion.ts';
 import { advanceFittedCamera, carryCamera, containCamera, type PaintedNodes } from '../treeViewport.ts';
 import { guardViewCallback } from '../viewErrorHandling.ts';
-import { liveViewportSize, type CameraSession } from './cameraState.ts';
+import { liveViewportSize, type CameraControlBounds, type CameraSession } from './cameraState.ts';
 import type { DrawingLayer } from './drawingContext.ts';
 
 interface CameraFitGeometry {
@@ -25,7 +25,14 @@ interface CameraFitGeometry {
   /** The carry into this stage breaks a tie (CarryOptions `closing`). */
   closesOnEntry: boolean;
   paintedNodes: PaintedNodes;
+  /** A change frees or takes tree space as a resize does, so it refits too. The
+   * Replay header is left out: its text, and so its wrapping, follows each step,
+   * and a stage keeps one camera. */
+  controls?: CameraControlBounds;
 }
+const sameControls = (a: CameraControlBounds | undefined, b: CameraControlBounds | undefined) =>
+  a === b || Boolean(a && b && a.top === b.top && a.right === b.right && a.bottom === b.bottom
+    && a.panelTop === b.panelTop);
 export function createFittedCamera({ session, layout }: { session: CameraSession; layout: CameraFitGeometry }) {
   const {
     cameraRuntime,
@@ -55,7 +62,8 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     fitFallbackOverlays,
     stageIndex,
     closesOnEntry,
-    paintedNodes
+    paintedNodes,
+    controls
   } = layout;
   // A crossing's closing record belongs to the later stage's entry, in both directions.
   const crossingClosing = (previousFit: NonNullable<typeof autoCameraRef.current>) =>
@@ -63,7 +71,8 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
   const animateFittedCamera = (fitted: d3.ZoomTransform, previousFit: typeof autoCameraRef.current) => {
     const sameReplay = animated && previousFit?.data === data
       && previousFit.signature === derivationStagesSignature && previousFit.fitRevision === fitRevision
-      && previousFit.width === containerWidth && previousFit.height === containerHeight;
+      && previousFit.width === containerWidth && previousFit.height === containerHeight
+      && sameControls(previousFit.controls, controls);
     const pending = cameraAnimationRef.current;
     const continuing = sameReplay && pending?.stepIndex === activeStepIndex;
     const adjacent = sameReplay && Math.abs(previousFit.stepIndex - activeStepIndex) === 1;
@@ -100,6 +109,7 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     if (animated && completedReplayStep === undefined && stageFitContainmentBounds && previousFit?.data === data
       && previousFit.signature === derivationStagesSignature && previousFit.fitRevision === fitRevision
       && previousFit.width === containerWidth && previousFit.height === containerHeight
+      && sameControls(previousFit.controls, controls)
       && (step === 0 || step === 1 || (step === -1 && previousFit.stageIndex === stageIndex && !previousFit.completed))) {
       // Stages lay out syntax in their own coordinates, so a stage crossing first
       // carries the accepted pose by the common shift of unmoved shared syntax.
@@ -112,7 +122,7 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     autoCameraRef.current = {
       data, signature: derivationStagesSignature, width: containerWidth,
       height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted, stageIndex, closesOnEntry, paintedNodes,
-      completed: completedReplayStep !== undefined
+      completed: completedReplayStep !== undefined, controls
     };
     // Labels and complete fallback badges keep their accepted automatic-Fit
     // size, then scale with the tree. Their connectors use the same reference

@@ -52,6 +52,7 @@ export type GenerationAction =
   | { type: 'failed'; cause: unknown; request?: GenerationError['request'] }
   | { type: 'finished' }
   | { type: 'clear-failure' }
+  | { type: 'dismiss-failure' }
   | { type: 'reset' }
   | { type: 'report-error'; error: GenerationError };
 
@@ -67,6 +68,8 @@ export const generationReducer = (state: GenerationState, action: GenerationActi
     }
     case 'finished': return { ...state, loading: false };
     case 'clear-failure': return { ...state, error: null, needsKey: false };
+    // The user closed the failure display; a missing key is still missing.
+    case 'dismiss-failure': return { ...state, error: null };
     case 'reset': return initialGenerationState;
     case 'report-error': return { ...state, error: action.error };
   }
