@@ -185,6 +185,14 @@ moved ink comes no nearer other ink than that clearance where it was not already
 nearer, no branch newly crosses text, stages keep their size, and every other
 proximity plaque keeps its room.
 
+Each stage is laid out on its own, so a stage crossing can shift syntax that no
+step moves. Unmoved syntax that shifts rigidly keeps its place relative to the
+camera carry from the crossing on. A leaf that keeps its row while the syntax
+around it drops a row (a parent inserted above its sister) cannot: it stays
+where it stands, and its sister side, with all it carries, stands nearer it by
+its sideways jump, or failing that by the largest of three quarters, a half or a
+quarter of it that every check allows.
+
 An unbranched moving source must not sit farther out than its replacement lower
 occurrence when both occupy the same parent slot beside stationary siblings.
 The compact lower slot may be reserved throughout the source's construction.

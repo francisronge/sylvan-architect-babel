@@ -1202,7 +1202,10 @@ function tryShiftForward(context: Context, k: number, shifts: ReadonlyMap<string
  * appear to jump. Where a phrase that the crossing's step does not carry shifts
  * rigidly, it keeps, from the crossing on, the place it had before relative to
  * the carry: its own later frames all stand over by the amount it would have
- * jumped. Each such phrase is tried alone and then all of them together. */
+ * jumped. Each such phrase is tried alone and then all of them together. A leaf
+ * that keeps its row while the syntax around it drops one stays where it stands
+ * and its sisters stand nearer it instead: by its whole sideways jump, or the
+ * largest of three quarters, a half or a quarter of it that every check allows. */
 function holdAcrossCrossings(context: Context) {
   const { scenes, frames } = context;
   for (let k = 1; k < scenes.length; k++) {
@@ -1238,16 +1241,37 @@ function holdAcrossCrossings(context: Context) {
       if (shownParent(before, old) !== shownParent(after, after.get(id)!)) continue;
       leaves.set(id, -own.x);
     }
-    if (!groups.length && !leaves.size) continue;
+    // A leaf that keeps its row while the syntax around it drops or rises one (a
+    // parent inserted above its sister) cannot keep its place relative to the
+    // carry; it stays where it stands, and its sisters, with what they carry,
+    // stand nearer it by as much as it would have jumped sideways.
+    const rows: string[] = [];
+    for (const [id, old] of before) {
+      const own = shiftOf(id);
+      if (!own || movers.has(id) || granted.has(id) || old.children?.some(child => before.has(getNodeId(child))) || Math.abs(own.y) <= 1 || Math.abs(own.x) < NOTICED) continue;
+      if (shownParent(before, old) !== shownParent(after, after.get(id)!)) continue;
+      rows.push(id);
+    }
+    if (!groups.length && !leaves.size && !rows.length) continue;
     groups.sort((a, b) => b.members.length - a.members.length);
-    const attempts = groups.slice(0, 6).map(group => ({ first: group.first, shifts: new Map([[group.first, -group.dx]]) }));
+    const attempts: { first: string; shifts: Map<string, number>; parts?: number[] }[] = groups.slice(0, 6)
+      .map(group => ({ first: group.first, shifts: new Map([[group.first, -group.dx]]) }));
     if (attempts.length > 1) attempts.unshift({ first: `${attempts.length} phrases`, shifts: new Map(attempts.flatMap(attempt => [...attempt.shifts])) });
     if (leaves.size) attempts.unshift({ first: `${leaves.size} leaves`, shifts: leaves });
+    for (const id of rows) {
+      const parent = shownParent(after, after.get(id)!);
+      const sisters = parent ? (after.get(parent)!.children ?? []).filter(child => after.has(getNodeId(child)) && getNodeId(child) !== id) : [];
+      if (sisters.length) attempts.push({ first: id, shifts: new Map(sisters.map(sister => [getNodeId(sister), shiftOf(id)!.x])), parts: [1, 0.75, 0.5, 0.25] });
+    }
     const held = new Set<string>();
-    for (const { shifts } of attempts) {
+    for (const { shifts, parts = [1] } of attempts) {
       if ([...shifts.keys()].some(id => held.has(id))) continue;
-      const reason = tryShiftForward(context, k, shifts);
-      if (!reason) for (const id of shifts.keys()) held.add(id);
+      for (const part of parts) {
+        if (part < 1 && Math.max(...[...shifts.values()].map(Math.abs)) * part < NOTICED) break;
+        if (tryShiftForward(context, k, part === 1 ? shifts : new Map([...shifts].map(([id, by]) => [id, by * part])))) continue;
+        for (const id of shifts.keys()) held.add(id);
+        break;
+      }
     }
   }
 }

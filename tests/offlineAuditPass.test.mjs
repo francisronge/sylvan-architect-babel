@@ -10,8 +10,8 @@ import { promisify } from 'node:util';
 const script = fileURLToPath(new URL('../scripts/auditReplayVisuals.mjs', import.meta.url));
 const run = promisify(execFile);
 // Two analyses with findings in both audits between them, so equal reports are not
-// empty ones: the first has listed distant plaques, the second listed first-paint jumps.
-const RECORD = 'replay-regressions/sol-spanish-qr.json#/analyses/';
+// empty ones: the first has a listed first-paint finding, the second listed distant plaques.
+const RECORD = 'replay-regressions/compact-current-root.json#/cases/';
 const VISUAL = ['--audit', 'visual', '--viewports', 'desktop,desktop-large'];
 const CAMERA = ['--audit', 'camera', '--viewports', 'desktop,mobile'];
 
