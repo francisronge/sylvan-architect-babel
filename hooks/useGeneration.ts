@@ -13,7 +13,8 @@ export const useGeneration = () => {
   const generate = useCallback((request: GenerationRequest, accept: (bundle: ParseBundle) => void) =>
     runGeneration(request, dispatch, accept), []);
   const clearFailure = useCallback(() => dispatch({ type: 'clear-failure' }), []);
+  const dismissFailure = useCallback(() => dispatch({ type: 'dismiss-failure' }), []);
   const resetGeneration = useCallback(() => dispatch({ type: 'reset' }), []);
   const reportError = useCallback((error: GenerationError) => dispatch({ type: 'report-error', error }), []);
-  return { ...state, generate, clearFailure, resetGeneration, reportError };
+  return { ...state, generate, clearFailure, dismissFailure, resetGeneration, reportError };
 };
