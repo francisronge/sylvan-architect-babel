@@ -24,7 +24,11 @@ const step = (operation, visibleIds, canvas, extra = {}) => ({
   replayVisibleNodeIds: visibleIds, ...extra
 });
 
-test('future layout words do not recase the first visible word before their selection', () => {
+// The sentence capital belongs to the final sentence. A subject that the verb
+// precedes in the final frame never shows it, not even before the verb is
+// selected: the old display, 'The' and then 'the' once 'seem' appeared, was a
+// case flip on a word that had not moved.
+test('a word that a later selection precedes never shows the sentence capital first', () => {
   const canvas = { id: 'root', label: 'VP', children: [
     { id: 'verb', label: 'V', children: [word('seem', 'seem')] }, subject()
   ] };
@@ -34,7 +38,7 @@ test('future layout words do not recase the first visible word before their sele
   const input = freeze([before, selected, relation]);
   const output = applyPreFrontingSentenceInitialCasing(input, 'The sailors seem');
   assert.deepEqual(output.map(item => find(item.replayCanvasData, 'subject-word').word),
-    ['The', 'the', 'the']);
+    ['the', 'the', 'the']);
   assert.equal(find(canvas, 'subject-word').word, 'The', 'the authored word is unchanged');
   output.forEach((item, index) => {
     assert.deepEqual(item.replayVisibleNodeIds, input[index].replayVisibleNodeIds);
@@ -92,15 +96,40 @@ test('movement recases the complete landing only at its owning relation moment',
   assert.equal(find(before, 'base-word').word, 'The');
 });
 
-test('a detached lowercase authored occurrence keeps its form before attachment', () => {
-  const canvas = { id: 'workspace', label: 'Workspace', replayOrigin: { kind: 'workspace' },
-    children: [subject('the'), { id: 'v', label: 'V', children: [word('seem', 'seem')] }] };
-  const input = freeze([step('LexicalSelect', ['subject-word'], canvas,
-    { targetNodeId: 'subject-word', targetLabel: 'the', sourceLabels: ['the'] })]);
-  const [result] = applyPreFrontingSentenceInitialCasing(input, 'The sailors seem');
-  assert.equal(find(result.replayCanvasData, 'subject-word').word, 'the');
-  assert.equal(result.targetLabel, 'the');
-  assert.deepEqual(result.sourceLabels, ['the']);
+// A detached occurrence that is first in the final sentence, where it is
+// merged without moving, already stands in its final position. The old
+// display kept the authored 'the' until attachment and then showed 'The', a
+// case flip at attachment.
+test('a detached occurrence that will be sentence-initial shows the capital before attachment', () => {
+  const verb = { id: 'v', label: 'V', children: [word('seem', 'seem')] };
+  const detached = { id: 'workspace', label: 'Workspace', replayOrigin: { kind: 'workspace' },
+    children: [subject('the'), verb] };
+  const attached = { id: 'tp', label: 'TP', children: [subject('the'), verb] };
+  const input = freeze([
+    step('LexicalSelect', ['subject-word'], detached,
+      { targetNodeId: 'subject-word', targetLabel: 'the', sourceLabels: ['the'] }),
+    step('ExternalMerge', ['subject-word', 'subject-sailors', 'seem'], attached)
+  ]);
+  const [before, after] = applyPreFrontingSentenceInitialCasing(input, 'The sailors seem');
+  assert.equal(find(before.replayCanvasData, 'subject-word').word, 'The');
+  assert.equal(before.targetLabel, 'The');
+  assert.deepEqual(before.sourceLabels, ['The']);
+  assert.equal(find(after.replayCanvasData, 'subject-word').word, 'The');
+});
+
+test('a detached occurrence merged below a later word keeps its lowercase form throughout', () => {
+  const verb = { id: 'v', label: 'V', children: [word('seem', 'seem')] };
+  const detached = { id: 'workspace', label: 'Workspace', replayOrigin: { kind: 'workspace' },
+    children: [subject('the'), verb] };
+  const attached = { id: 'vp', label: 'VP', children: [verb, subject('the')] };
+  const input = freeze([
+    step('LexicalSelect', ['subject-word'], detached,
+      { targetNodeId: 'subject-word', targetLabel: 'the', sourceLabels: ['the'] }),
+    step('ExternalMerge', ['subject-word', 'subject-sailors', 'seem'], attached)
+  ]);
+  const output = applyPreFrontingSentenceInitialCasing(input, 'The sailors seem');
+  assert.deepEqual(output.map(item => find(item.replayCanvasData, 'subject-word').word), ['the', 'the']);
+  assert.equal(output[0].targetLabel, 'the');
 });
 
 test('a lowercase authored source stays lowercase when it is selected before its governor', () => {
@@ -110,9 +139,11 @@ test('a lowercase authored source stays lowercase when it is selected before its
   const canvas = { id: 'vp', label: 'VP', children: [
     { id: 'v', label: 'V', children: [word('seem', 'seem')] }, lower
   ] };
+  // Casing reads the final frame, so the input includes the governor's arrival.
   const [result] = applyPreFrontingSentenceInitialCasing([
     step('LexicalSelect', ['subject-word'], canvas,
-      { targetNodeId: 'subject-word', targetLabel: 'the', sourceLabels: ['the'] })
+      { targetNodeId: 'subject-word', targetLabel: 'the', sourceLabels: ['the'] }),
+    step('LexicalSelect', ['seem', 'subject-word', 'subject-sailors'], canvas)
   ], 'The sailors seem');
   assert.equal(find(result.replayCanvasData, 'subject-word').word, 'the');
   assert.equal(result.targetLabel, 'the');
@@ -160,4 +191,31 @@ test('each separate workspace keeps the authored form of its own first word', ()
   const sentence = 'Which violin did Nora say that the musician had forgotten to bring?';
   const [after] = applyPreFrontingSentenceInitialCasing(freeze([step('LexicalSelect', visible, workspace(verb, whPhrase))]), sentence);
   assert.equal(find(after.replayCanvasData, 'which').word, 'Which', 'an unattached root is not preceded by another root');
+});
+
+// "Whatever the chef cooks tonight ...": a phrase built apart, merged low and
+// later moved to the front keeps one lowercase form until it lands, even when
+// its landing keeps its node ids.
+test('a phrase built apart, merged low and then fronted stays lowercase until it lands', () => {
+  const whPhrase = () => ({ id: 'dp-wh', label: 'DP', children: [
+    { id: 'd-wh', label: 'D', children: [word('which', 'Which')] },
+    { id: 'n', label: 'N', children: [word('violin', 'violin')] }
+  ] });
+  const verb = { id: 'v', label: 'V', children: [word('bring', 'bring')] };
+  const workspace = (...children) => ({ id: 'workspace', label: 'Workspace', replayOrigin: { kind: 'workspace' }, children });
+  const lower = { id: 'dp-low', label: 'DP', silent: true, children: [
+    { id: 'd-low', label: 'D', children: [word('which-low', 'which')] },
+    { id: 'n-low', label: 'N', children: [word('violin-low', 'violin')] }
+  ] };
+  const input = freeze([
+    step('ExternalMerge', ['dp-wh', 'd-wh', 'which', 'n', 'violin'], workspace(whPhrase())),
+    step('ExternalMerge', ['vp', 'v', 'bring', 'dp-wh', 'd-wh', 'which', 'n', 'violin'],
+      { id: 'vp', label: 'VP', children: [verb, whPhrase()] }),
+    step('wh-movement', ['cp', 'dp-wh', 'd-wh', 'which', 'n', 'violin', 'vp', 'v', 'bring', 'dp-low', 'd-low', 'which-low', 'n-low', 'violin-low'],
+      { id: 'cp', label: 'CP', children: [whPhrase(), { id: 'vp', label: 'VP', children: [verb, lower] }] },
+      { replayKind: 'relation' })
+  ]);
+  const output = applyPreFrontingSentenceInitialCasing(input, 'Which violin did Nora bring?');
+  assert.deepEqual(output.map(item => find(item.replayCanvasData, 'which').word), ['which', 'which', 'Which']);
+  assert.equal(find(output[2].replayCanvasData, 'which-low').word, 'which');
 });

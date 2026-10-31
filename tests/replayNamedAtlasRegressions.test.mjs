@@ -720,10 +720,13 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
   const uppercaseBaseHeadMovement = structuredClone(headMovement);
   findNode(uppercaseBaseHeadMovement.derivationStages[0].workspaceForest, 't_head_trace').word = 'Did';
   const uppercaseBaseHeadSteps = playback(uppercaseBaseHeadMovement);
+  // The sentence capital belongs to the C landing. The old display gave the T
+  // head 'Did' while it was the first visible word and 'did' once the subject
+  // preceded it, a case flip on a head that had not moved.
   assert.equal(
     uppercaseBaseHeadSteps.find((step) => step.targetNodeId === 't_head_trace::__leaf')?.targetLabel,
-    'Did',
-    'an uppercase authored head stays uppercase while it is the first visible word'
+    'did',
+    'an uppercase authored head waiting to move is lowercase from its selection'
   );
   const headAfterSubjectSelection = uppercaseBaseHeadSteps.find((step) => (
     step.replayFrameIndex === 0
