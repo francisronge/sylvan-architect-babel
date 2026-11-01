@@ -283,12 +283,13 @@ const spellAt = (sentence, position, spelling, meter) => {
 };
 
 /**
- * Aligns the final stage's spelling to the sentence. Each group's text claims
- * its own stretches, its pieces in sentence order; the remaining pronounced
- * terminals, in tree order, spell the rest from left to right. Babel takes the
- * first alignment found when each group is tried where its first covered
- * terminal is read, so an alignment that reads straight through the tree is
- * always kept, and repeated text resolves through the tree.
+ * Aligns the final stage's spelling to the sentence. The pronounced terminals,
+ * in tree order, spell the sentence from left to right, and a group's text
+ * stands where its terminals stand: its first piece is read at its first
+ * pronounced terminal, and a group whose text is one stretch has no other
+ * pronounced terminal among its own. Later pieces of a split group may follow
+ * words the tree reads after it (ne ... pas). Babel takes the first alignment
+ * found, so repeated text resolves through the tree.
  */
 const alignFinalStage = (reading, groups, sentence, meter) => {
   const { leaves } = reading;
@@ -299,8 +300,16 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
     if (covering[leaf].at(-1) !== index) covering[leaf].push(index);
   })));
   const words = [], preferred = [], placed = new Set(), diagnostics = [];
+  // Each group's first and last pronounced terminal, and how many ungrouped
+  // words the tree reads before its first.
+  const first = groups.map(() => -1), last = groups.map(() => -1);
+  const wordsBeforeFirst = groups.map(() => 0);
   leaves.forEach(({ node, silent }, leaf) => {
     if (silent) return;
+    covering[leaf].forEach((index) => {
+      if (first[index] < 0) { first[index] = leaf; wordsBeforeFirst[index] = words.length; }
+      last[index] = leaf;
+    });
     if (covering[leaf].length) {
       covering[leaf].filter(index => !placed.has(index)).forEach(index => {
         placed.add(index);
@@ -313,6 +322,19 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
   });
   groups.forEach((_, index) => {
     if (!placed.has(index)) diagnostics.push(failure('SPELLOUT_GROUP_UNPLACED', `Final-stage group ${index} covers no pronounced terminal.`));
+  });
+  if (diagnostics.length) return { units: [], diagnostics, observations: [] };
+  // A one-stretch group cannot have another pronounced terminal among its own.
+  groups.forEach((group, index) => {
+    if (groupPieces[index].length !== 1) return;
+    for (let leaf = first[index] + 1; leaf < last[index]; leaf += 1) {
+      if (leaves[leaf].silent || covering[leaf].includes(index)) continue;
+      const intruder = authoredWord(leaves[leaf].node);
+      if (intruder === undefined && !covering[leaf].length) continue;
+      diagnostics.push(failure('SPELLOUT_GROUP_SPLIT',
+        `Final-stage group ${index} spells ${JSON.stringify(group.text)} as one stretch, but ${intruder === undefined ? 'another group\'s terminal' : JSON.stringify(intruder)} stands between its terminals in tree order.`));
+      return;
+    }
   });
   if (diagnostics.length) return { units: [], diagnostics, observations: [] };
   if (preferred.length > MAX_READING_UNITS) {
@@ -346,7 +368,11 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
     while (position < chars.length && ignored[position]) position += 1;
     return position === chars.length;
   };
+  // A group's first piece is read where its first terminal stands. Later
+  // pieces may follow words the tree reads after it, as in ne ... pas.
+  const inPlace = group => next[group] > 0 || word === wordsBeforeFirst[group];
   const attempt = (kind, position) => {
+    if (kind !== WORD && !inPlace(kind)) return false;
     const item = kind === WORD ? { word } : { group: kind, piece: next[kind] };
     const spelled = spellAt(sentence, position, spellingFor(item), meter);
     if (!spelled.complete) return false;
