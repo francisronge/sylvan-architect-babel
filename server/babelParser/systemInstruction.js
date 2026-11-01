@@ -1,6 +1,28 @@
 const XBAR_INSTRUCTION = "Analyze the exact input within X-bar Theory and Government and Binding Theory.";
 
-const MINIMALISM_INSTRUCTION = "Analyze the exact input within the Minimalist Program using Bare Phrase Structure.";
+const MINIMALISM_INSTRUCTION = "Analyze the exact input within the Minimalist Program.";
+
+// Bare Phrase Structure is named where it applies, in the label field. Named in
+// the opening task line, it made GPT-6.1 Sol narrate its notation ("labels
+// identify projecting heads rather than bar levels") in the first stage record.
+// Left unnamed, labels drift to X-bar style.
+const labelNotation = (framework) => (framework === 'xbar'
+  ? 'Label each node according to the selected framework'
+  : 'Label each node in Bare Phrase Structure notation');
+
+// Measured for Minimalism only (GPT-6.1 Sol): told to avoid "the framework's
+// general conventions", it also left out the mechanisms behind each step
+// (valuation, EPP). X-bar keeps its wording until it is measured.
+const stageRecordFocus = (framework) => (framework === 'xbar'
+  ? "Explain the choices specific to this sentence, not the framework's general conventions."
+  : 'Explain the choices this sentence required.');
+
+// Measured for Minimalism only (GPT-6.1 Sol): naming "copy or trace" made the
+// representation a topic, narrated in stage records ("leaving a copy rather than
+// a trace"). Either remains open; X-bar keeps the clause until it is measured.
+const occurrenceRepresentation = (framework) => (framework === 'xbar'
+  ? ', including its choice of copy or trace representation'
+  : '');
 
 // Bare Phrase Structure has no bar levels and no separate projection step: a
 // label comes from Merge. So only the X-bar instruction names a projection
@@ -19,7 +41,7 @@ Build the derivation forward. Each stage records the complete syntactic workspac
 An occurrence moves only from a position that an earlier stage already shows. Several operations may share a stage. Babel replays a stage's relations in the order they are listed; if the analysis needs an order that this cannot show, record the intermediate workspace as a separate stage rather than describing it only in prose. An unchanged workspace needs a sentence-specific reason within the analysis for the new stage.
 Each stage has these five required fields, written in this order:
 - statement: a nonblank string naming what the stage establishes.
-- stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. Explain the choices specific to this sentence, not the framework's general conventions. Do not mention node ids, field names or how the JSON encodes the analysis.
+- stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. ${stageRecordFocus(framework)} Do not mention node ids, field names or how the JSON encodes the analysis.
 - relations: an array of relations introduced or changed in this stage. Record each relation once, in the stage where it is established; list it again in a later stage only if the analysis changes it.
 - workspace: an array of node ids naming the root of every currently active syntax tree or separate syntax object after these operations.
 - nodes: an array of the syntax nodes this stage introduces or changes, defined below.
@@ -31,14 +53,14 @@ A stage's workspace contains each root it names and, through children, every nod
 Each node keeps its latest definition until a later stage redefines it. List a node in nodes in the stage that introduces it and in every later stage that changes any of its fields, including its children, and in no other stage. A node whose own fields are unchanged is not listed again when something beneath it changes.
 Each nodes entry has these required fields:
 - id: a nonblank string identifying this occurrence. Within one stage's nodes, each id appears once.
-- label: a nonblank string naming the syntactic item or category at this node. Label each node according to the selected framework, preserving the distinctions made in the analysis.
+- label: a nonblank string naming the syntactic item or category at this node. ${labelNotation(framework)}, preserving the distinctions made in the analysis.
 Its optional fields are children, word, silent, lineageId, and copyOf:
 - children: an ordered array of node ids, the node's daughters from left to right. Each id names a node listed in this stage's nodes or defined in an earlier stage. Omit children, or use an empty array, for a leaf.
 - word is a string holding a terminal's lexical content. A wordless abstract item may remain wordless.
 - silent is a boolean. On a terminal, true means unpronounced in this stage, even if word retains lexical content. On a non-terminal, true means every terminal beneath it is unpronounced. Represent each occurrence's current status, not the status it will acquire later.
 - lineageId is a nonblank string shared by distinct occurrences of the same continuing syntactic object. It expresses identity, not a particular dependency type.
 - copyOf is the id of a node defined in this or an earlier stage. The entry is then a new occurrence with that node's structure as this stage defines it: Babel gives it the copied node's label, fields and complete subtree, and names each node inside the copy by this entry's id, a slash and the copied node's id, as in copy/original. An entry with copyOf has no children or word and may omit label; label, silent and lineageId, when given, apply to the entry itself.
-An occurrence keeps its id in every later stage, including when it is redefined. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id. Each id stands at only one position in the workspace: it is one root or the child of one parent, and never beneath itself. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis, including its choice of copy or trace representation.
+An occurrence keeps its id in every later stage, including when it is redefined. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id. Each id stands at only one position in the workspace: it is one root or the child of one parent, and never beneath itself. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis${occurrenceRepresentation(framework)}.
 The nodes entries use only the fields defined above.
 
 Relations
