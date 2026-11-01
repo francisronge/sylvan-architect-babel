@@ -41,17 +41,18 @@ test('the app preserves multiple roots, revised plaques and malformed relation e
         await page.goto(server.url);
         await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill(closeoutSentence);
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
-        await page.locator('svg[data-babel-tree="true"] text').first().waitFor();
+        // A new analysis opens in Replay; its last frame is the finished workspace.
+        const slider = page.getByRole('slider', { name: 'Replay frame' });
+        await slider.waitFor();
+        if (await page.getByRole('button', { name: 'Pause', exact: true }).count()) await page.getByRole('button', { name: 'Pause', exact: true }).click();
+        const go = async index => {
+          await slider.fill(String(index));
+          await page.waitForFunction(i => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === String(i), index);
+        };
+        await go(Number(await slider.getAttribute('max')));
         assert.match(await page.locator('svg[data-babel-tree="true"]').textContent(), /The/);
         assert.match(await page.locator('svg[data-babel-tree="true"]').textContent(), /slept/);
         if (evidence) await page.screenshot({ path: path.join(evidence, `app-two-roots-${width}.png`) });
-        await page.getByRole('button', { name: 'Derivation Replay', exact: true }).click();
-        await page.getByRole('slider', { name: 'Replay frame' }).waitFor();
-        if (await page.getByRole('button', { name: 'Pause', exact: true }).count()) await page.getByRole('button', { name: 'Pause', exact: true }).click();
-        const go = async index => {
-          await page.getByRole('slider', { name: 'Replay frame' }).fill(String(index));
-          await page.waitForFunction(i => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === String(i), index);
-        };
         for (const [stage, expected] of [['number: singular'], ['number: plural'], ['number: plural', 'Case: nominative']].entries()) {
           await go(moment(stage));
           const text = await plaqueTexts(page.locator('.babel-feature-plaque'));
@@ -80,8 +81,8 @@ test('the app preserves multiple roots, revised plaques and malformed relation e
         await page.getByTitle('Open Tree Bank', { exact: true }).click();
         await page.getByRole('button', { name: 'Open Tree', exact: true }).click();
         await page.locator('svg[data-babel-tree="true"] text').first().waitFor();
+        await go(Number(await slider.getAttribute('max')));
         assert.match(await page.locator('svg[data-babel-tree="true"]').textContent(), /The/);
-        await page.getByRole('button', { name: 'Derivation Replay', exact: true }).click();
         await go(moment(2));
         assert.match((await plaqueTexts(page.locator('.babel-feature-plaque')))[0], /Case: nominative/);
         await go(moment(1, 1));

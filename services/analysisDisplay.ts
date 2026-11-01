@@ -1,14 +1,10 @@
 import type { ParseBundle, ParseResult, SyntaxNode } from '../types.ts';
-import { displayTreeForAnalysis, finalForestForAnalysis } from '../replay/finalForest.ts';
+import { displayTreeForAnalysis } from '../replay/finalForest.ts';
 import { recoverLegacyInputTokens } from './legacyInputTokens.ts';
-import { buildMilesNotation } from './milesNotation.ts';
-import { collectDerivationStageRecords } from '../derivationNotes.js';
 
 export interface AnalysisDisplay {
   displayTree: SyntaxNode | null;
   inputTokens: string[] | undefined;
-  notation: string;
-  stageRecords: string[];
 }
 
 /**
@@ -18,9 +14,7 @@ export interface AnalysisDisplay {
  */
 export const deriveAnalysisDisplay = (bundle: ParseBundle, analysis: ParseResult, sentence: string): AnalysisDisplay => ({
   displayTree: displayTreeForAnalysis(analysis),
-  inputTokens: bundle.inputTokens ?? recoverLegacyInputTokens(analysis, sentence),
-  notation: buildMilesNotation(finalForestForAnalysis(analysis)),
-  stageRecords: collectDerivationStageRecords(analysis.derivationStages)
+  inputTokens: bundle.inputTokens ?? recoverLegacyInputTokens(analysis, sentence)
 });
 
 /**

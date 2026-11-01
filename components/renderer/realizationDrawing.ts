@@ -326,7 +326,8 @@ export function createRealizationDrawing({
           const heightPx = Math.max(112, 64 + (bundleRows - 1) * 10.5);
           const width = localPx(widthPx);
           const height = localPx(heightPx);
-          const replayPanelRect = containerRef.current
+          // In the app the panel is drawn in the workspace's layer, outside the container.
+          const replayPanelRect = (containerRef.current?.closest('[data-babel-workspace]') ?? containerRef.current)
             ?.querySelector<HTMLElement>('[data-babel-replay-panel="true"]')
             ?.getBoundingClientRect() || null;
           const preferredClientY = svgRect.top + 310;

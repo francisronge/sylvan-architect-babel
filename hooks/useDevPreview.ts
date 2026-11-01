@@ -4,7 +4,6 @@ import type { ParseBundle } from '../types.ts';
 import { collectPronouncedTerminalSequence } from '../replay/pronouncedTerminals.ts';
 import { finalForestForAnalysis } from '../replay/finalForest.ts';
 
-type PreviewTab = 'tree' | 'derivation' | 'notes';
 type ReplayTarget = number | 'last' | null;
 
 export interface DevAnalysisOptions {
@@ -20,13 +19,11 @@ export interface SavedPreview {
   framework: 'xbar' | 'minimalism';
   modelRoute: string;
   reasoningEffort: string;
-  tab: PreviewTab;
   captureMode: boolean;
 }
 
 interface PreviewWindow extends Window {
   __BABEL_DEV_SET_ANALYSIS__?: (bundle: ParseBundle, options?: DevAnalysisOptions) => void;
-  __BABEL_DEV_SET_TAB__?: (tab: PreviewTab) => void;
   __BABEL_DEV_SET_INPUT_VISIBILITY__?: (visible: boolean) => void;
   __BABEL_DEV_SET_CAPTURE_MODE__?: (enabled: boolean) => void;
   __BABEL_DEV_GET_REPLAY_STEP_COUNT__?: () => number;
@@ -50,14 +47,12 @@ function useDevPreviewBridge({
   analysisBundle,
   onAnalysis,
   onPreview,
-  onTab,
   onInputVisibility,
   onError
 }: {
   analysisBundle: ParseBundle | null;
   onAnalysis: (bundle: ParseBundle, options: DevAnalysisOptions) => void;
   onPreview: (preview: SavedPreview) => void;
-  onTab: (tab: PreviewTab) => void;
   onInputVisibility: (visible: boolean) => void;
   onError: (error: { message: string }) => void;
 }) {
@@ -67,15 +62,13 @@ function useDevPreviewBridge({
     const params = new URLSearchParams(window.location.search);
     const bundlePath = String(params.get('devBundle') || '').trim();
     if (!bundlePath) return null;
-    const rawTab = String(params.get('devTab') || '').trim();
-    const tab: PreviewTab = rawTab === 'derivation' || rawTab === 'notes' || rawTab === 'tree' ? rawTab : 'tree';
     const rawReplayStep = String(params.get('devReplayStep') || '').trim().toLowerCase();
     const replayStep: ReplayTarget = rawReplayStep === 'last'
       ? 'last'
       : (rawReplayStep !== '' && Number.isInteger(Number(rawReplayStep)) && Number(rawReplayStep) >= 0
         ? Number(rawReplayStep) : null);
     return {
-      bundlePath, tab, replayStep,
+      bundlePath, replayStep,
       captureMode: ['1', 'true', 'yes'].includes(String(params.get('devCapture') || '').toLowerCase())
     };
   }, []);
@@ -84,18 +77,14 @@ function useDevPreviewBridge({
     if (typeof window === 'undefined') return;
     const target = window as PreviewWindow;
     target.__BABEL_DEV_SET_ANALYSIS__ = (bundle, options = {}) => onAnalysis(bundle, options);
-    target.__BABEL_DEV_SET_TAB__ = tab => {
-      if (tab === 'tree' || tab === 'derivation' || tab === 'notes') onTab(tab);
-    };
     target.__BABEL_DEV_SET_INPUT_VISIBILITY__ = visible => onInputVisibility(Boolean(visible));
     target.__BABEL_DEV_SET_CAPTURE_MODE__ = enabled => setCaptureMode(Boolean(enabled));
     return () => {
       delete target.__BABEL_DEV_SET_ANALYSIS__;
-      delete target.__BABEL_DEV_SET_TAB__;
       delete target.__BABEL_DEV_SET_INPUT_VISIBILITY__;
       delete target.__BABEL_DEV_SET_CAPTURE_MODE__;
     };
-  }, [onAnalysis, onTab, onInputVisibility]);
+  }, [onAnalysis, onInputVisibility]);
 
   useEffect(() => {
     if (!config) return;
@@ -127,7 +116,6 @@ function useDevPreviewBridge({
             : (request.framework === 'xbar' ? 'xbar' : firstAnalysis?.provenance?.framework === 'minimalism' ? 'minimalism' : 'xbar'),
           modelRoute: String(request.modelId || bundle.requestedModelId || '').trim(),
           reasoningEffort: String(request.reasoningEffort || bundle.requestedReasoningEffort || '').trim(),
-          tab: config.tab,
           captureMode: config.captureMode
         });
         setCaptureMode(config.captureMode);

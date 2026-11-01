@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { prepareTreeBankSave, restoreTreeBankBundle, validateTreeBankRecord, validateTreeBankWork, validateTreeBankPreview } from '../services/treeBankRecords.ts';
+import { prepareTreeBankSave, reopenedReplayStep, restoreTreeBankBundle, validateTreeBankRecord, validateTreeBankWork, validateTreeBankPreview } from '../services/treeBankRecords.ts';
 const input = () => ({ id: 'work', sentence: '猫 sees café 🦉', framework: 'minimalism', activeParseIndex: 1, createdAt: '2026-10-06T00:00:00Z', updatedAt: '2026-10-06T01:00:00Z', view: 'derivation', replayStep: 12, abstractionMode: true, bundle: { analyses: [{ tree: { id: '猫' }, derivationStages: [], provenance: { framework: 'minimalism', timestamp: 'exact' } }, { finalForest: [{ id: 'café' }], derivationStages: [{ statement: 'exact stage', stageRecord: 'exact record', workspaceForest: [], relations: [] }] }], ambiguityDetected: true, ambiguityNote: 'é', sentence: '猫 sees café 🦉', inputTokens: ['猫', 'sees', 'café', '🦉'], requestedModelRoute: 'gpt', requestedModelId: 'exact', requestedReasoningEffort: 'high', modelUsed: 'actual', rawModelOutput: { text: '{raw}' }, generationRecord: { prompt: 'exact', usage: { tokens: 12 }, extra: [null, false, 'é'] } } });
 test('exact multi-analysis bundle and view roundtrip, immutable and content addressed', async () => {
   const source = input(); const result = await prepareTreeBankSave(source);
@@ -58,4 +58,12 @@ test('generation prompt contract framework must match the saved work', async () 
   const saved = await prepareTreeBankSave(source);
   assert.deepEqual(await restoreTreeBankBundle(saved.work, saved.records), source.bundle);
   await assert.rejects(prepareTreeBankSave({ ...source, framework: 'xbar' }), /Generation framework/);
+});
+
+test('a save from the retired Canopy or Notes view reopens on the finished tree; a Replay save keeps its frame', () => {
+  assert.equal(reopenedReplayStep('derivation', 4), 4);
+  assert.equal(reopenedReplayStep('derivation', null), null, 'a Replay save without a frame plays from the start');
+  for (const view of ['tree', 'notes']) for (const step of [null, 0, 4]) {
+    assert.equal(reopenedReplayStep(view, step), Number.MAX_SAFE_INTEGER, `${view} at ${step} asks for the last frame`);
+  }
 });

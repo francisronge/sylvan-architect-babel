@@ -136,9 +136,8 @@ The bottom control panel supports:
 - Framework-sensitive placeholder guidance
 - In-panel error/status feedback
 
-The console appears in Canopy and Notes. Derivation Replay leaves its space to
-the tree and the Replay panel; return to Canopy to enter a new sentence. Replay
-keeps the console only while a request is running or a failure is shown.
+The console stays below Replay, so a new sentence can be entered at any time;
+the Replay panel stands above it.
 Dismiss a failure with its close button or Escape: you return to the analysis
 and paused frame you were reading, your draft and Tree Bank stay, and no request
 is made. Download its raw output or failure record first if you want them; the
@@ -149,24 +148,18 @@ next request clears the failure in any case.
 When you submit a sentence, Babel shows:
 
 - Loading state
-- Parse success state (tree + supporting views)
+- Parse success state (the analysis opens in Replay)
 - Parse error state with user-readable messages
 
 ### 6) Ambiguity handling
 
 An ambiguous sentence may have more than one meaning and more than one corresponding tree. Babel's internal parse bundle preserves every supplied distinct analysis rather than imposing a two-parse ceiling.
 
-The parse selector exposes `Parse 1`, `Parse 2`, and any additional analyses. Selecting one updates Canopy, Derivation Replay, and Notes together.
+The parse selector exposes `Parse 1`, `Parse 2`, and any additional analyses. Selecting one switches Replay to that analysis.
 
-### 7) Canopy view
+### 7) Replay
 
-`Canopy` is the clean final-workspace view. It shows each authored final root without adding a syntactic parent.
-
-It draws the tree exactly where the last Replay frame leaves it, without the relation marks, so switching between the two views moves nothing.
-
-### 8) Derivation Replay view
-
-`Derivation Replay` presents the ordered structural states compiled from `derivationStages`.
+Replay is Babel's only view. It presents the ordered structural states compiled from `derivationStages`, and its last frame is the finished tree: each authored final root, without an added syntactic parent.
 
 It includes:
 
@@ -178,20 +171,11 @@ It includes:
 - Open `relations` rendered when Babel has a supported visual treatment
 - Trace visibility for derivation inspection
 
+- Each stage's `stageRecord`, shown with that stage's frames. Babel does not synthesize a parallel explanation or compiled analysis layer.
+
 This view is designed to expose process, not just endpoint.
 
-### 9) Notes view
-
-`Notes` presents the ordered, non-empty `derivationStages[].stageRecord` strings directly. Babel does not synthesize a parallel explanation or compiled analysis layer.
-
-The view also includes:
-
-- Labeled bracketing derived from each final root
-- One-click copy for bracketed notation
-- Direct external link support for notation tooling
-- Use bracketed notation in traditional tools (for example, MShang) when you want a classic tree workflow outside Babel's renderer.
-
-### 10) Output artifacts
+### 8) Output artifacts
 
 The authored model output is exactly `derivationStages`. Every stage has four required fields:
 
@@ -206,14 +190,14 @@ Babel validates those stages, replays them, and derives the final forest, surfac
 
 These outputs are intended for both human reading and downstream inspection workflows.
 
-### 11) Tree Bank
+### 9) Tree Bank
 
 `Tree Bank` is Babel's local save-and-reopen workspace.
 
 It includes:
 
 - Save current parse state from the header (`Save to Tree Bank`)
-- Reopen saved analyses with their active framework and parse selection
+- Reopen saved analyses in Replay with their framework, parse selection and Replay frame
 - Store rendered tree snapshot previews for quick browsing
 - Delete saved entries directly from the Tree Bank panel
 - Keep data local to the current browser/device
@@ -222,10 +206,9 @@ It includes:
 
 1. Choose a framework (Minimalism, the default, or X-bar).
 2. Parse a sentence.
-3. Inspect the final structure in Canopy.
-4. Inspect derivational behavior in Derivation Replay.
-5. Compare outputs across frameworks and across reruns.
-6. Record differences in structure, visual relations, and stage records.
+3. Step through its derivation in Replay; the last frame is the final structure.
+4. Compare outputs across frameworks and across reruns.
+5. Record differences in structure, visual relations, and stage records.
 
 ## Limits and caveats
 

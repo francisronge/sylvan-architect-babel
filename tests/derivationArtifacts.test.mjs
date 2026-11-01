@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { collectDerivationStageRecords } from '../derivationNotes.js';
 import { createTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
@@ -21,17 +20,6 @@ test('authored node IDs are not collapsed by a stage-suffix spelling convention'
   const forest = ['dp_stage1', 'dp_stage3'].map(id => ({ id, label: 'DP', children: [] }));
   const canvas = buildRenderableDerivationCanvasData(forest);
   assert.deepEqual(canvas.children.map(node => node.id), forest.map(node => node.id));
-});
-
-test('Notes are exactly the ordered non-empty derivation stage records', () => {
-  const stages = [
-    { statement: 'Ignored statement one', stageRecord: 'First record', relations: [], workspaceForest: [] },
-    { statement: 'Ignored statement two', stageRecord: '  Second record?  ', relations: [], workspaceForest: [] },
-    { statement: 'Ignored statement three', stageRecord: '', relations: [], workspaceForest: [] }
-  ];
-
-  assert.deepEqual(collectDerivationStageRecords(stages), ['First record', 'Second record?']);
-  assert.deepEqual(collectDerivationStageRecords(undefined), []);
 });
 
 test('Tree Bank snapshots keep only current parse artifacts without mutating the source bundle', () => {

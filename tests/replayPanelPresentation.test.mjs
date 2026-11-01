@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import React from 'react';
+import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 const require = createRequire(import.meta.url);
@@ -33,7 +34,7 @@ const stages = [{ statement: 'An authored statement.', stageRecord: 'An authored
   workspaceForest: [canvas],
   relations: [{ relation: 'Open relation', anchors: { bearer: 'n' }, values: { bearer: '', note: '<original>' } }] }];
 const properties = (index, overrides = {}) => ({
-  panelRef: { current: null }, bottom: 24, right: 32,
+  panelRef: { current: null }, bottom: 24, top: 16, right: 32,
   currentReplayKind: steps[index].replayKind,
   activeRelationMoment: index === 1 ? { stageIndex: 0, relationIndex: 0 } : null,
   playedRelationIndicesAttribute: index > 0 ? '0' : '',
@@ -54,7 +55,7 @@ test('Replay panel retains one measured root, ownership attributes and frame con
   assert.match(html, /data-babel-active-relation-stage-index="0"/);
   assert.match(html, /data-babel-active-relation-index="0"/);
   assert.match(html, /data-babel-played-relation-indices="0"/);
-  assert.match(html, /style="bottom:24px;right:32px"/);
+  assert.match(html, /style="bottom:min\(24px, calc\(100% - 144px\)\);right:32px;min-height:max\(128px, min\(148px, calc\(100% - 40px\)\)\);max-height:min\(calc\(100% - 100px\), calc\(100% - 40px\)\)"/);
   assert.match(html, />Pause<\/button>/);
   assert.match(html, /aria-label="Replay frame" min="0" max="2"/);
   assert.match(html, /value="1"/);
@@ -90,3 +91,42 @@ test('authored literals and stage explanations survive panel extraction unchange
   assert.equal((macro.match(/An authored explanation\./g) || []).length, 1);
   assert.deepEqual({ steps, stages }, before);
 });
+
+// The panel's box as the browser resolves its inline limits and the stylesheet
+// height, in a workspace `height` pixels tall. `100%` and `40%` are of that height.
+const stylesheetHeight = /\.babel-replay-panel \{[^}]*?\bheight: ([^;]+);/.exec(readFileSync(new URL('../styles.css', import.meta.url), 'utf8'))[1];
+const resolve = (value, height) => Function(`return ${value
+  .replace(/(\d+(?:\.\d+)?)%/g, (_, percent) => `${height * percent / 100}`)
+  .replace(/(\d+(?:\.\d+)?)px/g, '$1').replace(/\bcalc\(/g, '(').replace(/\b(min|max)\(/g, 'Math.$1(')}`)();
+const panelBox = (html, height) => {
+  const style = Object.fromEntries(/style="([^"]*)"/.exec(html)[1].split(';').map(rule => rule.split(/:(.*)/s).slice(0, 2)));
+  const used = Math.max(resolve(style['min-height'], height),
+    Math.min(resolve(style['max-height'], height), resolve(stylesheetHeight, height)));
+  const bottom = resolve(style.bottom, height);
+  return { bottom, height: used, top: height - bottom - used };
+};
+
+test('the Replay panel clears the sentence bar and the top controls, and keeps its controls in a cramped workspace', () => {
+  // Every size is judged. Where the top controls, the panel's controls and
+  // timeline (128px) and the bar cannot all fit, the panel stays below the top
+  // controls and overlaps the bar by exactly the missing height; the app draws
+  // it above the bar (tests/browser/appWorkflow.test.mjs clicks its controls).
+  for (const top of [16, 88]) for (let workspace = 300; workspace <= 1000; workspace += 20) for (let bottom = 16; bottom <= 520; bottom += 12) {
+    const box = panelBox(render(properties(1, { bottom, top })), workspace);
+    const room = workspace - bottom - top;
+    const at = `workspace ${workspace}, bar reach ${bottom}, top controls ${top}`;
+    assert.ok(box.height >= 128 - 1e-9, `the controls and timeline keep their height: ${at}`);
+    assert.ok(box.top >= top - 1e-9, `the panel stays below the top controls: ${at}`);
+    if (room >= 128) assert.equal(box.bottom, bottom, `the panel stands above the sentence bar: ${at}`);
+    else {
+      assert.equal(box.top, top, `a cramped panel stays just below the top controls: ${at}`);
+      assert.equal(bottom - box.bottom, 128 - room, `a cramped panel overlaps the bar only by the missing height: ${at}`);
+    }
+    if (room >= 148) {
+      // With room to spare the panel keeps the size it had before the limits.
+      const before = Math.max(148, Math.min(workspace - 100, Math.min(260, workspace * 0.4)));
+      assert.equal(box.height, Math.min(before, room), `the panel keeps its size: ${at}`);
+    }
+  }
+});
+

@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useReplayStepDevBridge } from '../hooks/useDevPreview.ts';
 import { CAMERA_ZOOM, CATEGORY_FALLBACK_GLYPH_WIDTH, CATEGORY_FONT } from '../replay/rendererMetrics.ts';
 import { initialReplayStepIndex, replayStartState } from '../replay/initialReplayStep.ts';
@@ -418,6 +419,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns,
     measureTreeLabel, treeDirection]);
   const stageCameraBounds = stageCameraFit?.bounds ?? null;
+  // In the app the Replay panel joins the workspace's own layer, above the
+  // sentence bar, so a workspace too short for both never hides its controls
+  // behind the bar. Its containing block is unchanged: the tree fills that
+  // workspace exactly. Other hosts (review and audit pages) keep it inline.
+  const [workspaceLayer, setWorkspaceLayer] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setWorkspaceLayer(containerRef.current?.closest<HTMLElement>('[data-babel-workspace]') ?? null);
+  }, []);
+  const inWorkspaceLayer = (panel: React.ReactElement) => workspaceLayer ? createPortal(panel, workspaceLayer) : panel;
   const stagePlaqueContainmentBounds = stageCameraFit?.containment ?? null;
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -862,10 +872,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           </div>
         )}
       </div>
-      {animated && playbackSteps.length > 0 && (
+      {animated && playbackSteps.length > 0 && inWorkspaceLayer(
         <ReplayPanel
           panelRef={replayPanelRef}
           bottom={uiBounds.bottom}
+          top={Math.max(16, uiBounds.top)}
           right={uiBounds.right}
           currentReplayKind={currentReplayKind}
           activeRelationMoment={activeRelationMoment}
