@@ -171,10 +171,14 @@ test('Minimalism is the default framework, only X-bar names a projection among t
   // Bare Phrase Structure is named once, in the label field, never in the task line.
   assert.equal(buildSystemInstruction('minimalism').match(/Bare Phrase Structure/g).length, 1);
   assert.doesNotMatch(buildSystemInstruction('xbar'), /Bare Phrase Structure/);
+  // Only X-bar names the copy-or-trace choice; either stays open in both.
+  assert.match(buildSystemInstruction('xbar'), /including its choice of copy or trace representation\./);
+  assert.doesNotMatch(buildSystemInstruction('minimalism'), /\btrace\b/);
   const [xbarRest, minimalismRest] = ['xbar', 'minimalism'].map(framework => buildDerivationStagesInstruction(framework)
     .replace(/from the workspace states: [^.]+\./, 'from the workspace states: EVENTS.')
     .replace(/Label each node [^,]+, preserving/, 'Label each node NOTATION, preserving')
-    .replace(/Explain the choices [^.]+\. Do not mention/, 'FOCUS Do not mention'));
+    .replace(/Explain the choices [^.]+\. Do not mention/, 'FOCUS Do not mention')
+    .replace(/according to the analysis(, including its choice of copy or trace representation)?\./, 'according to the analysis REPRESENTATION.'));
   assert.equal(minimalismRest, xbarRest, 'the frameworks share every other sentence of the contract');
 });
 

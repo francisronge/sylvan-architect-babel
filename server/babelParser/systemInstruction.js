@@ -17,6 +17,13 @@ const stageRecordFocus = (framework) => (framework === 'xbar'
   ? "Explain the choices specific to this sentence, not the framework's general conventions."
   : 'Explain the choices this sentence required.');
 
+// Measured for Minimalism only (GPT-6.1 Sol): naming "copy or trace" made the
+// representation a topic, narrated in stage records ("leaving a copy rather than
+// a trace"). Either remains open; X-bar keeps the clause until it is measured.
+const occurrenceRepresentation = (framework) => (framework === 'xbar'
+  ? ', including its choice of copy or trace representation'
+  : '');
+
 // Bare Phrase Structure has no bar levels and no separate projection step: a
 // label comes from Merge. So only the X-bar instruction names a projection
 // among the construction events Babel derives from the workspace states.
@@ -53,7 +60,7 @@ Its optional fields are children, word, silent, lineageId, and copyOf:
 - silent is a boolean. On a terminal, true means unpronounced in this stage, even if word retains lexical content. On a non-terminal, true means every terminal beneath it is unpronounced. Represent each occurrence's current status, not the status it will acquire later.
 - lineageId is a nonblank string shared by distinct occurrences of the same continuing syntactic object. It expresses identity, not a particular dependency type.
 - copyOf is the id of a node defined in this or an earlier stage. The entry is then a new occurrence with that node's structure as this stage defines it: Babel gives it the copied node's label, fields and complete subtree, and names each node inside the copy by this entry's id, a slash and the copied node's id, as in copy/original. An entry with copyOf has no children or word and may omit label; label, silent and lineageId, when given, apply to the entry itself.
-An occurrence keeps its id in every later stage, including when it is redefined. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id. Each id stands at only one position in the workspace: it is one root or the child of one parent, and never beneath itself. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis, including its choice of copy or trace representation.
+An occurrence keeps its id in every later stage, including when it is redefined. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id. Each id stands at only one position in the workspace: it is one root or the child of one parent, and never beneath itself. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis${occurrenceRepresentation(framework)}.
 The nodes entries use only the fields defined above.
 
 Relations
