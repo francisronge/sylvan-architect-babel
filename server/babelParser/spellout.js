@@ -329,10 +329,11 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
     if (groupPieces[index].length !== 1) return;
     for (let leaf = first[index] + 1; leaf < last[index]; leaf += 1) {
       if (leaves[leaf].silent || covering[leaf].includes(index)) continue;
+      // A wordless head spells nothing, so it may stand among a group's terminals.
       const intruder = authoredWord(leaves[leaf].node);
-      if (intruder === undefined && !covering[leaf].length) continue;
+      if (!intruder && !covering[leaf].length) continue;
       diagnostics.push(failure('SPELLOUT_GROUP_SPLIT',
-        `Final-stage group ${index} spells ${JSON.stringify(group.text)} as one stretch, but ${intruder === undefined ? 'another group\'s terminal' : JSON.stringify(intruder)} stands between its terminals in tree order.`));
+        `Final-stage group ${index} spells ${JSON.stringify(group.text)} as one stretch, but ${intruder ? JSON.stringify(intruder) : 'another group\'s terminal'} stands between its terminals in tree order.`));
       return;
     }
   });
