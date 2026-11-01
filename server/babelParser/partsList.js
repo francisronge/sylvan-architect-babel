@@ -209,9 +209,10 @@ const expandStageCopies = (stage, path, define, definitionOf, stageIds, copyOwne
  * keeps each entry's authored path so issues are reported where it was written.
  */
 const flattenNestedNodes = (analysis) => {
+  if (!Array.isArray(analysis?.derivationStages)) return { analysis, paths: null };
   let nested = false;
   const paths = [];
-  const stages = (analysis?.derivationStages || []).map((stage, stageIndex) => {
+  const stages = analysis.derivationStages.map((stage, stageIndex) => {
     if (!isPlainObject(stage) || !Array.isArray(stage.nodes)) return stage;
     const nodes = [], authored = [];
     const write = (node, at) => {
