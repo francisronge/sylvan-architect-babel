@@ -97,20 +97,11 @@ const restateAsSpellout = (analysis, sentence, tokens) => {
   return { analysis: { ...analysis, derivationStages } };
 };
 
-// Saved records whose tree puts a word inside a one-stretch group. They keep
-// their saved token form; restated as spell-out, the check rejects them.
-const GROUP_SPLIT_FIXTURES = {
-  // اشتراه (bought-it): the tree reads اشترى · سامر · ـه, the subject between
-  // the verb and its object suffix; likewise قرأته with ليلى.
-  'fixtures/replay-regressions/retained-root-growth.json': 2
-};
-
 test('every complete fixture restated as spell-out reaches the same parse and Replay', () => {
   const derived = (bundle, sentence) => bundle.analyses.map(({ provenance, derivationStages, ...rest }) => ({
     rest, replay: buildReplaySnapshotProjection({ ...bundle, sentence, analyses: [{ provenance, derivationStages, ...rest }] })
   }));
   let identical = 0, resegmented = 0;
-  const split = {};
   for (const record of fixtureRecords()) {
     const tokens = resolveSavedInputTokens(record.sentence, record.inputTokens);
     let baseline;
@@ -119,12 +110,6 @@ test('every complete fixture restated as spell-out reaches the same parse and Re
     const restated = analyses.map(analysis => restateAsSpellout(analysis, record.sentence, tokens));
     const spellout = record.payload.analyses ? { analyses: restated.map(item => item.analysis) } : restated[0].analysis;
     const results = convertSpelloutPayload(spellout, record.sentence);
-    if (results.some(result => !result.ok) && GROUP_SPLIT_FIXTURES[record.label.split('.json')[0] + '.json']) {
-      const rules = results.flatMap(result => result.diagnostics.map(diagnostic => diagnostic.rule));
-      assert.ok(rules.every(rule => rule === 'SPELLOUT_GROUP_SPLIT'), `${record.label}: ${rules}`);
-      split[record.label.split('.json')[0] + '.json'] = rules.length;
-      continue;
-    }
     results.forEach(result => assert.ok(result.ok, `${record.label}: ${JSON.stringify(result.diagnostics)}`));
     const derivedTokens = results[0].inputTokens;
     results.forEach(result => assert.deepEqual(result.inputTokens, derivedTokens, record.label));
@@ -142,7 +127,6 @@ test('every complete fixture restated as spell-out reaches the same parse and Re
       resegmented += 1;
     }
   }
-  assert.deepEqual(split, GROUP_SPLIT_FIXTURES);
   assert.ok(identical >= 80, `only ${identical} fixtures compared`);
   assert.ok(resegmented >= 5, `only ${resegmented} resegmented fixtures`);
 });
