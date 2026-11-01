@@ -3,9 +3,9 @@ const XBAR_INSTRUCTION = "Analyze the exact input within X-bar Theory and Govern
 const MINIMALISM_INSTRUCTION = "Analyze the exact input within the Minimalist Program.";
 
 // Bare Phrase Structure is named where it applies, in the label field. Named in
-// the opening task line, it made models narrate their notation ("labels identify
-// projecting heads rather than bar levels") in the first stage record. Left
-// unnamed, labels drift to X-bar style.
+// the opening task line, it made GPT-6.1 Sol narrate its notation ("labels
+// identify projecting heads rather than bar levels") in the first stage record.
+// Left unnamed, labels drift to X-bar style.
 const labelNotation = (framework) => (framework === 'xbar'
   ? 'Label each node according to the selected framework'
   : 'Label each node in Bare Phrase Structure notation');
