@@ -122,7 +122,9 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(instruction, /Do not add a relation solely to announce one of these construction events\./);
     assert.match(instruction, /Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events\./);
     assert.doesNotMatch(instruction, /construction steps recoverable from workspace changes|not fully expressed by the forest's ordinary mother-daughter or sisterhood branching/);
-    assert.match(instruction, /- stageRecord: .* Explain the choices specific to this sentence, not the framework's general conventions\. Do not mention node ids, field names or how the JSON encodes the analysis\./);
+    assert.match(instruction, framework === 'xbar'
+      ? /- stageRecord: .* Explain the choices specific to this sentence, not the framework's general conventions\. Do not mention node ids, field names or how the JSON encodes the analysis\./
+      : /- stageRecord: .* Explain the choices this sentence required\. Do not mention node ids, field names or how the JSON encodes the analysis\./);
     assert.match(instruction, /- relations: an array of relations introduced or changed in this stage\. Record each relation once, in the stage where it is established; list it again in a later stage only if the analysis changes it\./);
     assert.match(instruction, /Babel replays a stage's relations in the order they are listed; if the analysis needs an order that this cannot show, record the intermediate workspace as a separate stage rather than describing it only in prose\./);
     assert.match(instruction, /An occurrence keeps its id in every later stage, including when it is redefined\. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id\./);
@@ -161,7 +163,7 @@ test('both frameworks select the theory and share the open derivation contract w
   }
 });
 
-test('Minimalism is the default framework, only X-bar names a projection among the construction events, and only Minimalism names its label notation', () => {
+test('Minimalism is the default framework, only X-bar names a projection among the construction events, only Minimalism names its label notation, and the frameworks differ in the stage-record focus sentence', () => {
   assert.equal(buildSystemInstruction(), buildSystemInstruction('minimalism'));
   // Bare Phrase Structure has no bar levels; a label comes from Merge.
   assert.doesNotMatch(buildSystemInstruction('minimalism'), /projection/i);
@@ -171,7 +173,8 @@ test('Minimalism is the default framework, only X-bar names a projection among t
   assert.doesNotMatch(buildSystemInstruction('xbar'), /Bare Phrase Structure/);
   const [xbarRest, minimalismRest] = ['xbar', 'minimalism'].map(framework => buildDerivationStagesInstruction(framework)
     .replace(/from the workspace states: [^.]+\./, 'from the workspace states: EVENTS.')
-    .replace(/Label each node [^,]+, preserving/, 'Label each node NOTATION, preserving'));
+    .replace(/Label each node [^,]+, preserving/, 'Label each node NOTATION, preserving')
+    .replace(/Explain the choices [^.]+\. Do not mention/, 'FOCUS Do not mention'));
   assert.equal(minimalismRest, xbarRest, 'the frameworks share every other sentence of the contract');
 });
 
