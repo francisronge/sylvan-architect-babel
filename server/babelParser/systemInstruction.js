@@ -1,6 +1,14 @@
 const XBAR_INSTRUCTION = "Analyze the exact input within X-bar Theory and Government and Binding Theory.";
 
-const MINIMALISM_INSTRUCTION = "Analyze the exact input within the Minimalist Program using Bare Phrase Structure.";
+const MINIMALISM_INSTRUCTION = "Analyze the exact input within the Minimalist Program.";
+
+// Bare Phrase Structure is named where it applies, in the label field. Named in
+// the opening task line, it made models narrate their notation ("labels identify
+// projecting heads rather than bar levels") in the first stage record. Left
+// unnamed, labels drift to X-bar style.
+const labelNotation = (framework) => (framework === 'xbar'
+  ? 'Label each node according to the selected framework'
+  : 'Label each node in Bare Phrase Structure notation');
 
 // Bare Phrase Structure has no bar levels and no separate projection step: a
 // label comes from Merge. So only the X-bar instruction names a projection
@@ -31,7 +39,7 @@ A stage's workspace contains each root it names and, through children, every nod
 Each node keeps its latest definition until a later stage redefines it. List a node in nodes in the stage that introduces it and in every later stage that changes any of its fields, including its children, and in no other stage. A node whose own fields are unchanged is not listed again when something beneath it changes.
 Each nodes entry has these required fields:
 - id: a nonblank string identifying this occurrence. Within one stage's nodes, each id appears once.
-- label: a nonblank string naming the syntactic item or category at this node. Label each node according to the selected framework, preserving the distinctions made in the analysis.
+- label: a nonblank string naming the syntactic item or category at this node. ${labelNotation(framework)}, preserving the distinctions made in the analysis.
 Its optional fields are children, word, silent, lineageId, and copyOf:
 - children: an ordered array of node ids, the node's daughters from left to right. Each id names a node listed in this stage's nodes or defined in an earlier stage. Omit children, or use an empty array, for a leaf.
 - word is a string holding a terminal's lexical content. A wordless abstract item may remain wordless.

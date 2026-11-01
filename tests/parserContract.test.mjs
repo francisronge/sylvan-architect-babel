@@ -111,7 +111,7 @@ test('both frameworks select the theory and share the open derivation contract w
     const frameworkInstruction = instruction.slice(0, instruction.indexOf('\n\n'));
     assert.match(frameworkInstruction, framework === 'xbar'
       ? /X-bar Theory and Government and Binding Theory/
-      : /Minimalist Program using Bare Phrase Structure/);
+      : /^Analyze the exact input within the Minimalist Program\.$/);
     assert.match(frameworkInstruction, /^Analyze the exact input within [^.]+\.$/);
     assert.doesNotMatch(frameworkInstruction, /endocentric|binary|one or two children|Attach overt words|bar-level prime|X-bar shells/);
     assert.equal(instruction.slice(frameworkInstruction.length + 2), buildDerivationStagesInstruction(framework));
@@ -139,7 +139,10 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.doesNotMatch(instruction, /Explain them in stageRecord\.|List relations in the order their establishing operations occur/);
     assert.doesNotMatch(instruction, /with prerequisites before dependent relations/);
     assert.doesNotMatch(instruction, /their sequence is represented by the ordered relations/);
-    assert.match(instruction, /Label each node according to the selected framework, preserving the distinctions made in the analysis\./);
+    assert.match(instruction, framework === 'xbar'
+      ? /Label each node according to the selected framework, preserving the distinctions made in the analysis\./
+      : /Label each node in Bare Phrase Structure notation, preserving the distinctions made in the analysis\./);
+    assert.doesNotMatch(frameworkInstruction, /Bare Phrase Structure/);
     assert.match(instruction, /The writing of the sentence, including its spacing, does not prescribe word, syntactic or morpheme boundaries\./);
     assert.doesNotMatch(instruction, /A projection's label names the projection, not merely its head/);
     assert.match(instruction, /values: a nonempty object with nonblank entry names/);
@@ -158,13 +161,17 @@ test('both frameworks select the theory and share the open derivation contract w
   }
 });
 
-test('Minimalism is the default framework, and only X-bar names a projection among the construction events', () => {
+test('Minimalism is the default framework, only X-bar names a projection among the construction events, and only Minimalism names its label notation', () => {
   assert.equal(buildSystemInstruction(), buildSystemInstruction('minimalism'));
   // Bare Phrase Structure has no bar levels; a label comes from Merge.
   assert.doesNotMatch(buildSystemInstruction('minimalism'), /projection/i);
   assert.match(buildSystemInstruction('xbar'), /adding a projection/);
+  // Bare Phrase Structure is named once, in the label field, never in the task line.
+  assert.equal(buildSystemInstruction('minimalism').match(/Bare Phrase Structure/g).length, 1);
+  assert.doesNotMatch(buildSystemInstruction('xbar'), /Bare Phrase Structure/);
   const [xbarRest, minimalismRest] = ['xbar', 'minimalism'].map(framework => buildDerivationStagesInstruction(framework)
-    .replace(/from the workspace states: [^.]+\./, 'from the workspace states: EVENTS.'));
+    .replace(/from the workspace states: [^.]+\./, 'from the workspace states: EVENTS.')
+    .replace(/Label each node [^,]+, preserving/, 'Label each node NOTATION, preserving'));
   assert.equal(minimalismRest, xbarRest, 'the frameworks share every other sentence of the contract');
 });
 
