@@ -9,6 +9,8 @@
 // tests/helpers/cameraInvariants.mjs and settled-layout continuity in judgeStageSyntax.
 import { median, pointInRect } from './geometry.mjs';
 import { stepOwnership } from '../../tests/helpers/motionOwnership.mjs';
+import { insertionRises } from '../../replay/motionRule.ts';
+import { TREE_ROW_HEIGHT } from '../../replay/treeSpacing.ts';
 
 export const DEFAULT_MOTION = Object.freeze({
   shownOpacity: 0.5,       // a node reads as painted at or above this
@@ -323,8 +325,16 @@ export function judgeStageSyntax(frames, { place = {}, thresholds = {} } = {}) {
       const a = before.nodes.get(id), b = after.nodes.get(id);
       return a && b ? { x: b.x - a.x, y: b.y - a.y } : null;
     };
+    // Syntax above a parent the step inserts may rise straight up by its rows
+    // (insertionRises, as the motion rule grants).
+    const rises = insertionRises(after.points, new Map(before.points.map(point => [point.id, point])));
+    const risen = (id, shift) => {
+      const rows = -shift.y / TREE_ROW_HEIGHT, levels = rises.get(id) ?? 0;
+      return levels > 0 && Math.abs(shift.x) <= m.layoutUnits && rows > 0
+        && Math.abs(rows - Math.round(rows)) * TREE_ROW_HEIGHT <= m.layoutUnits && Math.round(rows) <= levels;
+    };
     const moved = new Map(after.points.filter(point => !owned.has(point.id)).map(point => [point.id, shiftOf(point.id)])
-      .filter(([, shift]) => shift && Math.hypot(shift.x, shift.y) > m.layoutUnits));
+      .filter(([id, shift]) => shift && Math.hypot(shift.x, shift.y) > m.layoutUnits && !risen(id, shift)));
     for (const [id, shift] of moved) {
       const parent = moved.get(after.points.find(point => point.id === id)?.parent);
       if (parent && Math.hypot(shift.x - parent.x, shift.y - parent.y) <= m.layoutUnits) continue;

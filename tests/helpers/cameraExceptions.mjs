@@ -11,6 +11,8 @@ const STAGE_RELAYOUT = 'Open (layout): the new stage lays out the unmoved shared
   + 'first pose carried by its median shift (PR #77) still leaves it jumping or partly beyond the canvas.';
 const RELAYOUT_WITHIN_STAGE = 'Open (construction/layout, not camera): with the camera unchanged inside one stage, an inserted node '
   + 'or rebuilt workspace displaces syntax whose attachment is unchanged.';
+const SPREAD_RETENTION = 'Open (layout): the new stage spreads the unmoved shared syntax in opposite directions, so its carried '
+  + 'median shift is near zero and the retained view holds that syntax a few pixels less still than a fresh fit would.';
 const MOVED_OFF_CANVAS = 'Open (camera, low severity): the moved constituent\'s landing first paints beyond the canvas while the '
   + 'unmoved syntax stays in place; the camera then travels to it.';
 
@@ -52,6 +54,50 @@ export const EXCEPTIONS = [
   // Binding each hop to its new trace removes the saved analysis's off-canvas
   // unmoved pose at stage 10 on 711ef7d; the final subject raising now first
   // paints part of its landing beyond the canvas.
+  x(LOWERED_SUBTREE, 'movement/holdout-transitions.json#/3', 'first-paint-continuity', 'jump:camera', 'stage 2',
+    { desktop: { '28>29': 74.06 } },
+    { by: 'Francis Ronge', on: '2026-11-02', note: 'Option A on the row-plan crossings, 2 Nov 2026 in the lead session: \"honestly, i am fine with option A. it is not a huge deal, something is moving up and in front of the lower things so them repositioning down is not strange behaviour.\" The same jump and bound as the jump:stage-coordinates entry approved on 22 Oct; with one row origin for the whole Replay (planReplayRows) the vertical carry at the crossing moves the camera, so it reads as a camera jump.',
+      accepts: { desktop: { '28>29': 74.06 } } }),
+  x(LOWERED_SUBTREE, 'movement/holdout-transitions.json#/3', 'first-paint-continuity', 'jump:camera', 'stage 1',
+    { desktop: { '29>28': 64.82 } },
+    { by: 'Francis Ronge', on: '2026-11-02', note: 'Option A on the row-plan crossings, 2 Nov 2026 in the lead session: \"honestly, i am fine with option A. it is not a huge deal, something is moving up and in front of the lower things so them repositioning down is not strange behaviour.\" The same jump and bound as the jump:stage-coordinates entry approved on 22 Oct; with one row origin for the whole Replay (planReplayRows) the vertical carry at the crossing moves the camera, so it reads as a camera jump.',
+      accepts: { desktop: { '29>28': 64.82 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/unproven-second-landing.json#', 'first-paint-continuity', 'jump:camera', 'stage 4',
+    { desktop: { '19>20': 196.81 }, mobile: { '19>20': 71.74 } },
+    { by: 'Francis Ronge', on: '2026-11-02', note: 'Option A on the row-plan crossings, 2 Nov 2026 in the lead session: \"honestly, i am fine with option A. it is not a huge deal, something is moving up and in front of the lower things so them repositioning down is not strange behaviour.\" The same jump and bound as the jump:stage-coordinates entry approved on 24 Oct; with one row origin for the whole Replay (planReplayRows) the vertical carry at the crossing moves the camera, so it reads as a camera jump.',
+      accepts: { desktop: { '19>20': 196.81 }, mobile: { '19>20': 71.74 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/unproven-second-landing.json#', 'first-paint-continuity', 'jump:camera', 'stage 3',
+    { desktop: { '20>19': 164.13 }, mobile: { '20>19': 48.82 } },
+    { by: 'Francis Ronge', on: '2026-11-02', note: 'Option A on the row-plan crossings, 2 Nov 2026 in the lead session: \"honestly, i am fine with option A. it is not a huge deal, something is moving up and in front of the lower things so them repositioning down is not strange behaviour.\" The same jump and bound as the jump:stage-coordinates entry approved on 24 Oct; with one row origin for the whole Replay (planReplayRows) the vertical carry at the crossing moves the camera, so it reads as a camera jump.',
+      accepts: { desktop: { '20>19': 164.13 }, mobile: { '20>19': 48.82 } } }),
+  x(CROSSING_CENTRE, 'replay-regressions/unrecognized-movement.json#/cases/3', 'settled-path-independence', 'retention', 'stage 3',
+    { desktop: { '25>26': 68.46 } },
+    { by: 'Francis Ronge', on: '2026-10-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '29>30': 68.46 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/unrecognized-movement.json#/cases/3', 'first-paint-continuity', 'jump:camera', 'stage 3',
+    { desktop: { '25>26': 94.17 }, mobile: { '25>26': 63.01 } },
+    { by: 'Francis Ronge', on: '2026-11-02', note: 'Option A on the row-plan crossings, 2 Nov 2026 in the lead session: \"honestly, i am fine with option A. it is not a huge deal, something is moving up and in front of the lower things so them repositioning down is not strange behaviour.\" The same jump and bound as the jump:stage-coordinates entry approved on 22 Oct; with one row origin for the whole Replay (planReplayRows) the vertical carry at the crossing moves the camera, so it reads as a camera jump.',
+      accepts: { desktop: { '25>26': 94.17 }, mobile: { '25>26': 63.01 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/unrecognized-movement.json#/cases/3', 'first-paint-continuity', 'jump:camera', 'stage 2',
+    { desktop: { '26>25': 103.54 }, mobile: { '26>25': 52.73 } },
+    { by: 'Francis Ronge', on: '2026-11-02', note: 'Option A on the row-plan crossings, 2 Nov 2026 in the lead session: \"honestly, i am fine with option A. it is not a huge deal, something is moving up and in front of the lower things so them repositioning down is not strange behaviour.\" The same jump and bound as the jump:stage-coordinates entry approved on 22 Oct; with one row origin for the whole Replay (planReplayRows) the vertical carry at the crossing moves the camera, so it reads as a camera jump.',
+      accepts: { desktop: { '26>25': 103.54 }, mobile: { '26>25': 52.73 } } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 2', { desktop: { '35>34': 65.74 }, mobile: { '35>34': 35.63 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 3', { desktop: { '34>35': 65.74 }, mobile: { '34>35': 32.12 } },
+    { by: 'Francis Ronge', on: '2026-10-21', note: 'plaque reach: far plaque-frames 5,514→3,862; +1.16 px stage-crossing jump accepted (approved 20 Oct, reconfirmed 21 Oct in the lead session)',
+      accepts: { desktop: { '43>44': 65.74 }, mobile: { '43>44': 32.12 } } }),
+  x(SPREAD_RETENTION, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'settled-path-independence', 'retention',
+    'stage 3', { desktop: { '34>35': 30.03 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 2', { desktop: { '35>34': 65.74 }, mobile: { '35>34': 35.63 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 3', { desktop: { '34>35': 65.74 }, mobile: { '34>35': 32.12 } },
+    { by: 'Francis Ronge', on: '2026-10-21', note: 'plaque reach: far plaque-frames 5,514→3,862; +1.16 px stage-crossing jump accepted (approved 20 Oct, reconfirmed 21 Oct in the lead session)',
+      accepts: { desktop: { '43>44': 65.74 }, mobile: { '43>44': 32.12 } } }),
+  x(SPREAD_RETENTION, 'replay-regressions/waiting-root-continuity.json#', 'settled-path-independence', 'retention',
+    'stage 3', { desktop: { '34>35': 30.03 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/successive-cyclic-source.json#/cases/0', 'first-paint-continuity', 'off-canvas:moved', 'stage 12',
     { desktop: { '99>100': 27.83 }, mobile: { '99>100': 56.45 } },
     { by: 'Francis Ronge', on: '2026-10-23', note: 'Structural movement on (fix/structural-movement-live): drawing the movements it recovers carries their slot and landing reservations back into earlier stages, so lifetime plaque pockets shift. Francis, 23 Oct in the lead session, told the change is invisible: \'If I won\'t even see them, then I won\'t waste time worrying about it, merge\': a held movement-slot clearance shifts stage 5 by 3.46 units, so the landing first paints 27.83 px beyond the canvas instead of 27.71.',
