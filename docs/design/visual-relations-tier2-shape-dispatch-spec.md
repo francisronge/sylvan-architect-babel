@@ -1722,7 +1722,19 @@ Blocked Extraction does not duplicate that path.
 Lens emphasis is a Tier-2 presentation output emitted by a complete facet
 while its lens is active. Forest light belongs to the identity occurrence
 claim. It persists with that claim and follows the same active-versus-quiet
-Replay emphasis as every other relation mark. Their late DOM/canvas
+Replay emphasis as every other relation mark.
+
+An identity occurrence claim covers its whole chain: once a relation earns an
+identity family for a lineage, every other node that relation anchors with
+that lineage joins the family, whatever its field is called, so the coindex
+and its forest light reach the pronounced member as well as the traces.
+Membership is decided by lineage and structure, never by field names. A node
+that occurs more than once, sits inside a member or contains one stays out, as
+does every item of a list that repeats an ID. Completion never creates a
+family, and movement recognition and diagnostic ownership still read the
+occurrences recognized before completion. Families of one relation that
+complete to the same occurrences are one claim, and a claim identical to an
+earlier one of its stage shares its marks while keeping its own moment. Their late DOM/canvas
 application is an implementation phase, not a dispatch exclusion.
 
 Large-array anchor badges and rails are organizational outputs. They inherit
