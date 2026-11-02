@@ -66,8 +66,13 @@ the carry holds that syntax still while the closing side slides; the screen
 gives that up only where it would paint shared syntax farther beyond the view.
 A tie between two equal blocks of a narrowed reference (lowered or held) follows
 the block the rest of the unmoved syntax agrees with.
-Where a boundary inserts a parent above an existing subtree, the carry holds the
-syntax it does not lower (`carryReference`). When three nodes or fewer are left,
+Rows come from one plan for the whole Replay (`planReplayRows`): at a step
+that inserts a parent above syntax it already painted, the larger side keeps
+its row and the smaller moves, so the rule lets the syntax above that new
+parent rise straight up by one row per level the step inserts in its tree
+(`insertionRises`). Where a boundary inserts a parent above an existing subtree,
+the carry holds the syntax it does not lower (`carryReference`), unless the
+lowered syntax is the larger side, which then holds. When three nodes or fewer are left,
 it holds them only if the lowered words keep their place beside them, which the
 stage plan arranges where earlier stages have room (`holdLoweredSubtrees`);
 otherwise the lowered syntax decides the carry.

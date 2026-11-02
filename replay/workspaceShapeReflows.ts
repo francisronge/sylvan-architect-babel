@@ -7,7 +7,8 @@ import type { PlaybackStep } from './types.ts';
 import { visibleComponentNodes } from './visibleComponent.ts';
 import { changesOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
 import { paintedShift, type CarryOptions } from './cameraCarry.ts';
-import { closingGroups, stepOwnership, stepTrajectoryParticipants } from './motionRule.ts';
+import { closingGroups, insertionRises, stepOwnership, stepTrajectoryParticipants } from './motionRule.ts';
+import { TREE_ROW_HEIGHT } from './treeSpacing.ts';
 import { workspaceMotionOwnership, type WorkspaceMotionView } from './workspaceMotionOwnership.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
@@ -138,10 +139,18 @@ function detectWorkspaceReflows<S extends Scene>(
         const oldPositions = positions(index - 1), newPositions = positions(index);
         const closing = ownClosings ? closingAt(scenes[index - 1].step, scenes[index].step, before.nodes, current.nodes, oldPositions, newPositions,
           { closing: Boolean(scenes[index].closing) }) : undefined;
+        // Syntax above a parent the step inserts may rise straight up by its
+        // rows, as the motion rule grants (`insertionRises`).
+        const rises = insertionRises([...current.nodes.keys()].map(id => ({ id, parent: current.parents.get(id) ?? null })),
+          new Map([...before.nodes.keys()].map(id => [id, { id, parent: before.parents.get(id) ?? null }])));
+        const risen = (id: string, dx: number, dy: number) => {
+          const rows = -dy / TREE_ROW_HEIGHT, levels = rises.get(id) ?? 0;
+          return levels > 0 && Math.abs(dx) <= 1e-6 && rows > 0 && Math.abs(rows - Math.round(rows)) < 1e-6 && Math.round(rows) <= levels;
+        };
         for (const id of stationary) {
           if (closing?.has(id)) continue;
           const prior = oldPositions.get(id), next = newPositions.get(id);
-          if (prior && next && Math.hypot(next.x - prior.x, next.y - prior.y) > 1e-6)
+          if (prior && next && Math.hypot(next.x - prior.x, next.y - prior.y) > 1e-6 && !risen(id, next.x - prior.x, next.y - prior.y))
             result.push({ index, rootId: id, kind: 'unowned-component-motion' });
         }
       }

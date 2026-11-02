@@ -8,7 +8,7 @@ import type { PlaybackStep } from './types.ts';
 /** Each painted node's row height (tree units) in each step, by step and node id. */
 export type ReplayRows = ReadonlyMap<PlaybackStep, ReadonlyMap<string, number>>;
 
-const plans = new WeakMap<readonly PlaybackStep[], ReplayRows>();
+const plans = new WeakMap<readonly PlaybackStep[], { rows: ReplayRows; seeded: boolean }>();
 
 /**
  * One row plan for the whole Replay. A tree grows from its root, so a parent
@@ -18,15 +18,16 @@ const plans = new WeakMap<readonly PlaybackStep[], ReplayRows>();
  * the larger part of the syntax it shares with the next step keeps its row:
  * the smaller part above an insertion rises, a waiting phrase waits at the row
  * it merges at, and a piece the step does not touch stays where it is. The
- * last step keeps its own rows, so the Canopy is unchanged.
+ * last step keeps the rows its layout gives it (`finalRows`, by node id), so
+ * the finished tree and the Canopy are unchanged.
  *
  * Rows are whole multiples of the stage's row height counted from a common
  * origin, so stages need no vertical alignment to each other. Only painted
  * syntax is planned; reserved, unpainted nodes keep the rows the layout gave.
  */
-export function planReplayRows(steps: readonly PlaybackStep[]): ReplayRows {
+export function planReplayRows(steps: readonly PlaybackStep[], finalRows?: ReadonlyMap<string, number>): ReplayRows {
   const cached = plans.get(steps);
-  if (cached) return cached;
+  if (cached && (cached.seeded || !finalRows)) return cached.rows;
   // Stage order, then each stage's own step order (as the stage layout reads
   // it), so the plan never depends on how the step list is ordered.
   const within = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
@@ -78,10 +79,10 @@ export function planReplayRows(steps: readonly PlaybackStep[]): ReplayRows {
     // A tie keeps the lower half still: half a piece is not its larger part.
     const offsets = new Map([...shifts].map(([top, list]) => [top, list.sort((a, b) => a - b)[(list.length - 1) >> 1]]));
     const planned = new Map<string, number>();
-    for (const [id, row] of depthRow) planned.set(id, row + (offsets.get(piece.get(id)!) ?? 0));
+    for (const [id, row] of depthRow) planned.set(id, !next && finalRows?.has(id) ? finalRows.get(id)! : row + (offsets.get(piece.get(id)!) ?? 0));
     rows.set(step, planned);
     next = planned; nextScene = scene;
   }
-  plans.set(steps, rows);
+  plans.set(steps, { rows, seeded: Boolean(finalRows) });
   return rows;
 }

@@ -527,7 +527,13 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
   treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, plaques?: StagePlaques): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
   const planned = closedStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, plaques)
     ?? planStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
-  applyReplayRows(steps, stageIndex, planned);
+  // The row plan starts from the finished tree's own rows, so the last stage
+  // is planned first.
+  const lastStage = Math.max(...steps.map(step => step.replayCanvasData ? step.replayFrameIndex ?? -1 : -1));
+  const lastSize = stageIndex !== lastStage ? sizeForStage?.(lastStage) : null;
+  if (lastSize) buildStageCoordinateReservations(steps, lastStage, lastSize, sizeForStage, 'ltr',
+    measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, plaques);
+  applyReplayRows(steps, stageIndex, planned, stageIndex === lastStage);
   const previousSize = stageIndex > 0 ? sizeForStage?.(stageIndex - 1) : null;
   if (previousSize && !heldChecked.has(planned)) {
     heldChecked.add(planned);
@@ -628,10 +634,14 @@ const rowed = new WeakSet<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>();
 /** Gives this stage's painted syntax its rows from the Replay's one row plan
  * (`planReplayRows`), in place, so every record kept on these reservations
  * (closings, held carries, reflections) stays with them. */
-function applyReplayRows(steps: readonly PlaybackStep[], stageIndex: number, planned: StageFrames) {
+function applyReplayRows(steps: readonly PlaybackStep[], stageIndex: number, planned: StageFrames, last: boolean) {
   if (rowed.has(planned)) return;
   rowed.add(planned);
-  const rows = planReplayRows(steps);
+  const within = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
+  const finalStep = last ? steps.filter(step => step.replayFrameIndex === stageIndex && step.replayCanvasData)
+    .sort((a, b) => within(a) - within(b)).at(-1) : undefined;
+  const finalCoordinates = finalStep && planned.get(finalStep.replayCanvasData!);
+  const rows = planReplayRows(steps, finalCoordinates ? new Map([...finalCoordinates].map(([id, point]) => [id, point.y])) : undefined);
   for (const step of steps) {
     if (step.replayFrameIndex !== stageIndex || !step.replayCanvasData) continue;
     const coordinates = planned.get(step.replayCanvasData), stepRows = rows.get(step);

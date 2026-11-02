@@ -82,6 +82,10 @@ Programs run in numeric order, except for small provider-free maintenance that
 keeps later work buildable. Launch is public Babel only, as defined in
 [CONTEXT.md](CONTEXT.md): it needs public generation from Program 1, public
 Babel from Program 3 (3A, 3B, 3D), Program 5 and the Generation Archive (6A).
+It also needs the Replay layout follow-ups of the current work order, item 2:
+the rise rule, the stage layout planned from derivation states and the
+step-order work it unblocks (Francis, 2026-11-02, on calling them optional:
+"Wtf are you saying? NO").
 The research workbench (3C), the Reviewed Derivational Corpus (6B) and the
 benchmark in Programs 7 and 8 come after launch.
 
@@ -426,10 +430,12 @@ review authority, and correction path.
   about them, since we're not changing how they look, so we won't bend them
   or anything" on 2026-10-24). Case arrows are different: they always bend.
 
-- Gliding layout changes between Replay steps. A host steps down one row when
-  a parent is inserted above it, instead of keeping a stretched branch
-  (Francis: "no glide." on 2026-10-18; "no i'm fine with the step down" on
-  2026-10-23).
+- Gliding layout changes between Replay steps (Francis: "no glide." on
+  2026-10-18). When a parent is inserted above existing syntax, the smaller
+  side of the insertion moves one row instead: the syntax above it rises, or a
+  smaller phrase below it drops, and untouched pieces and waiting phrases keep
+  their rows (`replay/replayRows.ts`; Francis on 2026-11-02, replacing the
+  2026-10-23 step-down: "yes try it", "It's better").
 
 - More relation-card design without a reproducible defect.
 - Provider calls as part of default verification.

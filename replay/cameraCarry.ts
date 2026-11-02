@@ -89,8 +89,11 @@ function carryReferences(before: PaintedNodes, after: PaintedNodes): { reference
   const over = new Set([...lowered].flatMap(id => lineage(after, id)));
   const held = unmoved.filter(id => !lowered.has(id) && !over.has(id));
   // The Replay's row plan keeps the larger side of an insertion still
-  // (planReplayRows): a larger lowered side holds and the rest rises.
-  if (lowered.size > held.length) return { reference: [...lowered], unmoved };
+  // (planReplayRows): where a larger lowered side differs from the rest only by
+  // rows, it holds and the rest rises.
+  const sideways = (ids: Iterable<string>) => middle([...ids].map(id => after.get(id)!.x - before.get(id)!.x));
+  if (lowered.size > held.length && held.length && Math.abs(sideways(lowered) - sideways(held)) <= CARRY_TOLERANCE)
+    return { reference: [...lowered], unmoved };
   if (held.length > MIN_HELD) return { reference: held, unmoved };
   if (!held.length) return { reference: unmoved, unmoved };
   // A lowered subtree whose words keep their place beside the few held nodes

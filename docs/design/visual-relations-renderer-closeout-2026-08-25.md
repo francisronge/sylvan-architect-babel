@@ -188,6 +188,11 @@ than before (within one unit). That includes the landing's own plaques:
 travelling with their anchor does not keep their pocket clear of the syntax they
 now pass.
 
+Rows follow one plan for the whole Replay: when a parent is inserted above
+existing syntax, the larger side keeps its row and the smaller side moves one
+row, so the syntax above an insertion rises rather than everything below it
+dropping, and a separate piece the step does not touch keeps its row.
+
 Each stage is laid out on its own, so a stage crossing can shift syntax that no
 step moves. Unmoved syntax that shifts rigidly keeps its place relative to the
 camera carry from the crossing on. A leaf that keeps its row while the syntax
