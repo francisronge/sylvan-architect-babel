@@ -104,8 +104,12 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction o
     assert.equal(predicate.y, subject.y, 'the current VP daughters must share a rank');
     assert.equal(after.get('mVbar').y, after.get('mLow').y, 'the built wrapper occupies that rank');
     assert.equal(before.has('mVbar'), false, 'the reserved parent remains invisible');
+    // The new wrapper adds its level only when built. The smaller side of the
+    // insertion moves (planReplayRows): the predicate drops a row, or, as the
+    // larger side, keeps its row while its parent and sister rise.
     const dy = after.get('mVbarCore').y - predicate.y;
-    assert(dy > 0, 'the new wrapper adds its level only when built');
+    if (dy > 0) assert.equal(after.get('mLow').y, subject.y, 'a dropping predicate leaves its sister in place');
+    else assert(dy === 0 && after.get('mLow').y < subject.y, 'a holding predicate lets its sister rise');
     for (const node of predicate.descendants()) {
       const next = after.get(getNodeId(node));
       assert(next, 'the existing subtree survives wrapper insertion');

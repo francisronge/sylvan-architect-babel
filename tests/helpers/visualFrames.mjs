@@ -628,7 +628,7 @@ export function markMotionFindings(frames, thresholds = THRESHOLDS) {
     if (!early.has(frame.viewport)) early.set(frame.viewport, new Set());
     if (!before) early.get(frame.viewport).clear();
     const shift = before && before.stage !== frame.stage && before.painted && frame.painted
-      ? paintedShift(before.painted, frame.painted, { closing: Boolean(frame.closing), held: frame.held }) : undefined;
+      ? paintedShift(before.painted, frame.painted, { closing: Boolean(frame.closing), held: frame.held, rises: true }) : undefined;
     const ahead = [];
     for (let next = byPlace.get(`${frame.viewport} ${frame.frame + 1}`); next && next.stage === frame.stage;
       next = byPlace.get(`${frame.viewport} ${next.frame + 1}`)) ahead.push(next);
