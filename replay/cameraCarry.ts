@@ -61,13 +61,13 @@ function lineage(nodes: PaintedNodes, id: string) {
  * children. With too little syntax left, the shared-ancestor rule alone decides,
  * unless the lowered words keep their place beside what is left; with none of
  * that, every shared node does. */
-export function carryReference(before: PaintedNodes, after: PaintedNodes) {
-  return carryReferences(before, after).reference;
+export function carryReference(before: PaintedNodes, after: PaintedNodes, { rises = false }: Pick<CarryOptions, 'rises'> = {}) {
+  return carryReferences(before, after, rises).reference;
 }
 
 /** The carry reference (`carryReference`) and the shared syntax whose shared
  * ancestors are unchanged (`unmoved`), which it is drawn from. */
-function carryReferences(before: PaintedNodes, after: PaintedNodes): { reference: string[]; unmoved: string[] } {
+function carryReferences(before: PaintedNodes, after: PaintedNodes, rises = false): { reference: string[]; unmoved: string[] } {
   const shared = [...after.keys()].filter(id => before.has(id));
   // Shared nodes that painted a daughter before and paint none now. A moved
   // head's word is renamed with its owner (`s::__leaf` becomes `L::__leaf`),
@@ -88,6 +88,15 @@ function carryReferences(before: PaintedNodes, after: PaintedNodes): { reference
   if (!lowered.size) return { reference: unmoved.length ? unmoved : shared, unmoved };
   const over = new Set([...lowered].flatMap(id => lineage(after, id)));
   const held = unmoved.filter(id => !lowered.has(id) && !over.has(id));
+  // The Replay's row plan gives every stage one row origin and keeps the
+  // larger side of an insertion on its rows (planReplayRows): where the
+  // lowered syntax keeps its rows while the rest changes them, and the two
+  // keep their sideways places relative to each other, it holds and the rest
+  // rises. A crossing that also moves one side sideways keeps the rest still.
+  const moved = (ids: Iterable<string>, axis: 'x' | 'y') => middle([...ids].map(id => after.get(id)![axis] - before.get(id)![axis]));
+  if (rises && held.length && Math.abs(moved(lowered, 'y')) <= CARRY_TOLERANCE && Math.abs(moved(held, 'y')) > CARRY_TOLERANCE
+    && Math.abs(moved(lowered, 'x') - moved(held, 'x')) <= CARRY_TOLERANCE)
+    return { reference: [...lowered], unmoved };
   if (held.length > MIN_HELD) return { reference: held, unmoved };
   if (!held.length) return { reference: unmoved, unmoved };
   // A lowered subtree whose words keep their place beside the few held nodes
@@ -117,6 +126,10 @@ export type CarryOptions = {
    * (`paintedShift`); false takes the plain median, as the screen does where
    * the tie's end would paint shared syntax farther beyond its view. */
   tie?: boolean;
+  /** The coordinates carry the Replay's row plan (planReplayRows), so a lowered
+   * side that keeps its rows while the rest changes them is the side that holds.
+   * Stage planning, which reads coordinates before the plan, leaves it off. */
+  rises?: boolean;
 };
 
 /** Shifts within this many tree units count as one block (`carriedMedian`). */
@@ -148,8 +161,8 @@ export function carriedMedian(values: number[], closing = false, tie?: number) {
  * (`carriedMedian`), restricted to the plan's `held` syntax where it records
  * some. A tie in a reference narrower than the unmoved shared syntax (a lowered
  * crossing, or a held one) is broken toward the median of that unmoved syntax. */
-export function paintedShift(before: PaintedNodes, after: PaintedNodes, { closing = false, held, tie = true }: CarryOptions = {}) {
-  const references = carryReferences(before, after), { unmoved } = references;
+export function paintedShift(before: PaintedNodes, after: PaintedNodes, { closing = false, held, tie = true, rises = false }: CarryOptions = {}) {
+  const references = carryReferences(before, after, rises), { unmoved } = references;
   const keep = held && new Set(held), kept = keep ? references.reference.filter(id => keep.has(id)) : [];
   const reference = kept.length ? kept : references.reference;
   if (!reference.length) return { x: 0, y: 0 };
