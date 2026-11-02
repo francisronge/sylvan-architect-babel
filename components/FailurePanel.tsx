@@ -83,13 +83,13 @@ const FailurePanel: React.FC<FailurePanelProps> = ({
         <p role="alert" className="serif italic text-rose-200">{message}</p>
         {failure && (
           <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 font-mono text-[10px]">
-            <dt className="text-rose-400/70">Class</dt>
+            <dt className="text-rose-400/80">Class</dt>
             <dd>{failure.class}</dd>
-            <dt className="text-rose-400/70">Rule</dt>
+            <dt className="text-rose-400/80">Rule</dt>
             <dd>{failure.ruleId}</dd>
-            <dt className="text-rose-400/70">Stage</dt>
+            <dt className="text-rose-400/80">Stage</dt>
             <dd>{failure.stageIndex === null ? 'pre-parse / not applicable' : failure.stageIndex + 1}</dd>
-            <dt className="text-rose-400/70">Path</dt>
+            <dt className="text-rose-400/80">Path</dt>
             <dd className="break-all">{failure.fieldPath}</dd>
           </dl>
         )}
