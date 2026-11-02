@@ -215,6 +215,15 @@ test('a redraw into new stage coordinates that the camera compensates is not a f
   assert.deepEqual(rules(judgeStepMotion(samples, { place })).filter(rule => rule.endsWith('fly-in')), []);
 });
 
+test('a camera that jumps at a redraw and glides back is a fly-in', () => {
+  // Codex review of #361: unchanged tree coordinates, a new drawing with a
+  // 100px camera shift, then a smooth return.
+  const home = { x: 0, y: 0, k: 0.2 }, away = { x: 100, y: 0, k: 0.2 };
+  const samples = [posed(0, treeAt(), home), { ...posed(16, treeAt(), away), gen: 2 },
+    ...glide(away, home, 22, 16, treeAt()).map(item => ({ ...item, gen: 2 }))];
+  assert.ok(judgeStepMotion(samples, { place }).some(item => item.subtype === 'fly-in'));
+});
+
 test('a node that leaves and comes back in the tree is a fly-in under any camera', () => {
   const camera = { x: 0, y: 0, k: 0.2 }, out = treeAt({ n7: [4800 + 1500, 1000] });
   const samples = [posed(0, treeAt(), camera), ...Array.from({ length: 10 }, (_, index) => posed(17 * (index + 1), index < 5 ? out : treeAt(), camera))];
