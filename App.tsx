@@ -459,7 +459,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                         className={`flex items-center gap-2 md:gap-2.5 px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest shadow-inner group whitespace-nowrap ${
                           abstractionMode
                           ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                          : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
+                          : 'bg-white/5 border-white/10 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30'
                         }`}
                       >
                         <Triangle size={12} className={`${abstractionMode ? 'fill-amber-400' : 'group-hover:text-emerald-400'} transition-colors`} />
@@ -618,7 +618,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               <LoadingMark />
               <div role="status" className="text-center z-10 min-h-[88px] flex flex-col justify-start">
                 <p className="text-white font-black serif italic text-2xl mb-1">Synthesizing Neural Roots...</p>
-                <p className="text-emerald-500/40 font-black uppercase text-[9px] tracking-[0.7em]">Deep Parsing {framework === 'xbar' ? 'X-Bar' : 'Minimalist'} Structures</p>
+                <p className="text-emerald-500/75 font-black uppercase text-[9px] tracking-[0.7em]">Deep Parsing {framework === 'xbar' ? 'X-Bar' : 'Minimalist'} Structures</p>
               </div>
             </div>
           )}
@@ -647,7 +647,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               </div>
               <div className="text-center z-10 min-h-[88px] flex flex-col justify-start">
                 <p className="font-extrabold text-white text-2xl md:text-3xl mono mb-3 tracking-tighter">Awaiting Structural Genesis</p>
-                <p className="text-emerald-900 font-black uppercase text-[9px] md:text-[10px] tracking-[0.5em] md:tracking-[0.8em] opacity-80 text-balance max-w-lg mx-auto px-4">Cast a thought into the generative soil to begin its derivation.</p>
+                <p className="text-emerald-500/85 font-black uppercase text-[9px] md:text-[10px] tracking-[0.5em] md:tracking-[0.8em] text-balance max-w-lg mx-auto px-4">Cast a thought into the generative soil to begin its derivation.</p>
               </div>
             </div>
           )}
@@ -668,7 +668,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                   className={`group relative w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all border shadow-2xl disabled:opacity-20 disabled:cursor-not-allowed ${
                     activeTab === tab.id
                     ? 'moss-gradient text-white border-emerald-400/50 shadow-[0_0_20px_rgba(6,78,59,0.4)] scale-110'
-                    : 'glass-dark text-emerald-600/60 border-white/5 hover:text-emerald-400 hover:border-white/10 hover:scale-105'
+                    : 'glass-dark text-emerald-600/70 border-white/5 hover:text-emerald-400 hover:border-white/10 hover:scale-105'
                   }`}
                 >
                   <tab.icon size={18} className="md:w-[22px] md:h-[22px]" />
@@ -746,7 +746,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           <textarea
                             ref={sentenceInputRef}
                             aria-label="Sentence to analyze"
-                            className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 md:p-4 text-emerald-50 serif italic placeholder:text-emerald-900/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all resize-none h-16 md:h-20 text-base md:text-lg shadow-inner leading-relaxed"
+                            className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 md:p-4 text-emerald-50 serif italic placeholder:text-emerald-500/75 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all resize-none h-16 md:h-20 text-base md:text-lg shadow-inner leading-relaxed"
                             placeholder={`Plant a ${framework === 'xbar' ? 'Generative' : 'Minimalist'} linguistic seed...`}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
@@ -776,7 +776,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                     {!isInputExpanded && (
                       <button type="button" aria-label="Expand Arbor Control" className="w-full px-5 md:px-7 py-3 md:py-4 flex items-center justify-between cursor-pointer group hover:bg-white/5 transition-colors" onClick={() => setIsInputExpanded(true)}>
                         <span className="text-emerald-50/50 serif italic text-xs md:text-sm truncate max-w-[220px] md:max-w-[400px]">"{input}"</span>
-                        <span className="text-[8px] font-black text-emerald-500/30 uppercase tracking-[0.4em] group-hover:text-emerald-500 transition-colors">Expand Arbor Control</span>
+                        <span className="text-[8px] font-black text-emerald-500/75 uppercase tracking-[0.4em] group-hover:text-emerald-500 transition-colors">Expand Arbor Control</span>
                       </button>
                     )}
                   </div>
@@ -815,7 +815,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                 <Key size={10} /> External API Key Required
               </div>
             )}
-            <div className="italic serif lowercase text-[10px] tracking-normal opacity-40">
+            <div className="italic serif lowercase text-[10px] tracking-normal text-emerald-500/75">
               rooted in {framework === 'xbar' ? 'generative grammar' : 'minimalist principles'} and neural synthesis
             </div>
           </div>
