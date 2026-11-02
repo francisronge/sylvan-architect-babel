@@ -161,8 +161,10 @@ export function replayMotionFaults({ frames }: { frames: readonly any[] }, { thr
         || childIds(current, point.parent) !== childIds(prior, point.parent)) continue;
       // A closing side slides whole while the parents spanning the gap recentre.
       if (closing.has(point.id)) continue;
-      // A parent recentring over deeper changes moves alone; the child did not move.
-      const own = motion(index, point.id), carrier = motion(index, point.parent);
+      // A parent recentring over deeper changes moves alone; the child did not
+      // move. A granted rise is the step's own motion, not a change of shape.
+      const unrisen = (id: string) => { const shift = motion(index, id)!; return risen(id, { x: 0, y: shift.y }) ? { x: shift.x, y: 0 } : shift; };
+      const own = unrisen(point.id), carrier = unrisen(point.parent);
       const distance = length({ x: own.x - carrier.x, y: own.y - carrier.y });
       if (length(own) > threshold && distance > threshold) faults.push({ frame: index + 1, step: stepKeys[index], node: point.id, kind: 'shape-motion', operation, distance });
     }

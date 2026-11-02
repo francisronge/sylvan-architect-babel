@@ -90,10 +90,12 @@ function carryReferences(before: PaintedNodes, after: PaintedNodes, rises = fals
   const held = unmoved.filter(id => !lowered.has(id) && !over.has(id));
   // The Replay's row plan gives every stage one row origin and keeps the
   // larger side of an insertion on its rows (planReplayRows): where the
-  // lowered syntax keeps its rows while the rest changes them, it holds and
-  // the rest rises.
-  const rise = (ids: Iterable<string>) => middle([...ids].map(id => after.get(id)!.y - before.get(id)!.y));
-  if (rises && held.length && Math.abs(rise(lowered)) <= CARRY_TOLERANCE && Math.abs(rise(held)) > CARRY_TOLERANCE)
+  // lowered syntax keeps its rows while the rest changes them, and the two
+  // keep their sideways places relative to each other, it holds and the rest
+  // rises. A crossing that also moves one side sideways keeps the rest still.
+  const moved = (ids: Iterable<string>, axis: 'x' | 'y') => middle([...ids].map(id => after.get(id)![axis] - before.get(id)![axis]));
+  if (rises && held.length && Math.abs(moved(lowered, 'y')) <= CARRY_TOLERANCE && Math.abs(moved(held, 'y')) > CARRY_TOLERANCE
+    && Math.abs(moved(lowered, 'x') - moved(held, 'x')) <= CARRY_TOLERANCE)
     return { reference: [...lowered], unmoved };
   if (held.length > MIN_HELD) return { reference: held, unmoved };
   if (!held.length) return { reference: unmoved, unmoved };
