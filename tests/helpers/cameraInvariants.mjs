@@ -27,6 +27,9 @@
  * authored stage of the frame. Where several passes paint the same fault, one
  * finding keeps the largest measure. Checkers never assert. */
 
+import { insertionRises } from '../../replay/motionRule.ts';
+import { TREE_ROW_HEIGHT } from '../../replay/treeSpacing.ts';
+
 // canopy-final-frame is checked by visualFrames.mjs (compareCanopyToFinalFrame) and
 // reported with the camera audit, which lays out each record at desktop and mobile.
 export const CAMERA_RULES = ['settled-path-independence', 'content-placement', 'first-paint-continuity', 'within-stage-stability',
@@ -88,11 +91,27 @@ const worstOverflow = (pose, frame, view) => Math.max(...Object.values(overflow(
 const sharedIds = (before, after) => [...after.nodes.keys()].filter(id => before.nodes.has(id));
 /** Shared syntax whose shared ancestry is unchanged: what a step does not move.
  * A reattached (moved) constituent changes ancestry and may legitimately travel. */
-export function unmovedIds(before, after) {
+export function unmovedIds(before, after, { rises: grantRises = true } = {}) {
   const shared = sharedIds(before, after);
   const both = new Set(shared);
   const lineage = (frame, id) => JSON.stringify((frame.nodes.get(id).ancestors ?? []).filter(ancestor => both.has(ancestor)));
-  return shared.filter(id => lineage(before, id) === lineage(after, id));
+  const unmoved = shared.filter(id => lineage(before, id) === lineage(after, id));
+  if (!grantRises) return unmoved;
+  // Syntax above a parent the step inserts, when it rises by whole rows past
+  // the rest, is the step's own motion (insertionRises, as the motion rule
+  // grants): the row plan holds the larger side and raises the smaller.
+  // Stepping back over the insertion, the same syntax drops back by its rows.
+  const points = frame => [...frame.nodes].map(([id, node]) => ({ id, parent: node.ancestors?.[0] ?? null }));
+  const map = frame => new Map(points(frame).map(point => [point.id, point]));
+  const forward = insertionRises(points(after), map(before));
+  const rises = forward.size ? forward : insertionRises(points(before), map(after)), sign = forward.size ? -1 : 1;
+  const rising = unmoved.filter(id => rises.has(id)), staying = unmoved.filter(id => !rises.has(id));
+  if (!rising.length || !staying.length) return unmoved;
+  const dy = ids => { const values = ids.map(id => after.nodes.get(id).y - before.nodes.get(id).y).sort((a, b) => a - b);
+    return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2; };
+  // One row origin serves every stage, so the staying side keeps its rows.
+  const rows = sign * dy(rising) / TREE_ROW_HEIGHT;
+  return Math.abs(dy(staying)) < 1e-6 && rows >= 1 - 1e-6 && Math.abs(rows - Math.round(rows)) < 1e-6 ? staying : unmoved;
 }
 /** Per-node on-screen travel of `ids` from `before` painted with `fromPose` to `after` painted with `toPose`. */
 export function syntaxTravel(fromPose, before, toPose, after, ids) {
@@ -247,7 +266,10 @@ export function checkFirstPaintContinuity(trace, thresholds = CAMERA_THRESHOLDS)
     // Syntax the step's own closing moves (frame `closing`, the movement step's
     // closing of the gap its phrase leaves) moves with the step, in either direction.
     const closing = Math.abs(step.to - step.from) === 1 ? trace.frames[Math.max(step.from, step.to)].closing : undefined;
-    const attached = unmovedIds(before, after), unmoved = attached.filter(id => !closing?.has(id)), still = new Set(unmoved);
+    // Off-canvas syntax is named by its ancestry alone; the reference for a
+    // jump leaves out the smaller side an insertion raises (unmovedIds).
+    const attached = unmovedIds(before, after), unmoved = attached.filter(id => !closing?.has(id));
+    const still = new Set(unmovedIds(before, after, { rises: false }).filter(id => !closing?.has(id)));
     const place = { rule: 'first-paint-continuity', subject: stageOf(after), frame: transition(step) };
     const paints = `the first pose ${poseText(step.first)} after ${poseText(step.before)}`;
     const lost = shared.filter(id => !outside(screen(step.before, before.nodes.get(id)))

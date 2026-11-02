@@ -31,16 +31,15 @@ for (const { id, frame, node, main } of cases) test(`${id}: the head beside the 
   assert.ok(jump < 0.6 * main, `${node} at ${frame} moves ${jump.toFixed(1)} (main ${main})`);
 });
 
-test('the camera holds the larger side of an insertion that changes only rows', () => {
-  // IP, lowered under a new IP', keeps its words' x: the larger side of the
-  // insertion holds and C, above it, rises (planReplayRows).
+test('the camera holds a lone sister when the lowered subtree beside it keeps its place', () => {
+  // C stays; IP, lowered under a new IP', keeps its words' x and drops a row.
   const before = new Map([['CP', { x: 100, y: 0, parentId: null }], ['C', { x: 0, y: 100, parentId: 'CP' }],
     ['IP', { x: 200, y: 100, parentId: 'CP' }], ['NP', { x: 150, y: 200, parentId: 'IP' }], ['I', { x: 250, y: 200, parentId: 'IP' }]]);
   const after = new Map([['CP', { x: 150, y: 0, parentId: null }], ['C', { x: 0, y: 100, parentId: 'CP' }],
     ['IPx', { x: 300, y: 100, parentId: 'CP' }], ['IP', { x: 200, y: 200, parentId: 'IPx' }], ['CP2', { x: 400, y: 200, parentId: 'IPx' }],
     ['NP', { x: 150, y: 300, parentId: 'IP' }], ['I', { x: 250, y: 300, parentId: 'IP' }]]);
-  assert.deepEqual(carryReference(before, after).sort(), ['I', 'IP', 'NP']);
-  // Laid out sideways instead, the static side no longer holds alone.
+  assert.deepEqual(carryReference(before, after), ['C']);
+  // Laid out sideways instead, the lowered words still decide, as before.
   const sideways = new Map([...after].map(([id, point]) => [id, ['IP', 'NP', 'I'].includes(id) ? { ...point, x: point.x - 300 } : point]));
   assert.notDeepEqual(carryReference(before, sideways), ['C']);
 });

@@ -88,11 +88,12 @@ function carryReferences(before: PaintedNodes, after: PaintedNodes): { reference
   if (!lowered.size) return { reference: unmoved.length ? unmoved : shared, unmoved };
   const over = new Set([...lowered].flatMap(id => lineage(after, id)));
   const held = unmoved.filter(id => !lowered.has(id) && !over.has(id));
-  // The Replay's row plan keeps the larger side of an insertion still
-  // (planReplayRows): where a larger lowered side differs from the rest only by
-  // rows, it holds and the rest rises.
-  const sideways = (ids: Iterable<string>) => middle([...ids].map(id => after.get(id)!.x - before.get(id)!.x));
-  if (lowered.size > held.length && held.length && Math.abs(sideways(lowered) - sideways(held)) <= CARRY_TOLERANCE)
+  // The Replay's row plan gives every stage one row origin and keeps the
+  // larger side of an insertion on its rows (planReplayRows): where the
+  // lowered syntax keeps its rows while the rest changes them, it holds and
+  // the rest rises.
+  const rise = (ids: Iterable<string>) => middle([...ids].map(id => after.get(id)!.y - before.get(id)!.y));
+  if (held.length && Math.abs(rise(lowered)) <= CARRY_TOLERANCE && Math.abs(rise(held)) > CARRY_TOLERANCE)
     return { reference: [...lowered], unmoved };
   if (held.length > MIN_HELD) return { reference: held, unmoved };
   if (!held.length) return { reference: unmoved, unmoved };
