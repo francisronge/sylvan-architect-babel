@@ -45,6 +45,10 @@ export interface RecoveredMovement {
    * its preceding slot (`keptLandingWithoutLineage`). Lineage checks on this
    * movement's two ends accept it in place of the authored field. */
   recoveredLandingLineageId?: string;
+  /** A head complex that moved without a lineage of its own: each pair of a
+   * member's lower occurrence and landing, of one lineage, proves the identity
+   * a lineage on the complex would (`readStageDisplacements`). */
+  complexMemberPairs?: Array<[string, string]>;
 }
 
 type MovementContextKind = 'site' | 'head-host' | 'head-complex' | 'head-landing' | 'head-member';

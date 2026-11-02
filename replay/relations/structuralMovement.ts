@@ -49,6 +49,9 @@ export interface StructuralDisplacement {
   trajectoryKind?: 'head' | 'phrasal';
   /** The landing's parent contains the lower occurrence. */
   commands: boolean;
+  /** For a head complex that moved without a lineage of its own, each
+   * member's lower occurrence and landing. */
+  memberPairs?: Array<[string, string]>;
   crossWorkspace: boolean;
 }
 
@@ -238,6 +241,35 @@ export const readStageDisplacements = (
       crossWorkspace: currentRoots.get(source.id!) !== currentRoots.get(target.id!)
     });
   }
+  // A head complex can move as one unit without a lineage of its own: when
+  // every daughter of a new node is the landing of one displacement, and their
+  // lower occurrences are, in the same order, every daughter of one kept node
+  // of the same category, in their own preceding slots, the kept node moved
+  // into the new one and carried its members (T with an adjoined auxiliary,
+  // moving to C). The members then travel with it, as parts of a phrase do.
+  const byLanding = new Map(displacements.map(displacement => [displacement.targetNodeId, displacement]));
+  const complexes = new Set<string>();
+  for (const displacement of [...displacements]) {
+    const landing = current.parents.get(displacement.targetNodeId), host = current.parents.get(displacement.sourceNodeId);
+    if (!landing?.id || !host?.id || complexes.has(landing.id) || prior.nodes.has(landing.id) || current.duplicates.has(landing.id)
+      || prior.duplicates.has(host.id) || current.duplicates.has(host.id) || landing.lineageId || host.lineageId
+      || (landing.children?.length ?? 0) < 2 || category(landing) !== category(host)
+      || !sameMovementSourceSlot(current, prior, host.id, host.id)) continue;
+    const members = landing.children!.map(child => byLanding.get(child.id ?? ''));
+    const before = prior.nodes.get(host.id)!;
+    if (members.some(member => !member) || host.children?.length !== members.length
+      || members.some((member, index) => host.children![index].id !== member!.sourceNodeId
+        || before.children?.[index]?.id !== member!.priorSourceNodeId || member!.sourceNodeId !== member!.priorSourceNodeId)) continue;
+    complexes.add(landing.id);
+    const read = adjoinsHead(current, prior, landing.id, host.id, host.id) ? 'head' : undefined;
+    displacements.push({
+      identity: 'lower-kept', lineageId: '', priorSourceNodeId: host.id, sourceNodeId: host.id, targetNodeId: landing.id,
+      ...(read ? { trajectoryKind: read } : {}),
+      commands: parentContains(current, landing.id, host.id),
+      crossWorkspace: currentRoots.get(host.id) !== currentRoots.get(landing.id),
+      memberPairs: members.map(member => [member!.sourceNodeId, member!.targetNodeId] as [string, string])
+    });
+  }
   // A part of a moving phrase travels with it: a displacement or refusal
   // inside another displacement's landing or lower occurrence is not its own.
   const within = (id: string, outer: StructuralDisplacement) => [outer.targetNodeId, outer.sourceNodeId]
@@ -423,7 +455,8 @@ export const structuralRecoveredMovement = (
     trajectoryKind: displacement.trajectoryKind!,
     transition: true,
     roles,
-    ...(priorAnchorKeys.length ? { priorAnchorKeys } : {})
+    ...(priorAnchorKeys.length ? { priorAnchorKeys } : {}),
+    ...(displacement.memberPairs ? { complexMemberPairs: displacement.memberPairs } : {})
   };
 };
 

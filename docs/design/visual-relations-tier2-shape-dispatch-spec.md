@@ -385,6 +385,15 @@ inside a phrase or bar projection. A branching landing that is not notated as a
 projection reads as phrasal only inside a projection or merged with an object
 containing its source.
 
+A head complex can move as one unit without a lineage of its own, as T with an
+adjoined auxiliary moves to C under negative inversion. When every daughter of
+a new node is the landing of one displacement, and their lower occurrences
+are, in the same order, every daughter of one kept node of the same category,
+each in its own preceding slot, the kept node moved into the new one. Its
+members' lineages prove the identity a lineage on the complex would; the
+movement path's lineage check accepts those pairs in its place, as it accepts
+a kept landing's omitted lineage. The members travel with the complex.
+
 A part of a displaced phrase travels with it: a displacement or refusal inside
 another displacement's landing or lower occurrence is not read as its own. A
 displacement whose landing or lower occurrence holds the landing of a movement
