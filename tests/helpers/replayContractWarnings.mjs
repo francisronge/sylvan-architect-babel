@@ -191,7 +191,8 @@ export function structuralDisplacements(previousForest, currentForest) {
  * path of the stage reaches is reported as COPY_WITHOUT_PATH at the moment of
  * the stage's first relation naming both its landing and a displaced
  * occurrence, whatever that relation is called: its recognition, not its
- * name, decides whether Replay draws the arrow. */
+ * name, decides whether Replay draws the arrow. A landing inside a node that
+ * a movement path of the stage reaches travels with that movement. */
 export function checkMovementUnrendered(replay, record) {
   const plan = replay.relationRenderPlan, out = [], stages = record.derivationStages ?? [];
   const paths = (plan?.frames ?? []).flatMap(frame => frame.items)
@@ -218,8 +219,11 @@ export function checkMovementUnrendered(replay, record) {
   const reported = new Set(out.map(found => found.subject));
   stages.forEach((stage, stageIndex) => {
     if (!stageIndex) return;
+    const forest = occurrencesOf(stage.workspaceForest);
     for (const { landing, lower } of structuralDisplacements(stages[stageIndex - 1].workspaceForest, stage.workspaceForest)) {
-      if (reached.has(`${stageIndex}:${landing}`)) continue;
+      // A landing inside one a movement path of the stage reaches travels with
+      // it, as a head carried in a moving complex does.
+      if ([landing, ...forest.get(landing)?.ancestors ?? []].some(id => reached.has(`${stageIndex}:${id}`))) continue;
       const named = (stage.relations ?? []).map(relation => new Set([...Object.values(relation?.anchors ?? {}),
         ...Object.values(relation?.priorAnchors ?? {})].flat().map(String)));
       // A claim about this landing already reported for its own movement
