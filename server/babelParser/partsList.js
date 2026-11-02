@@ -202,7 +202,51 @@ const expandStageCopies = (stage, path, define, definitionOf, stageIds, copyOwne
  * stages holds the expanded stages before the failing one. `prefix` replaces
  * the leading `$` of every reported path.
  */
-export const expandPartsListAnalysis = (analysis, prefix = '$') => {
+/**
+ * A stage's nodes may write new material as subtrees: a child is either the id
+ * of a node or a node written in place. Each written node becomes its own
+ * entry, in the order written, so nested and flat stages expand alike. `paths`
+ * keeps each entry's authored path so issues are reported where it was written.
+ */
+const flattenNestedNodes = (analysis) => {
+  if (!Array.isArray(analysis?.derivationStages)) return { analysis, paths: null };
+  let nested = false;
+  const paths = [];
+  const stages = analysis.derivationStages.map((stage, stageIndex) => {
+    if (!isPlainObject(stage) || !Array.isArray(stage.nodes)) return stage;
+    const nodes = [], authored = [];
+    const write = (node, at) => {
+      if (!isPlainObject(node)) { nodes.push(node); authored.push(at); return node; }
+      const entry = { ...node };
+      const index = nodes.length;
+      nodes.push(entry); authored.push(at);
+      if (Array.isArray(node.children)) {
+        entry.children = node.children.map((child, childIndex) => (isPlainObject(child)
+          ? (nested = true, write(child, `${at}.children[${childIndex}]`)) : child));
+      }
+      nodes[index] = entry;
+      return node.id;
+    };
+    stage.nodes.forEach((node, nodeIndex) => write(node, `nodes[${nodeIndex}]`));
+    paths[stageIndex] = authored;
+    return { ...stage, nodes };
+  });
+  return nested ? { analysis: { ...analysis, derivationStages: stages }, paths } : { analysis, paths: null };
+};
+
+/** Rewrites a flattened entry's path in an issue to where the model wrote it. */
+const authoredIssue = (issue, paths) => {
+  if (!paths) return issue;
+  const rewrite = text => (typeof text === 'string'
+    ? text.replace(/derivationStages\[(\d+)\]\.nodes\[(\d+)\]/g, (whole, stage, index) => {
+      const at = paths[Number(stage)]?.[Number(index)];
+      return at ? `derivationStages[${stage}].${at}` : whole;
+    }) : text);
+  return { ...issue, fieldPath: rewrite(issue.fieldPath), message: rewrite(issue.message) };
+};
+
+export const expandPartsListAnalysis = (authoredAnalysis, prefix = '$') => {
+  const { analysis, paths } = flattenNestedNodes(authoredAnalysis);
   const form = workspaceFormOf(analysis);
   if (form === 'nested') return { form, analysis };
   const stages = analysis.derivationStages;
@@ -368,7 +412,7 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
     });
   } catch (error) {
     if (!(error instanceof PartsListIssue)) throw error;
-    return { form, stages: expanded, issue: error.issue };
+    return { form, stages: expanded, issue: authoredIssue(error.issue, paths) };
   }
   return { form, analysis: { ...analysis, derivationStages: expanded } };
 };

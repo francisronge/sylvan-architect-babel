@@ -173,8 +173,9 @@ test('one analysis may not mix parts-list and nested stages', () => {
 
 test('parts-list entries are checked field by field', () => {
   const cases = [
-    [[stage(['v'], [{ id: 'v', label: 'V', word: 'laughed', children: [{ id: 'w', label: 'W', children: [] }] }])],
-      '$.derivationStages[0].nodes[0].children[0]', /a node id; list the child as its own entry in nodes/],
+    // A child written in place is checked where it was written.
+    [[stage(['v'], [{ id: 'v', label: 'V', children: [{ id: 'w', label: '', word: 'laughed' }] }])],
+      '$.derivationStages[0].nodes[0].children[0].label', /a nonblank string/],
     [[stage(['v'], [{ id: 'v', label: 'V', word: 'laughed' }, { id: 'v', label: 'V', word: 'laughed' }])],
       '$.derivationStages[0].nodes[1].id', /node "v" is listed more than once in this stage's nodes/],
     [[stage(['v'], [{ refId: 'v' }])], '$.derivationStages[0].nodes[0].refId', /no refId/],
@@ -221,13 +222,26 @@ test('nested analyses are read exactly as before', () => {
   assert.equal(result.analysis, nested);
 });
 
+test('a stage written as trees expands exactly like the same stage written flat', () => {
+  const sorted = value => JSON.parse(JSON.stringify(value, (key, item) => (item && typeof item === 'object' && !Array.isArray(item)
+    ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => (a < b ? -1 : 1))) : item)));
+  const flat = [stage(['vp'], [{ id: 'n', label: 'N', word: 'Mia' }, { id: 'v', label: 'V', word: 'laughed' }, { id: 'vp', label: 'VP', children: ['n', 'v'] }]),
+    stage(['tp'], [{ id: 't', label: 'T' }, { id: 'tp', label: 'TP', children: ['t', 'vp'] }])];
+  // Trees write each node's id last; an existing node is named by its id.
+  const trees = [stage(['vp'], [{ label: 'VP', children: [{ label: 'N', word: 'Mia', id: 'n' }, { label: 'V', word: 'laughed', id: 'v' }], id: 'vp' }]),
+    stage(['tp'], [{ label: 'TP', children: [{ label: 'T', id: 't' }, 'vp'], id: 'tp' }])];
+  const forests = stages => sorted(expandPartsListAnalysis({ derivationStages: stages }).analysis.derivationStages.map(each => each.workspaceForest));
+  assert.deepEqual(forests(trees), forests(flat));
+});
+
 test('the prompt asks for a parts list and no longer mentions refId or nested forests', () => {
   for (const framework of ['xbar', 'minimalism']) {
     const instruction = buildSystemInstruction(framework);
     assert.doesNotMatch(instruction, /refId|workspaceForest|expanded workspace|expanding/);
     assert.match(instruction, /- workspace: an array of node ids naming the root of every currently active syntax tree/);
-    assert.match(instruction, /- nodes: an array of the syntax nodes this stage introduces or changes/);
-    assert.match(instruction, /- children: an ordered array of node ids, the node's daughters from left to right\./);
+    assert.match(instruction, /- nodes: the syntax this stage introduces or changes, written as trees/);
+    assert.match(instruction, /- children: an ordered array of the node's daughters from left to right, each a node written in place or the id of a node defined in this or an earlier stage\./);
+    assert.match(instruction, /Write each node's id as its last field, after its children\./);
     assert.match(instruction, /Each id stands at only one position in the workspace: it is one root or the child of one parent, and never beneath itself\./);
   }
 });
