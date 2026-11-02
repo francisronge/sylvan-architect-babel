@@ -49,7 +49,9 @@ function timeline(samples, m) {
       if (node.opacity >= m.shownOpacity) shownOnCanvas++;
     }
     const next = samples[index + 1];
-    return { index, t: sample.t, k: sample.transform?.k, nodes, marks: marksOf(sample), onCanvas, beyond, shownOnCanvas, presentOnCanvas,
+    // Screen = camera origin + k × tree coordinates; the origin includes the canvas offset.
+    const camera = sample.transform && canvas ? { x: canvas.x + sample.transform.x, y: canvas.y + sample.transform.y, k: sample.transform.k } : null;
+    return { index, t: sample.t, k: sample.transform?.k, camera, nodes, marks: marksOf(sample), onCanvas, beyond, shownOnCanvas, presentOnCanvas,
       visibility: (sample.visibility ?? 1) * (1 - (sample.cover ?? 0)), cover: sample.cover ?? 0,
       durationMs: next ? Math.max(0, next.t - sample.t) : 1000 / 60 };
   });
@@ -184,16 +186,27 @@ export function judgeMotion(samples, { context = 'step', place = {}, label = '',
     }
   }
   if (enabled.has('detour') && anchored.length) {
+    // A node's own motion and the camera's are judged apart, so one honest
+    // move followed by an unrelated camera glide is not read as a fly-out.
+    // Own motion is the node's path in tree coordinates, at the closest zoom
+    // the step shows; the camera's share is the path the node would take if
+    // it stood at its final tree place throughout. Either detour is a fly-in.
+    // Without a sampled camera the painted path is judged as a whole.
+    const posed = frames.every(frame => frame.camera?.k > 0);
+    const zoom = posed ? Math.max(...frames.map(frame => frame.camera.k)) : 1;
+    const tree = (frame, node) => posed ? { x: (node.x - frame.camera.x) / frame.camera.k, y: (node.y - frame.camera.y) / frame.camera.k } : node;
+    const detour = points => {
+      let path = 0;
+      for (let index = 1; index < points.length; index++) path += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+      return points.length > 1 ? path - Math.hypot(points.at(-1).x - points[0].x, points.at(-1).y - points[0].y) : 0;
+    };
     const excess = anchored.map(id => {
-      let path = 0, previous = null;
-      for (const frame of frames) {
-        const node = frame.nodes.get(id);
-        if (!node || node.opacity < m.presentOpacity) continue;
-        if (previous) path += Math.hypot(node.x - previous.x, node.y - previous.y);
-        previous = node;
-      }
-      const a = first.nodes.get(id), b = last.nodes.get(id);
-      return { id, px: path - Math.hypot(a.x - b.x, a.y - b.y) };
+      const shown = frames.filter(frame => frame.nodes.get(id)?.opacity >= m.presentOpacity);
+      if (!posed) return { id, px: detour(shown.map(frame => frame.nodes.get(id))) };
+      const own = shown.map(frame => tree(frame, frame.nodes.get(id))), end = own.at(-1);
+      const ownPx = detour(own) * zoom;
+      const cameraPx = detour(shown.map(frame => ({ x: frame.camera.x + frame.camera.k * end.x, y: frame.camera.y + frame.camera.k * end.y })));
+      return { id, px: Math.max(ownPx, cameraPx) };
     }).filter(entry => entry.px > m.detourPx);
     if (excess.length) {
       const largest = excess.reduce((best, entry) => entry.px > best.px ? entry : best);

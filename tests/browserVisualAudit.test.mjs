@@ -187,6 +187,37 @@ test('#7: one jumping root is caught though the median holds; a reattached const
   assert.deepEqual(judgeStepMotion([sample(0, base), sample(17, moved), sample(34, moved)]), [], 'the moved DP jumps to its landing');
 });
 
+// Painted samples under a sampled camera: screen = canvas + camera + k × tree.
+const posed = (t, tree, camera) => sample(t, Object.fromEntries(Object.entries(tree).map(([id, [x, y, parent = null]]) =>
+  [id, [CANVAS.x + camera.x + camera.k * x, CANVAS.y + camera.y + camera.k * y, parent]])), { transform: camera });
+const glide = (from, to, frames, t0, tree) => Array.from({ length: frames }, (_, index) => {
+  const p = (index + 1) / frames, e = p * p * (3 - 2 * p), mix = key => from[key] + (to[key] - from[key]) * e;
+  return posed(t0 + 16.7 * (index + 1), tree, { x: mix('x'), y: mix('y'), k: mix('k') });
+});
+const treeAt = (moves = {}) => ({ ...Object.fromEntries(ids.map((id, index) => [id, [2000 + 400 * index, 1000]])), ...moves });
+
+test('a node that moves once before the camera zooms out to its stage is not a fly-in', () => {
+  // Catalogue case 2, 35→36: I joins its new complex head 1000 tree units to the
+  // right, then the stage's zoom-out carries it back left with everything else.
+  const near = { x: 28, y: -74, k: 0.127 }, far = { x: 144, y: 78, k: 0.096 };
+  const before = treeAt(), after = treeAt({ n14: [7600 + 1000, 1220] });
+  const samples = [posed(0, before, near), posed(39, after, near), ...glide(near, far, 22, 39, after)];
+  assert.deepEqual(rules(judgeStepMotion(samples, { place })).filter(rule => rule.endsWith('fly-in')), []);
+});
+
+test('a node that leaves and comes back in the tree is a fly-in under any camera', () => {
+  const camera = { x: 0, y: 0, k: 0.2 }, out = treeAt({ n7: [4800 + 1500, 1000] });
+  const samples = [posed(0, treeAt(), camera), ...Array.from({ length: 10 }, (_, index) => posed(17 * (index + 1), index < 5 ? out : treeAt(), camera))];
+  const found = judgeStepMotion(samples, { place }).find(item => item.subtype === 'fly-in');
+  assert.ok(found && found.metrics.nodes.includes('n7'), 'n7 went 300px out and back');
+});
+
+test('a camera that swings out and back is a fly-in though the tree holds still', () => {
+  const home = { x: 0, y: 0, k: 0.2 }, away = { x: -400, y: 0, k: 0.2 };
+  const samples = [posed(0, treeAt(), home), ...glide(home, away, 10, 0, treeAt()), ...glide(away, home, 10, 167, treeAt())];
+  assert.ok(judgeStepMotion(samples, { place }).some(item => item.subtype === 'fly-in'));
+});
+
 test('a node that snaps in a slow redraw frame is a jump however long the frame took', () => {
   const base = { ip: [700, 300], ibar: [760, 360, 'ip'], v: [720, 420, 'ibar'], vbar: [800, 420, 'ibar'], verb: [800, 480, 'vbar'],
     waiting: [900, 300], dp: [860, 480, 'vbar'] };

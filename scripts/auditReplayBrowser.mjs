@@ -509,8 +509,14 @@ async function auditReplay(context, record, entry, result, anchorsFor) {
   }
   for (const [frame] of [...stepSamples].filter(([frame]) => result.findings.some(item => item.rule === 'step-motion' && item.frame === `${frame - 1}>${frame}`))) {
     const film = await recordFilmstrip(context, name(`next-${frame}`), async () => {
-      await jumpAndSettle(page, frame - 2 >= 2 ? frame - 4 : Math.min(frameCount - 1, frame));
-      await jumpAndSettle(page, frame - 2);
+      // The re-run takes the first pass's route: Next keeps the camera it was
+      // given, so a step reached by a jump starts from another pose and can
+      // judge a different motion.
+      await jumpAndSettle(page, traversal.start - 1);
+      for (let index = traversal.start; index <= frame - 2; index++) {
+        if (!await probe(page, () => window.__babelAudit.clickNext())) throw new Error(`Next is unavailable at frame ${index}`);
+        await replayPaint(page, index);
+      }
       return sampleWhile(page, async () => { await probe(page, () => window.__babelAudit.clickNext()); await replayPaint(page, frame - 1); });
     }, samples => judgeStepMotion(samples, { thresholds: motionThresholds }));
     if (film.sheet) result.sheets[coverageKey(record.id, viewport.name, 'motion', `${frame - 1}>${frame}`)] = film.sheet;
