@@ -45,7 +45,7 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
   const closings = layout.scenes.map(({ step, nodes, closing, held }, index) => {
     if (!index) return new Set();
     const previous = layout.scenes[index - 1], before = painted(previous.nodes), after = painted(nodes);
-    const carry = previous.step.replayFrameIndex !== step.replayFrameIndex ? paintedShift(points(before), points(after), { closing, held }) : { x: 0, y: 0 };
+    const carry = previous.step.replayFrameIndex !== step.replayFrameIndex ? paintedShift(points(before), points(after), { closing, held, rises: true }) : { x: 0, y: 0 };
     return new Set([...closingAt(previous.step, step, before, after, before, after, { closing })].filter(id =>
       Math.hypot(after.get(id).x - carry.x - before.get(id).x, after.get(id).y - carry.y - before.get(id).y) > 1));
   });

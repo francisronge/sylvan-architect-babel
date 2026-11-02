@@ -35,7 +35,7 @@ import {
   type WorkspacePlanScene
 } from './workspacePlanValidation.ts';
 import { receivingHeadForks, receivingHeadOffsets, receivingHeadPreferences } from './workspaceReceivingHeadSlots.ts';
-import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { workspaceContinuityReflows, PLANNING } from './workspaceShapeReflows.ts';
 import { withinWorkspaceVisualPreference } from './workspaceVisualPreference.ts';
 import {
   adjustWorkspaceGapPreference,
@@ -100,7 +100,7 @@ export function planCoherentWorkspace({ scenes, baseline, direction, render, met
   clearText?: boolean;
 }): CoherentWorkspaceResult {
   const started = performance.now();
-  const reflows = workspaceContinuityReflows(scenes, baseline, render);
+  const reflows = workspaceContinuityReflows(scenes, baseline, render, PLANNING);
   const detected = performance.now();
   const diagnostic: CoherentWorkspaceDiagnostic = { status: 'unchanged', reflows, evaluations: 0, corrections: 0 };
   if (!reflows.length && !(clearText && paintsTextCollision(scenes, baseline, render, metrics)))

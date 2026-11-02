@@ -27,6 +27,9 @@
  * authored stage of the frame. Where several passes paint the same fault, one
  * finding keeps the largest measure. Checkers never assert. */
 
+import { insertionRises } from '../../replay/motionRule.ts';
+import { TREE_ROW_HEIGHT } from '../../replay/treeSpacing.ts';
+
 // canopy-final-frame is checked by visualFrames.mjs (compareCanopyToFinalFrame) and
 // reported with the camera audit, which lays out each record at desktop and mobile.
 export const CAMERA_RULES = ['settled-path-independence', 'content-placement', 'first-paint-continuity', 'within-stage-stability',
@@ -94,10 +97,35 @@ export function unmovedIds(before, after) {
   const lineage = (frame, id) => JSON.stringify((frame.nodes.get(id).ancestors ?? []).filter(ancestor => both.has(ancestor)));
   return shared.filter(id => lineage(before, id) === lineage(after, id));
 }
+/** The rise a step grants unmoved syntax above a parent it inserts
+ * (insertionRises, as the motion rule grants it), as each such node's vertical
+ * shift in tree units: the row plan holds the larger side of an insertion and
+ * raises the smaller, so that rise is the step's own motion and travel leaves
+ * it out; any other motion of the node still counts. One row origin serves
+ * every stage, so a granted rise leaves the other side on its rows. Stepping
+ * back over the insertion, the same syntax drops back by its rows. */
+export function grantedRises(before, after) {
+  const unmoved = unmovedIds(before, after), result = new Map();
+  const points = frame => [...frame.nodes].map(([id, node]) => ({ id, parent: node.ancestors?.[0] ?? null }));
+  const map = frame => new Map(points(frame).map(point => [point.id, point]));
+  const forward = insertionRises(points(after), map(before));
+  const rises = forward.size ? forward : insertionRises(points(before), map(after)), sign = forward.size ? -1 : 1;
+  const rising = unmoved.filter(id => rises.has(id)), staying = unmoved.filter(id => !rises.has(id));
+  if (!rising.length || !staying.length) return result;
+  const dy = ids => { const values = ids.map(id => after.nodes.get(id).y - before.nodes.get(id).y).sort((a, b) => a - b);
+    return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2; };
+  if (Math.abs(dy(staying)) >= 1e-6) return result;
+  for (const id of rising) {
+    const shift = after.nodes.get(id).y - before.nodes.get(id).y, rows = sign * shift / TREE_ROW_HEIGHT;
+    if (rows >= 1 - 1e-6 && Math.abs(rows - Math.round(rows)) < 1e-6 && Math.round(rows) <= rises.get(id)) result.set(id, shift);
+  }
+  return result;
+}
 /** Per-node on-screen travel of `ids` from `before` painted with `fromPose` to `after` painted with `toPose`. */
-export function syntaxTravel(fromPose, before, toPose, after, ids) {
+export function syntaxTravel(fromPose, before, toPose, after, ids, rises = new Map()) {
   return ids.map(id => {
-    const p = screen(fromPose, before.nodes.get(id)), q = screen(toPose, after.nodes.get(id));
+    const node = after.nodes.get(id), rise = rises.get(id) ?? 0;
+    const p = screen(fromPose, before.nodes.get(id)), q = screen(toPose, rise ? { ...node, y: node.y - rise } : node);
     return Math.hypot(p.x - q.x, p.y - q.y);
   });
 }
@@ -163,8 +191,9 @@ export function checkSettledPathIndependence(trace, thresholds = CAMERA_THRESHOL
         else {
           // As in first-paint continuity, syntax the step's own closing moves may
           // count as moved (`frame.closing`), where that justifies the retention.
-          const travels = list => ({ retained: round(median(syntaxTravel(step.before, before, step.settled, frame, list))),
-            fitted: round(median(syntaxTravel(step.before, before, direct, frame, list))) });
+          const rises = grantedRises(before, frame);
+          const travels = list => ({ retained: round(median(syntaxTravel(step.before, before, step.settled, frame, list, rises))),
+            fitted: round(median(syntaxTravel(step.before, before, direct, frame, list, rises))) });
           const rest = ids.filter(id => !frame.closing?.has(id)), plain = travels(ids), granted = rest.length ? travels(rest) : plain;
           const steadier = travel => travel.retained <= travel.fitted + thresholds.steadierPx;
           const chosen = !steadier(plain) && steadier(granted) ? granted : plain;
@@ -248,6 +277,7 @@ export function checkFirstPaintContinuity(trace, thresholds = CAMERA_THRESHOLDS)
     // closing of the gap its phrase leaves) moves with the step, in either direction.
     const closing = Math.abs(step.to - step.from) === 1 ? trace.frames[Math.max(step.from, step.to)].closing : undefined;
     const attached = unmovedIds(before, after), unmoved = attached.filter(id => !closing?.has(id)), still = new Set(unmoved);
+    const rises = grantedRises(before, after);
     const place = { rule: 'first-paint-continuity', subject: stageOf(after), frame: transition(step) };
     const paints = `the first pose ${poseText(step.first)} after ${poseText(step.before)}`;
     const lost = shared.filter(id => !outside(screen(step.before, before.nodes.get(id)))
@@ -259,8 +289,8 @@ export function checkFirstPaintContinuity(trace, thresholds = CAMERA_THRESHOLDS)
     }
     const reference = unmoved.length ? unmoved : shared;
     // The closing only excuses motion: a median it shifts upward is read without it.
-    const jump = Math.min(median(syntaxTravel(step.before, before, step.first, after, reference)),
-      median(syntaxTravel(step.before, before, step.first, after, attached.length ? attached : shared)));
+    const jump = Math.min(median(syntaxTravel(step.before, before, step.first, after, reference, rises)),
+      median(syntaxTravel(step.before, before, step.first, after, attached.length ? attached : shared, rises)));
     if (jump <= thresholds.jumpPx) continue;
     const cause = poseDistance(step.before, step.first, after) > thresholds.samePosePx ? 'camera'
       : before.stage !== after.stage ? 'stage-coordinates' : 'relayout';

@@ -12,7 +12,7 @@ import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
 import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
-import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { workspaceContinuityReflows, PLANNING } from './workspaceShapeReflows.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
@@ -212,8 +212,8 @@ export function reserveMovementSlotClearance({ steps, sizes, coordinates, direct
         const scenes = frames.slice(Math.max(from - 1, 0), to + 2).map((frame, offset) =>
           ({ ...frame, index: Math.max(from - 1, 0) + offset, nodes: paint(Math.max(from - 1, 0) + offset).nodes }));
         const render = (scene: typeof scenes[number], points: TreeCoordinateReservation) => [...paintPoints(scene.index, points).nodes.values()];
-        const reflows = new Set(workspaceContinuityReflows(scenes, result, render).map(reflow => JSON.stringify(reflow)));
-        return workspaceContinuityReflows(scenes, candidate, render).every(reflow => reflows.has(JSON.stringify(reflow)));
+        const reflows = new Set(workspaceContinuityReflows(scenes, result, render, PLANNING).map(reflow => JSON.stringify(reflow)));
+        return workspaceContinuityReflows(scenes, candidate, render, PLANNING).every(reflow => reflows.has(JSON.stringify(reflow)));
       };
       // Reservations are stored before right-to-left reflection.
       const dx = sign * distance * (direction === 'rtl' ? -1 : 1);

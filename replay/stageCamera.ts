@@ -1026,7 +1026,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       // One camera fit serves a stage; across a stage boundary the camera carries
       // the syntax the crossing leaves in place (carryCamera).
       const crossing = before.stageIndex !== phase.stageIndex;
-      const shift = !crossing ? { x: 0, y: 0 } : paintedShift(before.painted(), painted(), { closing: phase.closing, held: phase.held });
+      const shift = !crossing ? { x: 0, y: 0 } : paintedShift(before.painted(), painted(), { closing: phase.closing, held: phase.held, rises: true });
       const shownThen = before.shown(), candidates = new Map<number, { pocket: PlaquePlacement; move: { x: number; y: number } }>();
       left.clear();
       let later: PocketOccupant[] | undefined;
@@ -1173,7 +1173,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     // breaks the hold (`jumped`), and release enters the span again without that early
     // pocket. Each plaque's moves beside a still anchor are counted for that comparison.
     if (before) {
-      const carry = crossing ? paintedShift(before.painted(), painted(), { closing: phase.closing, held: phase.held }) : { x: 0, y: 0 }, shownThen = before.shown();
+      const carry = crossing ? paintedShift(before.painted(), painted(), { closing: phase.closing, held: phase.held, rises: true }) : { x: 0, y: 0 }, shownThen = before.shown();
       const stillAt = (index: number) => {
         const placement = layout.get(index)!, key = identityOf(items[index]), prior = before.placements.get(key);
         const anchor = byId.get(placement.attachmentNodeId), old = before.byId.get(placement.attachmentNodeId);

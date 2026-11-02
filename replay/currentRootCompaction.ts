@@ -9,7 +9,7 @@ import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.t
 import type { PlaybackStep } from './types.ts';
 import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { currentForkBranchesClear, relativeChildInk } from './workspaceForkClearance.ts';
-import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { workspaceContinuityReflows, PLANNING } from './workspaceShapeReflows.ts';
 import { TREE_SIBLING_GAP } from './treeSpacing.ts';
 
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
@@ -151,8 +151,8 @@ export function compactCurrentRootForks(steps: readonly PlaybackStep[], sizes: R
         const allScenes = frames.map((scene, index) => ({ ...scene, nodes: sceneAt(index).nodes, index }));
         const render = (scene: typeof allScenes[number], coordinates: TreeCoordinateReservation) =>
           positioned(scene.index, new Map([[scene.canvas, coordinates]]));
-        const priorReflows = new Set(workspaceContinuityReflows(allScenes, result, render).map(issue => JSON.stringify(issue)));
-        if (workspaceContinuityReflows(allScenes, candidate, render).some(issue => !priorReflows.has(JSON.stringify(issue)))) continue;
+        const priorReflows = new Set(workspaceContinuityReflows(allScenes, result, render, PLANNING).map(issue => JSON.stringify(issue)));
+        if (workspaceContinuityReflows(allScenes, candidate, render, PLANNING).some(issue => !priorReflows.has(JSON.stringify(issue)))) continue;
         result = candidate;
         scenes.clear();
       }

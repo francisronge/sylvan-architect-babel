@@ -9,6 +9,8 @@
 // tests/helpers/cameraInvariants.mjs and settled-layout continuity in judgeStageSyntax.
 import { median, pointInRect } from './geometry.mjs';
 import { stepOwnership } from '../../tests/helpers/motionOwnership.mjs';
+import { insertionRises } from '../../replay/motionRule.ts';
+import { TREE_ROW_HEIGHT } from '../../replay/treeSpacing.ts';
 
 export const DEFAULT_MOTION = Object.freeze({
   shownOpacity: 0.5,       // a node reads as painted at or above this
@@ -49,7 +51,9 @@ function timeline(samples, m) {
       if (node.opacity >= m.shownOpacity) shownOnCanvas++;
     }
     const next = samples[index + 1];
-    return { index, t: sample.t, k: sample.transform?.k, nodes, marks: marksOf(sample), onCanvas, beyond, shownOnCanvas, presentOnCanvas,
+    // Screen = camera origin + k × tree coordinates; the origin includes the canvas offset.
+    const camera = sample.transform && canvas ? { x: canvas.x + sample.transform.x, y: canvas.y + sample.transform.y, k: sample.transform.k } : null;
+    return { index, t: sample.t, k: sample.transform?.k, camera, nodes, marks: marksOf(sample), onCanvas, beyond, shownOnCanvas, presentOnCanvas,
       visibility: (sample.visibility ?? 1) * (1 - (sample.cover ?? 0)), cover: sample.cover ?? 0,
       durationMs: next ? Math.max(0, next.t - sample.t) : 1000 / 60 };
   });
@@ -184,16 +188,43 @@ export function judgeMotion(samples, { context = 'step', place = {}, label = '',
     }
   }
   if (enabled.has('detour') && anchored.length) {
-    const excess = anchored.map(id => {
-      let path = 0, previous = null;
-      for (const frame of frames) {
-        const node = frame.nodes.get(id);
-        if (!node || node.opacity < m.presentOpacity) continue;
-        if (previous) path += Math.hypot(node.x - previous.x, node.y - previous.y);
-        previous = node;
+    // A node's own motion and the camera's are judged apart, so one honest
+    // move followed by an unrelated camera glide is not read as a fly-out.
+    // Between two frames, the node's own move is its change in tree
+    // coordinates beyond the change most retained syntax shares, at the later
+    // zoom; the rest of its painted move is the camera's. The shared change is
+    // nothing within one drawing, and a redraw into new stage coordinates
+    // shifts everything alike while the camera compensates. Each share's path
+    // beyond its net move is a detour; either one over the limit is a fly-in.
+    // Without a sampled camera the painted path is judged.
+    const posed = frames.every(frame => frame.camera?.k > 0);
+    const tree = (frame, node) => ({ x: (node.x - frame.camera.x) / frame.camera.k, y: (node.y - frame.camera.y) / frame.camera.k });
+    const detour = moves => {
+      const path = moves.reduce((sum, move) => sum + Math.hypot(move.x, move.y), 0);
+      return path - Math.hypot(moves.reduce((sum, move) => sum + move.x, 0), moves.reduce((sum, move) => sum + move.y, 0));
+    };
+    const rebases = new Map();
+    const rebase = (a, b) => {
+      const key = `${a.index}>${b.index}`;
+      if (!rebases.has(key)) {
+        const shifts = anchored.filter(id => a.nodes.get(id)?.opacity >= m.presentOpacity && b.nodes.get(id)?.opacity >= m.presentOpacity)
+          .map(id => { const from = tree(a, a.nodes.get(id)), to = tree(b, b.nodes.get(id)); return { x: to.x - from.x, y: to.y - from.y }; });
+        rebases.set(key, shifts.length ? { x: median(shifts.map(shift => shift.x)), y: median(shifts.map(shift => shift.y)) } : { x: 0, y: 0 });
       }
-      const a = first.nodes.get(id), b = last.nodes.get(id);
-      return { id, px: path - Math.hypot(a.x - b.x, a.y - b.y) };
+      return rebases.get(key);
+    };
+    const excess = anchored.map(id => {
+      const shown = frames.filter(frame => frame.nodes.get(id)?.opacity >= m.presentOpacity);
+      const own = [], camera = [];
+      for (let index = 1; index < shown.length; index++) {
+        const a = shown[index - 1], b = shown[index], p = a.nodes.get(id), q = b.nodes.get(id);
+        const painted = { x: q.x - p.x, y: q.y - p.y };
+        if (!posed) { own.push(painted); continue; }
+        const from = tree(a, p), to = tree(b, q), shared = rebase(a, b);
+        const mine = { x: (to.x - from.x - shared.x) * b.camera.k, y: (to.y - from.y - shared.y) * b.camera.k };
+        own.push(mine); camera.push({ x: painted.x - mine.x, y: painted.y - mine.y });
+      }
+      return { id, px: Math.max(detour(own), camera.length ? detour(camera) : 0) };
     }).filter(entry => entry.px > m.detourPx);
     if (excess.length) {
       const largest = excess.reduce((best, entry) => entry.px > best.px ? entry : best);
@@ -294,8 +325,16 @@ export function judgeStageSyntax(frames, { place = {}, thresholds = {} } = {}) {
       const a = before.nodes.get(id), b = after.nodes.get(id);
       return a && b ? { x: b.x - a.x, y: b.y - a.y } : null;
     };
+    // Syntax above a parent the step inserts may rise straight up by its rows
+    // (insertionRises, as the motion rule grants).
+    const rises = insertionRises(after.points, new Map(before.points.map(point => [point.id, point])));
+    const risen = (id, shift) => {
+      const rows = -shift.y / TREE_ROW_HEIGHT, levels = rises.get(id) ?? 0;
+      return levels > 0 && Math.abs(shift.x) <= m.layoutUnits && rows > 0
+        && Math.abs(rows - Math.round(rows)) * TREE_ROW_HEIGHT <= m.layoutUnits && Math.round(rows) <= levels;
+    };
     const moved = new Map(after.points.filter(point => !owned.has(point.id)).map(point => [point.id, shiftOf(point.id)])
-      .filter(([, shift]) => shift && Math.hypot(shift.x, shift.y) > m.layoutUnits));
+      .filter(([id, shift]) => shift && Math.hypot(shift.x, shift.y) > m.layoutUnits && !risen(id, shift)));
     for (const [id, shift] of moved) {
       const parent = moved.get(after.points.find(point => point.id === id)?.parent);
       if (parent && Math.hypot(shift.x - parent.x, shift.y - parent.y) <= m.layoutUnits) continue;

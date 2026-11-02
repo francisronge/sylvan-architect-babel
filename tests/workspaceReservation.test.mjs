@@ -99,7 +99,7 @@ for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of
       if (number >= 47) assert(after.nodes.has('topic-projection'), 'actual topic merge is still frame 47');
     }
     const final = frame(52), top = final.nodes.get('matrix-cp'), fit = bounds(52);
-    assert(top.y < 0, 'new surrounding parents extend above the retained workspace');
+    assert(top.y < root.y, 'new surrounding parents extend above the retained workspace');
     assert(fit.minY <= top.y && fit.maxY > top.y, 'stage fit includes the new top parent');
     assert(fit.minX < top.x && fit.maxX > top.x, 'stage fit includes its horizontal position');
     immutable();
