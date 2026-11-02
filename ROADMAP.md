@@ -1,6 +1,6 @@
 # Babel Roadmap
 
-Status date: 2026-10-24
+Status date: 2026-11-02
 
 This is Babel's single list of remaining work, in order. Completed work and its
 evidence live in Git history. Durable rules and contracts live in the canonical
@@ -34,18 +34,34 @@ syntactic rules. Desktop remains the primary experience.
      saved runs) stay neutral by design: structure ignores role names, so it
      cannot tell redundant naming from a contradictory claim, which must not
      draw.
-   - Mobile calibration and a desktop minimum-zoom clamp.
+   - Phones: in 9 fixtures a moved constituent first paints past the
+     canvas edge at its movement, then the camera zooms out to it within
+     about a third of a second (`MOVED_OFF_CANVAS` in
+     `tests/helpers/cameraExceptions.mjs`). Avoiding it would mean fitting
+     earlier stages smaller on phones, or jumping the unmoved syntax. The
+     desktop minimum zoom no longer clips: the Canopy has no minimum, and
+     Replay containment shrinks below it.
    - Step-order work kept from the October rewrite
      (`refactor/replay-step-order-kernel`). Just-in-time sisters have landed.
      Head movement before phrasal movement in one stage (approved on
      2026-10-23) still waits: C merging with IP before I-to-C, and a phrasal
      movement waiting for a head movement below its landing, each add findings
-     because today's stage layout depends on frame history (measured 2 Nov
-     against the row plan: 2 to 8 new plaque-distance findings at 1.12–1.2 and
-     new or worsened motion faults in german-embedded, inserted-adjunction-segment,
-     workspace-reservation/2 and source-occurrence-ownership/0, while total
-     motion faults fall from 404 to 384). It waits for a stage layout that is
-     planned from the derivation's states rather than its frame order. The same work owns the
+     because today's stage layout depends on frame history. Measured 2 Nov on
+     main after #367: the order alone changes 53 corpus analyses, about 20
+     finished trees change shape (up to 2,608 units) and 47 completed stages
+     grow wider, with 8 new plaque-distance findings at 1.12–1.2 and 5 new
+     or worse motion faults, while total motion faults fall from 382 to 371.
+     It waits for a stage layout that is planned from the derivation's states
+     rather than its frame order. The coupling is `reserveContours` in
+     `buildStageLocalCoordinates`: every frame of a stage shares one set of
+     leaf positions, each gap the widest any frame needs, so a crowded middle
+     frame pushes the finished tree's leaves apart (inserted-adjunction-segment:
+     2,850 units between the verb's trace and its neighbour against 375 in
+     main's order). On main's own order this already spreads the finished
+     leaves in 96 of 234 fixtures (up to 4,676 units in the stage-local layout;
+     how much reaches the painted tree is not measured). Laying finished
+     stages out from their own structure would change those trees and needs a
+     closing step owned by the movement that frees the room. The same work owns the
      listed camera jumps where unmoved syntax shifts 27–66 px when a stage
      begins or inside a stage (`STAGE_RELAYOUT`, `RELAYOUT_WITHIN_STAGE` in
      `tests/helpers/cameraExceptions.mjs`). Its first prototype
