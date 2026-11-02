@@ -4,7 +4,7 @@ import { carriedShift, paintedShift, type PaintedNodes } from './cameraCarry.ts'
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { motionFrame, replayMotionFaults, stepOwnership } from './motionRule.ts';
-import { closingAt, workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { closingAt, workspaceContinuityReflows, PLANNING } from './workspaceShapeReflows.ts';
 import { keepsPlaqueRoom, type PlaqueRoom } from './plaqueRoom.ts';
 import { plaqueTreeObstacles } from './relations/plaquePlacement.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
@@ -242,7 +242,7 @@ const faultCaches = [pairCache<ReturnType<typeof replayMotionFaults>>(), pairCac
 function continuityFaults(previous: Scene, step: Scene, before: Painted, after: Painted, closing = Boolean(step.closing)) {
   return continuityCaches[Number(closing)](before, after, () => {
     const window = [{ step: previous.step, canvas: previous.canvas, nodes: before }, { step: step.step, canvas: step.canvas, nodes: after, closing }];
-    return workspaceContinuityReflows(window, new Map(), scene => [...scene.nodes.values()], { ownClosings: true })
+    return workspaceContinuityReflows(window, new Map(), scene => [...scene.nodes.values()], { ...PLANNING, ownClosings: true })
       .map(fault => `${fault.kind} ${fault.rootId}`);
   });
 }
@@ -604,7 +604,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
       const joinCarry = scenes[m - 1].step.replayFrameIndex !== scenes[m].step.replayFrameIndex;
       const closingWas = Boolean(scenes[m].closing), closingNow = joinCarry || closingWas;
       const faults = (after: Painted, closing: boolean) => replayMotionFaults({ frames: [motionFrame(scenes[m - 1].step, prior, getNodeId),
-        motionFrame(scenes[m].step, after, getNodeId, closing)] });
+        motionFrame(scenes[m].step, after, getNodeId, closing)] }, PLANNING);
       const base = new Map(faults(current, closingWas).map(fault => [`${fault.kind} ${fault.node}`, fault]));
       const added = faults(closed[0], closingNow).filter(fault => fault.distance > (base.get(`${fault.kind} ${fault.node}`)?.distance ?? 0) + 1);
       // A waiting piece joining here, other than a carried phrase, moves no farther.
@@ -787,7 +787,7 @@ function branchCrossings(frame: Painted, moved: ReadonlySet<string>, measureCate
 function newFaults(previous: Scene, step: Scene, oldBefore: Painted, oldAfter: Painted, before: Painted, after: Painted) {
   const closing = Boolean(step.closing);
   const faults = (a: Painted, b: Painted) => faultCaches[Number(closing)](a, b, () => replayMotionFaults({ frames: [
-    motionFrame(previous.step, a, getNodeId), motionFrame(step.step, b, getNodeId, closing)] }));
+    motionFrame(previous.step, a, getNodeId), motionFrame(step.step, b, getNodeId, closing)] }, PLANNING));
   const base = new Map(faults(oldBefore, oldAfter).map(fault => [`${fault.kind} ${fault.node}`, fault.distance]));
   return faults(before, after).filter(fault => fault.distance > (base.get(`${fault.kind} ${fault.node}`) ?? 0) + 1);
 }
@@ -1360,7 +1360,7 @@ function holdLoweredSubtrees(context: Context) {
   };
   const median = (values: number[]) => { values.sort((a, b) => a - b); return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2; };
   const faultSum = (k: number, prior: Painted, now: Painted) => replayMotionFaults({ frames: [motionFrame(scenes[k - 1].step, prior, getNodeId),
-    motionFrame(scenes[k].step, now, getNodeId, Boolean(scenes[k].closing))] }).reduce((sum, fault) => sum + fault.distance, 0);
+    motionFrame(scenes[k].step, now, getNodeId, Boolean(scenes[k].closing))] }, PLANNING).reduce((sum, fault) => sum + fault.distance, 0);
   for (let k = 1; k < scenes.length; k++) {
     const step = scenes[k].step;
     if (scenes[k - 1].step.replayFrameIndex === step.replayFrameIndex) continue;
@@ -1420,7 +1420,7 @@ function holdLoweredSubtrees(context: Context) {
 function seatLandings(context: Context) {
   const { scenes } = context;
   const faultSum = (k: number, prior: Painted, now: Painted) => replayMotionFaults({ frames: [motionFrame(scenes[k - 1].step, prior, getNodeId),
-    motionFrame(scenes[k].step, now, getNodeId, Boolean(scenes[k].closing))] }).reduce((sum, fault) => sum + fault.distance, 0);
+    motionFrame(scenes[k].step, now, getNodeId, Boolean(scenes[k].closing))] }, PLANNING).reduce((sum, fault) => sum + fault.distance, 0);
   const daughters = (frame: Painted, node: Node) => (node.children ?? []).filter(child => frame.has(getNodeId(child)));
   // The plaque distances of the coordinates as they stand, until a seat is kept.
   let held: ReadonlyMap<string, number> | undefined;

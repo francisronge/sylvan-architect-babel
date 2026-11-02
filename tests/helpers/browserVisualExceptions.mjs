@@ -39,7 +39,5 @@ export const EXCEPTIONS = [
   x(STAGE_CROSSING, CATALOGUE(6), 'rapid-motion', 'node-jump', '@view',
     { desktop: { 'rapid:33>39': 274.7 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'step-motion', 'node-jump', '@view',
-    { desktop: { '34>35': 274.7 } }),
-  x(STAGE_CROSSING, CATALOGUE(6), 'settled-path-independence', 'retention', 'stage 4',
-    { mobile: { '34>35': 41.13 } })
+    { desktop: { '34>35': 274.7 } })
 ];
