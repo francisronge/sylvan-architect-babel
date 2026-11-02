@@ -794,7 +794,9 @@ function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: numb
     // Phrases waiting in their lower occurrences' slots (retainMovementSourceSlots'
     // `branchedSources`) stand only where the closed plan then paints less
     // motion, none of it new or larger.
-    if ([...phrases].some(([stage, frames]) => frames !== established.get(stage))) {
+    // planStageCoordinates builds a new map each call; a plan differs only
+    // where a frame's reservation does.
+    if ([...phrases].some(([stage, frames]) => [...frames].some(([canvas, coordinates]) => coordinates !== established.get(stage)?.get(canvas)))) {
       const kept = close(phrases);
       if (lessMotion(closedMotionFaults(steps, sizes, closed), closedMotionFaults(steps, sizes, kept))) closed = kept;
     }
