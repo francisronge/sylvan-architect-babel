@@ -116,11 +116,13 @@ export const buildTier2FacetEvidence = ({
   activeLens,
   synonymIndex = DEFAULT_SYNONYM_INDEX,
   structuralMovement,
+  structuralMovementGroup,
   keepsChainIdentity
 }: { relation: DerivationStageRelation; currentForest: readonly SyntaxNode[]; currentRealizations?: readonly SurfaceRealization[];
   priorRealizations?: readonly SurfaceRealization[];
   priorForest?: readonly SyntaxNode[]; activeLens?: boolean; synonymIndex?: Tier2SynonymIndex;
-  structuralMovement?: RecoveredMovement; keepsChainIdentity?: boolean }): Tier2FacetEvidence => {
+  structuralMovement?: RecoveredMovement; structuralMovementGroup?: readonly RecoveredMovement[];
+  keepsChainIdentity?: boolean }): Tier2FacetEvidence => {
   const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, { ...relation, forest: currentForest });
   const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {}, forest: priorForest });
   const worded = recoverMovementEvidence(relation, currentForest, priorForest);
@@ -391,6 +393,8 @@ export const buildTier2FacetEvidence = ({
     ...(movementFailure ? { movementFailure } : {}),
     ...(movement ? { movement } : {}),
     ...(movement === structuralMovement && keepsChainIdentity ? { keepsChainIdentity } : {}),
+    // Wording proves no movement of its own when structure proves a group.
+    ...(!worded.movement && structuralMovementGroup?.length ? { structuralMovementGroup } : {}),
     currentAnchors: currentAnchors.concepts,
     authoredCurrentAnchors: currentAnchors.authored,
     ...(relation.priorAnchors

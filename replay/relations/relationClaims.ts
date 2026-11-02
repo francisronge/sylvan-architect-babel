@@ -109,6 +109,8 @@ export type RelationClaimDispatch = ClaimDispatchBase & {
   structuralRules?: import('./structuralRecognition.ts').StructuralRuleId[];
   /** The structural movement a claim was upgraded with (see dispatchStageRelations and structuralMovement.ts). */
   structuralMovement?: RecoveredMovement;
+  /** The structural movements of one shared landing a claim was upgraded with. */
+  structuralMovementGroup?: RecoveredMovement[];
   /** Movements this claim names that an earlier claim of its stage already draws; it draws no arrow for them. */
   restatedMovements?: RecoveredMovement[];
 };
@@ -130,6 +132,8 @@ export type ExclusiveRelationDispatchInput = {
   structuralRules?: ReadonlySet<import('./structuralRecognition.ts').StructuralRuleId>;
   /** Structural movement for this claim; see structuralMovement.ts. */
   structuralMovement?: RecoveredMovement;
+  /** Structural movements of one shared landing this claim names together. */
+  structuralMovementGroup?: RecoveredMovement[];
   /** The structural movement replaces a coindex over its whole chain, which it keeps beside the path. */
   keepsChainIdentity?: boolean;
   /** Keys (`movementKey`) of movements an earlier claim of this stage already draws. */
