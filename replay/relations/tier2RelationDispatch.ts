@@ -997,10 +997,12 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
 
 /** Whether a claim's drawing is a coindex over a structurally proven movement's
  * chain: both occurrences of the hop, and any older copies of the chain, each
- * unchanged in its preceding slot. Wording reads such a claim as identity alone
- * when it names no movement endpoint (open fields such as head and tail) or
- * lists the new lower occurrence beside an older one; structure reads the older
- * copies as context, so the hop is the displacement the coindex states: the
+ * unchanged in its preceding slot. One end of the hop may be missing when an
+ * older copy is present: the claim names that end in another field. Wording
+ * reads such a claim as identity alone when it names no movement endpoint (open
+ * fields such as head and tail), lists the new lower occurrence beside an older
+ * one, or files the landing under a field it does not read as movement;
+ * structure reads the older copies as context, so the hop is the displacement the coindex states: the
  * movement path draws it, and the coindex stays beside the path
  * (`keepsChainIdentity`). A coindex of the hop alone qualifies only when worded
  * recognition refused no movement (`wordedRefusal`): where it read endpoint
@@ -1015,7 +1017,8 @@ const coindexesMovingChain = (claim: RecoveredClaim, movement: RecoveredMovement
   const groups = claim.facet.evidence?.recognizedOccurrenceGroups ?? [claim.facet.evidence?.currentAnchors.occurrences ?? []];
   return Boolean(lineage) && groups.every(occurrences => {
     const older = occurrences.filter(id => !ends.includes(id));
-    return ends.every(id => occurrences.includes(id)) && (older.length > 0 || !wordedRefusal)
+    const holdsHop = ends.every(id => occurrences.includes(id)) || ends.some(id => occurrences.includes(id)) && older.length > 0;
+    return holdsHop && (older.length > 0 || !wordedRefusal)
       && occurrences.every(id => current.nodes.get(id)?.lineageId === lineage && !current.duplicates.has(id))
       && older.every(id => prior.nodes.has(id) && !prior.duplicates.has(id) && sameMovementSourceSlot(current, prior, id, id)
         && JSON.stringify(prior.nodes.get(id)) === JSON.stringify(current.nodes.get(id)));

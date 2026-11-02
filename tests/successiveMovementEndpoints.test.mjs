@@ -45,7 +45,7 @@ for (const rename of [false, true]) test(`successive movement retains the interm
 
 test('an earlier landing does not transfer without one unambiguous later movement', () => {
   for (const mutate of [
-    s => { s[2].relations.splice(0, 2); },
+    s => { s[2].relations.splice(0, 3); },
     s => { s[2].relations[0].priorAnchors.sourcePhrase = 'unresolved'; }
   ]) {
     const input = stages(); mutate(input);
@@ -63,6 +63,18 @@ test('without a worded movement, a chain inventory listing the hop and the older
   const [earlier, later] = arrows(compileRelationRenderPlan(input), 2);
   assert.deepEqual(endpoints([earlier, later]), [['tObject', 'tEdge'], ['tEdge', 'wh']]);
   assert.equal(later.relationRef.relation, 'A′-chain');
+  assert.deepEqual(earlier.occurrenceTransfers, [{ fromNodeId: 'wh', toNodeId: 'tEdge', stageIndex: 2, relationIndex: 0 }]);
+});
+
+test('without a worded movement, a claim naming the hop\'s landing, its new trace and the older trace in separate fields is the later movement', () => {
+  // Wording coindexes the two traces and leaves the landing's field neutral;
+  // structure reads the claim as naming the hop at both ends, as it reads a
+  // topicalization naming topic, new trace and θ-position copy.
+  const input = stages();
+  input[2].relations.splice(0, 2);
+  const [earlier, later] = arrows(compileRelationRenderPlan(input), 2);
+  assert.deepEqual(endpoints([earlier, later]), [['tObject', 'tEdge'], ['tEdge', 'wh']]);
+  assert.equal(later.relationRef.relation, 'proper government of wh-traces');
   assert.deepEqual(earlier.occurrenceTransfers, [{ fromNodeId: 'wh', toNodeId: 'tEdge', stageIndex: 2, relationIndex: 0 }]);
 });
 
