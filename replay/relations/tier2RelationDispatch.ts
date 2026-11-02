@@ -1005,7 +1005,7 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
 const coindexesMovingChain = (claim: RecoveredClaim, movement: RecoveredMovement,
   forest: readonly SyntaxNode[], priorForest: readonly SyntaxNode[] = [], wordedRefusal?: string): boolean => {
   if (claim.tier !== 2 || claim.facet.recipe.id !== 'identity.occurrences') return false;
-  const occurrences = claim.facet.evidence?.currentAnchors.occurrences ?? [];
+  const occurrences = claim.facet.evidence?.recognizedOccurrences ?? claim.facet.evidence?.currentAnchors.occurrences ?? [];
   const current = indexMovementOccurrences(forest), prior = indexMovementOccurrences(priorForest);
   const ends = [movement.targetNodeId, movement.sourceNodeId], older = occurrences.filter(id => !ends.includes(id));
   const lineage = current.nodes.get(movement.targetNodeId)?.lineageId;

@@ -293,6 +293,11 @@ export type Tier2FacetEvidence = {
   priorRealizationGroupAnchorKeys?: readonly string[];
   /** Separately authored positions proven to belong to one exact lineage. */
   occurrenceGroupAnchorKeys?: readonly string[];
+  /** The occurrences an identity family recognized before it was completed to
+   * every anchored occurrence of its lineage (`completeOccurrenceGroups`).
+   * Completion widens the coindex and its forest light only; movement
+   * recognition and diagnostic ownership read these. */
+  recognizedOccurrences?: readonly string[];
   /** Literal role rows prove a remnant pairing but are not authored coindices. */
   correspondenceRoleWitnesses?: readonly Tier2AuthoredEvidenceEntry[];
   currentAnchors: Readonly<Record<string, readonly string[]>>;

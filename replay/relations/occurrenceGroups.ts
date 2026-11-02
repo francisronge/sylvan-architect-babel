@@ -1,7 +1,13 @@
 import type { SyntaxNode } from '../../types.ts';
 import { establishesAssignment } from './outcomeResolver.ts';
-import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import type { EvidenceScope } from './evidenceScopes.ts';
+import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym } from './tier2Synonyms.ts';
+
+/** The items of one authored field that an identity family reads. */
+const occurrenceEntry = (entry: Tier2AuthoredEvidenceEntry, indices: readonly number[] = entry.items.map((_, index) => index)) => ({
+  ...entry, items: indices.map(index => entry.items[index]), concepts: ['occurrences'],
+  conceptItemIndices: { occurrences: indices.map((_, index) => index) } });
 
 /** Named chains remain separate claims even when one relation lists several. */
 export function recoverOccurrenceGroups(evidence: Tier2FacetEvidence) {
@@ -24,8 +30,7 @@ export function recoverOccurrenceGroups(evidence: Tier2FacetEvidence) {
     if (occurrences.some(matches => matches?.length !== 1)) return [];
     const lineages = occurrences.map(matches => matches![0].lineageId?.trim());
     if (!lineages[0] || !lineages.every(lineage => lineage === lineages[0])) return [];
-    const anchor = { ...entry, concepts: ['occurrences'],
-      conceptItemIndices: { occurrences: entry.items.map((_, index) => index) } };
+    const anchor = occurrenceEntry(entry);
     return [{ kind: 'identity.occurrences' as const,
       origins: { anchors: { [entry.key]: entry.items.map((_, index) => index) }, values: valueOrigins },
       evidence: { currentForest: evidence.currentForest, currentAnchors: { occurrences: [...entry.items] },
@@ -59,9 +64,61 @@ export function recoverOccurrenceGroups(evidence: Tier2FacetEvidence) {
       origins: { anchors: Object.fromEntries(anchors.map(({ entry, indices }) => [entry.key, indices])), values: valueOrigins },
       evidence: { currentForest: evidence.currentForest, currentAnchors: { occurrences: members },
         occurrenceGroupAnchorKeys: anchors.map(({ entry }) => entry.key),
-        authoredCurrentAnchors: anchors.map(({ entry, indices }) => ({ ...entry,
-          items: indices.map(index => entry.items[index]), concepts: ['occurrences'],
-          conceptItemIndices: { occurrences: indices.map((_, index) => index) } })),
+        authoredCurrentAnchors: anchors.map(({ entry, indices }) => occurrenceEntry(entry, indices)),
         values, authoredValues } satisfies Tier2FacetEvidence }];
   })];
+}
+
+/** A recognized identity family covers its whole chain: every other node the
+ * same relation anchors with the family's lineage joins it, whatever its field
+ * is called, so the coindex and its forest light reach the chain's pronounced
+ * member as well as its traces. Completion decides by lineage and structure
+ * alone and never creates a family. A node that occurs more than once, already
+ * belongs to the family, sits inside a member or contains one stays out, as
+ * does every item of a field that repeats an ID. Movement recognition keeps
+ * reading the family as recognized (`recognizedOccurrences`). Families of one
+ * relation that complete to the same occurrences are one claim, read from the
+ * family that recognized the most of them. */
+export function completeOccurrenceGroups(scopes: readonly EvidenceScope[], evidence: Tier2FacetEvidence): EvidenceScope[] {
+  const nodes = new Map<string, SyntaxNode[]>();
+  const parents = new Map<string, string>();
+  const visit = (node: SyntaxNode) => {
+    if (node.id) nodes.set(node.id, [...(nodes.get(node.id) ?? []), node]);
+    node.children?.forEach(child => { if (node.id && child.id) parents.set(child.id, node.id); visit(child); });
+  };
+  evidence.currentForest.forEach(visit);
+  const within = (id: string, ancestor: string) => {
+    for (let parent = parents.get(id); parent; parent = parents.get(parent)) if (parent === ancestor) return true;
+    return false;
+  };
+  const unique = (id: string) => nodes.get(id)?.length === 1 ? nodes.get(id)![0] : undefined;
+  const completed = scopes.map(scope => {
+    const recognized = scope.evidence.currentAnchors.occurrences ?? [];
+    const lineage = unique(recognized[0] ?? '')?.lineageId?.trim();
+    if (scope.kind !== 'identity.occurrences' || !lineage
+      || recognized.some(id => unique(id)?.lineageId?.trim() !== lineage)) return { scope, recognized: 0 };
+    const members = [...recognized];
+    const origins = Object.fromEntries(Object.entries(scope.origins.anchors).map(([key, indices]) => [key, [...indices]]));
+    const authored = [...scope.evidence.authoredCurrentAnchors ?? []];
+    for (const entry of evidence.authoredCurrentAnchors ?? []) {
+      if (new Set(entry.items).size !== entry.items.length) continue;
+      const indices: number[] = [];
+      entry.items.forEach((id, index) => {
+        if (unique(id)?.lineageId?.trim() !== lineage || origins[entry.key]?.includes(index)
+          || members.some(member => member === id || within(id, member) || within(member, id))) return;
+        members.push(id);
+        indices.push(index);
+      });
+      if (!indices.length) continue;
+      origins[entry.key] = [...origins[entry.key] ?? [], ...indices];
+      authored.push(occurrenceEntry(entry, indices));
+    }
+    const grown = members.length > recognized.length ? { ...scope, origins: { ...scope.origins, anchors: origins },
+      evidence: { ...scope.evidence, currentAnchors: { ...scope.evidence.currentAnchors, occurrences: members },
+        recognizedOccurrences: recognized, occurrenceGroupAnchorKeys: authored.map(entry => entry.key),
+        authoredCurrentAnchors: authored } } : scope;
+    return { scope: grown, recognized: recognized.length, key: JSON.stringify([...members].sort()) };
+  });
+  return completed.filter(({ key, recognized }, index) => !key || !completed.some((other, otherIndex) => other.key === key
+    && (other.recognized > recognized || other.recognized === recognized && otherIndex < index))).map(({ scope }) => scope);
 }

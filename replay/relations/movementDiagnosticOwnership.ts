@@ -50,7 +50,7 @@ export function isPriorMovementContextFailure(
     concept === 'movement.source' || concept === 'movement.landing'));
   const witnesses = fields.filter(entry => entry.concepts.includes('movement.witness'));
   const identities = dispatch.facets.filter(facet => facet.recipe.id === 'identity.occurrences')
-    .map(facet => (facet.evidence ?? evidence).currentAnchors.occurrences ?? []);
+    .map(facet => facet.evidence?.recognizedOccurrences ?? (facet.evidence ?? evidence).currentAnchors.occurrences ?? []);
   const directedPair = directional.some(entry => entry.concepts.includes('movement.source'))
     && directional.some(entry => entry.concepts.includes('movement.landing'));
   // An established identity group can be restated in a later stage without
