@@ -119,6 +119,21 @@ export function completeOccurrenceGroups(scopes: readonly EvidenceScope[], evide
         authoredCurrentAnchors: authored } } : scope;
     return { scope: grown, recognized: recognized.length, key: JSON.stringify([...members].sort()) };
   });
-  return completed.filter(({ key, recognized }, index) => !key || !completed.some((other, otherIndex) => other.key === key
-    && (other.recognized > recognized || other.recognized === recognized && otherIndex < index))).map(({ scope }) => scope);
+  const kept = completed.filter(({ key, recognized }, index) => !key || !completed.some((other, otherIndex) => other.key === key
+    && (other.recognized > recognized || other.recognized === recognized && otherIndex < index)));
+  // The claim that remains reads every field the merged families read, so none
+  // of their authored evidence is left over for a neutral mark.
+  return kept.map(({ scope, key }) => {
+    const merged = completed.filter(other => key && other.key === key && other.scope !== scope);
+    if (!merged.length) return scope;
+    const anchors: Record<string, number[]> = Object.fromEntries(Object.entries(scope.origins.anchors).map(([field, indices]) => [field, [...indices]]));
+    for (const { scope: other } of merged) for (const [field, indices] of Object.entries(other.origins.anchors))
+      anchors[field] = [...new Set([...anchors[field] ?? [], ...indices])].sort((a, b) => a - b);
+    const authored = Object.entries(anchors).flatMap(([field, indices]) => {
+      const entry = (evidence.authoredCurrentAnchors ?? []).find(candidate => candidate.key === field);
+      return entry ? [occurrenceEntry(entry, indices)] : [];
+    });
+    return { ...scope, origins: { ...scope.origins, anchors },
+      evidence: { ...scope.evidence, occurrenceGroupAnchorKeys: authored.map(entry => entry.key), authoredCurrentAnchors: authored } };
+  });
 }

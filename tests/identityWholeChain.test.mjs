@@ -41,3 +41,30 @@ test('a family never takes in an occurrence nested in one of its members or anot
   };
   assert.deepEqual(families({ sentence: 'it fell', derivationStages: [stage] }, 0, 0), [['high', 'low']]);
 });
+
+// Codex review of #362: completion must leave one claim per chain and keep
+// every field the merged families read.
+const chainStage = anchors => ({
+  statement: 'Raise the phrase.', stageRecord: 'One chain of three occurrences.',
+  relations: [{ relation: 'subject licensing', anchors }],
+  workspaceForest: [{ id: 'tp', label: 'TP', children: [
+    { id: 'a', label: 'DP', lineageId: 'x', children: [{ id: 'd', label: 'D', word: 'it', children: [] }] },
+    { id: 'tbar', label: "T'", children: [{ id: 't', label: 'T', silent: true, children: [] },
+      { id: 'vp', label: 'VP', children: [{ id: 'b', label: 'DP', silent: true, lineageId: 'x', children: [] },
+        { id: 'v', label: 'V', word: 'fell', children: [{ id: 'c', label: 'DP', silent: true, lineageId: 'x', children: [] }] }] }] }] }]
+});
+const planItems = stage => prepareReplay({ sentence: 'it fell', derivationStages: [stage] }).relationRenderPlan.frames[0].items
+  .filter(item => item.relationRef.stageIndex === 0 && item.relationRef.relationIndex === 0);
+
+test('a recognized occurrences field completed by another field is one family, not a partial and a whole', () => {
+  const items = planItems(chainStage({ occurrences: ['a', 'b'], topic: 'c' }));
+  assert.deepEqual(items.filter(item => item.familyId === 'identity.occurrences' && item.kind === 'coindex')
+    .map(item => [...item.nodeIds].sort()), [['a', 'b', 'c']]);
+});
+
+test('families merged into one claim leave none of their fields to a neutral mark', () => {
+  const items = planItems(chainStage({ nominalChain: ['a', 'b', 'c'], unpronouncedOccurrences: ['a', 'b'] }));
+  assert.deepEqual(items.filter(item => item.familyId === 'identity.occurrences' && item.kind === 'coindex')
+    .map(item => [...item.nodeIds].sort()), [['a', 'b', 'c']]);
+  assert.deepEqual(items.filter(item => item.kind === 'fallback').map(item => item.relationRef.relation), []);
+});

@@ -551,8 +551,9 @@ export const dispatchRelationClaims = (
       return indices.length > 0 && indices.every(index => scope.origins?.[ref.field]?.[ref.key]?.includes(index));
     };
     // Exact scoped interpretation can add a supported domain or literal to the
-    // same pair. Its weaker generic projection is not an independent drawing.
-    if (['operator-binding', 'theta-grid'].includes(facet.recipe.id) && continued.some(scope => scope.recipe.id === facet.recipe.id
+    // same pair, and a completed identity family adds the rest of its chain.
+    // The weaker or partial view is not an independent drawing.
+    if (['operator-binding', 'theta-grid', 'identity.occurrences'].includes(facet.recipe.id) && continued.some(scope => scope.recipe.id === facet.recipe.id
       && scope.evidence && facet.evaluation.consumedEvidence.every(ref => coversReference(scope, ref))
       && scope.evaluation.consumedEvidence.some(ref => !facet.evaluation.consumedEvidence.some(original => original.field === ref.field && original.key === ref.key)))) {
       selected.splice(index, 1);
