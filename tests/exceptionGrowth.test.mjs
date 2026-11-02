@@ -120,3 +120,18 @@ test('an existing approval is a record of the owner\'s words: #285 rewrote one\'
   assert.match(growth([base], [{ ...grown, approval: { by: 'Francis Ronge', on: '2026-10-20', note: 'Chat: frame 39 too',
     accepts: grown.at } }])[0]?.problem ?? '', /dated earlier/);
 });
+
+test('a fault renamed to another subtype of its kind keeps its approval while it stays within it', () => {
+  const jump = subtype => ({ reason: 'Accepted (camera): the crossing jumps the unmoved syntax.', record: 'replay-regressions/unproven-second-landing.json#',
+    rule: 'first-paint-continuity', subtype, subject: 'stage 4', at: { desktop: { '19>20': 196.81 } } });
+  const base = [approved(jump('jump:stage-coordinates'))];
+  assert.deepEqual(growth(base, [{ ...jump('jump:camera'), approval: base[0].approval }]), [], 'the same approval carries over');
+  assert.match(growth(base, [jump('jump:camera')])[0]?.problem ?? '', /approval was edited \(removed\)/, 'the approval moves with it');
+  assert.deepEqual(growth(base, [{ ...jump('jump:camera'), at: { desktop: { '19>20': 220 } } }]).map(({ grown, problem }) => [grown, problem]),
+    [[['desktop: bound 196.81 → 220'], 'no approval']], 'growth still needs approval');
+  assert.deepEqual(growth(base, [{ ...jump('off-canvas:unmoved') }]).map(({ problem }) => problem), ['no approval'],
+    'another kind of fault is a new exception');
+  const carried = { ...jump('jump:camera'), approval: base[0].approval };
+  assert.deepEqual(growth(base, [carried, jump('jump:relayout')]).map(({ name, problem }) => [name.split(' ')[1], problem]),
+    [['first-paint-continuity/jump:relayout', 'no approval']], 'one base entry carries over to one entry only');
+});
