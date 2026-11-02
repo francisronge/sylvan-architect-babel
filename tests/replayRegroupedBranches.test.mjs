@@ -30,7 +30,9 @@ test('each regrouped branch keeps its preceding material until its own new daugh
 });
 
 // The second new daughter also holds new syntax, built at its own steps before
-// the daughter itself; it takes its regrouped material as it is built.
+// the daughter itself; it takes its regrouped material as it is built. It has
+// more construction to do, so it is built first and the first new daughter
+// just before the parent needs it (just-in-time sisters, Francis, 23 Oct).
 test('new syntax inside a waiting regrouped daughter is built at its own steps', () => {
   const before = [{ id: 'p', label: 'PP', children: [
     { id: 'x', label: 'XP', children: [word('a', 'one'), word('b', 'two')] },
@@ -42,11 +44,14 @@ test('new syntax inside a waiting regrouped daughter is built at its own steps',
     derivationStages: [stage(before), stage(after)], includePlayback: true });
   const steps = replay.playbackSteps.filter(step => step.replayFrameIndex === 1 && step.replayKind === 'micro');
   assert.deepEqual(steps.map(step => [step.operation, step.targetNodeId]),
-    [['ExternalMerge', 'x2'], ['LexicalSelect', 'e'], ['ExternalMerge', 'z'], ['ExternalMerge', 'y2']]);
-  const [, select, merge] = steps.map(frameStructure);
+    [['LexicalSelect', 'e'], ['ExternalMerge', 'z'], ['ExternalMerge', 'y2'], ['ExternalMerge', 'x2']]);
+  const [select, merge, second, first] = steps.map(frameStructure);
   assert.equal(select.parent.get('d'), 'y', 'four stays in its preceding branch until ZP takes it');
   assert.equal(select.parent.get('b'), 'x');
   assert.deepEqual([merge.parent.get('d'), merge.parent.get('e'), merge.parent.get('b')], ['z', 'z', 'x']);
-  assert.equal(merge.displayed.has('y'), false, 'YP has no material left once ZP is built');
+  assert.deepEqual([second.parent.get('b'), second.parent.get('a'), second.parent.get('c')], ['y2', 'x', 'y'],
+    'one and three stay in their preceding branches until XP is built');
+  assert.deepEqual(['a', 'b', 'c', 'd'].map(id => first.parent.get(id)), ['x2', 'y2', 'x2', 'z']);
+  assert.equal(first.displayed.has('x') || first.displayed.has('y'), false, 'the preceding branches have no material left');
   assert.deepEqual(checkStableConstruction(replay), []);
 });
