@@ -79,9 +79,11 @@ syntactic rules. Desktop remains the primary experience.
 ## Execution Order
 
 Programs run in numeric order, except for small provider-free maintenance that
-keeps later work buildable. Launch requires Programs 1 through 6, as defined in
-[CONTEXT.md](CONTEXT.md). The benchmark in Programs 7 and 8 is deferred, does
-not block launch and comes last.
+keeps later work buildable. Launch is public Babel only, as defined in
+[CONTEXT.md](CONTEXT.md): it needs public generation from Program 1, public
+Babel from Program 3 (3A, 3B, 3D), Program 5 and the Generation Archive (6A).
+The research workbench (3C), the Reviewed Derivational Corpus (6B) and the
+benchmark in Programs 7 and 8 come after launch.
 
 ## Program 1: Contract Qualification
 
