@@ -39,7 +39,8 @@ test('the prompt sends only the sentence and asks the model to spell it', () => 
       assert.match(instruction, /- text: the exact text of the input sentence .* or a nonempty array of nonblank strings, in sentence order, for stretches that are not adjacent\./);
       assert.match(instruction, /including its spacing, does not prescribe word, syntactic or morpheme boundaries/);
       assert.match(instruction, /Use realizations only when the analysis retains syntax whose collective realization differs from its terminals' own words\./);
-      assert.match(instruction, /each group's text claims its own stretches of the sentence; set aside their covered lexical leaves/);
+      assert.match(instruction, /Where a realization group covers terminals, its text is read in their place, starting where the first of them stands\./);
+      assert.doesNotMatch(instruction, /claims its own stretches|set aside their covered lexical leaves/);
     }
   }
   assert.equal(buildParseContentsPrompt('Mia laughed.'), 'Sentence: "Mia laughed."');

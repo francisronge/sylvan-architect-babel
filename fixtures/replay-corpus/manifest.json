@@ -104,7 +104,8 @@
       "id": "showcase-31-ar-vso-agreement",
       "source": "../showcase/agreement-and-case.json",
       "selector": "/cases/0",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"plan": true, "reason": "The stage-5 head-chain claim's identity family takes in its pronounced verb aV2 (pronouncedVerb, lineage aRead) beside the silent copies aV1 and aV0, so the coindex and Forest light cover the whole chain; that field no longer leaves a neutral residual mark. No path, Replay frame or motion fault changes.", "from": "351a60c7f6e6ff5bbbe1ba1a7b9978e1a10330868e20046ade5c94e0254b8bf0", "to": "8796aa3ce76094cc5a72f0fd2e13d4d18ba9c116b0b2ac5380f8a2d5d38aa784"}
     },
     {
       "id": "showcase-09-hi-light-verb",
@@ -159,7 +160,8 @@
       "id": "showcase-01-en-passive-raising",
       "source": "../showcase/movement.json",
       "selector": "/cases/1",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"plan": true, "reason": "Stage 7's copy-pronunciation claim drew two identity families of one lineage, the full chain and its unpronounced subset; completed to the whole chain they are one claim, so the subset no longer coalesces into stage 5's family. The same occurrences stay lit with the same letter; no path, Replay frame or motion fault changes.", "from": "720e9f03e265981666137c912886147cfac0df8f754b4d1ec6be7b6f1baf16ab", "to": "84c435836d9f36bf9b63294e07f65389a47b522736e5dd61954da3c81f5e9608"}
     },
     {
       "id": "showcase-18-sv-long-v2",

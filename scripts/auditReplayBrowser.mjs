@@ -292,9 +292,11 @@ async function captureStill(context, name, findings) {
   return relative(sheet);
 }
 
-/** Re-runs one flagged motion under a CDP screencast (Chromium) for a filmstrip. */
-async function recordFilmstrip(context, name, run, judge) {
+/** Re-runs one flagged motion under a CDP screencast (Chromium) for a filmstrip.
+ * `prepare` reaches the motion's starting state before the recording starts. */
+async function recordFilmstrip(context, name, run, judge, prepare = async () => {}) {
   if (values.filmstrips === 'none' || values.engine !== 'chromium') return {};
+  await prepare();
   const { page } = context, frames = [];
   const cdp = await page.context().newCDPSession(page);
   cdp.on('Page.screencastFrame', ({ data, metadata, sessionId }) => {
@@ -508,11 +510,19 @@ async function auditReplay(context, record, entry, result, anchorsFor) {
     } finally { if (current.width !== base.width || current.height !== base.height) await transition(base); }
   }
   for (const [frame] of [...stepSamples].filter(([frame]) => result.findings.some(item => item.rule === 'step-motion' && item.frame === `${frame - 1}>${frame}`))) {
-    const film = await recordFilmstrip(context, name(`next-${frame}`), async () => {
-      await jumpAndSettle(page, frame - 2 >= 2 ? frame - 4 : Math.min(frameCount - 1, frame));
-      await jumpAndSettle(page, frame - 2);
-      return sampleWhile(page, async () => { await probe(page, () => window.__babelAudit.clickNext()); await replayPaint(page, frame - 1); });
-    }, samples => judgeStepMotion(samples, { thresholds: motionThresholds }));
+    // The re-run takes the first pass's route, before the recording starts:
+    // Next keeps the camera it was given, so a step reached by a jump starts
+    // from another pose and can judge a different motion.
+    const route = async () => {
+      await jumpAndSettle(page, traversal.start - 1);
+      for (let index = traversal.start; index <= frame - 2; index++) {
+        if (!await probe(page, () => window.__babelAudit.clickNext())) throw new Error(`Next is unavailable at frame ${index}`);
+        await replayPaint(page, index);
+      }
+    };
+    const film = await recordFilmstrip(context, name(`next-${frame}`),
+      () => sampleWhile(page, async () => { await probe(page, () => window.__babelAudit.clickNext()); await replayPaint(page, frame - 1); }),
+      samples => judgeStepMotion(samples, { thresholds: motionThresholds }), route);
     if (film.sheet) result.sheets[coverageKey(record.id, viewport.name, 'motion', `${frame - 1}>${frame}`)] = film.sheet;
     const transition = `${frame - 1}>${frame}`, flagged = result.findings.filter(item => item.rule === 'step-motion' && item.frame === transition);
     const verdicts = withVerdict(flagged, film.rerun ?? null);

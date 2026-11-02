@@ -174,11 +174,15 @@ test('Minimalism is the default framework, only X-bar names a projection among t
   // Only X-bar names the copy-or-trace choice; either stays open in both.
   assert.match(buildSystemInstruction('xbar'), /including its choice of copy or trace representation\./);
   assert.doesNotMatch(buildSystemInstruction('minimalism'), /\btrace\b/);
+  // Only X-bar may record a level of representation such as D-structure as one stage.
+  assert.match(buildSystemInstruction('xbar'), /A stage may establish a complete structure at once, such as a level of representation the analysis distinguishes\./);
+  assert.doesNotMatch(buildSystemInstruction('minimalism'), /complete structure at once|level of representation/);
   const [xbarRest, minimalismRest] = ['xbar', 'minimalism'].map(framework => buildDerivationStagesInstruction(framework)
     .replace(/from the workspace states: [^.]+\./, 'from the workspace states: EVENTS.')
     .replace(/Label each node [^,]+, preserving/, 'Label each node NOTATION, preserving')
     .replace(/Explain the choices [^.]+\. Do not mention/, 'FOCUS Do not mention')
-    .replace(/according to the analysis(, including its choice of copy or trace representation)?\./, 'according to the analysis REPRESENTATION.'));
+    .replace(/according to the analysis(, including its choice of copy or trace representation)?\./, 'according to the analysis REPRESENTATION.')
+    .replace(/described in stageRecord\.( A stage may establish a complete structure at once, such as a level of representation the analysis distinguishes\.)? The last/, 'described in stageRecord. LEVELS The last'));
   assert.equal(minimalismRest, xbarRest, 'the frameworks share every other sentence of the contract');
 });
 
@@ -191,8 +195,8 @@ test('the model-facing contract specifies the framework and exact input without 
     const relationsInstruction = instruction.split('\nRelations\n')[1].split('\nInput words\n')[0];
     assert.match(relationsInstruction, /Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis\./);
     assert.doesNotMatch(instruction, /\b(?:ungrammatical|illicit|grammaticality|judgment|convergence)\b/i);
-    assert.match(instruction, /In the final stage, ordinary pronounced terminals and explicit realization groups together spell out the input sentence exactly once, in order, ignoring letter case, whitespace and punctuation\./);
-    assert.match(instruction, /Without groups, the pronounced terminals in tree order spell the sentence\./);
+    assert.match(instruction, /In the final stage, read the pronounced terminals in tree order: they spell out the input sentence exactly once, in order, ignoring letter case, whitespace and punctuation\. Where a realization group covers terminals, its text is read in their place, starting where the first of them stands\./);
+    assert.doesNotMatch(instruction, /Without groups|claims its own stretches|remaining pronounced terminals/);
     assert.match(instruction, /You decide where words begin and end; Babel checks the spelling character by character\./);
     assert.doesNotMatch(instruction, /tokenIndex|tokenIndices|input token/i);
   }

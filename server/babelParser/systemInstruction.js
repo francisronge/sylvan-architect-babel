@@ -24,6 +24,13 @@ const occurrenceRepresentation = (framework) => (framework === 'xbar'
   ? ', including its choice of copy or trace representation'
   : '');
 
+// X-bar analyses may record a level of representation such as D-structure as
+// one stage. Minimalism has no such level; offered there, the sentence led
+// GPT-6.1 Sol to build whole clause skeletons first and change them inside later.
+const completeStructure = (framework) => (framework === 'xbar'
+  ? ' A stage may establish a complete structure at once, such as a level of representation the analysis distinguishes.'
+  : '');
+
 // Bare Phrase Structure has no bar levels and no separate projection step: a
 // label comes from Merge. So only the X-bar instruction names a projection
 // among the construction events Babel derives from the workspace states.
@@ -37,31 +44,31 @@ For one analysis, its only field is derivationStages, a nonempty array of stages
 When the sentence has readings that need different structures, return one analysis for each reading. Then the only top-level field is analyses, a nonempty array of analysis objects, each containing only derivationStages.
 
 Stages
-Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord. A stage may establish a complete structure at once, such as a level of representation the analysis distinguishes. The last stage contains the completed analysis of the input.
+Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord.${completeStructure(framework)} The last stage contains the completed analysis of the input.
 An occurrence moves only from a position that an earlier stage already shows. Several operations may share a stage. Babel replays a stage's relations in the order they are listed; if the analysis needs an order that this cannot show, record the intermediate workspace as a separate stage rather than describing it only in prose. An unchanged workspace needs a sentence-specific reason within the analysis for the new stage.
 Each stage has these five required fields, written in this order:
 - statement: a nonblank string naming what the stage establishes.
 - stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. ${stageRecordFocus(framework)} Do not mention node ids, field names or how the JSON encodes the analysis.
 - relations: an array of relations introduced or changed in this stage. Record each relation once, in the stage where it is established; list it again in a later stage only if the analysis changes it.
 - workspace: an array of node ids naming the root of every currently active syntax tree or separate syntax object after these operations.
-- nodes: an array of the syntax nodes this stage introduces or changes, defined below.
+- nodes: the syntax this stage introduces or changes, written as trees, defined below.
 It may then contain realizations, the optional input-association field defined below. No other stage fields are allowed.
 After objects combine, name only their combined root in workspace rather than retaining their former independent roots.
 
 Syntax nodes
 A stage's workspace contains each root it names and, through children, every node beneath those roots. A node that no root reaches is not in the current workspace.
 Each node keeps its latest definition until a later stage redefines it. List a node in nodes in the stage that introduces it and in every later stage that changes any of its fields, including its children, and in no other stage. A node whose own fields are unchanged is not listed again when something beneath it changes.
-Each nodes entry has these required fields:
+Write what the stage builds as trees: a node's children are written in place, from left to right, and a child that already exists unchanged is named by its id. Each node, written in place or as its own nodes entry, has these required fields:
 - id: a nonblank string identifying this occurrence. Within one stage's nodes, each id appears once.
 - label: a nonblank string naming the syntactic item or category at this node. ${labelNotation(framework)}, preserving the distinctions made in the analysis.
 Its optional fields are children, word, silent, lineageId, and copyOf:
-- children: an ordered array of node ids, the node's daughters from left to right. Each id names a node listed in this stage's nodes or defined in an earlier stage. Omit children, or use an empty array, for a leaf.
+- children: an ordered array of the node's daughters from left to right, each a node written in place or the id of a node defined in this or an earlier stage. Omit children, or use an empty array, for a leaf.
 - word is a string holding a terminal's lexical content. A wordless abstract item may remain wordless.
 - silent is a boolean. On a terminal, true means unpronounced in this stage, even if word retains lexical content. On a non-terminal, true means every terminal beneath it is unpronounced. Represent each occurrence's current status, not the status it will acquire later.
 - lineageId is a nonblank string shared by distinct occurrences of the same continuing syntactic object. It expresses identity, not a particular dependency type.
 - copyOf is the id of a node defined in this or an earlier stage. The entry is then a new occurrence with that node's structure as this stage defines it: Babel gives it the copied node's label, fields and complete subtree, and names each node inside the copy by this entry's id, a slash and the copied node's id, as in copy/original. An entry with copyOf has no children or word and may omit label; label, silent and lineageId, when given, apply to the entry itself.
-An occurrence keeps its id in every later stage, including when it is redefined. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id. Each id stands at only one position in the workspace: it is one root or the child of one parent, and never beneath itself. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis${occurrenceRepresentation(framework)}.
-The nodes entries use only the fields defined above.
+Write each node's id as its last field, after its children. An occurrence keeps its id in every later stage, including when it is redefined. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id. Each id stands at only one position in the workspace: it is one root or the child of one parent, and never beneath itself. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis${occurrenceRepresentation(framework)}.
+Nodes use only the fields defined above.
 
 Relations
 Babel derives the basic construction display from the workspace states: ${constructionEvents(framework)}. Do not add a relation solely to announce one of these construction events. Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events. Use an empty relations array when there are none. Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis.
@@ -78,7 +85,7 @@ When a values entry lists one literal per item of an anchor entry, give both ent
 Use an anchor list for nodes with the same role in this relation. Keep distinct groups in separate entries and name their roles distinctly.
 
 Input words
-In the final stage, ordinary pronounced terminals and explicit realization groups together spell out the input sentence exactly once, in order, ignoring letter case, whitespace and punctuation. Without groups, the pronounced terminals in tree order spell the sentence. With groups, each group's text claims its own stretches of the sentence; set aside their covered lexical leaves, and the remaining pronounced terminals in tree order spell the rest of the sentence in order. You decide where words begin and end; Babel checks the spelling character by character. Earlier stages may contain abstract objects before they receive their surface realization.
+In the final stage, read the pronounced terminals in tree order: they spell out the input sentence exactly once, in order, ignoring letter case, whitespace and punctuation. Where a realization group covers terminals, its text is read in their place, starting where the first of them stands. You decide where words begin and end; Babel checks the spelling character by character. Earlier stages may contain abstract objects before they receive their surface realization.
 
 Realizations
 The writing of the sentence, including its spacing, does not prescribe word, syntactic or morpheme boundaries.

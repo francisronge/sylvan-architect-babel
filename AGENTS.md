@@ -86,14 +86,16 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
   has exactly `statement`, `stageRecord`, `relations`, `workspace` and `nodes`,
   plus optional `realizations` groups tying occurrence IDs to the exact sentence
   text they realize.
-- `workspace` names the current roots; `nodes` lists only the nodes the stage
-  introduces or changes, children as node ids. A node keeps its latest
-  definition until redefined. An entry naming `copyOf` is a new occurrence of
+- `workspace` names the current roots; `nodes` holds only what the stage
+  introduces or changes, written as trees: a child is a node written in place
+  or the id of an existing node, and each node's `id` is written last, after its
+  children, so no long run of closing brackets builds up. A node keeps its
+  latest definition until redefined. An entry naming `copyOf` is a new occurrence of
   another node's current structure: Babel gives it that node's label, fields and
   complete subtree, naming each copied node `copyId/originalId`; the entry may
   restate the copied word but not change it, carries only `id`, `copyOf`,
   `label`, `word`, `silent` and `lineageId`, and may not contain itself or
-  name a node that already belongs to something else. `server/babelParser/partsList.js` expands this into
+  name a node that already belongs to something else. `server/babelParser/partsList.js` flattens the trees (reporting problems at their authored paths) and expands them into
   the nested `workspaceForest` before any other check, so parsing, Replay and
   saved records read one form. Analyses authored as nested forests with `refId`,
   including every saved record, are read unchanged; one analysis cannot mix forms.
