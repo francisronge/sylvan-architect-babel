@@ -376,7 +376,12 @@ through earlier displacements, or that another candidate commands, is not a
 source. Head movement is read from a new two-child parent holding only the
 landing and one unchanged head host, none of the three notated as a phrase or
 bar; the host stood in that parent's exact slot, or was a lone object while the
-moving head left the head position of its own projection. A terminal landing
+moving head left the head position of its own projection. A head may also join
+a kept head, as an affix lowering from I into V does: the receiver keeps its ID
+and slot, is notated as a head in a forest that writes projection levels, and
+holds its preceding daughters unchanged and in order beside the landing, its
+only new daughter; the landing is a terminal or head assembly that left a
+head-notated parent. A terminal landing
 must have left the head position of its own projection, since a phrase can take
 the same shape beside a bare head; a branching landing needs a member that
 earlier head movement left a lower occurrence of.

@@ -14,6 +14,7 @@
  */
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
+import { writesProjectionLevels } from '../projectionStructure.ts';
 import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
 import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
 import { isHeadAssembly, landingKind, readsAsProjection, recoverMovementEvidence, type RecoveredMovement } from './movementEvidence.ts';
@@ -127,6 +128,24 @@ const adjoinsHead = (current: Occurrences, prior: Occurrences, landingId: string
     && Boolean(sourceParent!.children?.some(sister => sister.id !== priorSourceId && sister.children?.length));
 };
 
+/** A head joining a kept head: the landing's parent kept its id and slot, is
+ * notated as a head in a forest that writes projection levels (so a bare
+ * label is not a phrase), and holds its preceding daughters unchanged and in
+ * order beside the landing, its only new daughter. The landing is a terminal
+ * or head assembly that left a head-notated parent, as an affix lowering from
+ * I into V does. */
+const joinsKeptHead = (current: Occurrences, prior: Occurrences, levelsWritten: boolean, landingId: string, priorSourceId: string): boolean => {
+  const parent = current.parents.get(landingId), landing = current.nodes.get(landingId)!;
+  const before = parent?.id ? prior.nodes.get(parent.id) : undefined, sourceParent = prior.parents.get(priorSourceId);
+  if (!levelsWritten || !parent?.id || !before || current.duplicates.has(parent.id) || prior.duplicates.has(parent.id)
+    || readCategoryLabel(parent.label)?.kind !== 'head' || !sameMovementSourceSlot(current, prior, parent.id, parent.id)
+    || readCategoryLabel(sourceParent?.label)?.kind !== 'head' || !headLike(landing) || readsAsProjection(landing)
+    || landing.lineageId && parent.lineageId === landing.lineageId) return false;
+  const kept = (parent.children ?? []).filter(child => child.id !== landingId);
+  return kept.length === (before.children?.length ?? 0) && kept.length > 0
+    && kept.every((child, index) => unchangedSubtree(before.children![index], child));
+};
+
 /** A landing context the existing reader leaves open is read from the
  * landing's parent: inside a phrase or bar projection the landing is a
  * phrase. A head or prose-labelled parent stays unread. */
@@ -146,6 +165,7 @@ export const readStageDisplacements = (
   if (!previousForest.length) return { displacements, refusals };
   const current = indexMovementOccurrences(currentForest), prior = indexMovementOccurrences(previousForest);
   const currentRoots = rootIndices(currentForest);
+  const levelsWritten = writesProjectionLevels(currentForest) && writesProjectionLevels(previousForest);
   const lineages = new Map<string, string[]>();
   current.nodes.forEach((node, id) => {
     if (node.lineageId) lineages.set(node.lineageId, [...(lineages.get(node.lineageId) ?? []), id]);
@@ -222,7 +242,8 @@ export const readStageDisplacements = (
     }
     const before = prior.nodes.get(reading.priorSourceNodeId)!;
     const commands = parentContains(current, target.id!, source.id!);
-    const read = adjoinsHead(current, prior, target.id!, source.id!, before.id!) ? 'head'
+    const read = adjoinsHead(current, prior, target.id!, source.id!, before.id!)
+      || joinsKeptHead(current, prior, levelsWritten, target.id!, before.id!) ? 'head'
       : landingKind(target, current.parents.get(target.id!), previousForest,
         { node: before, parent: prior.parents.get(before.id!) }, { current, prior })
       ?? (phraseParent(current, target.id!) ? 'phrasal' : undefined);
