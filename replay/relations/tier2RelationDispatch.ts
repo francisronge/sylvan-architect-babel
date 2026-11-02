@@ -1006,14 +1006,18 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
 const coindexesMovingChain = (claim: RecoveredClaim, movement: RecoveredMovement,
   forest: readonly SyntaxNode[], priorForest: readonly SyntaxNode[] = [], wordedRefusal?: string): boolean => {
   if (claim.tier !== 2 || claim.facet.recipe.id !== 'identity.occurrences') return false;
-  const occurrences = claim.facet.evidence?.recognizedOccurrences ?? claim.facet.evidence?.currentAnchors.occurrences ?? [];
   const current = indexMovementOccurrences(forest), prior = indexMovementOccurrences(priorForest);
-  const ends = [movement.targetNodeId, movement.sourceNodeId], older = occurrences.filter(id => !ends.includes(id));
+  const ends = [movement.targetNodeId, movement.sourceNodeId];
   const lineage = current.nodes.get(movement.targetNodeId)?.lineageId;
-  return Boolean(lineage) && ends.every(id => occurrences.includes(id)) && (older.length > 0 || !wordedRefusal)
-    && occurrences.every(id => current.nodes.get(id)?.lineageId === lineage && !current.duplicates.has(id))
-    && older.every(id => prior.nodes.has(id) && !prior.duplicates.has(id) && sameMovementSourceSlot(current, prior, id, id)
-      && JSON.stringify(prior.nodes.get(id)) === JSON.stringify(current.nodes.get(id)));
+  // A claim merged from several families qualifies only as each family would.
+  const groups = claim.facet.evidence?.recognizedOccurrenceGroups ?? [claim.facet.evidence?.currentAnchors.occurrences ?? []];
+  return Boolean(lineage) && groups.every(occurrences => {
+    const older = occurrences.filter(id => !ends.includes(id));
+    return ends.every(id => occurrences.includes(id)) && (older.length > 0 || !wordedRefusal)
+      && occurrences.every(id => current.nodes.get(id)?.lineageId === lineage && !current.duplicates.has(id))
+      && older.every(id => prior.nodes.has(id) && !prior.duplicates.has(id) && sameMovementSourceSlot(current, prior, id, id)
+        && JSON.stringify(prior.nodes.get(id)) === JSON.stringify(current.nodes.get(id)));
+  });
 };
 
 /** One ordered pass over the stages. Earlier claims inform later ones through

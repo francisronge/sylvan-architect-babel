@@ -76,7 +76,7 @@ export function recoverOccurrenceGroups(evidence: Tier2FacetEvidence) {
  * alone and never creates a family. A node that occurs more than once, already
  * belongs to the family, sits inside a member or contains one stays out, as
  * does every item of a field that repeats an ID. Movement recognition keeps
- * reading the family as recognized (`recognizedOccurrences`). Families of one
+ * reading the family as recognized (`recognizedOccurrenceGroups`). Families of one
  * relation that complete to the same occurrences are one claim, read from the
  * family that recognized the most of them. */
 export function completeOccurrenceGroups(scopes: readonly EvidenceScope[], evidence: Tier2FacetEvidence): EvidenceScope[] {
@@ -115,7 +115,7 @@ export function completeOccurrenceGroups(scopes: readonly EvidenceScope[], evide
     }
     const grown = members.length > recognized.length ? { ...scope, origins: { ...scope.origins, anchors: origins },
       evidence: { ...scope.evidence, currentAnchors: { ...scope.evidence.currentAnchors, occurrences: members },
-        recognizedOccurrences: recognized, occurrenceGroupAnchorKeys: authored.map(entry => entry.key),
+        recognizedOccurrenceGroups: [recognized], occurrenceGroupAnchorKeys: authored.map(entry => entry.key),
         authoredCurrentAnchors: authored } } : scope;
     return { scope: grown, recognized: recognized.length, key: JSON.stringify([...members].sort()) };
   });
@@ -133,7 +133,11 @@ export function completeOccurrenceGroups(scopes: readonly EvidenceScope[], evide
       const entry = (evidence.authoredCurrentAnchors ?? []).find(candidate => candidate.key === field);
       return entry ? [occurrenceEntry(entry, indices)] : [];
     });
+    // Each merged family stays a recognized group of its own.
+    const groups = [scope, ...merged.map(other => other.scope)].flatMap(member =>
+      member.evidence.recognizedOccurrenceGroups ?? [member.evidence.currentAnchors.occurrences ?? []]);
     return { ...scope, origins: { ...scope.origins, anchors },
-      evidence: { ...scope.evidence, occurrenceGroupAnchorKeys: authored.map(entry => entry.key), authoredCurrentAnchors: authored } };
+      evidence: { ...scope.evidence, recognizedOccurrenceGroups: groups,
+        occurrenceGroupAnchorKeys: authored.map(entry => entry.key), authoredCurrentAnchors: authored } };
   });
 }
