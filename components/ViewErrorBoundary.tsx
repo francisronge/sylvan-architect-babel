@@ -6,6 +6,8 @@ type ViewErrorBoundaryProps = {
   resetKey?: unknown;
   title?: string;
   message?: string;
+  retryLabel?: string;
+  className?: string;
 };
 
 type ViewErrorBoundaryState = {
@@ -24,11 +26,16 @@ export const ViewFailure: React.FC<{
   onRetry: () => void;
   title?: string;
   message?: string;
-}> = ({ error, onRetry, title = 'Could not display this view.', message = 'Your analysis is unchanged.' }) => (
-  <div className="w-full h-full min-h-48 flex flex-col items-center justify-center gap-4 p-6 text-emerald-200">
+  retryLabel?: string;
+  className?: string;
+}> = ({
+  error, onRetry, title = 'Could not display this view.', message = 'Your analysis is unchanged.',
+  retryLabel = 'Retry view', className = 'w-full h-full min-h-48'
+}) => (
+  <div className={`${className} flex flex-col items-center justify-center gap-4 p-6 text-emerald-200`}>
     <p role="alert" className="font-semibold">{title}</p>
-    <p className="text-sm text-emerald-100/70">{message}</p>
-    <button type="button" className="rounded-xl border border-emerald-500/30 px-4 py-2" onClick={onRetry}>Retry view</button>
+    <p className="text-sm text-emerald-100/70 text-center max-w-xl">{message}</p>
+    <button type="button" className="rounded-xl border border-emerald-500/30 px-4 py-2" onClick={onRetry}>{retryLabel}</button>
     <details className="w-full max-w-xl text-sm text-emerald-100/60">
       <summary className="cursor-pointer">Error details</summary>
       <pre className="mt-3 whitespace-pre-wrap break-words">{describeViewError(error)}</pre>
@@ -68,7 +75,7 @@ class ViewErrorBoundary extends Component<ViewErrorBoundaryProps, ViewErrorBound
 
   render() {
     if (this.state.failed) return <ViewFailure error={this.state.error} onRetry={this.retry}
-      title={this.props.title} message={this.props.message} />;
+      title={this.props.title} message={this.props.message} retryLabel={this.props.retryLabel} className={this.props.className} />;
     return <ViewErrorContext.Provider value={this.reportError}>{this.props.children}</ViewErrorContext.Provider>;
   }
 }

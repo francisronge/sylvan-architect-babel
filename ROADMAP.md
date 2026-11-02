@@ -184,8 +184,9 @@ growing the current monolith and do not build two Babel implementations.
 
 1. Preserve and characterize the existing loading experience, arbitrary-count
    parse selection, and the single provider request per parse (no automatic
-   transport retry; a retry on the public site may come later). Add route error
-   boundaries with the application split. Decide separately whether
+   transport retry; a retry on the public site may come later). Each workspace
+   view and the page root have error boundaries; give each route its own with
+   the application split. Decide separately whether
    user-triggered parse cancellation or additional retry UI is useful.
    A parse takes minutes: in the 29 Oct held-out batch the median wait was
    2.4 min on GPT-6.1 Sol and 1.5 min on Claude Opus 5.5 (90th percentile 3.5
