@@ -130,8 +130,12 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
       assert.equal(before.get(id).x, point.x, `${id} keeps its x across the construction boundary`);
       assert.equal(before.get(id).y, point.y, `${id} keeps its y across the construction boundary`);
     }
+    // The new wrapper adds its level only at the merge. The smaller side of the
+    // insertion moves (planReplayRows): the predicate drops a row, or, as the
+    // larger side, keeps its row while its sister rises.
     const dy = after.get('ibarB').y - before.get('ibarB').y;
-    assert(dy > 0, 'the new wrapper adds its level only at the merge');
+    if (dy > 0) assert.equal(after.get('subjB').y, before.get('subjB').y, 'a dropping predicate leaves its sister in place');
+    else assert(dy === 0 && after.get('subjB').y < before.get('subjB').y, 'a holding predicate lets its sister rise');
     for (const node of before.get('ibarB').descendants()) {
       assert(Math.abs(after.get(getNodeId(node)).y - node.y - dy) < 1e-8,
         'the existing predicate translates as a whole and preserves its internal branch lengths');

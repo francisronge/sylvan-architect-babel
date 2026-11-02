@@ -31,6 +31,7 @@ import type { PlaybackStep } from './types.ts';
 import { separateWorkspaceContours } from './workspaceContourClearance.ts';
 import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
 import { reserveWaitingSlots } from './waitingSlots.ts';
+import { planReplayRows } from './replayRows.ts';
 import { closingAt, workspaceContinuityReflows } from './workspaceShapeReflows.ts';
 import { TREE_SIBLING_GAP } from './treeSpacing.ts';
 
@@ -526,6 +527,7 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
   treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, plaques?: StagePlaques): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
   const planned = closedStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, plaques)
     ?? planStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+  applyReplayRows(steps, stageIndex, planned);
   const previousSize = stageIndex > 0 ? sizeForStage?.(stageIndex - 1) : null;
   if (previousSize && !heldChecked.has(planned)) {
     heldChecked.add(planned);
@@ -619,6 +621,24 @@ function measuredPlaqueRoom(steps: readonly PlaybackStep[], plan: RelationRender
       () => treeLabelBoxes([...frame.values()], text, labels));
   };
   return { anchors, marks };
+}
+
+const rowed = new WeakSet<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>();
+
+/** Gives this stage's painted syntax its rows from the Replay's one row plan
+ * (`planReplayRows`), in place, so every record kept on these reservations
+ * (closings, held carries, reflections) stays with them. */
+function applyReplayRows(steps: readonly PlaybackStep[], stageIndex: number, planned: StageFrames) {
+  if (rowed.has(planned)) return;
+  rowed.add(planned);
+  const rows = planReplayRows(steps);
+  for (const step of steps) {
+    if (step.replayFrameIndex !== stageIndex || !step.replayCanvasData) continue;
+    const coordinates = planned.get(step.replayCanvasData), stepRows = rows.get(step);
+    if (!coordinates || !stepRows) continue;
+    (planned as Map<SyntaxNode, TreeCoordinateReservation>).set(step.replayCanvasData, new Map([...coordinates]
+      .map(([id, point]) => [id, stepRows.has(id) ? { x: point.x, y: stepRows.get(id)! } : point])));
+  }
 }
 
 const closedPlans = new WeakMap<readonly PlaybackStep[], Map<string, ReturnType<typeof closeMovementGaps>>>();
