@@ -24,7 +24,7 @@ prerequisites, not rendered correctness, and starts no server or provider reques
 | `npm run verify:renderer-browser` | Relation drawing in Chromium: native endpoint attachment, persistence, zoom/Fit and narrow views. |
 | `npm run verify:browser` | Every required browser spec, including real app failure recovery and Tree Bank save/reopen. Missing, unowned or skipped required specs fail. |
 | `npm run verify:browser-webkit` | The bounded Chromium/WebKit renderer and comparison-visibility matrix. Not a substitute for reviewing UI changes in the macOS in-app browser. |
-| `npm run verify:browser-visual` | Renders the human-catalogue analyses with the production renderer in Chromium at 1440×900 and 390×844 and judges every painted frame and the Canopy with the shared geometry rules, index letters, settled poses against the camera policy, and every animation frame of each Next step, rapid Next run and resize (empty or faded frames, off-canvas, jumping or blinking syntax and marks, jitter). Fails on findings not in `tests/helpers/browserVisualExceptions.mjs`, beyond their bound or stale, and on unjudged places. A rapid run that shows no fault is repeated once and a fault either run shows counts, so browser timing cannot make a listed fault look gone. macOS only (see CI). |
+| `npm run verify:browser-visual` | Renders the human-catalogue analyses with the production renderer in Chromium at 1440×900 and 390×844 and judges every painted frame and the Canopy with the shared geometry rules, index letters, settled poses against the camera policy, and every animation frame of each Next step, rapid Next run and resize (empty or faded frames, off-canvas, jumping or blinking syntax and marks, jitter). Fails on findings not in `tests/helpers/browserVisualExceptions.mjs`, beyond their bound or stale, and on unjudged places. A rapid run that shows no fault is repeated once and a fault either run shows counts, so browser timing cannot make a listed fault look gone. A flagged Next step is re-run along the same route of Next presses, since the camera a step starts from depends on the steps before it. A node's own path (in tree coordinates) and the camera's are judged apart for fly-ins, so one move followed by the stage's zoom is not read as flying out and back. macOS only (see CI). |
 | `npm run verify:renderer-performance -- --baseline-root /base --report /tmp/timing.json` | First-paint budget against a base checkout; both need locked dependencies. A set too noisy to judge (`unstable`) is measured once more and that fresh set is judged; a regression is final. Full preparation is reported but has no budget yet. |
 | `npm run release:check` | `verify:all`, `verify:replay-offline`, `build` with `release:verify-assets`, `verify:browser` and `verify:browser-visual`, in order, stopping at the first failure. Run renderer performance beside it. |
 
@@ -66,8 +66,13 @@ the carry holds that syntax still while the closing side slides; the screen
 gives that up only where it would paint shared syntax farther beyond the view.
 A tie between two equal blocks of a narrowed reference (lowered or held) follows
 the block the rest of the unmoved syntax agrees with.
-Where a boundary inserts a parent above an existing subtree, the carry holds the
-syntax it does not lower (`carryReference`). When three nodes or fewer are left,
+Rows come from one plan for the whole Replay (`planReplayRows`): at a step
+that inserts a parent above syntax it already painted, the larger side keeps
+its row and the smaller moves, so the rule lets the syntax above that new
+parent rise straight up by one row per level the step inserts in its tree
+(`insertionRises`). Where a boundary inserts a parent above an existing subtree,
+the carry holds the syntax it does not lower (`carryReference`), unless the
+lowered syntax is the larger side, which then holds. When three nodes or fewer are left,
 it holds them only if the lowered words keep their place beside them, which the
 stage plan arranges where earlier stages have room (`holdLoweredSubtrees`);
 otherwise the lowered syntax decides the carry.
@@ -128,6 +133,11 @@ record still needs its own review.
 - The corpus comparator checks Replay, plans and the tree layout the renderer
   paints. It does not see native text rendering, plaque painting, connectors or
   the camera.
+- `tests/uiContrast.test.mjs` (in `verify:all`) measures every interface text
+  and control color listed in `tests/helpers/uiContrastPairs.mjs` against WCAG
+  2.2 AA, composited over its background at the lightest point of the page
+  gradient, and fails when a listed class leaves its file. It does not see
+  colors missing from that list, the tree renderer's marks, or the painted page.
 - A new guard must fail on the historical defect or a controlled bad result
   before a passing candidate is accepted; passing counts alone prove nothing.
 
