@@ -17,7 +17,7 @@ import { proximityPlaqueRequests, type PlaquePlacement } from './relations/plaqu
 import { trajectoryPlaqueObstacles, treeLabelBoxes } from './relations/trajectoryObstacles.ts';
 import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlan.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
-import { retainMovementSourceSlots } from './movementSourceContinuity.ts';
+import { lessMotion, retainMovementSourceSlots } from './movementSourceContinuity.ts';
 import { siblingContoursOrdered } from './siblingContours.ts';
 import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
 import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
@@ -744,6 +744,22 @@ function entryHeld(steps: readonly PlaybackStep[], stageIndex: number, planned: 
   return [...kept].every(([key, distance]) => ordinary.has(key) && distance <= ordinary.get(key)! + 1) ? held : undefined;
 }
 
+/** The motion faults (by step, kind and node) of a closed plan over the whole
+ * Replay, each stage under its closed coordinates and each closing crossing
+ * judged with its closing. */
+function closedMotionFaults(steps: readonly PlaybackStep[], sizes: ReadonlyMap<number, [number, number]>,
+  plan: ReturnType<typeof closeMovementGaps>) {
+  const ordered = steps.filter(step => step.replayCanvasData && sizes.has(step.replayFrameIndex!))
+    .sort((a, b) => a.replayFrameIndex! - b.replayFrameIndex! || stageStepOrder(a) - stageStepOrder(b));
+  const frames = ordered.map((step, index) => {
+    const coordinates = plan.stages.get(step.replayFrameIndex!)?.get(step.replayCanvasData!);
+    const nodes = coordinates ? paintedSyntax(step, sizes.get(step.replayFrameIndex!)!, coordinates) : new Map();
+    const crossing = index > 0 && ordered[index - 1].replayFrameIndex !== step.replayFrameIndex;
+    return motionFrame(step, nodes, getNodeId, crossing && plan.closings.has(step.replayFrameIndex!));
+  });
+  return new Map(replayMotionFaults({ frames }, PLANNING).map(fault => [`${fault.step} ${fault.kind} ${fault.node}`, fault.distance] as const));
+}
+
 /** Every stage's plan with the room movements leave closed at those movements
  * (closeMovementGaps), or null when this stage's size is not the planned one.
  * One closing pass serves every stage of these steps. */
@@ -767,12 +783,22 @@ function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: numb
   if (!byKey) closedPlans.set(steps, byKey = new Map());
   let closed = byKey.get(key);
   if (!closed) {
-    const planned = new Map([...sizes].map(([stage, stageSize]) => [stage, planStageCoordinates(steps, stage, stageSize, sizeForStage,
-      measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel)] as const));
     const schedule = plaques?.schedule, stageCount = plaques?.plan?.frames.length ?? 0;
-    byKey.set(key, closed = closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques: room,
+    const planned = (branchedSources: boolean) => new Map([...sizes].map(([stage, stageSize]) => [stage, planStageCoordinates(steps,
+      stage, stageSize, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, branchedSources)] as const));
+    const close = (stages: ReturnType<typeof planned>) => closeMovementGaps({ steps, sizes, planned: stages, measureCategoryText, plaques: room,
       plaqueDistances: schedule && ((stages, closings) => plaqueDistancesOver(schedule, stageCount, stages, closings)),
-      ink: { measureTreeInk, treeLabelRuns, measureTreeLabel } }));
+      ink: { measureTreeInk, treeLabelRuns, measureTreeLabel } });
+    const established = planned(false), phrases = planned(true);
+    closed = close(established);
+    // Phrases waiting in their lower occurrences' slots (retainMovementSourceSlots'
+    // `branchedSources`) stand only where the closed plan then paints less
+    // motion, none of it new or larger.
+    if ([...phrases].some(([stage, frames]) => frames !== established.get(stage))) {
+      const kept = close(phrases);
+      if (lessMotion(closedMotionFaults(steps, sizes, closed), closedMotionFaults(steps, sizes, kept))) closed = kept;
+    }
+    byKey.set(key, closed);
     for (const stage of closed.closings) { const frames = closed.stages.get(stage); if (frames) closingEntries.add(frames); }
   }
   return closed.stages.get(stageIndex) ?? null;
@@ -828,7 +854,7 @@ export function leftToRightReservations(steps: readonly PlaybackStep[], reflecte
 function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
-  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, branchedSources = false): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
   const sizes = new Map<number, [number, number]>();
   if (sizeForStage) for (const step of steps) {
     if (step.replayFrameIndex === undefined || sizes.has(step.replayFrameIndex)) continue;
@@ -850,7 +876,7 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
     const planned = reserveWorkspaceAttachments({ steps, sizes, direction: 'ltr', minimumSiblingGap: TREE_SIBLING_GAP, coordinatesForStage: local,
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, orderedContours, alignedStages: alignStages, clearText });
     const compact = compactCurrentRootForks(steps, sizes, planned, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
-    const retained = retainMovementSourceSlots(steps, sizes, compact, 'ltr', measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+    const retained = retainMovementSourceSlots(steps, sizes, compact, 'ltr', measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, branchedSources);
     let slotted = slotPlans.get(retained);
     if (!slotted) slotPlans.set(retained, slotted = new Map());
     let continuous = mode === 'stage' ? retained : slotted.get(mode);
