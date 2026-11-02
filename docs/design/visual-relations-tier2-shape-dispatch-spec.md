@@ -416,7 +416,11 @@ Structure upgrades only a claim that wording leaves wholly neutral, with every
 recovered claim in Tier 3, or whose only drawings are `identity.occurrences`
 coindexes over the moving chain: the displacement's landing and lower
 occurrence, with any older copies of the chain, each unchanged in its preceding
-slot. Wording reads such a claim as identity alone when its fields name no
+slot. The coindex may leave out one end of the hop when it holds an older copy
+as well, since the claim names that end in another field to own the
+displacement at all, as when a topicalization coindexes its new trace with the
+θ-position copy and names the topic separately. Wording reads such a claim as
+identity alone when its fields name no
 movement endpoint (open fields such as head and tail under a chain title) or
 when one field lists the new trace beside an older one; structure reads the
 older copies as context, so the coindex states the displacement: the movement

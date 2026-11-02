@@ -274,3 +274,34 @@ test('a coindex listing a hop with the older, unchanged copies of its chain draw
   // Naming only the hop's two occurrences, the coindex keeps its drawing.
   assert.deepEqual(plan(['dp', 'trace2']), plan(['dp', 'trace2'], '0'));
 });
+
+test('a coindex that lists a hop\'s lower occurrence with older copies, while the claim names the landing elsewhere, draws the hop', () => {
+  // Saved Japanese topicalization (movement-id-ab ja-causative.astra.B,
+  // fixture kept-id-landing) and Dutch stripping focus (rare-relations
+  // 15-dutch-stripping, fixture rewrite-stage-new-head): wording coindexes the
+  // new lower occurrence with the older copy and leaves the landing's field
+  // neutral, so the copy appeared without an arrow.
+  const onward = () => [{ id: 'cp', label: 'CP', children: [cat(), { id: 'cbar', label: 'C′', children: [
+    { id: 'c', label: 'C', silent: true }, { id: 'tp2', label: 'TP', children: [
+      { id: 'trace2', label: 'DP', lineageId: 'cat', silent: true }, keptLanding()[0].children[1]] }] }] }];
+  const plan = (claim, value) => withSwitch(value, () => compileRelationRenderPlan([stage(before()),
+    stage(keptLanding(), [openClaim]), stage(onward(), [claim])])).frames[2].items
+    .filter(item => item.relationRef.stageIndex === 2).map(item => [item.kind, item.sourceNodeId, item.targetNodeId].filter(Boolean));
+  for (const claim of [
+    { relation: 'subject topicalization', anchors: { topic: 'dp', subjectPosition: 'trace2', thetaPosition: 'trace' },
+      priorAnchors: { subjectInSpecIP: 'dp' } },
+    { relation: 'successive-cyclic focus movement', anchors: { focusedRemnant: 'dp', intermediateTrace: 'trace2', thetaPosition: 'trace' },
+      priorAnchors: { previousLandingSite: 'dp' } }
+  ]) {
+    assert.deepEqual(plan(claim, '0'), [['coindex'], ['fallback']], `${claim.relation}: wording alone draws the coindex`);
+    // The preceding-source field stays a neutral mark, as it does for every
+    // structurally read path today.
+    assert.deepEqual(plan(claim), [['trajectory', 'trace2', 'dp'], ['coindex'], ['fallback']],
+      `${claim.relation}: the path draws the hop beside the coindex`);
+  }
+  // Without the landing among the claim's anchors, the claim names no hop:
+  // the coindex of the lower occurrence and the older copy stays as it is.
+  const lowerOnly = { relation: 'subject topicalization', anchors: { subjectPosition: 'trace2', thetaPosition: 'trace' } };
+  assert.deepEqual(plan(lowerOnly), plan(lowerOnly, '0'));
+  assert.ok(!plan(lowerOnly).some(([kind]) => kind === 'trajectory'));
+});
