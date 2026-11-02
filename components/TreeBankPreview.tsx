@@ -31,7 +31,7 @@ export default function TreeBankPreview({ previewId, sentence }: { previewId?: s
       alt={`Tree snapshot for "${sentence}"`}
       className="w-full h-full object-contain"
       loading="lazy"
-    /> : <div className="w-full h-full flex items-center justify-center text-emerald-400/50 text-[10px] font-black uppercase tracking-[0.28em]">
+    /> : <div className="w-full h-full flex items-center justify-center text-emerald-400/65 text-[10px] font-black uppercase tracking-[0.28em]">
       Tree preview unavailable
     </div>}
   </div>;

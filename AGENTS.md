@@ -61,6 +61,8 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
   records and atomic saves; `treeSnapshot.ts` and `milesNotation.ts` own
   snapshots and bracket serialization.
 - `components/AsyncTreeVisualizer.tsx` owns preparation and view recovery;
+  `LazyTreeVisualizer.tsx` loads it for `App` as a separate chunk, so first
+  load carries no Replay construction or renderer code;
   `ReplayPanel.tsx` owns controls and details; `FailurePanel.tsx` keeps failure
   diagnostics and downloads (a view retry keeps the analysis and makes no
   provider request).

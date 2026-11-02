@@ -152,6 +152,13 @@ When you submit a sentence, Babel shows:
 - Parse success state (tree + supporting views)
 - Parse error state with user-readable messages
 
+If a view fails to display, its area shows a notice with the error details and
+`Retry view`; the header, view buttons and console stay, and so does the
+analysis, which you can still save. Choosing another view, parse or analysis
+also clears the notice. If Babel as a whole fails, the page shows `Restart
+Babel` instead of going blank; your Tree Bank is kept, but an unsaved analysis
+may need to be generated again.
+
 ### 6) Ambiguity handling
 
 An ambiguous sentence may have more than one meaning and more than one corresponding tree. Babel's internal parse bundle preserves every supplied distinct analysis rather than imposing a two-parse ceiling.
@@ -226,6 +233,25 @@ It includes:
 4. Inspect derivational behavior in Derivation Replay.
 5. Compare outputs across frameworks and across reruns.
 6. Record differences in structure, visual relations, and stage records.
+
+## Supported browsers
+
+Babel needs a browser with these features, which its code uses without a
+fallback:
+
+- JavaScript modules (the app and its Replay workers are module code)
+- `Intl.Segmenter` (spelling checks and label layout)
+- `structuredClone` (copying trees while Replay is built)
+- `Array.prototype.at` and `Object.hasOwn`
+- `ResizeObserver` (keeping the tree fitted to its view)
+
+In practice that means Chrome or Edge 98, Firefox 125, Safari 15.4 or newer.
+Before the app loads, `public/browser-support.js` checks for each feature
+(never the browser's name or version) and, if any is missing, shows a short
+message asking you to update instead of a broken page.
+
+Saving and reopening Tree Bank entries also need a secure page (`https://` or
+`localhost`), because records are hashed with the Web Crypto API.
 
 ## Limits and caveats
 

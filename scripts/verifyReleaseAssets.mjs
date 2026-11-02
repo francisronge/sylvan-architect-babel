@@ -38,6 +38,7 @@ const requiredPaths = [
   'docs/research/relation-orchard/assets/fonts/quicksand-latin-700-normal.woff2',
   'public/apple-touch-icon.png',
   'public/babellogo.png',
+  'public/browser-support.js',
   'public/favicon.png',
   'public/robots.txt',
   'public/sitemap.xml',
