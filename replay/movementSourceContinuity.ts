@@ -16,7 +16,10 @@ import { workspaceContinuityReflows, PLANNING } from './workspaceShapeReflows.ts
 
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
 type Node = d3.HierarchyPointNode<SyntaxNode>;
-const cache = new WeakMap<Reservations, Reservations>();
+const caches = [new WeakMap<Reservations, Reservations>(), new WeakMap<Reservations, Reservations>()];
+/** The branched sources each plan left in place (`${frame}:${source}`), which a
+ * plan keeping branched sources may try. */
+const branchedCandidates = new WeakMap<Reservations, ReadonlySet<string>>();
 const epsilon = 1e-6;
 /** How much wider a completed stage's forest may become for a receiving host
  * waiting as its own workspace to wait nearer the slot that keeps its parent
@@ -32,7 +35,8 @@ const COMPLETED_WIDTH_GROWTH = 0.01;
  * New parents and daughters still appear only at their owning step. */
 export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes: ReadonlyMap<number, [number, number]>,
   reserved: Reservations, direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
-  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): Reservations {
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, branchedSources = false): Reservations {
+  const cache = caches[Number(branchedSources)];
   const cached = cache.get(reserved);
   if (cached) return cached;
   const frames = steps.flatMap(step => {
@@ -41,6 +45,7 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
   }).sort((a, b) => (a.step.replayFrameIndex! - b.step.replayFrameIndex!)
     || ((a.step.replayStageStepIndex ?? (a.step.replayKind === 'macro' ? Infinity : 0))
       - (b.step.replayStageStepIndex ?? (b.step.replayKind === 'macro' ? Infinity : 0))));
+  const compute = (allowed: ReadonlySet<string>, branched?: Set<string>): Reservations => {
   let result = reserved;
   const scenes = new Map<number, Map<string, Node>>();
   const positioned = (index: number, coordinates: Reservations): Map<string, Node> => {
@@ -283,8 +288,10 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
       if (span([...peers, lower.x]) >= span([...peers, source.x]) - epsilon) continue;
       const sourceNodes = source.descendants().filter(node => before.has(getNodeId(node)));
       // A complete phrase has its own retained contour and receiving-host rule.
-      // This slot correction concerns a head/stem chain beside unchanged syntax.
-      if (sourceNodes.some(node => children(node, before).length > 1)) continue;
+      // This slot correction concerns a head/stem chain beside unchanged syntax;
+      // a complete phrase takes the smaller slot only where `allowed` names it.
+      const phrase = sourceNodes.some(node => children(node, before).length > 1), key = `${index}:${movement.priorSourceNodeId}`;
+      if (phrase && !allowed.has(key)) { branched?.add(key); continue; }
       const translations = new Map<string, number>(sourceNodes.map(node => [getNodeId(node), dx]));
       const owners = new Map<string, string>(sourceNodes.map(node => [getNodeId(node), movement.priorSourceNodeId]));
       const receiver = after.get(movement.targetNodeId)!.ancestors().slice(1).find(node => before.has(getNodeId(node)));
@@ -301,7 +308,7 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
       }
       const preceding = result;
       reserveTranslations(index, translations, owners);
-      if (result === preceding) {
+      if (result === preceding && !phrase) {
         // If the spoken source cannot clear the smaller lower slot, preserve
         // that established slot after its movement. Word removal alone must
         // not pull otherwise unchanged ancestors inward.
@@ -329,6 +336,41 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
   // Follow receiving slots backward through ordinary and movement wrappers.
   for (let index = frames.length - 2; index >= 0; index--) reserveReceivingSlot(index, true);
   for (let index = frames.length - 2; index >= 0; index--) reserveReceivingSlot(index, false, true);
+  return result;
+  };
+  let result: Reservations;
+  if (!branchedSources) {
+    const branched = new Set<string>();
+    result = compute(new Set(), branched);
+    branchedCandidates.set(result, branched);
+  } else {
+    // A complete phrase that leaves its parent waits in its lower occurrence's
+    // smaller slot from the start, one phrase at a time, where that clears and
+    // paints less motion with none new or larger anywhere in the Replay.
+    result = retainMovementSourceSlots(steps, sizes, reserved, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+    const faultsOf = (coordinates: Reservations) => new Map(replayMotionFaults({ frames: frames.map(({ step, canvas, size, visible }) => {
+      const root = d3.hierarchy(canvas);
+      applyVizIds(root);
+      return motionFrame(step, new Map(layoutSyntaxTree(root, size, direction, coordinates.get(canvas), visible).descendants()
+        .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
+        .map(node => [getNodeId(node), node])), getNodeId);
+    }) }, PLANNING).map(fault => [`${fault.step} ${fault.kind} ${fault.node}`, fault.distance] as const));
+    const allowed = new Set<string>();
+    let faults: Map<string, number> | undefined;
+    for (const key of branchedCandidates.get(result) ?? []) {
+      const candidate = compute(new Set([...allowed, key]));
+      faults ??= faultsOf(result);
+      const next = faultsOf(candidate);
+      if (lessMotion(faults, next)) { allowed.add(key); result = candidate; faults = next; }
+    }
+  }
   cache.set(reserved, result);
   return result;
 }
+
+/** Whether faults `after` (distance by step, kind and node) move less in total
+ * than `before`, with no fault new or larger by more than a unit. */
+export const lessMotion = (before: ReadonlyMap<string, number>, after: ReadonlyMap<string, number>) => {
+  const total = (faults: ReadonlyMap<string, number>) => [...faults.values()].reduce((sum, distance) => sum + distance, 0);
+  return [...after].every(([key, distance]) => distance <= (before.get(key) ?? 0) + 1) && total(after) < total(before) - 1;
+};
