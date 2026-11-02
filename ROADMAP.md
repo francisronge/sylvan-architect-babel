@@ -36,11 +36,16 @@ syntactic rules. Desktop remains the primary experience.
      draw.
    - Mobile calibration and a desktop minimum-zoom clamp.
    - Step-order work kept from the October rewrite
-     (`refactor/replay-step-order-kernel`): just-in-time order and head
-     movement before phrasal movement in one stage were approved, but each
-     moved existing layouts, because today's stage layout depends on frame
-     history. They wait for a stage layout that is planned from the
-     derivation's states rather than its frame order. The same work owns the
+     (`refactor/replay-step-order-kernel`). Just-in-time sisters have landed.
+     Head movement before phrasal movement in one stage (approved on
+     2026-10-23) still waits: C merging with IP before I-to-C, and a phrasal
+     movement waiting for a head movement below its landing, each add findings
+     because today's stage layout depends on frame history (measured 2 Nov
+     against the row plan: 2 to 8 new plaque-distance findings at 1.12–1.2 and
+     new or worsened motion faults in german-embedded, inserted-adjunction-segment,
+     workspace-reservation/2 and source-occurrence-ownership/0, while total
+     motion faults fall from 404 to 384). It waits for a stage layout that is
+     planned from the derivation's states rather than its frame order. The same work owns the
      listed camera jumps where unmoved syntax shifts 27–66 px when a stage
      begins or inside a stage (`STAGE_RELAYOUT`, `RELAYOUT_WITHIN_STAGE` in
      `tests/helpers/cameraExceptions.mjs`). Its first prototype
