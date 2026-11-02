@@ -15,6 +15,7 @@ import {
   ParseResult
 } from './types';
 import TreeVisualizer from './components/AsyncTreeVisualizer';
+import ViewErrorBoundary from './components/ViewErrorBoundary';
 import RootLogo from './components/RootLogo';
 import LoadingMark from './components/LoadingMark';
 import FailurePanel, { dismissesFailure } from './components/FailurePanel';
@@ -195,6 +196,11 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
     setWorkspaceView(current => current === 'treeBank' ? 'arboretum' : 'treeBank');
   };
+  // A view that fails to render shows a retryable notice in its own area; the
+  // header, view tabs and sentence bar stay usable and this component keeps the
+  // analysis. Choosing another view, parse or analysis clears the notice.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- each selection makes a new key, which resets the boundary.
+  const viewResetKey = useMemo(() => ({}), [workspaceView, activeTab, activeParse]);
   const activeDisplayTree = activeDisplay?.displayTree ?? null;
   const milesNotation = activeDisplay?.notation ?? '';
   const derivationalNoteParagraphs = activeDisplay?.stageRecords ?? [];
@@ -584,10 +590,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       )}
       <main data-babel-workspace="true" className="flex-1 relative flex flex-col overflow-hidden">
         {isTreeBankView && (
-          <TreeBankView
-            entries={treeBank.entries} loading={treeBank.loading} error={treeBank.error}
-            opening={treeBank.opening} onOpen={handleOpenTreeBankEntry} onDelete={treeBank.setPendingDelete}
-          />
+          <ViewErrorBoundary resetKey={viewResetKey} message="Your saved analyses are unchanged.">
+            <TreeBankView
+              entries={treeBank.entries} loading={treeBank.loading} error={treeBank.error}
+              opening={treeBank.opening} onOpen={handleOpenTreeBankEntry} onDelete={treeBank.setPendingDelete}
+            />
+          </ViewErrorBoundary>
         )}
 
         {!isTreeBankView && hasAmbiguity && (
@@ -613,44 +621,46 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
 
         {!isTreeBankView && (
         <div className="absolute inset-0 z-0">
-          {loading && (
-            <div className="loading-overlay absolute inset-0 z-50 bg-[#020806]/95 backdrop-blur-xl flex flex-col items-center justify-center gap-10 animate-in fade-in duration-700">
-              <LoadingMark />
-              <div role="status" className="text-center z-10 min-h-[88px] flex flex-col justify-start">
-                <p className="text-white font-black serif italic text-2xl mb-1">Synthesizing Neural Roots...</p>
-                <p className="text-emerald-500/40 font-black uppercase text-[9px] tracking-[0.7em]">Deep Parsing {framework === 'xbar' ? 'X-Bar' : 'Minimalist'} Structures</p>
-              </div>
-            </div>
-          )}
-
-          {!loading && activeParse && activeDisplayTree && (activeTab === 'tree' || activeTab === 'derivation') ? (
-            <TreeVisualizer
-              initialReplayStep={initialReplayPosition ?? undefined}
-              autoPlay={initialReplayPosition === null}
-              onReplayStepChange={rememberReplayPosition}
-              data={activeDisplayTree}
-              animated={activeTab === 'derivation'}
-              derivationStages={activeParse.derivationStages}
-              abstractionMode={abstractionMode}
-              sentence={parsedSentence}
-              inputTokens={replayInputTokens}
-            />
-          ) : activeParse && activeTab === 'notes' ? (
-            <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copyStatus={copyStatus} onCopy={(text) => void copyNotation(text)} />
-          ) : !loading && (
-            <div className="w-full h-full flex flex-col items-center justify-center text-emerald-900/10 gap-10">
-              <div className="relative">
-                <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full scale-150"></div>
-                <div className="relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-full border border-white/5 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
-                  <RootLogo size={104} shape="circle" blend={true} zoom={0.92} className="w-[78px] h-[78px] md:w-[104px] md:h-[104px]" />
+          <ViewErrorBoundary resetKey={viewResetKey}>
+            {loading && (
+              <div className="loading-overlay absolute inset-0 z-50 bg-[#020806]/95 backdrop-blur-xl flex flex-col items-center justify-center gap-10 animate-in fade-in duration-700">
+                <LoadingMark />
+                <div role="status" className="text-center z-10 min-h-[88px] flex flex-col justify-start">
+                  <p className="text-white font-black serif italic text-2xl mb-1">Synthesizing Neural Roots...</p>
+                  <p className="text-emerald-500/40 font-black uppercase text-[9px] tracking-[0.7em]">Deep Parsing {framework === 'xbar' ? 'X-Bar' : 'Minimalist'} Structures</p>
                 </div>
               </div>
-              <div className="text-center z-10 min-h-[88px] flex flex-col justify-start">
-                <p className="font-extrabold text-white text-2xl md:text-3xl mono mb-3 tracking-tighter">Awaiting Structural Genesis</p>
-                <p className="text-emerald-900 font-black uppercase text-[9px] md:text-[10px] tracking-[0.5em] md:tracking-[0.8em] opacity-80 text-balance max-w-lg mx-auto px-4">Cast a thought into the generative soil to begin its derivation.</p>
+            )}
+
+            {!loading && activeParse && activeDisplayTree && (activeTab === 'tree' || activeTab === 'derivation') ? (
+              <TreeVisualizer
+                initialReplayStep={initialReplayPosition ?? undefined}
+                autoPlay={initialReplayPosition === null}
+                onReplayStepChange={rememberReplayPosition}
+                data={activeDisplayTree}
+                animated={activeTab === 'derivation'}
+                derivationStages={activeParse.derivationStages}
+                abstractionMode={abstractionMode}
+                sentence={parsedSentence}
+                inputTokens={replayInputTokens}
+              />
+            ) : activeParse && activeTab === 'notes' ? (
+              <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copyStatus={copyStatus} onCopy={(text) => void copyNotation(text)} />
+            ) : !loading && (
+              <div className="w-full h-full flex flex-col items-center justify-center text-emerald-900/10 gap-10">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full scale-150"></div>
+                  <div className="relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-full border border-white/5 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
+                    <RootLogo size={104} shape="circle" blend={true} zoom={0.92} className="w-[78px] h-[78px] md:w-[104px] md:h-[104px]" />
+                  </div>
+                </div>
+                <div className="text-center z-10 min-h-[88px] flex flex-col justify-start">
+                  <p className="font-extrabold text-white text-2xl md:text-3xl mono mb-3 tracking-tighter">Awaiting Structural Genesis</p>
+                  <p className="text-emerald-900 font-black uppercase text-[9px] md:text-[10px] tracking-[0.5em] md:tracking-[0.8em] opacity-80 text-balance max-w-lg mx-auto px-4">Cast a thought into the generative soil to begin its derivation.</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </ViewErrorBoundary>
         </div>
         )}
 
