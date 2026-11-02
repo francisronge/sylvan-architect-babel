@@ -544,6 +544,14 @@ const carryReplayRelationLinksForward = (steps: PlaybackStep[]): PlaybackStep[] 
     return steps;
   const activeRelationLinks: ResolvedRelationLink[] = [];
   const activeRelationKeys = new Set<string>();
+  // One authored hop is one carried link. When a later movement takes the
+  // hop's landing on, the hop ends at the lower witness that movement leaves
+  // (resolveDerivationMovementTransitions); that link replaces the carried one.
+  const hopKey = (link: ResolvedRelationLink) => {
+    const claim = String((link as { authoredRelationKey?: string }).authoredRelationKey || '');
+    return claim && isResolvedMovementLink(link) && link.sourceNodeId
+      ? `${claim}|${link.sourceNodeId}|${link.priorSourceNodeId ?? ''}` : '';
+  };
   const normalizedSteps = steps.map((step) => {
     const canvas = step.replayCanvasData;
     const currentRelationLinks = Array.isArray(step.replayRelationLinks) ? step.replayRelationLinks : [];
@@ -552,7 +560,20 @@ const carryReplayRelationLinksForward = (steps: PlaybackStep[]): PlaybackStep[] 
       if (!key || activeRelationKeys.has(key))
         return;
       activeRelationKeys.add(key);
-      activeRelationLinks.push(link);
+      const hop = hopKey(link);
+      const superseded = (earlier: ResolvedRelationLink) => Boolean(hop) && hopKey(earlier) === hop && earlier.targetNodeId !== link.targetNodeId;
+      const carried = activeRelationLinks.findIndex(superseded);
+      if (carried < 0) {
+        activeRelationLinks.push(link);
+        return;
+      }
+      for (let index = activeRelationLinks.length - 1; index > carried; index--)
+        if (superseded(activeRelationLinks[index])) {
+          activeRelationKeys.delete(resolvedRelationLinkKey(activeRelationLinks[index]));
+          activeRelationLinks.splice(index, 1);
+        }
+      activeRelationKeys.delete(resolvedRelationLinkKey(activeRelationLinks[carried]));
+      activeRelationLinks[carried] = link;
     });
     if (!canvas)
       return step;
