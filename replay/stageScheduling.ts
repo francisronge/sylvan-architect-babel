@@ -399,11 +399,34 @@ export const finalizeStageReplay = (
         .filter(({ relationIndex }) => !requiredNodeIds(relationPlacements.find(placement => placement.relationIndex === relationIndex)!, initiallyAvailableNodeIds)
           .some(nodeId => subtreeIds(nodeId).includes(targetNodeId)));
     };
+    // A head moves into its host before any phrasal movement lands above that
+    // host (cyclic order: C merges with IP, I moves to C, then a phrase lands
+    // in Spec,CP). A phrasal movement whose landing joins a parent dominating
+    // another movement's head complex waits for that head movement, unless the
+    // head movement names the phrasal landing, which it then needs on screen.
+    const movementsOf = (placement: RelationPlacement) => (placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement])
+      .filter(movement => movement?.transition);
+    const headComplexes = relationPlacements.map(placement => ({ placement, complexIds: movementsOf(placement)
+      .filter(movement => movement!.trajectoryKind === 'head')
+      .map(movement => findParentNodeIdInForest(workspaceRoots, movement!.targetNodeId)).filter(Boolean) }))
+      .filter(({ complexIds }) => complexIds.length);
+    const headMovementsBelowLanding = (placement: RelationPlacement): number[] => {
+      const phrasal = movementsOf(placement).filter(movement => movement!.trajectoryKind === 'phrasal');
+      if (!phrasal.length)
+        return [];
+      const above = new Set(phrasal.flatMap(movement => subtreeIds(findParentNodeIdInForest(workspaceRoots, movement!.targetNodeId))));
+      const landings = new Set(phrasal.flatMap(movement => subtreeIds(movement!.targetNodeId)));
+      return headComplexes.filter(({ placement: other, complexIds }) => other.relationIndex !== placement.relationIndex
+        && complexIds.some(id => above.has(id))
+        && !relationAnchorNodeIds(other.relation.anchors).some(id => landings.has(resolveRelationAnchorNodeId(workspaceRoots, id))))
+        .map(({ placement: other }) => other.relationIndex);
+    };
     const momentOrder = orderRelationMoments(relationPlacements.map(placement => placement.relationIndex), new Map(relationPlacements.map(placement => [
       placement.relationIndex,
       new Set([
         ...requiredNodeIds(placement, initiallyAvailableNodeIds).flatMap(nodeId => producingRelations(nodeId)),
-        ...landingParentOwners(placement)
+        ...landingParentOwners(placement),
+        ...headMovementsBelowLanding(placement)
       ])
     ])));
     const momentPosition = new Map(momentOrder.map((relationIndex, position) => [relationIndex, position]));
