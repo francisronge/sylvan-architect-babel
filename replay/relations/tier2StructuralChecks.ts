@@ -116,10 +116,12 @@ export const evaluateStructuralCheck = (
       // A kept-ID landing proved without its lineage shares its lower
       // occurrence's lineage (RecoveredMovement.recoveredLandingLineageId).
       const roleIds = check.roles.flatMap(ids), movement = evidence.movement;
-      const recovered = movement?.recoveredLandingLineageId;
-      return Boolean(sharedRootLineage(currentIndex, roleIds)) || Boolean(recovered && roleIds.length === 2
-        && roleIds[0] === movement.sourceNodeId && roleIds[1] === movement.targetNodeId
-        && sharedRootLineage(currentIndex, [roleIds[0], roleIds[0]]) === recovered);
+      const recovered = movement?.recoveredLandingLineageId, members = movement?.complexMemberPairs;
+      const movementEnds = roleIds.length === 2 && roleIds[0] === movement?.sourceNodeId && roleIds[1] === movement?.targetNodeId;
+      return Boolean(sharedRootLineage(currentIndex, roleIds)) || Boolean(recovered && movementEnds
+        && sharedRootLineage(currentIndex, [roleIds[0], roleIds[0]]) === recovered)
+        // A lineage-free head complex shares identity through its members.
+        || Boolean(members?.length && movementEnds && members.every(pair => sharedRootLineage(currentIndex, pair)));
     }
     case 'movement-evidence':
       // A static drawing can be complete without a preceding stage. A rejected
