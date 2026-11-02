@@ -17,7 +17,7 @@ import { recoverFocusAssociation } from './focusAssociationEvidence.ts';
 import { recoverInterpretedOperatorBinding } from './interpretedBindingEvidence.ts';
 import { recoverInterpretiveCorrespondence } from './interpretiveCorrespondence.ts';
 import { recoverModifierAttachment } from './modifierEvidence.ts';
-import { recoverOccurrenceGroups } from './occurrenceGroups.ts';
+import { completeOccurrenceGroups, recoverOccurrenceGroups } from './occurrenceGroups.ts';
 import { recoverPFRewrite } from './pfRewrite.ts';
 import { recoverPhaseEdge } from './phaseEdgeEvidence.ts';
 import { recoverPredication } from './predicationRecovery.ts';
@@ -56,8 +56,10 @@ export function recoverRelationScopes(
 ): EvidenceScope[] {
   const movements = recoverMovementGroups(evidence);
   const thematic = typedThematicAssignment(evidence).scope;
-  const occurrences = recoverOccurrenceGroups(evidence).filter(scope => !movements.some(movement =>
-    Object.keys(scope.origins.anchors).every(key => key in movement.origins.anchors)));
+  // Completion runs after the movement filter, so it never revives a family
+  // that only restates a movement's endpoints.
+  const occurrences = completeOccurrenceGroups(recoverOccurrenceGroups(evidence).filter(scope => !movements.some(movement =>
+    Object.keys(scope.origins.anchors).every(key => key in movement.origins.anchors))), evidence);
   return [
     ...movements,
     ...occurrences,
