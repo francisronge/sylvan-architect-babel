@@ -50,12 +50,14 @@ import { type HierNode, type PlaybackStep, type ReplayDerivationFrame } from './
 
 /*
  * Construction order inside one parent, read from shape (see structuralHeads),
- * as bottom-up Merge builds it: when a head projects the parent, its
- * complement is built first and the head is then selected to merge with it;
- * when a larger projection does (T′, a lower segment), that projection is
- * built first and a specifier or adjunct after it. Without a projecting
- * daughter, branching overt material comes first, silent notation last, and
- * the rest in authored order.
+ * as bottom-up Merge builds it. Sisters are built just in time: the daughter
+ * with more construction still to do goes first, so a head, specifier or
+ * adjunct is selected right before the merge that uses it. `work` counts the
+ * construction steps a daughter's subtree still needs in this stage. When
+ * daughters need equal work the shape decides: a head's complement comes
+ * before the head, a larger projection (T′, a lower segment) before its
+ * specifier or adjunct; without a projecting daughter, branching overt
+ * material comes first, silent notation last, and the rest in authored order.
  */
 const getDerivationalChildRankForOrdering = (heads: StructuralHeads, parent: HierNode, child: HierNode, childIndex: number): number => {
   const projecting = heads.projectingDaughter(parent.data);
@@ -72,7 +74,29 @@ const getDerivationalChildRankForOrdering = (heads: StructuralHeads, parent: Hie
   return childIndex;
 };
 
-const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>): HierNode[] => {
+interface ConstructionDemand {
+  /** Construction steps the subtree still needs in this stage. */
+  work: number;
+  /** Earlier workspace roots below the subtree's root that this stage
+   * attaches: pieces already on screen that wait for the merges using them. */
+  waiting: number;
+}
+
+/** Which of two sisters to build first, or 0 when demand does not decide.
+ * Pieces already waiting on screen are attached as soon as possible: a sister
+ * holding them goes first, the one with less work per waiting piece first
+ * (which keeps the total waiting least). Otherwise the sister with more work
+ * goes first, so the other is built just before the merge that uses it. */
+const compareConstructionDemand = (left: ConstructionDemand, right: ConstructionDemand): number => {
+  if (left.waiting || right.waiting) {
+    if (!left.waiting || !right.waiting)
+      return left.waiting ? -1 : 1;
+    return left.work * right.waiting - right.work * left.waiting;
+  }
+  return right.work - left.work;
+};
+
+const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>, demand: (node: HierNode) => ConstructionDemand): HierNode[] => {
   const sequence: HierNode[] = [];
   const heads = readStructuralHeads(isSyntheticWorkspaceRootNode(root) ? root.data.children || [] : [root.data]);
   const visit = (node: HierNode) => {
@@ -83,6 +107,10 @@ const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>): HierNod
       .filter((child) => visibleIds.has(getNodeId(child)))
       .map((child, index) => ({ child, index }))
       .sort((left, right) => {
+        // Separate workspace roots keep their own order; only sisters merge.
+        const byDemand = syntheticWorkspaceRoot ? 0 : compareConstructionDemand(demand(left.child), demand(right.child));
+        if (byDemand)
+          return byDemand;
         const leftRank = getDerivationalChildRankForOrdering(heads, node, left.child, left.index);
         const rightRank = getDerivationalChildRankForOrdering(heads, node, right.child, right.index);
         return leftRank === rightRank ? left.index - right.index : leftRank - rightRank;
@@ -239,7 +267,26 @@ export const buildStructuralDerivationPlaybackSteps = ({
     const inheritedTraceIndex = resolveTraceIndexFromNodeContext(node, traceIndexByNodeId);
     return formatTraceSurfaceForDisplayValue(surface, inheritedTraceIndex || extractMovementIndex(surface));
   };
-  const sequence = buildBottomUpSequence(hierarchy, visibleIds)
+  const reveals = (node: HierNode): boolean => frameIndex === 0
+    || !continuityVisibleNodeIds.has(getNodeId(node)) || pendingAttachmentNodeIds.has(getNodeId(node));
+  const previousRootIds = new Set(previousConstructionForest.map(node => String(node.id || '')));
+  const demandOf = new Map<HierNode, ConstructionDemand>();
+  const waitsOnScreen = new Set<HierNode>();
+  hierarchy.eachAfter((node) => {
+    const own = !isSyntheticWorkspaceRootNode(node) && visibleIds.has(getNodeId(node));
+    // A display word is selected with its owner, so it adds no step of its own.
+    const builds = own && reveals(node) && !(node.parent && isReplayDisplayChild(node.data, getNodeId(node.parent)));
+    if (own && frameIndex > 0 && previousRootIds.has(String(node.data?.id || ''))
+      && Boolean(node.parent) && !isSyntheticWorkspaceRootNode(node.parent!))
+      waitsOnScreen.add(node);
+    // A daughter that is itself a waiting piece waits for its parent's merge
+    // whichever sister is built first, so only pieces below it count.
+    demandOf.set(node, (node.children || []).reduce((sum, child) => ({
+      work: sum.work + demandOf.get(child)!.work,
+      waiting: sum.waiting + demandOf.get(child)!.waiting + (waitsOnScreen.has(child) ? 1 : 0)
+    }), { work: builds ? 1 : 0, waiting: 0 }));
+  });
+  const sequence = buildBottomUpSequence(hierarchy, visibleIds, (node) => demandOf.get(node)!)
     .filter((node) => !isSyntheticWorkspaceRootNode(node));
   // A regrouping parent keeps each preceding branch until the new child that
   // regroups its material is built; the last such step completes the regrouping.
@@ -251,9 +298,7 @@ export const buildStructuralDerivationPlaybackSteps = ({
       !pendingRegroupings.has(parentId) && previousVisibleConstructionIds.has(parentId) && previousVisibleConstructionIds.has(replacedId)
       && !continuityVisibleNodeIds.has(replacementId)))
     : new Map<string, { parentId: string; replacedId: string }>();
-  const nodesToReveal = sequence.filter((node) =>
-    frameIndex === 0 || !continuityVisibleNodeIds.has(getNodeId(node)) || pendingAttachmentNodeIds.has(getNodeId(node))
-  );
+  const nodesToReveal = sequence.filter(reveals);
   const cumulativeVisibleNodeIds = new Set(continuityVisibleNodeIds);
   const isUnrevealedClauseProjectionRoot = (node: HierNode | null | undefined, visibleNodeIdsForStep: Set<string>): boolean => {
     if (!node || isSyntheticWorkspaceRootNode(node))

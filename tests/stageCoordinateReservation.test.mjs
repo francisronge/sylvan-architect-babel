@@ -290,7 +290,7 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) {
     const steps = prepareReplay({ ...record, includePlayback: true }).playbackSteps;
     const stage = 2, size = stageTreeLayoutSize(steps, stage, width, height);
     const reservations = buildStageCoordinateReservations(steps, stage, size);
-    let checked = 0;
+    const checked = { before: 0, after: 0 };
     for (const step of steps.filter(step => step.replayFrameIndex === stage)) {
       const root = d3.hierarchy(step.replayCanvasData); applyVizIds(root);
       const visible = new Set(step.replayVisibleNodeIds);
@@ -308,9 +308,9 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) {
         const children = (node.children ?? []).filter(child => visible.has(getNodeId(child)));
         for (let index = 1; index < children.length; index++) assert(children[index - 1].x < children[index].x);
       }
-      checked++;
+      checked[visible.has('chm') ? 'after' : 'before']++;
     }
-    assert(checked >= 3, 'the regression must exercise the source before and after head adjunction');
+    assert(checked.before >= 1 && checked.after >= 1, 'the regression must exercise the source before and after head adjunction');
   });
 }
 

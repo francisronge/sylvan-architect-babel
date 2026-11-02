@@ -20,6 +20,7 @@
       "id": "nested-premovement-wrapper",
       "source": "../replay-regressions/nested-premovement-width.json",
       "mechanisms": ["movement-wrapper", "later-movement"],
+      "allow": {"replay": true, "reason": "Just-in-time sisters (Francis, 23 Oct): the adjective phrase schwierigen (three steps) is built before the noun Bericht (two) that it adjoins to, so N′ is built right before their merge. Stage 0 steps 1–5 change order only; no motion fault is new or farther.", "from": "8adc5dca92696cf954cbf1efb28b960b555a559090ed9ed6e022de944815e8f6", "to": "cd0f1f27d33e3b6c6a15fe920e09243c0c60973bcafbed113f87297a22bb43d8"},
       "expect": {"minMovementMoments": 2}
     },
     {
@@ -105,7 +106,7 @@
       "source": "../showcase/agreement-and-case.json",
       "selector": "/cases/0",
       "mechanisms": ["showcase"],
-      "allow": {"plan": true, "reason": "The stage-5 head-chain claim's identity family takes in its pronounced verb aV2 (pronouncedVerb, lineage aRead) beside the silent copies aV1 and aV0, so the coindex and Forest light cover the whole chain; that field no longer leaves a neutral residual mark. No path, Replay frame or motion fault changes.", "from": "351a60c7f6e6ff5bbbe1ba1a7b9978e1a10330868e20046ade5c94e0254b8bf0", "to": "8796aa3ce76094cc5a72f0fd2e13d4d18ba9c116b0b2ac5380f8a2d5d38aa784"}
+      "allow": {"replay": true, "reason": "Just-in-time sisters (Francis, 23 Oct): VP is merged before v[agentive] is selected, so v comes right before the merge that uses it (stage 1 steps 12–13). No motion fault is new or farther. Replaces the merged stage-5 identity-family allow.", "from": "8796aa3ce76094cc5a72f0fd2e13d4d18ba9c116b0b2ac5380f8a2d5d38aa784", "to": "f6cffc309fae5240386a95de32e18f49ab7c2d0934e7f47d2698e2882179a816"}
     },
     {
       "id": "showcase-09-hi-light-verb",
@@ -141,13 +142,15 @@
       "id": "showcase-68-en-there-expletive",
       "source": "../showcase/agreement-and-case.json",
       "selector": "/cases/6",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "reason": "Just-in-time sisters (Francis, 23 Oct): the determiner phrase the (three steps) is built before table (two), so the noun is selected right before NP merges them. Stage 0 steps 1–16 change order only; no motion fault is new or farther.", "from": "a22453ecbde65627487e17ffad4d9acc2ef10c45ae5b897bb1bf054bda67c63a", "to": "ee69a01991704b237ea22f3934301d56e0ab704e5f79c2156fba69397e2f328d"}
     },
     {
       "id": "showcase-54-en-double-object",
       "source": "../showcase/agreement-and-case.json",
       "selector": "/cases/7",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "reason": "Just-in-time sisters (Francis, 23 Oct): the larger possessed phrase (brother with its possessive D) is built before her, which is selected right before the merge that uses it. Stage 0 steps 4–11 change order only; no motion fault is new or farther.", "from": "f9f65edca6d75b3ffc47f896e6ba42a81fbaff4edf77f76f2ca4a0b96a55c7a0", "to": "3b2dd0b11f3497505a76c10c739fedca0bb93c9b7dd2e6071c96c46ab479f41c"}
     },
     {
       "id": "showcase-79-de-v2-wh",
@@ -167,7 +170,8 @@
       "id": "showcase-18-sv-long-v2",
       "source": "../showcase/movement.json",
       "selector": "/cases/2",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "finalCoordinates": true, "reason": "Just-in-time sisters (Francis, 23 Oct): the relative clause, which has more construction, is built before the noun bok it modifies (stage 0 steps 1–59 reorder). The final tree only translates by 4.69 units, which the camera fits away; no motion fault is new or farther.", "from": "0b62fe1780ce6e510c7f75bd52629dc56fbbf4b69a728a85ad36072560d47575", "to": "a5cd2fba1a07ee7d62066df774de076c051db2a76adae04a87a9b97c74c3ba7b"}
     },
     {
       "id": "showcase-18-ga-vso",
@@ -215,7 +219,8 @@
       "id": "showcase-71-ja-relative",
       "source": "../showcase/relatives-and-clitics.json",
       "selector": "/cases/0",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "reason": "Just-in-time sisters (Francis, 23 Oct): the topic phrase 本は (six steps) is built before the predicate おもしろい (three), which is selected right before the clause merges them (stage 3 steps 23–31). No motion fault is new or farther.", "from": "57df14f595448cd9ef47a8f299ae1bbeb23f368ea788f2ab00f6a5a0f9f5d513", "to": "e898551db8ed6ab3ca9af7900f0b592a1fc4a76e1f09b4007560314fe4e959eb"}
     },
     {
       "id": "showcase-78-sw-relative",
@@ -245,7 +250,8 @@
       "id": "showcase-76-tr-relative",
       "source": "../showcase/relatives-and-clitics.json",
       "selector": "/cases/5",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "reason": "Just-in-time sisters (Francis, 23 Oct): the inflection complex (four steps) is built before the adjective phrase güzel (three), which is selected right before their merge (stage 3 steps 29–35). No motion fault is new or farther.", "from": "559392811e7340c58d328c1b41e47e60028060b418f27b877421d03d52939326", "to": "6dbe2bc5e0a7ef95b0df7dda1092d318f7b9faf5c033cdd2180d28cac07d4791"}
     },
     {
       "id": "showcase-60-en-scope-a1",
@@ -300,7 +306,8 @@
       "source": "../showcase/scope-ellipsis-coordination.json",
       "selector": "/cases/2/analyses/4",
       "contextSelector": "/cases/2",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "reason": "Just-in-time sisters (Francis, 23 Oct): the larger PP adjunct is built before the smaller sister it attaches to, which is built right before their merge (stage 0 steps 1–18 reorder). No motion fault is new or farther.", "from": "03dbf04b5a39950ed6839b9765fc63c35c215c521b613870024c7557d67a86a7", "to": "1a3fe34f4a70f7cad172bd67e8910554cac254aeea2bd8b8b9061754971bec84"}
     },
     {
       "id": "showcase-37-en-ambiguous-pp-a6",
@@ -335,21 +342,24 @@
       "source": "../showcase/scope-ellipsis-coordination.json",
       "selector": "/cases/2/analyses/9",
       "contextSelector": "/cases/2",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "reason": "Just-in-time sisters (Francis, 23 Oct): the larger PP adjunct is built before saw the man, which is built right before their merge (stage 0 steps 1–22 reorder). No motion fault is new or farther.", "from": "fc9beb53c287465df6c864d3f97d886111f7b353ca3be5b8b3e532428c48c770", "to": "0cc4660ae2c7c233dfdd2c82a2c294e7d0309d6a2696e058ded2780d0e8fa2c6"}
     },
     {
       "id": "showcase-37-en-ambiguous-pp-a11",
       "source": "../showcase/scope-ellipsis-coordination.json",
       "selector": "/cases/2/analyses/10",
       "contextSelector": "/cases/2",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "reason": "Just-in-time sisters (Francis, 23 Oct): the larger PP adjunct is built before saw the man, which is built right before their merge (stage 0 steps 1–22 reorder). No motion fault is new or farther.", "from": "065d9bbe95dcc5e4b0708fe2e0f93306febf471b130834b1d3691ab447ceb321", "to": "1c1af2f76198fdbe6f781ef267d5849ede6ae0e5d1dcb19168aee7fc1b240ee1"}
     },
     {
       "id": "showcase-37-en-ambiguous-pp-a12",
       "source": "../showcase/scope-ellipsis-coordination.json",
       "selector": "/cases/2/analyses/11",
       "contextSelector": "/cases/2",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"replay": true, "reason": "Just-in-time sisters (Francis, 23 Oct): the larger PP adjunct is built before saw the man, which is built right before their merge (stage 0 steps 1–16 reorder). No motion fault is new or farther.", "from": "95cd8640b8d5a2b948e2acf3226f875e6de9fe0a894d22537726a192cf0d2fbf", "to": "8eb7d683b4713c019179f31c82d30cf6af39465eede088613bdefffbfe5b6fac"}
     },
     {
       "id": "showcase-37-en-ambiguous-pp-a13",
