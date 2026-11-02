@@ -368,6 +368,19 @@ one of three readable ways:
   lineage appear, one of them in its old slot, and every other occurrence of
   the lineage is unchanged.
 
+Several occurrences of one lineage may move in one stage in two further
+readable ways:
+
+- parallel copies, as when each conjunct's object moves to its own edge:
+  several new occurrences, each of whose parents contains exactly one newest
+  kept occurrence repeating its material, no two sharing one, are that many
+  displacements;
+- one shared landing (across-the-board movement), whose parent contains every
+  lower occurrence: one new copy over several newest kept occurrences, or a
+  landing that keeps its ID while a new occurrence holds its old slot and the
+  slot of each other earlier occurrence, which is removed. Each lower
+  occurrence is one displacement into the same landing.
+
 A lineage may be declared by the stage that makes its first copy when the
 persisting ID carries it and no earlier object holds it. Only the outermost
 occurrences of a lineage count; a same-lineage node inside another is its part.
@@ -395,7 +408,10 @@ Structure never creates a relation. The earliest authored claim of the stage
 that anchors the landing and either the lower occurrence or, in `priorAnchors`,
 the preceding source owns the displacement. A claim anchoring one end only,
 as Case, agreement and binding claims mention a moved phrase, owns nothing. The
-owning claim stays neutral when it names several displacements, when the copy
+owning claim stays neutral when it names several displacements, unless they
+are all the displacements into one shared landing, which it then owns together
+and draws as one path per lower occurrence at its moment; naming only some of
+them leaves it neutral. It also stays neutral when the copy
 lands in another workspace (sideward movement or parallel construction), when
 the landing context reads neither head nor phrasal, when it is a registered
 non-movement relation, or when its title or values deny the movement or leave
@@ -404,13 +420,26 @@ displacement more than one way: an anchor that resolves to no node or to a
 repeated ID, a list that repeats an ID, an anchored object whose lineage changes
 across the boundary, another occurrence of the moving lineage other than an
 older copy unchanged in its slot, a list that holds an endpoint beside an
-unrelated object, or `priorAnchors` that omit the preceding source. Other
-anchors are context and keep their authored meaning, whatever they are called.
-Configurations that read more than one way are refused and stay with worded
-recovery: several moved or new occurrences of one lineage, copies under one
-shared landing (across-the-board movement), duplicate IDs, nested occurrences,
-and a new node of the lineage over different material, which asserts identity
-only.
+unrelated object, or `priorAnchors` that omit a preceding source. A claim
+owning a shared landing names no occurrence of another chain either: beside
+several lower copies, a second chain may be a competing source or witness,
+which structure cannot tell from context. Other anchors are context and keep
+their authored meaning, whatever they are called. The paths of a shared
+landing take their fields by the node IDs they hold: one field lists exactly
+the lower occurrences, one holds only the landing, and the preceding sources
+are the kept lower occurrences or exactly one prior field's list; any other
+arrangement draws nothing. Configurations that read more than one way are
+refused and stay with worded recovery: several moved occurrences of one
+lineage, new occurrences that pair with their sources in more than one way, a
+landing that does not command every copy it would share, duplicate IDs, nested
+occurrences, and a new node of the lineage over different material, which
+asserts identity only.
+
+A claim whose wording draws only a coindex can still own a shared landing when
+the coindex holds only that chain's occurrences: the landing, its lower
+occurrences and older copies unchanged in their slots. Wording refuses such a
+claim for want of one source and one landing, which a group of paths states,
+so that refusal does not stand; the coindex stays.
 
 Structure upgrades only a claim that wording leaves wholly neutral, with every
 recovered claim in Tier 3, or whose only drawings are `identity.occurrences`

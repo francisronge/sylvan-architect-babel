@@ -3532,7 +3532,7 @@
       ]
     },
     "replay-regressions/unrecognized-movement.json#/cases/4": {
-      "frames": "wtldBFQv iFSI57JY 0EVFUT4O 2js3mYRa xprTiA6t 8ThSrPzM 7hSkARaK SwUDtDqJ vc93RRer uLj08L10 ap-JVZJ- opmR6TMi FmYAnFpM t4Rz5CDh i1H8Eh3w jsI3GIzD w1UO_bYc A8UmCKYP yPBIdZlj 2TRQyGF4 nEEhgEki TZ_sgVmw IC9RWeeD Qo_wDOJK 5ywWJSco OQIEhyPW duhK--yl jco_mLV- ioBTTD4X 3ypMEe8H Lrnykd1v w87LSsyQ _hGTaLO6 s_-NE7Pz _fpyQ0RL tEcZI_ru XApa6dWN 1Cocah8S D7QD6S7w A_iFk906 PHdcbmz7 Mgt9VrNW RvRQgK36 t64goOR2 U79aIobL m8Cy2D4n egl46ZBs -TWTvkCM 2TH4maCb Al4Xp7VT MIt26MPH",
+      "frames": "wtldBFQv iFSI57JY 0EVFUT4O 2js3mYRa xprTiA6t 8ThSrPzM 7hSkARaK SwUDtDqJ vc93RRer uLj08L10 ap-JVZJ- opmR6TMi FmYAnFpM t4Rz5CDh i1H8Eh3w jsI3GIzD w1UO_bYc A8UmCKYP yPBIdZlj 2TRQyGF4 nEEhgEki TZ_sgVmw IC9RWeeD Qo_wDOJK 5ywWJSco OQIEhyPW duhK--yl jco_mLV- ioBTTD4X 3ypMEe8H HQIKC7HW uOVwver9 hWnnbJn0 F6vnUPtp pr2FZZRQ 2SelCtQs zg2803Mk YGCrjmRm B_otDfdj wfTpyWIw vS4ydwiH 9BWppHX8 MVoef-sr GjPiqlny zmdB4gup VOtvLmbq PSStoGv- G_N7ZMt6 oiX-rFoz Xg4VouwD -w-YsCiL",
       "canopy": "RxdzTfq8",
       "tiers": [
         "1:0 T2 node-badges theta.grid theta-grid",
@@ -3546,7 +3546,9 @@
         "2:1 T3 fallback",
         "2:2 T2 directed-path tier2.feature-dependency feature.dependency",
         "2:3 T2 directed-path tier2.feature-dependency feature.dependency",
+        "3:0 T2 trajectory tier2.movement-path movement.path",
         "3:0 T3 fallback",
+        "3:1 T2 trajectory tier2.movement-path movement.path",
         "3:1 T3 fallback",
         "4:0 T2 directed-path tier2.feature-dependency feature.dependency",
         "4:0 T2 node-plaque feature-bundle.plaque feature.dependency",

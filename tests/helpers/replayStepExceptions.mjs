@@ -70,7 +70,5 @@ export const STEP_EXCEPTIONS = [
   x(CHAIN_ROLES, 'replay-regressions/obsolete-plaque-pockets.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '42'),
   x(CHAIN_ROLES, 'replay-regressions/renamed-head-anchors.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:1", '24'),
   x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "4:0", '37'),
-  x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '31'),
-  x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:1", '32'),
   x(INTERMEDIATE_TRACE, 'replay-regressions/rewrite-stage-new-head.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '45'),
 ];
