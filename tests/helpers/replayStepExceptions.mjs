@@ -22,9 +22,6 @@ const CHAIN_ROLES = 'Open: a chain or licensing relation with movement-shaped ro
 const OPEN_ROLES = 'Open: no field of the claim names a movement direction or occurrence role (subject, thetaPosition, topic, '
   + 'edgeOccurrence, sourceBeforeMovement), and the Tier 2 contract infers no movement from geometry, so the displacement '
   + 'stays a neutral copy at its moment without an arrow.';
-const INTERMEDIATE_TRACE = 'Open: the claim calls its lower occurrence intermediateTrace, which cannot select the endpoint because '
-  + 'operator-variable chain claims use that name for a middle copy of the chain, and no other field names a movement role, so '
-  + 'the copy stays neutral at its moment without an arrow.';
 
 const x = (reason, record, rule, subtype, subject, frames, approval) => ({ reason, record, rule, subtype, subject, at: { '-': { [frames]: null } },
   ...(approval && { approval }) });
@@ -69,8 +66,6 @@ export const STEP_EXCEPTIONS = [
   x(CHAIN_ROLES, 'replay-regressions/independent-clause-and-realization.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "0:2", '20'),
   x(CHAIN_ROLES, 'replay-regressions/obsolete-plaque-pockets.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '42'),
   x(CHAIN_ROLES, 'replay-regressions/renamed-head-anchors.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:1", '24'),
-  x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "4:0", '37'),
   x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '31'),
   x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:1", '32'),
-  x(INTERMEDIATE_TRACE, 'replay-regressions/rewrite-stage-new-head.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '45'),
 ];
