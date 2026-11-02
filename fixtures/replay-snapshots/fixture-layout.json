@@ -1868,8 +1868,8 @@
       ]
     },
     "replay-regressions/kept-id-landing.json#": {
-      "frames": "x0rVOWdF UH_gSV0e r9-VW5Ll QtC9KUUm sPjdRq_W LMS0m1zo hmDAvrFr lYSIkfuN 9Rqf9sAs 9Tzrv0u4 XZbFz8jC d1Uur4Lt e-XUHyrP tSQNlhSC EWV6a4nO Mvcl6DXX yaZbJzUS UBzOEVkp iGcCHlsp KaQiFjRY Yk0U9CTb jvurJczo wVgw24PS UIBjNbcc sOvBf1ab myCA6egL VVxIWGQx YpjMV8ZO 0iZsEl-X hF-C4QL1 kJ947Sur Rsz-Tb3H _aHJksJm 4EtsX9f7 Uw-5wP4g HHF2yevt E2eonOYy nrKXr4F3 ajEyunrF",
-      "canopy": "UIb1kLqR",
+      "frames": "x0rVOWdF UH_gSV0e r9-VW5Ll QtC9KUUm sPjdRq_W LMS0m1zo hmDAvrFr lYSIkfuN 9Rqf9sAs 9Tzrv0u4 XZbFz8jC d1Uur4Lt e-XUHyrP tSQNlhSC EWV6a4nO Mvcl6DXX yaZbJzUS UBzOEVkp iGcCHlsp KaQiFjRY Yk0U9CTb jvurJczo wVgw24PS UIBjNbcc sOvBf1ab myCA6egL VVxIWGQx YpjMV8ZO 0iZsEl-X hF-C4QL1 kJ947Sur Rsz-Tb3H bdB7Eu51 TpzNiAzB 3qfBG9Od EwU0c443 hrGyrQB5 9LzTEhWI _lZnDS91",
+      "canopy": "pZtnSakN",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
         "0:0 T2 node-plaque theta.grid theta-grid",
@@ -1884,6 +1884,7 @@
         "3:0 T2 trajectory tier2.movement-path movement.path",
         "3:0 T3 fallback",
         "4:0 T2 coindex identity.occurrences identity.occurrences",
+        "4:0 T2 trajectory tier2.movement-path movement.path",
         "4:0 T3 fallback",
         "4:1 T3 fallback"
       ]
@@ -3025,7 +3026,7 @@
       ]
     },
     "replay-regressions/rewrite-stage-new-head.json#": {
-      "frames": "lUuLidMh GUjsQsnT w2fQYWay EKiP0-91 e1NlgQkt j7C4sg-J Z1ACfwt5 qZarZk7v lyfqksBP WfKQaNTV bBQibK2Y a1Hn2hMA U3WaqweP YdhQqPfE Qa-7Scb6 GNBm6WKN z1K2TNep EzAfMbNW 8Vq3dlFw Fpc4Yzzx cs50VTmn SUriopED IYcUZpjL j_F1b0TC jBiWZrDu VB6D1S6Y HsJLSsk4 6Vrd24j1 LuhV07DR iTHEona7 Ct4ExqeR sZ6WLbGI hGN-DQwc ce38Q-Qq wdhXhSnG Nd8mfWnZ QaDyCa6A e-yRNQiv 9nzQ1jYI kqOVY466 E0tAtiex SSIu8jk9 NU6d5lyS TIEQmVMU Vb_erVwa 9KO3HH56 uEU4MLSj NdYDv-I4 CVPIojVo BO0I81kS ZMRWBWMl ew7_1xW7 4p4v1r8h",
+      "frames": "lUuLidMh GUjsQsnT w2fQYWay EKiP0-91 e1NlgQkt j7C4sg-J Z1ACfwt5 qZarZk7v lyfqksBP WfKQaNTV bBQibK2Y a1Hn2hMA U3WaqweP YdhQqPfE Qa-7Scb6 GNBm6WKN z1K2TNep EzAfMbNW 8Vq3dlFw Fpc4Yzzx cs50VTmn SUriopED IYcUZpjL j_F1b0TC jBiWZrDu VB6D1S6Y HsJLSsk4 6Vrd24j1 LuhV07DR iTHEona7 Ct4ExqeR sZ6WLbGI hGN-DQwc ce38Q-Qq wdhXhSnG Nd8mfWnZ QaDyCa6A e-yRNQiv 9nzQ1jYI kqOVY466 mwcSN4o0 0-yqkHFm QXJpFxTT TKyR9kvk mfhV7b1L 0PuVvEF5 nrSQpt3n dj-WCmDn Z7fZj0Ph GUtxCVsx NYZaPdoY 4lNu3hV6 XB2oFYPZ",
       "canopy": "hLAdHqTF",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -3044,6 +3045,7 @@
         "2:1 T2 trajectory tier2.movement-path movement.path",
         "2:1 T3 fallback",
         "3:0 T2 coindex identity.occurrences identity.occurrences",
+        "3:0 T2 trajectory tier2.movement-path movement.path",
         "3:0 T3 fallback",
         "3:1 T2 undirected-link focus.association focus.association",
         "3:1 T3 fallback",
