@@ -235,7 +235,9 @@ the next tranche or a hosted account.
 ## Program 5: Operations And Shipping
 
 1. Define supported browsers, hosted runtime conditions and upgrade cadence.
-   Node 24 is already selected in the package and CI.
+   Node 24 is already selected in the package and CI. The browser features the
+   code requires are listed in README (Supported browsers) and checked before
+   the app loads.
 2. Choose hosting, storage, and operations vendors after measuring the public
    model's cost, expected traffic, archive volume, privacy requirements, and
    recovery needs. Do not lock Babel to a vendor before those facts exist.
