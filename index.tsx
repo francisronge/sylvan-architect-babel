@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App';
+import RootErrorBoundary from './components/RootErrorBoundary';
 import './styles.css';
 
 const rootElement = document.getElementById('root');
@@ -14,7 +15,9 @@ const unsupported = (window as Window & { __BABEL_UNSUPPORTED__?: string[] }).__
 if (!unsupported?.length) {
   ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-      <App />
+      <RootErrorBoundary>
+        <App />
+      </RootErrorBoundary>
     </React.StrictMode>
   );
 }

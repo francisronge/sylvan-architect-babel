@@ -130,6 +130,29 @@ const inferPlaybackStepTrajectoryKind = (step?: PlaybackStep | null): PlaybackSt
 
 export const isHeadLikePlaybackStep = (step?: PlaybackStep | null): boolean => inferPlaybackStepTrajectoryKind(step) === 'head';
 
+/**
+ * Where a movement's landing stands once later movement takes it on. As in
+ * the render plan's occurrence transfers (relations/planPersistence.ts), a
+ * later proven movement whose preceding source is this landing and whose
+ * lower witness is another occurrence moves the hop's end to that witness:
+ * the occurrence the later movement leaves in the landing's slot, whether or
+ * not the landing kept its id. Each later stage applies in order, and a stage
+ * whose movements name different witnesses proves nothing. Only links whose
+ * moments have played are present, so nothing changes before the later
+ * movement's own moment, and the hop reads as one link in a chain.
+ */
+const transferredLandingId = (landingId: string, step: number, movementLinks: readonly ResolvedRelationLink[]): string => {
+  const later = movementLinks.filter(link => link.movementTransition && Number(link.stepIndex) > step && link.witnessNodeId)
+    .sort((left, right) => Number(left.stepIndex) - Number(right.stepIndex));
+  let target = landingId;
+  for (const stage of new Set(later.map(link => Number(link.stepIndex)))) {
+    const witnesses = new Set(later.filter(link => Number(link.stepIndex) === stage
+      && link.priorSourceNodeId === target && link.witnessNodeId !== target).map(link => link.witnessNodeId!));
+    if (witnesses.size === 1) target = [...witnesses][0];
+  }
+  return target;
+};
+
 export const resolveDerivationMovementTransitions = (
   currentForest: SyntaxNode[],
   derivationFrames: ReplayDerivationFrame[] | undefined,
@@ -143,14 +166,16 @@ export const resolveDerivationMovementTransitions = (
   const lastFrameIndex = Math.min(activeStepIndex, frames.length - 1);
   const transitions: DerivationMovementTransition[] = [];
   const transitionKeys = new Set<string>();
-  (Array.isArray(resolvedRelationLinks) ? resolvedRelationLinks : []).forEach((link) => {
-    if (!isResolvedMovementLink(link))
-      return;
+  const movementLinks = (Array.isArray(resolvedRelationLinks) ? resolvedRelationLinks : []).filter(isResolvedMovementLink);
+  movementLinks.forEach((link) => {
     const sourceId = String(link?.sourceNodeId || '');
-    const targetId = String(link?.targetNodeId || '');
+    const step = Number.isInteger(link?.stepIndex) ? Number(link.stepIndex) : 0;
+    const authoredTargetId = String(link?.targetNodeId || '');
+    const targetId = sourceId && authoredTargetId && sourceId !== authoredTargetId && step >= 0 && step <= lastFrameIndex
+      ? transferredLandingId(authoredTargetId, step, movementLinks)
+      : authoredTargetId;
     if (!sourceId || !targetId || sourceId === targetId)
       return;
-    const step = Number.isInteger(link?.stepIndex) ? Number(link.stepIndex) : 0;
     if (step < 0 || step > lastFrameIndex)
       return;
     if (!currentNodeIds.has(sourceId) || !currentNodeIds.has(targetId))
