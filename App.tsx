@@ -14,7 +14,7 @@ import {
   ParseBundle,
   ParseResult
 } from './types';
-import TreeVisualizer from './components/AsyncTreeVisualizer';
+import TreeVisualizer, { preloadTreeVisualizer } from './components/LazyTreeVisualizer';
 import RootLogo from './components/RootLogo';
 import LoadingMark from './components/LoadingMark';
 import FailurePanel, { dismissesFailure } from './components/FailurePanel';
@@ -279,6 +279,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   useEffect(() => {
     setReasoningEffort((current) => coerceReasoningEffortForRoute(modelRoute, current));
   }, [modelRoute]);
+
+  // The tree view is a separate chunk; fetch it once the first screen is up.
+  useEffect(() => { preloadTreeVisualizer().catch(() => {}); }, []);
 
   useEffect(() => {
     const syncFullscreenState = () => {

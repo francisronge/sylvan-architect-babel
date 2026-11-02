@@ -33,6 +33,7 @@ const WEIGHTS = new Map([
   ['movementSlotClearance.test.mjs', 8],
   ['reviewWorkspaceBoundaries.test.mjs', 8],
   ['devPreviewBuild.test.mjs', 7],
+  ['appBundleSplit.test.mjs', 4],
   ['plaqueLayoutJob.test.mjs', 7],
   ['replayNamedAtlasRegressions.test.mjs', 6],
   ['stageCamera.test.mjs', 6],
