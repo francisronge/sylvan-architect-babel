@@ -227,6 +227,25 @@ It includes:
 5. Compare outputs across frameworks and across reruns.
 6. Record differences in structure, visual relations, and stage records.
 
+## Supported browsers
+
+Babel needs a browser with these features, which its code uses without a
+fallback:
+
+- JavaScript modules (the app and its Replay workers are module code)
+- `Intl.Segmenter` (spelling checks and label layout)
+- `structuredClone` (copying trees while Replay is built)
+- `Array.prototype.at` and `Object.hasOwn`
+- `ResizeObserver` (keeping the tree fitted to its view)
+
+In practice that means Chrome or Edge 98, Firefox 125, Safari 15.4 or newer.
+Before the app loads, `public/browser-support.js` checks for each feature
+(never the browser's name or version) and, if any is missing, shows a short
+message asking you to update instead of a broken page.
+
+Saving and reopening Tree Bank entries also need a secure page (`https://` or
+`localhost`), because records are hashed with the Web Crypto API.
+
 ## Limits and caveats
 
 - Output quality can vary with model behavior and service availability.
