@@ -47,11 +47,12 @@ standard even though model analyses may differ.
 _Avoid_: public generation policy
 
 **Babel product launch**:
-Roadmap Programs 1 through 6 working together in production: qualified
-generation, the shared public and research application, complete renderer
-integration, durable Personal Tree Bank work, bounded operations, the Generation
-Archive, and a working review path into the Reviewed Derivational Corpus. A
-large reviewed corpus and the benchmark are not launch requirements.
+Public Babel at `/` working in production: qualified public generation,
+complete Replay, the Personal Tree Bank, bounded operations and the Generation
+Archive (every hosted parse kept for our own use, disclosed in the privacy
+note). The research workbench at `/research`, the Reviewed Derivational Corpus
+and the benchmark come after launch. Francis, 31 Oct 2026: "we're only
+shipping public babel".
 _Avoid_: Relation Orchard publication, benchmark release
 
 **Benchmark**:
