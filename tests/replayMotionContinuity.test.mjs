@@ -138,7 +138,8 @@ test('a word that shifts under a stationary phrase is reported, whoever owns the
 // and 昨天 across the clause (35), and D + Top pulled 我 across the tree (now 39). Each
 // waiting piece now stands where it attaches from its first frame; 昨天, which
 // attaches under the T its own External Merge inserts above matrixTP (frame 37),
-// waits on the row it takes there, so only its host descends (Francis, 21 Oct).
+// waits on the row it takes there (Francis, 21 Oct); its host, the larger side of
+// that insertion, keeps its row while the clause above it rises (Francis, 2 Nov).
 // At 35 the subject movement also
 // brings T′, which takes 了's clause up a row; 了 rides with it and still slides
 // sideways into the raised subject's gap, a stage-crossing slide Francis accepted.

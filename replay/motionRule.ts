@@ -34,7 +34,7 @@
  * scripts/replayMotionContinuity.mjs, and stage planning (movementGapClosing.ts)
  * uses it to keep a closing only where the rule accepts it. */
 import { paintedShift } from './cameraCarry.ts';
-import { TREE_SIBLING_GAP } from './treeSpacing.ts';
+import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from './treeSpacing.ts';
 
 /** Which painted syntax one Replay step owns: the single ownership definition of
  * the motion rules (scripts/replayMotionContinuity.mjs over laid-out frames, and
@@ -111,13 +111,13 @@ export function replayStepKeys(frames: readonly any[]): string[] {
   });
 }
 
-export function replayMotionFaults({ frames }: { frames: readonly any[] }, { threshold = MOTION_FAULT_THRESHOLD }: { threshold?: number } = {}): any[] {
+export function replayMotionFaults({ frames }: { frames: readonly any[] }, { threshold = MOTION_FAULT_THRESHOLD, rises: grantRises = true }: { threshold?: number; rises?: boolean } = {}): any[] {
   const points = frames.map(frame => new Map<string, any>(frame.points.map(point => [point.id, point])));
   const painted = (index: number) => new Map<string, { x: number; y: number; parentId: string | null }>(frames[index].points.map(point => [point.id, { x: point.x, y: point.y, parentId: point.parent }]));
   // The camera carry of a stage crossing, as the screen applies it (carryCamera).
   const carried = frames.map((frame, index) => {
     if (!index || frame.stage === frames[index - 1].stage) return { x: 0, y: 0 };
-    const shift = paintedShift(painted(index - 1), painted(index), { closing: Boolean(frame.closing), held: frame.held });
+    const shift = paintedShift(painted(index - 1), painted(index), { closing: Boolean(frame.closing), held: frame.held, rises: grantRises });
     return { x: -shift.x, y: -shift.y };
   });
   const motion = (index, id) => {
@@ -132,8 +132,15 @@ export function replayMotionFaults({ frames }: { frames: readonly any[] }, { thr
     const owned = stepOwnership({ target, links, points: frames[index].points, prior });
     const closing = closingGroups({ kind, links, current, prior, motion: id => motion(index, id), owned, threshold });
     for (const id of closing) owned.add(id);
+    const rises = grantRises ? insertionRises(frames[index].points, prior) : new Map<string, number>();
+    const risen = (id: string, shift: { x: number; y: number }) => {
+      const levels = rises.get(id) ?? 0;
+      if (!levels || Math.abs(shift.x) > threshold || shift.y >= 0) return false;
+      const rows = -shift.y / TREE_ROW_HEIGHT;
+      return Math.abs(rows - Math.round(rows)) * TREE_ROW_HEIGHT <= threshold && Math.round(rows) <= levels;
+    };
     const moved = new Set<string>(frames[index].points.filter(point => !owned.has(point.id) && prior.has(point.id)
-      && length(motion(index, point.id)) > threshold).map(point => point.id));
+      && length(motion(index, point.id)) > threshold && !risen(point.id, motion(index, point.id)!)).map(point => point.id));
     // A node riding with its moving parent is reported once, at the parent; one
     // that moves differently from its parent is reported as well.
     for (const id of moved) {
@@ -154,8 +161,10 @@ export function replayMotionFaults({ frames }: { frames: readonly any[] }, { thr
         || childIds(current, point.parent) !== childIds(prior, point.parent)) continue;
       // A closing side slides whole while the parents spanning the gap recentre.
       if (closing.has(point.id)) continue;
-      // A parent recentring over deeper changes moves alone; the child did not move.
-      const own = motion(index, point.id), carrier = motion(index, point.parent);
+      // A parent recentring over deeper changes moves alone; the child did not
+      // move. A granted rise is the step's own motion, not a change of shape.
+      const unrisen = (id: string) => { const shift = motion(index, id)!; return risen(id, { x: 0, y: shift.y }) ? { x: shift.x, y: 0 } : shift; };
+      const own = unrisen(point.id), carrier = unrisen(point.parent);
       const distance = length({ x: own.x - carrier.x, y: own.y - carrier.y });
       if (length(own) > threshold && distance > threshold) faults.push({ frame: index + 1, step: stepKeys[index], node: point.id, kind: 'shape-motion', operation, distance });
     }
@@ -176,6 +185,38 @@ export function replayMotionFaults({ frames }: { frames: readonly any[] }, { thr
     }
   }
   return faults.sort((a, b) => a.frame - b.frame || a.kind.localeCompare(b.kind) || a.node.localeCompare(b.node));
+}
+
+/** A step that inserts a new parent above syntax it already painted (a parent
+ * new in the frame whose daughter kept its old parent above it) adds a row
+ * there. The Replay's row plan keeps the larger side of that insertion still
+ * (planReplayRows; Francis, 2 November 2026, on the rise in place of the drop:
+ * "yes try it", "It's better"), so the rest of the tree above the new parent
+ * may rise straight up by one row per level the step inserts in that tree.
+ * Returns, for each node above an insertion and outside the inserted parent's
+ * own subtree, how many levels its tree gained. */
+export function insertionRises(points: readonly any[], prior: ReadonlyMap<string, any>): Map<string, number> {
+  const current = new Map<string, any>(points.map(point => [point.id, point]));
+  const topOf = (id: string) => {
+    let top = id;
+    for (let parent = current.get(top)?.parent; parent && current.has(parent); parent = current.get(parent).parent) top = parent;
+    return top;
+  };
+  const inserted = points.filter(point => !prior.has(point.id) && points.some(child => child.parent === point.id
+    && prior.get(child.id)?.parent && prior.get(child.id).parent === point.parent));
+  const result = new Map<string, number>();
+  if (!inserted.length) return result;
+  const below = (id: string, ancestor: string) => {
+    for (let node: string | null = id; node; node = current.get(node)?.parent ?? null) if (node === ancestor) return true;
+    return false;
+  };
+  const levels = new Map<string, number>();
+  for (const point of inserted) levels.set(topOf(point.id), (levels.get(topOf(point.id)) ?? 0) + 1);
+  for (const point of points) {
+    const count = levels.get(topOf(point.id));
+    if (count && !inserted.some(parent => below(point.id, parent.id))) result.set(point.id, count);
+  }
+  return result;
 }
 
 /** The step where a phrase moves away may close the gap it leaves (Francis,

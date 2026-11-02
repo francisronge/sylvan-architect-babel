@@ -44,14 +44,14 @@ export function DerivationNotesView({ paragraphs, notation, copyStatus, onCopy }
                   </div>
                   <div>
                     <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Labeled Bracketing</h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/40">Final Tree · Miles Shang Notation</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/75">Final Tree · Miles Shang Notation</p>
                   </div>
                 </div>
                 <a 
                   href="https://mshang.ca/syntree/" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 px-6 py-3 rounded-2xl border bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[11px] font-black uppercase tracking-widest"
+                  className="flex items-center gap-3 px-6 py-3 rounded-2xl border bg-white/5 border-white/10 text-white/45 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[11px] font-black uppercase tracking-widest"
                 >
                   <ExternalLink size={14} />
                   Miles Shang
@@ -65,7 +65,7 @@ export function DerivationNotesView({ paragraphs, notation, copyStatus, onCopy }
                     className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${
                       copied
                       ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
-                      : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
+                      : 'bg-white/5 border-white/10 text-white/45 hover:text-emerald-400 hover:border-emerald-500/30'
                     }`}
                   >
                     {copied ? <Check size={13} /> : <Copy size={13} />}

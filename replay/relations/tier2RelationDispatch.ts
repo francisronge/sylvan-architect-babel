@@ -551,8 +551,9 @@ export const dispatchRelationClaims = (
       return indices.length > 0 && indices.every(index => scope.origins?.[ref.field]?.[ref.key]?.includes(index));
     };
     // Exact scoped interpretation can add a supported domain or literal to the
-    // same pair. Its weaker generic projection is not an independent drawing.
-    if (['operator-binding', 'theta-grid'].includes(facet.recipe.id) && continued.some(scope => scope.recipe.id === facet.recipe.id
+    // same pair, and a completed identity family adds the rest of its chain.
+    // The weaker or partial view is not an independent drawing.
+    if (['operator-binding', 'theta-grid', 'identity.occurrences'].includes(facet.recipe.id) && continued.some(scope => scope.recipe.id === facet.recipe.id
       && scope.evidence && facet.evaluation.consumedEvidence.every(ref => coversReference(scope, ref))
       && scope.evaluation.consumedEvidence.some(ref => !facet.evaluation.consumedEvidence.some(original => original.field === ref.field && original.key === ref.key)))) {
       selected.splice(index, 1);
@@ -1007,15 +1008,19 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
 const coindexesMovingChain = (claim: RecoveredClaim, movement: RecoveredMovement,
   forest: readonly SyntaxNode[], priorForest: readonly SyntaxNode[] = [], wordedRefusal?: string): boolean => {
   if (claim.tier !== 2 || claim.facet.recipe.id !== 'identity.occurrences') return false;
-  const occurrences = claim.facet.evidence?.currentAnchors.occurrences ?? [];
   const current = indexMovementOccurrences(forest), prior = indexMovementOccurrences(priorForest);
-  const ends = [movement.targetNodeId, movement.sourceNodeId], older = occurrences.filter(id => !ends.includes(id));
+  const ends = [movement.targetNodeId, movement.sourceNodeId];
   const lineage = current.nodes.get(movement.targetNodeId)?.lineageId;
-  const holdsHop = ends.every(id => occurrences.includes(id)) || ends.some(id => occurrences.includes(id)) && older.length > 0;
-  return Boolean(lineage) && holdsHop && (older.length > 0 || !wordedRefusal)
-    && occurrences.every(id => current.nodes.get(id)?.lineageId === lineage && !current.duplicates.has(id))
-    && older.every(id => prior.nodes.has(id) && !prior.duplicates.has(id) && sameMovementSourceSlot(current, prior, id, id)
-      && JSON.stringify(prior.nodes.get(id)) === JSON.stringify(current.nodes.get(id)));
+  // A claim merged from several families qualifies only as each family would.
+  const groups = claim.facet.evidence?.recognizedOccurrenceGroups ?? [claim.facet.evidence?.currentAnchors.occurrences ?? []];
+  return Boolean(lineage) && groups.every(occurrences => {
+    const older = occurrences.filter(id => !ends.includes(id));
+    const holdsHop = ends.every(id => occurrences.includes(id)) || ends.some(id => occurrences.includes(id)) && older.length > 0;
+    return holdsHop && (older.length > 0 || !wordedRefusal)
+      && occurrences.every(id => current.nodes.get(id)?.lineageId === lineage && !current.duplicates.has(id))
+      && older.every(id => prior.nodes.has(id) && !prior.duplicates.has(id) && sameMovementSourceSlot(current, prior, id, id)
+        && JSON.stringify(prior.nodes.get(id)) === JSON.stringify(current.nodes.get(id)));
+  });
 };
 
 /** One ordered pass over the stages. Earlier claims inform later ones through

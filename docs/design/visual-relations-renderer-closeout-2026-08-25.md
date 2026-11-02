@@ -188,6 +188,11 @@ than before (within one unit). That includes the landing's own plaques:
 travelling with their anchor does not keep their pocket clear of the syntax they
 now pass.
 
+Rows follow one plan for the whole Replay: when a parent is inserted above
+existing syntax, the larger side keeps its row and the smaller side moves one
+row, so the syntax above an insertion rises rather than everything below it
+dropping, and a separate piece the step does not touch keeps its row.
+
 Each stage is laid out on its own, so a stage crossing can shift syntax that no
 step moves. Unmoved syntax that shifts rigidly keeps its place relative to the
 camera carry from the crossing on. A leaf that keeps its row while the syntax
@@ -1339,7 +1344,10 @@ keeps the same occurrence ID at the next landing. Its endpoint transfers to the
 exact lower witness at that next movement moment; rewind restores the preceding
 endpoint. Other surviving marks continue to reference their own occurrences.
 Descriptions sharing one movement curve retain that sharing through the same
-endpoint transfer, with all contributing authored claims preserved.
+endpoint transfer, with all contributing authored claims preserved. Replay's own
+movement links, which layout, camera and chain letters read, take the same
+transfer at the same moment, and a carried link is replaced rather than kept
+beside its transferred form.
 
 A movement can own a realization change on descendants of its exact source and
 landing when no relation directly covers the complete change. The complete old and new groups must cover the same input tokens,

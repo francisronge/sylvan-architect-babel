@@ -7,12 +7,17 @@ import type { PlaybackStep } from './types.ts';
 import { visibleComponentNodes } from './visibleComponent.ts';
 import { changesOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
 import { paintedShift, type CarryOptions } from './cameraCarry.ts';
-import { closingGroups, stepOwnership, stepTrajectoryParticipants } from './motionRule.ts';
+import { closingGroups, insertionRises, stepOwnership, stepTrajectoryParticipants } from './motionRule.ts';
+import { TREE_ROW_HEIGHT } from './treeSpacing.ts';
 import { workspaceMotionOwnership, type WorkspaceMotionView } from './workspaceMotionOwnership.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 /** `closing`: the stage plan closed a movement's room at the crossing into this scene (CarryOptions). */
 type Scene = { step: PlaybackStep; canvas: SyntaxNode; nodes: ReadonlyMap<string, Node>; closing?: boolean };
+/** Options for the checks stage planning runs on coordinates the Replay's row
+ * plan has not yet given their rows (planReplayRows): there the rise an
+ * insertion grants is not yet painted, so planning judges motion as before. */
+export const PLANNING = { rises: false } as const;
 export type WorkspaceShapeReflow = { index: number; rootId: string; kind: 'unchanged-subtree-shape' };
 export type WorkspaceContinuityReflow = WorkspaceShapeReflow
   | { index: number; rootId: string; kind: 'unowned-component-motion' };
@@ -35,14 +40,14 @@ export function unchangedWorkspaceShapeReflows<S extends Scene>(
 export function workspaceContinuityReflows<S extends Scene>(
   scenes: readonly S[], baseline: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>,
   render: (scene: S, coordinates: TreeCoordinateReservation) => Node[],
-  { ownClosings = false }: { ownClosings?: boolean } = {}
+  { ownClosings = false, rises = true }: { ownClosings?: boolean; rises?: boolean } = {}
 ): WorkspaceContinuityReflow[] {
-  return detectWorkspaceReflows(scenes, baseline, render, true, ownClosings);
+  return detectWorkspaceReflows(scenes, baseline, render, true, ownClosings, rises);
 }
 
 function detectWorkspaceReflows<S extends Scene>(
   scenes: readonly S[], baseline: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>,
-  render: (scene: S, coordinates: TreeCoordinateReservation) => Node[], includeMotion: boolean, ownClosings = false
+  render: (scene: S, coordinates: TreeCoordinateReservation) => Node[], includeMotion: boolean, ownClosings = false, grantRises = true
 ): WorkspaceContinuityReflow[] {
   const signatures = new Map<string, number>(), topologies = new Map<string, number>();
   const snapshots = scenes.map(scene => {
@@ -138,10 +143,18 @@ function detectWorkspaceReflows<S extends Scene>(
         const oldPositions = positions(index - 1), newPositions = positions(index);
         const closing = ownClosings ? closingAt(scenes[index - 1].step, scenes[index].step, before.nodes, current.nodes, oldPositions, newPositions,
           { closing: Boolean(scenes[index].closing) }) : undefined;
+        // Syntax above a parent the step inserts may rise straight up by its
+        // rows, as the motion rule grants (`insertionRises`).
+        const rises = !grantRises ? new Map<string, number>() : insertionRises([...current.nodes.keys()].map(id => ({ id, parent: current.parents.get(id) ?? null })),
+          new Map([...before.nodes.keys()].map(id => [id, { id, parent: before.parents.get(id) ?? null }])));
+        const risen = (id: string, dx: number, dy: number) => {
+          const rows = -dy / TREE_ROW_HEIGHT, levels = rises.get(id) ?? 0;
+          return levels > 0 && Math.abs(dx) <= 1e-6 && rows > 0 && Math.abs(rows - Math.round(rows)) < 1e-6 && Math.round(rows) <= levels;
+        };
         for (const id of stationary) {
           if (closing?.has(id)) continue;
           const prior = oldPositions.get(id), next = newPositions.get(id);
-          if (prior && next && Math.hypot(next.x - prior.x, next.y - prior.y) > 1e-6)
+          if (prior && next && Math.hypot(next.x - prior.x, next.y - prior.y) > 1e-6 && !risen(id, next.x - prior.x, next.y - prior.y))
             result.push({ index, rootId: id, kind: 'unowned-component-motion' });
         }
       }

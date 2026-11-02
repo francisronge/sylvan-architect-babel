@@ -271,3 +271,34 @@ test('an unchanged older copy does not compete beside the clauses a hop leaves a
   index(input.after).get('old-copy').word = 'another occurrence';
   assert.equal(recoverMovementEvidence(input.relation, input.after, input.before).movement, undefined);
 });
+
+// Replay's own movement links (layout, camera, chain letters) must end where
+// the painted arrow ends: at the lower witness a later hop leaves, from that
+// hop's moment on. carDP keeps its id from Spec-TP to Spec-CP; the French
+// relative passes three edges.
+for (const file of ['replay-regressions/later-occupant-intermediate-landing.json', 'performance/french-relative.json'])
+  test(`each Replay link of an earlier hop ends at the painted landing in ${file}`, async () => {
+    const { prepareReplay } = await import('../replay/prepareReplay.ts');
+    const { visiblePlanFrameItems } = await import('../replay/relations/relationFrame.ts');
+    const record = JSON.parse(fs.readFileSync(new URL(`../fixtures/${file}`, import.meta.url)));
+    const prepared = prepareReplay({ ...record, includePlayback: true });
+    const steps = prepared.playbackSteps;
+    let transferred = 0;
+    steps.forEach((step, stepIndex) => {
+      const stage = step.replayFrameIndex, played = new Set(steps.slice(0, stepIndex + 1)
+        .filter(prior => prior.replayKind === 'relation' && prior.replayRelationIdentity?.stageIndex === stage)
+        .map(prior => prior.replayRelationIdentity.relationIndex));
+      const active = step.replayKind === 'relation' ? step.replayRelationIdentity?.relationIndex ?? null : null;
+      for (const item of visiblePlanFrameItems(prepared.relationRenderPlan, stage, played, active)) {
+        if (item.kind !== 'trajectory' || !item.occurrenceTransfers?.length) continue;
+        const painted = resolveDisplayedTrajectoryAttachments(item, () => undefined, { stageIndex: stage, playedRelationIndices: played });
+        const key = `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`;
+        const links = (step.replayRelationLinks ?? []).filter(link => link.renderFamily === 'trajectory'
+          && link.authoredRelationKey === key && link.sourceNodeId === painted.sourceNodeId);
+        assert.deepEqual(links.map(link => link.targetNodeId), [painted.targetNodeId],
+          `frame ${stepIndex + 1}: hop ${key} ends where its arrow is painted`);
+        if (item.occurrenceTransfers.some(transfer => transfer.toNodeId === painted.targetNodeId)) transferred += 1;
+      }
+    });
+    assert.ok(transferred > 0, 'some frame shows a transferred landing');
+  });
