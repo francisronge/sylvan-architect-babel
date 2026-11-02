@@ -810,6 +810,19 @@ stage cursor advances afterwards. Canvas projection, movement transitions,
 layout, visibility and presentation have independent owners. Workspace placement
 separates attachment proposals and search from rendered-plan validation.
 
+Construction inside one parent is just in time (`structuralPlayback.ts`,
+approved by Francis on 23 Oct 2026). For each pair of sisters Replay counts the
+construction steps each still needs in the stage and the earlier workspace
+pieces below it that the stage attaches, which wait on screen until the merge
+that uses them. A sister holding waiting pieces goes first, the one with less
+work per waiting piece first, the order that keeps total waiting least; a sister
+that is itself a waiting piece waits for its parent's merge either way, so it
+does not count. Otherwise the sister with more work goes first, so a head,
+specifier or adjunct is selected right before the merge that uses it. Equal
+demand falls back to shape: a head's complement before the head, a larger
+projection before its specifier or adjunct. Separate workspace roots keep their
+order. Labels are never read.
+
 Relation moments follow authored order with one exception, because Babel must
 not limit how a model orders the claims of one stage. A relation needing syntax that a later relation of its stage introduces plays right
 after that relation's moment, or after the last such moment when it needs

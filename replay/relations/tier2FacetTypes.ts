@@ -288,6 +288,9 @@ export type Tier2FacetEvidence = {
   /** The movement is structural and keeps the coindex over its whole chain
    * that wording drew (`coindexesMovingChain` in tier2RelationDispatch.ts). */
   keepsChainIdentity?: boolean;
+  /** Movements of one shared landing that structure proves this claim names
+   * together (across-the-board movement); see structuralMovement.ts. */
+  structuralMovementGroup?: readonly import('./movementEvidence.ts').RecoveredMovement[];
   /** Authored fields jointly attached by one exact current realization group. */
   realizationGroupAnchorKeys?: readonly string[];
   priorRealizationGroupAnchorKeys?: readonly string[];

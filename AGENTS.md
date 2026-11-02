@@ -146,7 +146,12 @@ focused tests and captures plus `npm run verify:all`.
   Structural steps build forward: selection, then projection; a parent appears
   only when its children are ready to merge. Nothing appears before its own step.
   An authored node with a word is one lexical item, selected with its category
-  in one step; projection is an authored one-child node above it.
+  in one step; projection is an authored one-child node above it. Sisters are
+  built just in time: a daughter holding earlier pieces waiting on screen goes
+  first (least work per waiting piece first), otherwise the daughter with more
+  construction left, so a head or other small piece is selected right before
+  the merge that uses it. Structure decides, never category labels. A replaced
+  daughter stays on screen until its replacement's own step swaps it in.
 - Before movement the source keeps its earlier form and pronunciation. The
   movement moment introduces, at once, the complete landing, the authored lower
   occurrence, the trajectory, any smallest new parent needed to attach the
