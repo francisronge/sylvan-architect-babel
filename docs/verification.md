@@ -128,6 +128,11 @@ record still needs its own review.
 - The corpus comparator checks Replay, plans and the tree layout the renderer
   paints. It does not see native text rendering, plaque painting, connectors or
   the camera.
+- `tests/uiContrast.test.mjs` (in `verify:all`) measures every interface text
+  and control color listed in `tests/helpers/uiContrastPairs.mjs` against WCAG
+  2.2 AA, composited over its background at the lightest point of the page
+  gradient, and fails when a listed class leaves its file. It does not see
+  colors missing from that list, the tree renderer's marks, or the painted page.
 - A new guard must fail on the historical defect or a controlled bad result
   before a passing candidate is accepted; passing counts alone prove nothing.
 
