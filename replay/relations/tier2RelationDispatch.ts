@@ -415,6 +415,7 @@ export const dispatchRelationClaims = (
     registry = productionRelationRegistry,
     synonymIndex = DEFAULT_SYNONYM_INDEX,
     structuralMovement,
+    structuralMovementGroup,
     keepsChainIdentity,
     drawnMovements
   } = input;
@@ -437,6 +438,7 @@ export const dispatchRelationClaims = (
     activeLens,
     synonymIndex,
     ...(structuralMovement ? { structuralMovement } : {}),
+    ...(structuralMovementGroup ? { structuralMovementGroup } : {}),
     ...(structuralMovement && keepsChainIdentity ? { keepsChainIdentity } : {})
   });
   const declaredPrimaryAnchorKeys = new Set<string>(registryEntry
@@ -995,10 +997,12 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
 
 /** Whether a claim's drawing is a coindex over a structurally proven movement's
  * chain: both occurrences of the hop, and any older copies of the chain, each
- * unchanged in its preceding slot. Wording reads such a claim as identity alone
- * when it names no movement endpoint (open fields such as head and tail) or
- * lists the new lower occurrence beside an older one; structure reads the older
- * copies as context, so the hop is the displacement the coindex states: the
+ * unchanged in its preceding slot. One end of the hop may be missing when an
+ * older copy is present: the claim names that end in another field. Wording
+ * reads such a claim as identity alone when it names no movement endpoint (open
+ * fields such as head and tail), lists the new lower occurrence beside an older
+ * one, or files the landing under a field it does not read as movement;
+ * structure reads the older copies as context, so the hop is the displacement the coindex states: the
  * movement path draws it, and the coindex stays beside the path
  * (`keepsChainIdentity`). A coindex of the hop alone qualifies only when worded
  * recognition refused no movement (`wordedRefusal`): where it read endpoint
@@ -1013,11 +1017,31 @@ const coindexesMovingChain = (claim: RecoveredClaim, movement: RecoveredMovement
   const groups = claim.facet.evidence?.recognizedOccurrenceGroups ?? [claim.facet.evidence?.currentAnchors.occurrences ?? []];
   return Boolean(lineage) && groups.every(occurrences => {
     const older = occurrences.filter(id => !ends.includes(id));
-    return ends.every(id => occurrences.includes(id)) && (older.length > 0 || !wordedRefusal)
+    const holdsHop = ends.every(id => occurrences.includes(id)) || ends.some(id => occurrences.includes(id)) && older.length > 0;
+    return holdsHop && (older.length > 0 || !wordedRefusal)
       && occurrences.every(id => current.nodes.get(id)?.lineageId === lineage && !current.duplicates.has(id))
       && older.every(id => prior.nodes.has(id) && !prior.duplicates.has(id) && sameMovementSourceSlot(current, prior, id, id)
         && JSON.stringify(prior.nodes.get(id)) === JSON.stringify(current.nodes.get(id)));
   });
+};
+
+/** Whether a claim's drawing is a coindex over the chain of a structurally
+ * proven shared landing: only that lineage's occurrences, each the landing, a
+ * lower occurrence of the group or an older copy unchanged in its preceding
+ * slot. The group's paths draw its hops, which no single path can state, so
+ * wording's refusal of one source and one landing does not stand; the coindex
+ * itself is redrawn by wording, which reads it the same way. */
+const coindexesSharedLanding = (claim: RecoveredClaim, group: readonly RecoveredMovement[],
+  forest: readonly SyntaxNode[], priorForest: readonly SyntaxNode[] = []): boolean => {
+  if (claim.tier !== 2 || claim.facet.recipe.id !== 'identity.occurrences') return false;
+  const occurrences = claim.facet.evidence?.currentAnchors.occurrences ?? [];
+  const current = indexMovementOccurrences(forest), prior = indexMovementOccurrences(priorForest);
+  const ends = new Set(group.flatMap(movement => [movement.targetNodeId, movement.sourceNodeId]));
+  const lineage = current.nodes.get(group[0].targetNodeId)?.lineageId;
+  return Boolean(lineage) && occurrences.length > 0
+    && occurrences.every(id => current.nodes.get(id)?.lineageId === lineage && !current.duplicates.has(id))
+    && occurrences.every(id => ends.has(id) || prior.nodes.has(id) && !prior.duplicates.has(id)
+      && sameMovementSourceSlot(current, prior, id, id) && JSON.stringify(prior.nodes.get(id)) === JSON.stringify(current.nodes.get(id)));
 };
 
 /** One ordered pass over the stages. Earlier claims inform later ones through
@@ -1046,11 +1070,15 @@ function dispatchStagesInOrder(stages: Parameters<typeof dispatchStageRelations>
       const structuralMovement = structural?.[stageIndex].movements.get(relationIndex);
       // The coindex stays beside the path: it lights the whole chain.
       const keepsChainIdentity = worded.claims.some(claim => claim.tier !== 3);
+      const structuralMovementGroup = structural?.[stageIndex].groups.get(relationIndex);
       const dispatch: RelationClaimDispatch = structuralMovement && worded.claims.every(claim => claim.tier === 3
         || coindexesMovingChain(claim, structuralMovement, stage.workspaceForest, stages[stageIndex - 1]?.workspaceForest,
           worded.evidence.movementFailure))
         ? { ...dispatchRelationClaims({ ...input, structuralMovement, ...(keepsChainIdentity ? { keepsChainIdentity } : {}) }), structuralMovement }
-        : worded;
+        : structuralMovementGroup && worded.claims.every(claim => claim.tier === 3
+          || coindexesSharedLanding(claim, structuralMovementGroup, stage.workspaceForest, stages[stageIndex - 1]?.workspaceForest))
+          ? { ...dispatchRelationClaims({ ...input, structuralMovementGroup }), structuralMovementGroup }
+          : worded;
       recoveredClaimMovements(dispatch).forEach(movement => {
         rememberAssignmentMovement(assignmentContext, movement);
         rememberControlMovement(controlContext, stageIndex, movement);

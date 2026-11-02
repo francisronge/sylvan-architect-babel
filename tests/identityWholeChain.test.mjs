@@ -72,7 +72,9 @@ test('families merged into one claim leave none of their fields to a neutral mar
 test('merging families never makes movement recognition depend on field order', () => {
   // Codex review of #362: two families completing to the same chain used to
   // keep only the first one's recognized members, so one field order drew a
-  // movement path the other did not. Main draws none in either order.
+  // movement path the other did not. Each family qualifies as the separate claim
+  // it was: one names both ends of the hop, the other one end beside an older
+  // copy (#357, approved by Francis on 2 Nov), so both orders draw the hop.
   const base = JSON.parse(readFileSync(new URL('../fixtures/movement/holdout-transitions.json', import.meta.url), 'utf8'))
     .find(item => item.id === 'successive-trace');
   const paths = anchors => {
@@ -81,6 +83,6 @@ test('merging families never makes movement recognition depend on field order', 
     return prepareReplay(record).relationRenderPlan.frames[last].items
       .filter(item => item.relationRef.stageIndex === last && item.kind === 'trajectory').length;
   };
-  assert.equal(paths({ nominalChain: ['wh', 'tEdge'], lowerChain: ['tEdge', 'tObject'] }), 0);
-  assert.equal(paths({ lowerChain: ['tEdge', 'tObject'], nominalChain: ['wh', 'tEdge'] }), 0);
+  assert.equal(paths({ nominalChain: ['wh', 'tEdge'], lowerChain: ['tEdge', 'tObject'] }), 1);
+  assert.equal(paths({ lowerChain: ['tEdge', 'tObject'], nominalChain: ['wh', 'tEdge'] }), 1);
 });

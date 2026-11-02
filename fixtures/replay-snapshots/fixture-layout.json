@@ -1866,8 +1866,8 @@
       ]
     },
     "replay-regressions/kept-id-landing.json#": {
-      "frames": "x0rVOWdF UH_gSV0e r9-VW5Ll QtC9KUUm sPjdRq_W LMS0m1zo hmDAvrFr lYSIkfuN 9Rqf9sAs 9Tzrv0u4 XZbFz8jC d1Uur4Lt e-XUHyrP tSQNlhSC EWV6a4nO Mvcl6DXX yaZbJzUS UBzOEVkp iGcCHlsp KaQiFjRY Yk0U9CTb jvurJczo wVgw24PS UIBjNbcc sOvBf1ab myCA6egL VVxIWGQx YpjMV8ZO 0iZsEl-X hF-C4QL1 kJ947Sur Rsz-Tb3H _aHJksJm 4EtsX9f7 Uw-5wP4g HHF2yevt ocqZlMn2 Ui0Q4DKb nvsDXorb",
-      "canopy": "UIb1kLqR",
+      "frames": "x0rVOWdF UH_gSV0e r9-VW5Ll QtC9KUUm sPjdRq_W LMS0m1zo hmDAvrFr lYSIkfuN 9Rqf9sAs 9Tzrv0u4 XZbFz8jC d1Uur4Lt e-XUHyrP tSQNlhSC EWV6a4nO Mvcl6DXX yaZbJzUS UBzOEVkp iGcCHlsp KaQiFjRY Yk0U9CTb jvurJczo wVgw24PS UIBjNbcc sOvBf1ab myCA6egL VVxIWGQx YpjMV8ZO 0iZsEl-X hF-C4QL1 kJ947Sur Rsz-Tb3H bdB7Eu51 TpzNiAzB 3qfBG9Od EwU0c443 jv1wm3_N EUHCeVGA YvwyyXBC",
+      "canopy": "pZtnSakN",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
         "0:0 T2 node-plaque theta.grid theta-grid",
@@ -1882,6 +1882,7 @@
         "3:0 T2 trajectory tier2.movement-path movement.path",
         "3:0 T3 fallback",
         "4:0 T2 coindex identity.occurrences identity.occurrences",
+        "4:0 T2 trajectory tier2.movement-path movement.path",
         "4:0 T3 fallback",
         "4:1 T3 fallback"
       ]
@@ -3023,7 +3024,7 @@
       ]
     },
     "replay-regressions/rewrite-stage-new-head.json#": {
-      "frames": "lUuLidMh GUjsQsnT w2fQYWay EKiP0-91 e1NlgQkt j7C4sg-J Z1ACfwt5 qZarZk7v lyfqksBP WfKQaNTV bBQibK2Y a1Hn2hMA U3WaqweP YdhQqPfE Qa-7Scb6 GNBm6WKN z1K2TNep EzAfMbNW 8Vq3dlFw Fpc4Yzzx cs50VTmn SUriopED IYcUZpjL j_F1b0TC jBiWZrDu VB6D1S6Y HsJLSsk4 6Vrd24j1 LuhV07DR iTHEona7 Ct4ExqeR sZ6WLbGI hGN-DQwc ce38Q-Qq wdhXhSnG Nd8mfWnZ QaDyCa6A e-yRNQiv 9nzQ1jYI kqOVY466 E0tAtiex SSIu8jk9 NU6d5lyS TIEQmVMU LOW0mU3v GVvJ6tCR cDzU_cjI KpQsLsKD Yjuv4N7h DwvLYFge eEapKRYY 1xTZtxfO NSzMJm8e",
+      "frames": "lUuLidMh GUjsQsnT w2fQYWay EKiP0-91 e1NlgQkt j7C4sg-J Z1ACfwt5 qZarZk7v lyfqksBP WfKQaNTV bBQibK2Y a1Hn2hMA U3WaqweP YdhQqPfE Qa-7Scb6 GNBm6WKN z1K2TNep EzAfMbNW 8Vq3dlFw Fpc4Yzzx cs50VTmn SUriopED IYcUZpjL j_F1b0TC jBiWZrDu VB6D1S6Y HsJLSsk4 6Vrd24j1 LuhV07DR iTHEona7 Ct4ExqeR sZ6WLbGI hGN-DQwc ce38Q-Qq wdhXhSnG Nd8mfWnZ QaDyCa6A e-yRNQiv 9nzQ1jYI kqOVY466 mwcSN4o0 0-yqkHFm QXJpFxTT TKyR9kvk oZrVKBtt BQpSaLwY 9KLKvEb6 87kwbHuZ W9TbXOeN mfLhhr-e 7asb9P-1 HLK2HTPO fJzulii7",
       "canopy": "hLAdHqTF",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -3042,6 +3043,7 @@
         "2:1 T2 trajectory tier2.movement-path movement.path",
         "2:1 T3 fallback",
         "3:0 T2 coindex identity.occurrences identity.occurrences",
+        "3:0 T2 trajectory tier2.movement-path movement.path",
         "3:0 T3 fallback",
         "3:1 T2 undirected-link focus.association focus.association",
         "3:1 T3 fallback",
@@ -3530,7 +3532,7 @@
       ]
     },
     "replay-regressions/unrecognized-movement.json#/cases/4": {
-      "frames": "wtldBFQv iFSI57JY 0EVFUT4O 2js3mYRa xprTiA6t 8ThSrPzM 7hSkARaK SwUDtDqJ vc93RRer uLj08L10 ap-JVZJ- opmR6TMi FmYAnFpM t4Rz5CDh i1H8Eh3w jsI3GIzD w1UO_bYc A8UmCKYP yPBIdZlj 2TRQyGF4 nEEhgEki TZ_sgVmw IC9RWeeD Qo_wDOJK 5ywWJSco OQIEhyPW duhK--yl jco_mLV- ioBTTD4X 3ypMEe8H Lrnykd1v w87LSsyQ _hGTaLO6 s_-NE7Pz _fpyQ0RL tEcZI_ru XApa6dWN 1Cocah8S D7QD6S7w A_iFk906 PHdcbmz7 Mgt9VrNW RvRQgK36 t64goOR2 U79aIobL m8Cy2D4n egl46ZBs -TWTvkCM 2TH4maCb L5Yj8bOg B8BUj4DP",
+      "frames": "wtldBFQv iFSI57JY 0EVFUT4O 2js3mYRa xprTiA6t 8ThSrPzM 7hSkARaK SwUDtDqJ vc93RRer uLj08L10 ap-JVZJ- opmR6TMi FmYAnFpM t4Rz5CDh i1H8Eh3w jsI3GIzD w1UO_bYc A8UmCKYP yPBIdZlj 2TRQyGF4 nEEhgEki TZ_sgVmw IC9RWeeD Qo_wDOJK 5ywWJSco OQIEhyPW duhK--yl jco_mLV- ioBTTD4X 3ypMEe8H HQIKC7HW uOVwver9 hWnnbJn0 F6vnUPtp pr2FZZRQ 2SelCtQs zg2803Mk YGCrjmRm B_otDfdj wfTpyWIw vS4ydwiH 9BWppHX8 MVoef-sr GjPiqlny zmdB4gup VOtvLmbq PSStoGv- G_N7ZMt6 oiX-rFoz ruFNVsqg aCjDAvCz",
       "canopy": "RxdzTfq8",
       "tiers": [
         "1:0 T2 node-badges theta.grid theta-grid",
@@ -3544,7 +3546,9 @@
         "2:1 T3 fallback",
         "2:2 T2 directed-path tier2.feature-dependency feature.dependency",
         "2:3 T2 directed-path tier2.feature-dependency feature.dependency",
+        "3:0 T2 trajectory tier2.movement-path movement.path",
         "3:0 T3 fallback",
+        "3:1 T2 trajectory tier2.movement-path movement.path",
         "3:1 T3 fallback",
         "4:0 T2 directed-path tier2.feature-dependency feature.dependency",
         "4:0 T2 node-plaque feature-bundle.plaque feature.dependency",

@@ -181,10 +181,21 @@ export function exceptionGrowth(base, head) {
   const problems = [];
   for (const [list, entries] of Object.entries(head)) {
     const before = new Map((base[list] ?? []).map(entry => [identity(entry), entry]));
+    // A fault the checks now name by another subtype of the same kind (the
+    // part before ':', such as jump:stage-coordinates becoming jump:camera)
+    // is the base entry it replaces, so its approval carries over while the
+    // fault stays within it. Each base entry carries over to one entry only.
+    const kept = new Set(entries.map(identity));
+    const kind = item => String(item.subtype ?? '').split(':')[0];
+    const relabelled = new Set();
+    const replaced = entry => (base[list] ?? []).find(old => !kept.has(identity(old)) && !relabelled.has(old)
+      && old.rule === entry.rule && old.record === entry.record && old.subject === entry.subject
+      && old.subtype !== entry.subtype && kind(old) && kind(old) === kind(entry));
     for (const entry of entries) {
       const name = `${list} ${entry.rule}/${entry.subtype ?? '-'} ${entry.record} ${entry.subject}`;
       if (typeof entry.reason !== 'string' || !entry.reason.trim()) problems.push({ name, problem: 'no reason' });
-      const previous = before.get(identity(entry));
+      let previous = before.get(identity(entry));
+      if (!previous) { previous = replaced(entry); if (previous) relabelled.add(previous); }
       const grown = growthOf(previous, entry);
       const problem = (grown.length || entry.approval) && approvalProblem(entry);
       if (problem) problems.push({ name, grown, problem });
