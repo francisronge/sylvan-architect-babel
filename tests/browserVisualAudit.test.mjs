@@ -205,6 +205,16 @@ test('a node that moves once before the camera zooms out to its stage is not a f
   assert.deepEqual(rules(judgeStepMotion(samples, { place })).filter(rule => rule.endsWith('fly-in')), []);
 });
 
+test('a redraw into new stage coordinates that the camera compensates is not a fly-in', () => {
+  // Catalogue case 3 at 390×844, 16→17: the new stage lays the tree out 4400
+  // units away and the camera carry holds it still on screen before gliding.
+  const near = { x: -73, y: 62, k: 0.19 }, carried = { x: -73 - 0.19 * 4400, y: 62 - 0.19 * 2000, k: 0.19 }, fit = { x: carried.x + 100, y: carried.y + 85, k: 0.19 };
+  const before = treeAt(), after = Object.fromEntries(Object.entries(treeAt()).map(([id, [x, y]]) => [id, [x + 4400, y + 2000]]));
+  const redraw = (t, camera) => ({ ...posed(t, after, camera), gen: 2 });
+  const samples = [posed(0, before, near), redraw(16, carried), ...glide(carried, fit, 22, 16, after).map(item => ({ ...item, gen: 2 }))];
+  assert.deepEqual(rules(judgeStepMotion(samples, { place })).filter(rule => rule.endsWith('fly-in')), []);
+});
+
 test('a node that leaves and comes back in the tree is a fly-in under any camera', () => {
   const camera = { x: 0, y: 0, k: 0.2 }, out = treeAt({ n7: [4800 + 1500, 1000] });
   const samples = [posed(0, treeAt(), camera), ...Array.from({ length: 10 }, (_, index) => posed(17 * (index + 1), index < 5 ? out : treeAt(), camera))];
