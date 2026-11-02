@@ -8,8 +8,8 @@ import 'fake-indexeddb/auto';
 import { findButton, findElement, installMinimalDom, invoke } from './helpers/minimalDom.mjs';
 
 // The real App and root boundary run in React's client renderer. The Notes view
-// is wrapped so a test can make it throw while rendering; the Canopy renderer is
-// replaced by a marker so no Replay worker starts.
+// is wrapped so a test can make it throw while rendering; the lazily loaded
+// Canopy renderer is replaced by a marker so no Replay worker starts.
 const require = createRequire(import.meta.url);
 const root = fileURLToPath(new URL('..', import.meta.url));
 const entry = `
@@ -24,18 +24,19 @@ const stubs = {
       if (globalThis.__failNotes) throw new Error('Simulated Notes render failure');
       return Real.DerivationNotesView(props);
     }`,
-  './components/AsyncTreeVisualizer': `
+  './components/LazyTreeVisualizer': `
     import React from 'react';
     export default function Canopy({ sentence, animated }) {
       return React.createElement('p', { 'data-view': animated ? 'replay' : 'canopy' }, sentence);
-    }`
+    }
+    export const preloadTreeVisualizer = () => Promise.resolve(Canopy);`
 };
 const compiled = await build({
   stdin: { contents: entry, resolveDir: root, loader: 'tsx' },
   bundle: true, write: false, platform: 'node', format: 'esm', jsx: 'automatic', loader: { '.css': 'empty' },
   define: { 'import.meta.env': '{"DEV":true}' },
   plugins: [{ name: 'app-boundary-test', setup(builder) {
-    builder.onResolve({ filter: /^\.\/components\/(DerivationNotesView|AsyncTreeVisualizer)$/ }, ({ path, importer }) =>
+    builder.onResolve({ filter: /^\.\/components\/(DerivationNotesView|LazyTreeVisualizer)$/ }, ({ path, importer }) =>
       importer.endsWith('App.tsx') ? { path, namespace: 'stub' } : undefined);
     builder.onLoad({ filter: /.*/, namespace: 'stub' }, ({ path }) => ({ contents: stubs[path], loader: 'tsx', resolveDir: root }));
     builder.onResolve({ filter: /^[^./]/ }, ({ path: specifier }) => ({
