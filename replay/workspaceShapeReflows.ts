@@ -14,6 +14,10 @@ import { workspaceMotionOwnership, type WorkspaceMotionView } from './workspaceM
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 /** `closing`: the stage plan closed a movement's room at the crossing into this scene (CarryOptions). */
 type Scene = { step: PlaybackStep; canvas: SyntaxNode; nodes: ReadonlyMap<string, Node>; closing?: boolean };
+/** Options for the checks stage planning runs on coordinates the Replay's row
+ * plan has not yet given their rows (planReplayRows): there the rise an
+ * insertion grants is not yet painted, so planning judges motion as before. */
+export const PLANNING = { rises: false } as const;
 export type WorkspaceShapeReflow = { index: number; rootId: string; kind: 'unchanged-subtree-shape' };
 export type WorkspaceContinuityReflow = WorkspaceShapeReflow
   | { index: number; rootId: string; kind: 'unowned-component-motion' };
@@ -36,14 +40,14 @@ export function unchangedWorkspaceShapeReflows<S extends Scene>(
 export function workspaceContinuityReflows<S extends Scene>(
   scenes: readonly S[], baseline: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>,
   render: (scene: S, coordinates: TreeCoordinateReservation) => Node[],
-  { ownClosings = false }: { ownClosings?: boolean } = {}
+  { ownClosings = false, rises = true }: { ownClosings?: boolean; rises?: boolean } = {}
 ): WorkspaceContinuityReflow[] {
-  return detectWorkspaceReflows(scenes, baseline, render, true, ownClosings);
+  return detectWorkspaceReflows(scenes, baseline, render, true, ownClosings, rises);
 }
 
 function detectWorkspaceReflows<S extends Scene>(
   scenes: readonly S[], baseline: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>,
-  render: (scene: S, coordinates: TreeCoordinateReservation) => Node[], includeMotion: boolean, ownClosings = false
+  render: (scene: S, coordinates: TreeCoordinateReservation) => Node[], includeMotion: boolean, ownClosings = false, grantRises = true
 ): WorkspaceContinuityReflow[] {
   const signatures = new Map<string, number>(), topologies = new Map<string, number>();
   const snapshots = scenes.map(scene => {
@@ -141,7 +145,7 @@ function detectWorkspaceReflows<S extends Scene>(
           { closing: Boolean(scenes[index].closing) }) : undefined;
         // Syntax above a parent the step inserts may rise straight up by its
         // rows, as the motion rule grants (`insertionRises`).
-        const rises = insertionRises([...current.nodes.keys()].map(id => ({ id, parent: current.parents.get(id) ?? null })),
+        const rises = !grantRises ? new Map<string, number>() : insertionRises([...current.nodes.keys()].map(id => ({ id, parent: current.parents.get(id) ?? null })),
           new Map([...before.nodes.keys()].map(id => [id, { id, parent: before.parents.get(id) ?? null }])));
         const risen = (id: string, dx: number, dy: number) => {
           const rows = -dy / TREE_ROW_HEIGHT, levels = rises.get(id) ?? 0;

@@ -12,7 +12,7 @@ import type { PlaybackStep } from './types.ts';
 import { extentOverlap, obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { currentForkBranchesClear, relativeChildInk } from './workspaceForkClearance.ts';
 import { constructionReceivingAttachments, movementReceivingAttachments, type CurrentWorkspaceTopology } from './workspaceReceivingHost.ts';
-import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { workspaceContinuityReflows, PLANNING } from './workspaceShapeReflows.ts';
 
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
 type Node = d3.HierarchyPointNode<SyntaxNode>;
@@ -156,9 +156,9 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
     if (!valid) return false;
     const allScenes = frames.map((frame, index) => ({ ...frame, index, nodes: sceneAt(index) }));
     const oldReflows = new Set(workspaceContinuityReflows(allScenes, result,
-      scene => [...scene.nodes.values()]).map(issue => JSON.stringify(issue)));
+      scene => [...scene.nodes.values()], PLANNING).map(issue => JSON.stringify(issue)));
     const reflows = workspaceContinuityReflows(allScenes, candidate,
-      scene => [...(candidateScenes.get(scene.index) ?? scene.nodes).values()]);
+      scene => [...(candidateScenes.get(scene.index) ?? scene.nodes).values()], PLANNING);
     if (reflows.some(issue => !oldReflows.has(JSON.stringify(issue)))) return false;
     if (!commit) return candidate;
     result = candidate;
@@ -168,7 +168,7 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
   // The noticeable motion (replayMotionFaults) these coordinates paint into frames `from` to `to`.
   const motionCost = (coordinates: Reservations, from: number, to: number) => replayMotionFaults({ frames:
     frames.slice(Math.max(0, from - 1), to + 1).map((frame, offset) => motionFrame(frame.step,
-      positioned(Math.max(0, from - 1) + offset, coordinates), getNodeId)) })
+      positioned(Math.max(0, from - 1) + offset, coordinates), getNodeId)) }, PLANNING)
     .filter(fault => noticeableMotion(fault)).reduce((sum, fault) => sum + fault.distance, 0);
   const reserveReceivingSlot = (index: number, includeConstruction: boolean, nearest = false) => {
     const nextStep = frames[index + 1].step;

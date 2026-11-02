@@ -111,13 +111,13 @@ export function replayStepKeys(frames: readonly any[]): string[] {
   });
 }
 
-export function replayMotionFaults({ frames }: { frames: readonly any[] }, { threshold = MOTION_FAULT_THRESHOLD }: { threshold?: number } = {}): any[] {
+export function replayMotionFaults({ frames }: { frames: readonly any[] }, { threshold = MOTION_FAULT_THRESHOLD, rises: grantRises = true }: { threshold?: number; rises?: boolean } = {}): any[] {
   const points = frames.map(frame => new Map<string, any>(frame.points.map(point => [point.id, point])));
   const painted = (index: number) => new Map<string, { x: number; y: number; parentId: string | null }>(frames[index].points.map(point => [point.id, { x: point.x, y: point.y, parentId: point.parent }]));
   // The camera carry of a stage crossing, as the screen applies it (carryCamera).
   const carried = frames.map((frame, index) => {
     if (!index || frame.stage === frames[index - 1].stage) return { x: 0, y: 0 };
-    const shift = paintedShift(painted(index - 1), painted(index), { closing: Boolean(frame.closing), held: frame.held });
+    const shift = paintedShift(painted(index - 1), painted(index), { closing: Boolean(frame.closing), held: frame.held, rises: grantRises });
     return { x: -shift.x, y: -shift.y };
   });
   const motion = (index, id) => {
@@ -132,7 +132,7 @@ export function replayMotionFaults({ frames }: { frames: readonly any[] }, { thr
     const owned = stepOwnership({ target, links, points: frames[index].points, prior });
     const closing = closingGroups({ kind, links, current, prior, motion: id => motion(index, id), owned, threshold });
     for (const id of closing) owned.add(id);
-    const rises = insertionRises(frames[index].points, prior);
+    const rises = grantRises ? insertionRises(frames[index].points, prior) : new Map<string, number>();
     const risen = (id: string, shift: { x: number; y: number }) => {
       const levels = rises.get(id) ?? 0;
       if (!levels || Math.abs(shift.x) > threshold || shift.y >= 0) return false;

@@ -100,7 +100,7 @@ export function advanceFittedCamera(
 export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes, carry: CarryOptions = {},
   view?: ViewportRect) {
   const carried = (options: CarryOptions) => {
-    const shift = paintedShift(before, after, options);
+    const shift = paintedShift(before, after, { ...options, rises: true });
     return !shift.x && !shift.y ? pose : { x: pose.x - shift.x * pose.k, y: pose.y - shift.y * pose.k, k: pose.k };
   };
   const held = carried(carry);

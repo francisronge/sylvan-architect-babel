@@ -32,7 +32,7 @@ import { separateWorkspaceContours } from './workspaceContourClearance.ts';
 import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
 import { reserveWaitingSlots } from './waitingSlots.ts';
 import { planReplayRows } from './replayRows.ts';
-import { closingAt, workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { closingAt, workspaceContinuityReflows, PLANNING } from './workspaceShapeReflows.ts';
 import { TREE_SIBLING_GAP } from './treeSpacing.ts';
 
 type Scene = {
@@ -429,7 +429,7 @@ function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep
     const parent = scene.nodes.get(id)?.parent;
     return parent && scene.nodes.has(getNodeId(parent)) ? getNodeId(parent) : null;
   };
-  const unowned = new Map(workspaceContinuityReflows(scenes, new Map(scenes.map(scene => [scene.canvas, scene.coordinates])), render)
+  const unowned = new Map(workspaceContinuityReflows(scenes, new Map(scenes.map(scene => [scene.canvas, scene.coordinates])), render, PLANNING)
     // A component whose painted parent changes is attaching at that step, which owns its motion.
     .filter(reflow => reflow.kind === 'unowned-component-motion' && paintedParent(scenes[reflow.index], reflow.rootId)
       === paintedParent(scenes[reflow.index - 1], reflow.rootId)).map(reflow => {
@@ -533,16 +533,16 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
   const lastSize = stageIndex !== lastStage ? sizeForStage?.(lastStage) : null;
   if (lastSize) buildStageCoordinateReservations(steps, lastStage, lastSize, sizeForStage, 'ltr',
     measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, plaques);
-  applyReplayRows(steps, stageIndex, planned, stageIndex === lastStage);
+  const rowed = rowedReservations(steps, stageIndex, planned, stageIndex === lastStage);
   const previousSize = stageIndex > 0 ? sizeForStage?.(stageIndex - 1) : null;
-  if (previousSize && !heldChecked.has(planned)) {
-    heldChecked.add(planned);
+  if (previousSize && !heldChecked.has(rowed)) {
+    heldChecked.add(rowed);
     const previous = buildStageCoordinateReservations(steps, stageIndex - 1, previousSize, sizeForStage, 'ltr',
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, plaques);
-    const held = entryHeld(steps, stageIndex, planned, previous, size, previousSize);
-    if (held) heldEntries.set(planned, held);
+    const held = entryHeld(steps, stageIndex, rowed, previous, size, previousSize);
+    if (held) heldEntries.set(rowed, held);
   }
-  return direction === 'rtl' ? reflectedReservations(steps, planned, size, sizeForStage) : planned;
+  return direction === 'rtl' ? reflectedReservations(steps, rowed, size, sizeForStage) : rowed;
 }
 
 /** The relation plan whose plaques Replay draws beside these steps' syntax, and
@@ -629,26 +629,31 @@ function measuredPlaqueRoom(steps: readonly PlaybackStep[], plan: RelationRender
   return { anchors, marks };
 }
 
-const rowed = new WeakSet<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>();
+const rowedPlans = new WeakMap<StageFrames, StageFrames>();
 
-/** Gives this stage's painted syntax its rows from the Replay's one row plan
- * (`planReplayRows`), in place, so every record kept on these reservations
- * (closings, held carries, reflections) stays with them. */
-function applyReplayRows(steps: readonly PlaybackStep[], stageIndex: number, planned: StageFrames, last: boolean) {
-  if (rowed.has(planned)) return;
-  rowed.add(planned);
+/** This stage's reservations with its painted syntax on the Replay's one row
+ * plan (`planReplayRows`). Planning keeps its own reservations, so the rows of
+ * one stage never feed the planning of another; the copy keeps the plan's
+ * closing record. */
+function rowedReservations(steps: readonly PlaybackStep[], stageIndex: number, planned: StageFrames, last: boolean): StageFrames {
+  const cached = rowedPlans.get(planned);
+  if (cached) return cached;
   const within = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
   const finalStep = last ? steps.filter(step => step.replayFrameIndex === stageIndex && step.replayCanvasData)
     .sort((a, b) => within(a) - within(b)).at(-1) : undefined;
   const finalCoordinates = finalStep && planned.get(finalStep.replayCanvasData!);
   const rows = planReplayRows(steps, finalCoordinates ? new Map([...finalCoordinates].map(([id, point]) => [id, point.y])) : undefined);
+  const result = new Map(planned);
   for (const step of steps) {
     if (step.replayFrameIndex !== stageIndex || !step.replayCanvasData) continue;
     const coordinates = planned.get(step.replayCanvasData), stepRows = rows.get(step);
     if (!coordinates || !stepRows) continue;
-    (planned as Map<SyntaxNode, TreeCoordinateReservation>).set(step.replayCanvasData, new Map([...coordinates]
+    result.set(step.replayCanvasData, new Map([...coordinates]
       .map(([id, point]) => [id, stepRows.has(id) ? { x: point.x, y: stepRows.get(id)! } : point])));
   }
+  recordClosingEntry(result, closesOnEntry(planned));
+  rowedPlans.set(planned, result);
+  return result;
 }
 
 const closedPlans = new WeakMap<readonly PlaybackStep[], Map<string, ReturnType<typeof closeMovementGaps>>>();
@@ -709,7 +714,7 @@ function entryHeld(steps: readonly PlaybackStep[], stageIndex: number, planned: 
   if (!closes.size) return undefined;
   const points = (nodes: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>) => new Map([...nodes].map(([id, node]) =>
     [id, { x: node.x, y: node.y, parentId: node.parent && nodes.has(getNodeId(node.parent)) ? getNodeId(node.parent) : null }]));
-  const before = points(from), now = points(to), reference = carryReference(before, now), held = reference.filter(id => !closes.has(id));
+  const before = points(from), now = points(to), reference = carryReference(before, now, { rises: true }), held = reference.filter(id => !closes.has(id));
   if (held.length < MIN_ENTRY_HELD || held.length >= reference.length) return undefined;
   const ancestry = (nodes: typeof before, id: string) => {
     const ids: string[] = [];
@@ -728,13 +733,13 @@ function entryHeld(steps: readonly PlaybackStep[], stageIndex: number, planned: 
       now.get(id)!.y - carry.y - before.get(id)!.y)));
     return Math.min(of(still.length ? still : unmoved), of(unmoved));
   };
-  if (travel(paintedShift(before, now, { closing, held })) >= travel(paintedShift(before, now, { closing })) - 1) return undefined;
+  if (travel(paintedShift(before, now, { closing, held, rises: true })) >= travel(paintedShift(before, now, { closing, rises: true })) - 1) return undefined;
   // The motion rule measures a crossing after the screen's carry, so holding
   // other syntax still may report a deformation the step already has at a node
   // the ordinary carry left still. The held carry is kept only where every
   // fault it reports is one the ordinary carry reports, no larger.
   const faults = (carry: CarryOptions) => new Map(replayMotionFaults({ frames: [motionFrame(last, from, getNodeId),
-    motionFrame(opening, to, getNodeId, carry.closing, carry.held)] }).map(fault => [`${fault.kind} ${fault.node}`, fault.distance]));
+    motionFrame(opening, to, getNodeId, carry.closing, carry.held)] }, PLANNING).map(fault => [`${fault.kind} ${fault.node}`, fault.distance]));
   const ordinary = faults({ closing }), kept = faults({ closing, held });
   return [...kept].every(([key, distance]) => ordinary.has(key) && distance <= ordinary.get(key)! + 1) ? held : undefined;
 }
