@@ -17,6 +17,7 @@ const endpointConcept = (entry: Tier2AuthoredEvidenceEntry, concept: string) => 
 export function recoverMovementGroups(evidence: Tier2FacetEvidence) {
   const current = evidence.authoredCurrentAnchors ?? [];
   const prior = evidence.authoredPriorAnchors ?? [];
+  if (evidence.structuralMovementGroup?.length) return structuralGroupScopes(evidence, current, prior, evidence.structuralMovementGroup);
   const sourceRole = (entry: Tier2AuthoredEvidenceEntry) => endpointConcept(entry, 'movement.source');
   const sources = current.filter(sourceRole);
   const priorSources = prior.filter(sourceRole);
@@ -153,4 +154,28 @@ function recoverListedLowerCopies(evidence: Tier2FacetEvidence, current: readonl
       roles: {}, priorAnchorKeys: undefined }, diagnostics: [], priorIndex });
   }
   return { source, target, previous, pairs };
+}
+
+/** The movements of one shared landing that structure proved, as scopes over
+ * the authored fields that hold them: one field lists exactly the lower
+ * occurrences, one holds only the landing, and the preceding sources are the
+ * lower occurrences themselves (kept ids) or one prior field lists exactly
+ * them. Fields are found by the node ids they hold, never by their names;
+ * any other arrangement draws nothing. */
+function structuralGroupScopes(evidence: Tier2FacetEvidence, current: readonly Tier2AuthoredEvidenceEntry[],
+  prior: readonly Tier2AuthoredEvidenceEntry[], group: readonly RecoveredMovement[]) {
+  const sameSet = (items: readonly string[], ids: readonly string[]) => items.length === ids.length
+    && new Set(items).size === items.length && ids.every(id => items.includes(id));
+  const lowers = group.map(movement => movement.sourceNodeId), priors = group.map(movement => movement.priorSourceNodeId);
+  const sources = current.filter(entry => sameSet(entry.items, lowers));
+  const targets = current.filter(entry => entry.items.length === 1 && entry.items[0] === group[0].targetNodeId);
+  const retained = group.every(movement => movement.priorSourceNodeId === movement.sourceNodeId);
+  const previous = retained ? sources : prior.filter(entry => sameSet(entry.items, priors));
+  if (sources.length !== 1 || targets.length !== 1 || previous.length !== 1) return [];
+  const pairs = sources[0].items.map(id => {
+    const movement = group.find(member => member.sourceNodeId === id)!;
+    return { movement: { ...movement, roles: {}, witnessNodeId: movement.sourceNodeId }, diagnostics: [],
+      priorIndex: previous[0].items.indexOf(movement.priorSourceNodeId) };
+  });
+  return movementGroupScopes(evidence, current, sources[0], targets, previous[0], retained, pairs);
 }

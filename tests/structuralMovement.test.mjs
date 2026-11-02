@@ -66,7 +66,7 @@ test('only the earliest claim anchoring both ends owns a displacement', () => {
   assert.deepEqual([...readStageStructuralOwnership([prior], before(), keptLanding()).owners], [[0, 0]]);
 });
 
-test('a chain grows from its newest copy; parallel copies of a shared landing are refused', () => {
+test('a chain grows from its newest copy; parallel copies under one commanding landing are read together', () => {
   const s1 = [{ id: 'tp', label: 'TP', children: [cat('mid'), { id: 'tbar', label: 'T′', children: [
     { id: 't', label: 'T', silent: true }, { id: 'vp', label: 'VP', children: [cat('dp', { silent: true }), { id: 'v', label: 'V', word: 'slept' }] }] }] }];
   const s2 = [{ id: 'cp', label: 'CP', children: [cat('top'), { id: 'c', label: 'C', silent: true }, { id: 'tp', label: 'TP', children: [
@@ -81,8 +81,13 @@ test('a chain grows from its newest copy; parallel copies of a shared landing ar
   const atbBefore = [{ id: 'and', label: '&P', children: [conjunct('bought'), conjunct('sold')] }];
   const atbAfter = [{ id: 'top', label: 'CP', children: [cat('high'), { id: 'and', label: '&P', children: [conjunct('bought'), conjunct('sold')] }] }];
   const reading = readStageDisplacements(atbBefore, atbAfter);
-  assert.deepEqual(reading.displacements, []);
-  assert.deepEqual(reading.refusals.map(refusal => refusal.reason), ['shared-landing']);
+  assert.deepEqual(reading.refusals, []);
+  assert.deepEqual(reading.displacements.map(entry => `${entry.sourceNodeId}->${entry.targetNodeId}`), ['bought->high', 'sold->high']);
+  // A new copy that commands only one of them pairs with neither.
+  const apart = [conjunct('bought'), { id: 'top', label: 'CP', children: [cat('high'), conjunct('sold')] }];
+  const refused = readStageDisplacements(atbBefore, apart);
+  assert.deepEqual(refused.displacements, []);
+  assert.deepEqual(refused.refusals.map(refusal => refusal.reason), ['shared-landing']);
 });
 
 test('head adjunction in the host slot reads as head movement; explicit phrase notation stays phrasal', () => {

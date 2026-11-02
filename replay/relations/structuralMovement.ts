@@ -177,66 +177,93 @@ export const readStageDisplacements = (
     const stayed = persisting.filter(id => sameMovementSourceSlot(current, prior, id, id));
     const removed = earlier.filter(id => !current.nodes.has(id));
     const occupantOf = (priorId: string) => fresh.filter(id => sameMovementSourceSlot(current, prior, id, priorId));
-    let reading: Pick<StructuralDisplacement, 'identity' | 'priorSourceNodeId' | 'sourceNodeId' | 'targetNodeId'> | undefined;
+    type Reading = Pick<StructuralDisplacement, 'identity' | 'priorSourceNodeId' | 'sourceNodeId' | 'targetNodeId'>;
+    let readings: Reading[];
+    // Whether a landing's parent contains every lower occurrence it pairs with.
+    const commandsAll = (landing: string, lowers: readonly string[]) => lowers.every(id => parentContains(current, landing, id));
     if (moved.length === 1) {
       // The landing kept its id; the new occurrence in its old slot is the lower one.
       const [landing] = moved, occupants = occupantOf(landing);
       if (occupants.length !== 1) { refuse('moved-without-lower-occurrence-in-slot', [landing, ...fresh]); continue; }
-      if (fresh.length > 1) { refuse('several-new-occurrences', [landing, ...fresh]); continue; }
-      reading = { identity: 'landing-kept', priorSourceNodeId: landing, sourceNodeId: occupants[0], targetNodeId: landing };
+      readings = [{ identity: 'landing-kept', priorSourceNodeId: landing, sourceNodeId: occupants[0], targetNodeId: landing }];
+      if (fresh.length > 1) {
+        // Across-the-board movement with a kept landing: every other earlier
+        // occurrence was removed, a new occurrence holds each removed one's
+        // slot, and the landing commands every new occurrence.
+        const others = removed.map(id => ({ id, occupants: occupantOf(id) }));
+        if (fresh.length !== 1 + removed.length || others.some(other => other.occupants.length !== 1)
+          || new Set([occupants[0], ...others.map(other => other.occupants[0])]).size !== fresh.length
+          || !commandsAll(landing, fresh)) { refuse('several-new-occurrences', [landing, ...fresh]); continue; }
+        readings.push(...others.map(other => ({ identity: 'both-renamed' as const, priorSourceNodeId: other.id,
+          sourceNodeId: other.occupants[0], targetNodeId: landing })));
+      }
     } else if (moved.length > 1) {
       refuse('several-moved-occurrences', moved); continue;
-    } else if (fresh.length === 1) {
+    } else if (fresh.length === 1 || fresh.length > 1 && !removed.length) {
       // The lower occurrence kept its id and slot. It is the source when the
       // new occurrence repeats its preceding material, or when it is itself
       // rewritten in place in this stage; lineage over different material
       // establishes identity only.
-      const [landing] = fresh;
-      const material = stayed.filter(id => sameMaterial(current.nodes.get(landing)!, prior.nodes.get(id)!)
+      const material = (landing: string) => stayed.filter(id => sameMaterial(current.nodes.get(landing)!, prior.nodes.get(id)!)
         || !unchangedSubtree(prior.nodes.get(id)!, current.nodes.get(id)!));
       // A chain grows from its newest copy. A candidate that another follows
       // through the derivation's earlier displacements, or that another
-      // commands, is an older copy. Several newest copies are the lower
-      // occurrences of one shared landing, as in across-the-board movement,
-      // and are read together, never singly.
-      const older = (id: string) => material.some(other => other !== id && (follows(other, id) || parentContains(prior, other, id)));
-      const candidates = material.filter(id => !older(id));
-      if (candidates.length > 1) { refuse('shared-landing', [landing, ...candidates]); continue; }
-      if (candidates.length !== 1) {
-        refuse(material.length ? 'several-candidate-sources' : stayed.length ? 'lineage-only-new-material' : 'no-persisting-source', [landing, ...stayed]);
-        continue;
+      // commands, is an older copy.
+      const newest = (ids: string[]) => ids.filter(id => !ids.some(other => other !== id
+        && (follows(other, id) || parentContains(prior, other, id))));
+      if (fresh.length === 1) {
+        const [landing] = fresh, candidates = newest(material(landing));
+        if (!candidates.length) {
+          refuse(material(landing).length ? 'several-candidate-sources' : stayed.length ? 'lineage-only-new-material' : 'no-persisting-source', [landing, ...stayed]);
+          continue;
+        }
+        // Several newest copies under one landing that commands them all are
+        // the lower occurrences of across-the-board movement, read together.
+        if (candidates.length > 1 && !commandsAll(landing, candidates)) { refuse('shared-landing', [landing, ...candidates]); continue; }
+        readings = candidates.map(id => ({ identity: 'lower-kept' as const, priorSourceNodeId: id, sourceNodeId: id, targetNodeId: landing }));
+      } else {
+        // Parallel copies, as when each conjunct's object moves to its own
+        // edge: each new occurrence commands exactly one newest kept
+        // occurrence, and no two share one.
+        const pairs = fresh.map(landing => ({ landing, lower: newest(material(landing)).filter(id => parentContains(current, landing, id)) }));
+        if (pairs.some(pair => pair.lower.length !== 1) || new Set(pairs.map(pair => pair.lower[0])).size !== pairs.length) {
+          refuse('several-new-occurrences', [...persisting, ...fresh]); continue;
+        }
+        readings = pairs.map(pair => ({ identity: 'lower-kept' as const, priorSourceNodeId: pair.lower[0],
+          sourceNodeId: pair.lower[0], targetNodeId: pair.landing }));
       }
-      reading = { identity: 'lower-kept', priorSourceNodeId: candidates[0], sourceNodeId: candidates[0], targetNodeId: landing };
     } else if (fresh.length === 2 && removed.length === 1 && stayed.every(id => unchangedSubtree(prior.nodes.get(id)!, current.nodes.get(id)!))) {
       // Neither kept its id: one new occurrence holds the removed one's slot.
       const occupants = occupantOf(removed[0]);
       if (occupants.length !== 1) { refuse('renamed-without-lower-occurrence-in-slot', [removed[0], ...fresh]); continue; }
       const landing = fresh.find(id => id !== occupants[0])!;
-      reading = { identity: 'both-renamed', priorSourceNodeId: removed[0], sourceNodeId: occupants[0], targetNodeId: landing };
+      readings = [{ identity: 'both-renamed', priorSourceNodeId: removed[0], sourceNodeId: occupants[0], targetNodeId: landing }];
     } else {
       refuse('several-new-occurrences', [...persisting, ...fresh]); continue;
     }
-    const source = current.nodes.get(reading.sourceNodeId)!, target = current.nodes.get(reading.targetNodeId)!;
-    if (containsOccurrence(source, target.id!) || containsOccurrence(target, source.id!)) {
-      refuse('nested-occurrences', [source.id!, target.id!]); continue;
+    const nested = readings.find(reading => containsOccurrence(current.nodes.get(reading.sourceNodeId)!, reading.targetNodeId)
+      || containsOccurrence(current.nodes.get(reading.targetNodeId)!, reading.sourceNodeId));
+    if (nested) { refuse('nested-occurrences', [nested.sourceNodeId, nested.targetNodeId]); continue; }
+    for (const reading of readings) {
+      const source = current.nodes.get(reading.sourceNodeId)!, target = current.nodes.get(reading.targetNodeId)!;
+      const before = prior.nodes.get(reading.priorSourceNodeId)!;
+      const commands = parentContains(current, target.id!, source.id!);
+      const read = adjoinsHead(current, prior, target.id!, source.id!, before.id!) ? 'head'
+        : landingKind(target, current.parents.get(target.id!), previousForest,
+          { node: before, parent: prior.parents.get(before.id!) }, { current, prior })
+        ?? (phraseParent(current, target.id!) ? 'phrasal' : undefined);
+      // Branching alone does not make a phrase: a complex head branches too. A
+      // branching landing not notated as a projection reads as phrasal only
+      // inside a projection or merged with an object containing its source.
+      const kind = read === 'phrasal' && target.children?.length && !readsAsProjection(target)
+        && !commands && !phraseParent(current, target.id!) ? undefined : read;
+      displacements.push({
+        ...reading, lineageId,
+        ...(kind ? { trajectoryKind: kind } : {}),
+        commands,
+        crossWorkspace: currentRoots.get(source.id!) !== currentRoots.get(target.id!)
+      });
     }
-    const before = prior.nodes.get(reading.priorSourceNodeId)!;
-    const commands = parentContains(current, target.id!, source.id!);
-    const read = adjoinsHead(current, prior, target.id!, source.id!, before.id!) ? 'head'
-      : landingKind(target, current.parents.get(target.id!), previousForest,
-        { node: before, parent: prior.parents.get(before.id!) }, { current, prior })
-      ?? (phraseParent(current, target.id!) ? 'phrasal' : undefined);
-    // Branching alone does not make a phrase: a complex head branches too. A
-    // branching landing not notated as a projection reads as phrasal only
-    // inside a projection or merged with an object containing its source.
-    const kind = read === 'phrasal' && target.children?.length && !readsAsProjection(target)
-      && !commands && !phraseParent(current, target.id!) ? undefined : read;
-    displacements.push({
-      ...reading, lineageId,
-      ...(kind ? { trajectoryKind: kind } : {}),
-      commands,
-      crossWorkspace: currentRoots.get(source.id!) !== currentRoots.get(target.id!)
-    });
   }
   // A part of a moving phrase travels with it: a displacement or refusal
   // inside another displacement's landing or lower occurrence is not its own.
@@ -280,6 +307,9 @@ export interface StructuralStageOwnership {
   claims: StructuralClaimReading[];
   /** relation index -> owned displacement index */
   owners: Map<number, number>;
+  /** relation index -> the displacements of one shared landing it owns
+   * together (across-the-board movement), in reading order */
+  groups: Map<number, number[]>;
   /** relation index -> why its earliest naming claim stays neutral */
   neutral: Map<number, string>;
 }
@@ -300,7 +330,7 @@ const anchorLists = (block?: Record<string, string | string[]>): string[][] =>
  * occurrence of the moving lineage, a list holding an endpoint holds only parts
  * of the chain, and when the claim names preceding participants, the preceding
  * source is among them. Names play no part. */
-const claimReadsOtherwise = (relation: DerivationStageRelation, displacement: StructuralDisplacement,
+const claimReadsOtherwise = (relation: DerivationStageRelation, group: readonly StructuralDisplacement[],
   current: Occurrences, prior: Occurrences, links: StructuralChainLinks): string | undefined => {
   const currentLists = anchorLists(relation.anchors), priorLists = anchorLists(relation.priorAnchors);
   const unresolved = (index: Occurrences, id: string) => !index.nodes.has(id) || index.duplicates.has(id);
@@ -311,7 +341,8 @@ const claimReadsOtherwise = (relation: DerivationStageRelation, displacement: St
   if (currentLists.flat().some(id => prior.nodes.has(id) && !prior.duplicates.has(id)
     && (prior.nodes.get(id)!.lineageId ?? '') !== (current.nodes.get(id)!.lineageId ?? '')
     && prior.nodes.get(id)!.lineageId !== undefined)) return 'anchor-changes-lineage';
-  const { lineageId, sourceNodeId, targetNodeId, priorSourceNodeId } = displacement;
+  const [{ lineageId, targetNodeId }] = group;
+  const sources = group.map(displacement => displacement.sourceNodeId), priorSources = group.map(displacement => displacement.priorSourceNodeId);
   const within = (index: Occurrences, id: string, containers: string[]) =>
     containers.some(container => container === id || containsOccurrence(index.nodes.get(container)!, id));
   // An older copy of the chain, unchanged in its slot, is context: an earlier
@@ -322,14 +353,22 @@ const claimReadsOtherwise = (relation: DerivationStageRelation, displacement: St
     && sameMovementSourceSlot(current, prior, id, id)
     && (chained.has(id) || category(current.nodes.get(id)!) === category(current.nodes.get(targetNodeId)!));
   if (currentLists.flat().some(id => current.nodes.get(id)!.lineageId === lineageId
-      && !within(current, id, [sourceNodeId, targetNodeId]) && !olderCopy(id))
-    || priorLists.flat().some(id => prior.nodes.get(id)!.lineageId === lineageId && !within(prior, id, [priorSourceNodeId])))
+      && !within(current, id, [...sources, targetNodeId]) && !olderCopy(id))
+    || priorLists.flat().some(id => prior.nodes.get(id)!.lineageId === lineageId && !within(prior, id, priorSources)))
     return 'names-another-occurrence';
   // A list that holds an endpoint alongside an unrelated object treats both alike.
-  const endpointPart = (id: string) => id === targetNodeId || within(current, id, [sourceNodeId]) || olderCopy(id);
-  if (currentLists.some(ids => ids.length > 1 && ids.some(id => id === targetNodeId || id === sourceNodeId)
+  const endpointPart = (id: string) => id === targetNodeId || within(current, id, sources) || olderCopy(id);
+  if (currentLists.some(ids => ids.length > 1 && ids.some(id => id === targetNodeId || sources.includes(id))
     && !ids.every(endpointPart))) return 'endpoint-in-mixed-list';
-  if (priorLists.length && !priorLists.flat().includes(priorSourceNodeId)) return 'prior-anchors-omit-source';
+  if (priorLists.length && priorSources.some(id => !priorLists.flat().includes(id))) return 'prior-anchors-omit-source';
+  // A claim owning a shared landing names no occurrence of another chain: a
+  // second chain beside several lower copies may be a competing source or
+  // witness, which structure cannot tell from context.
+  const chainOccurrences = (lineage: string) => [...current.nodes.values()].filter(node => node.lineageId === lineage).length;
+  if (group.length > 1 && currentLists.flat().some(id => {
+    const lineage = current.nodes.get(id)!.lineageId;
+    return lineage && lineage !== lineageId && chainOccurrences(lineage) > 1;
+  })) return 'names-another-chain';
   return undefined;
 };
 
@@ -348,22 +387,30 @@ export const readStageStructuralOwnership = (
   const { displacements, refusals } = readStageDisplacements(previousForest, currentForest, links);
   const claims = relations.map(relation => readClaimEnds(relation, displacements));
   const current = indexMovementOccurrences(currentForest), prior = indexMovementOccurrences(previousForest);
-  const owners = new Map<number, number>(), neutral = new Map<number, string>();
-  displacements.forEach((displacement, index) => {
+  const owners = new Map<number, number>(), neutral = new Map<number, string>(), groups = new Map<number, number[]>();
+  // Displacements of one lineage into one landing are one across-the-board
+  // group; a claim owns them only together.
+  const groupOf = (index: number) => displacements.flatMap((other, otherIndex) => other.lineageId === displacements[index].lineageId
+    && other.targetNodeId === displacements[index].targetNodeId ? [otherIndex] : []);
+  displacements.forEach((_displacement, index) => {
     const owner = claims.findIndex(claim => claim.named.includes(index));
-    if (owner < 0) return;
-    const relation = relations[owner];
-    const reason = claims[owner].named.length > 1 ? 'names-several-displacements'
-      : displacement.crossWorkspace ? 'cross-workspace'
-      : !displacement.trajectoryKind ? 'landing-context-unread'
+    if (owner < 0 || owners.has(owner) || groups.has(owner) || neutral.has(owner)) return;
+    const relation = relations[owner], group = groupOf(index), named = claims[owner].named;
+    const together = group.length > 1 && named.length === group.length && group.every(member => named.includes(member));
+    const members = (together ? group : [index]).map(member => displacements[member]);
+    const reason = named.length > 1 && !together ? 'names-several-displacements'
+      : group.length > 1 && !together ? 'names-part-of-shared-landing'
+      : members.some(member => member.crossWorkspace) ? 'cross-workspace'
+      : members.some(member => !member.trajectoryKind) ? 'landing-context-unread'
       : registeredNonMovement(relation) ? 'registered-non-movement'
       : isUnestablishedCovertMovementDescription(String(relation.relation ?? ''))
         || hasUnestablishedCovertMovementOutcome(relation.values) ? 'unestablished-outcome'
-      : claimReadsOtherwise(relation, displacement, current, prior, links);
+      : claimReadsOtherwise(relation, members, current, prior, links);
     if (reason) neutral.set(owner, reason);
+    else if (together) groups.set(owner, group);
     else owners.set(owner, index);
   });
-  return { displacements, refusals, claims, owners, neutral };
+  return { displacements, refusals, claims, owners, groups, neutral };
 };
 
 /** Stage-by-stage ownership for a whole derivation. Each stage's displacements
@@ -434,6 +481,9 @@ export interface StructuralStageMovement {
    * leaves wholly neutral or draws only as a coindex of the hop with older
    * copies of its chain. */
   movements: Map<number, RecoveredMovement>;
+  /** Relation index -> the movements of one shared landing its anchors prove
+   * together, under the same conditions as `movements`. */
+  groups: Map<number, RecoveredMovement[]>;
 }
 
 /** The structural reading Replay consults, or undefined while the switch is
@@ -454,13 +504,20 @@ export const readStructuralMovementForStages = (
     const wordedLandings = worded.flatMap(movement => movement ? [movement.targetNodeId] : []);
     const holdsWordedLanding = (displacement: StructuralDisplacement) => [displacement.targetNodeId, displacement.sourceNodeId]
       .some(id => wordedLandings.some(landing => landing !== id && containsOccurrence(current.nodes.get(id)!, landing)));
-    const movements = new Map<number, RecoveredMovement>();
+    const movements = new Map<number, RecoveredMovement>(), groups = new Map<number, RecoveredMovement[]>();
+    const wordedAlready = (relationIndex: number, displacement: StructuralDisplacement) => Boolean(worded[relationIndex])
+      || wordedPairs.has(`${displacement.sourceNodeId}\u0000${displacement.targetNodeId}`) || holdsWordedLanding(displacement);
     ownership.owners.forEach((displacementIndex, relationIndex) => {
       const displacement = ownership.displacements[displacementIndex];
-      if (worded[relationIndex] || wordedPairs.has(`${displacement.sourceNodeId}\u0000${displacement.targetNodeId}`)
-        || holdsWordedLanding(displacement)) return;
+      if (wordedAlready(relationIndex, displacement)) return;
       movements.set(relationIndex, structuralRecoveredMovement(relations[relationIndex], displacement, currentForest, normalizeTier2Synonym));
     });
-    return { movements };
+    ownership.groups.forEach((members, relationIndex) => {
+      const group = members.map(index => ownership.displacements[index]);
+      if (group.some(displacement => wordedAlready(relationIndex, displacement))) return;
+      groups.set(relationIndex, group.map(displacement =>
+        structuralRecoveredMovement(relations[relationIndex], displacement, currentForest, normalizeTier2Synonym)));
+    });
+    return { movements, groups };
   });
 };
