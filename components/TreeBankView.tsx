@@ -32,7 +32,7 @@ export function TreeBankView({ entries, loading, error, opening, onOpen, onDelet
       <div className="glass-dark rounded-[2.5rem] p-8 md:p-10">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.5em] text-emerald-500/60">Saved Workspace</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.5em] text-emerald-500/75">Saved Workspace</p>
             <h2 className="serif text-4xl text-white tracking-tight mt-2">Tree Bank</h2>
             <p className="text-emerald-50/70 mt-3 max-w-2xl">
               Re-open any saved sentence with its full generated artifacts, or prune entries you no longer need.
@@ -82,7 +82,7 @@ export function TreeBankView({ entries, loading, error, opening, onOpen, onDelet
                     </p>
                     <p className="mt-3 serif italic text-2xl leading-tight text-white break-words">"{entry.sentence}"</p>
                   </div>
-                  <div className="text-[9px] uppercase tracking-[0.2em] font-black text-emerald-500/60 shrink-0 flex items-center gap-2">
+                  <div className="text-[9px] uppercase tracking-[0.2em] font-black text-emerald-500/75 shrink-0 flex items-center gap-2">
                     <Clock3 size={12} />
                     {formatTreeBankDate(entry.updatedAt)}
                   </div>
@@ -126,7 +126,7 @@ export function TreeBankView({ entries, loading, error, opening, onOpen, onDelet
 
       {!loading && hiddenCount > 0 && (
         <div className="flex flex-col items-center gap-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/60">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/85">
             Showing {entries.length - hiddenCount} of {entries.length} Saved Trees
           </p>
           <button

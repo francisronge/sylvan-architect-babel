@@ -856,7 +856,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           {abstractionMode ? 'CONSTITUENT GLYPHING ACTIVE' : (animated ? 'DERIVATION SEQUENCE ACTIVE' : 'ARBORETUM CANOPY')}
         </div>
         {animated && playbackSteps.length > 0 && (
-          <div className="mt-2 text-[9px] font-black text-emerald-500/80 uppercase tracking-[0.35em]">
+          <div className="mt-2 text-[9px] font-black text-emerald-500 uppercase tracking-[0.35em]">
             Replay Frame {activeStepIndex + 1}/{playbackSteps.length}
             {activeStageDisplayLabel ? ` \u00b7 ${activeStageDisplayLabel}` : ''}
           </div>
