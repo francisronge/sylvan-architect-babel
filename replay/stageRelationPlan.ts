@@ -125,7 +125,14 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     .map((relation, relationIndex) => resolveRelationPlacement(relation, relationIndex))
     .filter((placement): placement is RelationPlacement => Boolean(placement))
     .sort((left, right) => left.relationIndex - right.relationIndex);
+  const landingHostPaths = new Map<string, string[]>();
   const landingHostPath = (placement: RelationPlacement, authoredTargetNodeId: string): string[] => {
+    const key = `${placement.relationIndex}\u0000${authoredTargetNodeId}`;
+    if (!landingHostPaths.has(key))
+      landingHostPaths.set(key, buildLandingHostPath(placement, authoredTargetNodeId));
+    return landingHostPaths.get(key)!;
+  };
+  function buildLandingHostPath(placement: RelationPlacement, authoredTargetNodeId: string): string[] {
     if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition)
       return [];
     const trajectoryDisplayKind = (placement.relation.recoveredMovements?.find(movement => movement.targetNodeId === authoredTargetNodeId) ?? placement.relation.recoveredMovement)?.trajectoryKind || registeredTrajectoryDisplayKind(placement.relationLabel, placement.relation.resolvedAnchors);
@@ -155,7 +162,17 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     // the source workspace. An old, separately selected head in the
     // landing complex does not yet attach it to that workspace.
     // Higher projections retain their own micro-steps.
+    // A segment over a head landing's complex whose other daughter a later
+    // movement of the stage lands, and which that movement's own path
+    // introduces, is that movement's new parent ([[V T] Cl] built as V-to-T,
+    // then Cl adjoining): this landing's path stops below it.
+    const laterMovementIntroduces = (parentNodeId: string, branchNodeId: string): boolean =>
+      (findNodeByIdInForest(workspaceRoots, parentNodeId)?.children || []).some(child => child.id !== branchNodeId
+        && relationPlacements.some(candidate => candidate.relationIndex > placement.relationIndex
+          && candidate.authoredTargetNodeIds.includes(child.id) && landingHostPath(candidate, child.id).includes(parentNodeId)));
     return landingAttachmentPath(workspaceRoots, previousFrameWorkspaceRoots, authoredTargetNodeId, priorSourceIds, (parentNodeId, branchNodeId, hostIds) => {
+      if (trajectoryDisplayKind === 'head' && hostIds.length > 0 && laterMovementIntroduces(parentNodeId, branchNodeId))
+        return true;
       const structuralParent = findNodeByIdInForest(structuralWorkspaceRoots, parentNodeId);
       // Keep the attachment atomic by default. An earlier authored claim
       // can require this independently buildable receiving context first;
@@ -168,7 +185,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
         && !(trajectoryDisplayKind === 'phrasal' && piedPipedPhrase(workspaceRoots, previousFrameWorkspaceRoots, authoredTargetNodeId, priorSourceIds).hostIds.includes(parentNodeId))
         && earlierRelationNeedsContext(parentNodeId);
     });
-  };
+  }
   const getMovementCreatedLandingHostPaths = (placement: RelationPlacement) => placement.authoredTargetNodeIds.map(id => landingHostPath(placement, id)).filter(path => path.length);
   const getMovementCreatedLandingHostNodeIds = (placement: RelationPlacement): string[] => [...new Set(getMovementCreatedLandingHostPaths(placement).flat())];
   // The phrase each phrasal landing pied-pipes (`piedPipedPhrase`) appears

@@ -223,7 +223,8 @@
                           "children": [],
                           "id": "rObject",
                           "label": "D",
-                          "word": "ـه"
+                          "word": "ـه",
+                          "silent": true
                         }
                       ],
                       "id": "rVP",
@@ -324,7 +325,8 @@
                           "children": [],
                           "id": "mObject",
                           "label": "D",
-                          "word": "ـه"
+                          "word": "ـه",
+                          "silent": true
                         }
                       ],
                       "id": "mVP",
@@ -545,7 +547,8 @@
                                           "children": [],
                                           "id": "rObject",
                                           "label": "D",
-                                          "word": "ـه"
+                                          "word": "ـه",
+                                          "silent": true
                                         }
                                       ],
                                       "id": "rVP",
@@ -670,7 +673,8 @@
                               "children": [],
                               "id": "mObject",
                               "label": "D",
-                              "word": "ـه"
+                              "word": "ـه",
+                              "silent": true
                             }
                           ],
                           "id": "mVP",
@@ -706,6 +710,7 @@
     ],
     "requestSha256": "5e3fa51c354963967776e391fb17afb026ca093f7ecc19fd9b1915c7a05e0e04",
     "contractSha256": "d9f945837870e0942c7b85ca3da05c2be1a048c78780edc09b5ef9d9ff390a5d",
-    "repositoryCommit": "5130d835f4a1a3a4094087fd359414add45e352c"
+    "repositoryCommit": "5130d835f4a1a3a4094087fd359414add45e352c",
+    "handCorrected": "2026-11-01: rObject and mObject marked silent. Sol realized each object pronoun at the finite verb (اشتراه, قرأته) but left it pronounced inside VP, so tree order read the subject between the verb and its suffix. Francis approved correcting this regression fixture (thread, 1 Nov 2026: \"if it's just a regression test you can fix it, idc.\")."
   }
 }

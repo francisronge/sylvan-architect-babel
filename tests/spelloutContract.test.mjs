@@ -354,18 +354,28 @@ test('a group may claim stretches of the sentence that are not adjacent', () => 
   assert.equal(convertOne(oneStage([leaf('n', 'NEG')], [{ nodeIds: ['n'], text: [] }]), sentence).diagnostics[0].rule, 'SPELLOUT_GROUP_SHAPE');
 });
 
-test('a group claims its words wherever they are, and other words fill the rest in tree order', () => {
-  const sentence = 'Mia laughed.';
-  // The grouped verb is read before the subject in this tree, but its text comes second.
-  const payload = oneStage([node('s', 'S', node('vp', 'VP', leaf('v', 'laugh')), leaf('mia', 'Mia'), leaf('t', 'PAST'))],
-    [{ nodeIds: ['v', 't'], text: 'laughed' }]);
-  const result = convertOne(payload, sentence);
-  assert.ok(result.ok, JSON.stringify(result.diagnostics));
-  assert.deepEqual(result.inputTokens, ['Mia', 'laughed']);
-  assert.deepEqual(result.analysis.derivationStages[0].realizations, [{ nodeIds: ['v', 't'], tokenIndices: [1] }]);
-  assert.equal(normalize(result.analysis, sentence, result.inputTokens).analyses.length, 1);
-  // Ordinary words still keep tree order.
-  assert.equal(convertOne(flat('laughed', 'Mia'), sentence).diagnostics[0].rule, 'SPELLOUT_MISMATCH');
+test('a group\'s text stands where its terminals stand in the tree', () => {
+  const sentence = 'Mary persuaded John to leave.';
+  const group = [{ nodeIds: ['t', 'v'], text: 'persuaded' }];
+  const clause = (...vp) => oneStage([node('tp', 'T', leaf('mary', 'Mary'), node('tbar', 'T', leaf('t', 'PAST'), node('vp', 'V', ...vp)))], group);
+  // Tense and the raised verb next to each other spell persuaded before John.
+  const raised = convertOne(clause(leaf('v', 'persuade'), leaf('john', 'John'), leaf('to', 'to'), leaf('leave', 'leave')), sentence);
+  assert.ok(raised.ok, JSON.stringify(raised.diagnostics));
+  assert.deepEqual(raised.inputTokens, ['Mary', 'persuaded', 'John', 'to', 'leave']);
+  // With John between tense and the unraised verb, no word order spells the sentence.
+  const unraised = convertOne(clause(leaf('john', 'John'), leaf('v', 'persuade'), leaf('to', 'to'), leaf('leave', 'leave')), sentence);
+  assert.equal(unraised.diagnostics[0].rule, 'SPELLOUT_GROUP_SPLIT');
+  assert.match(unraised.diagnostics[0].detail, /"John" stands between its terminals/);
+  // A wordless head between tense and the verb spells nothing, so the group still stands together.
+  const wordless = convertOne(oneStage([node('tp', 'T', leaf('mary', 'Mary'), node('tbar', 'T', leaf('t', 'PAST'),
+    node('vp', 'v', { id: 'v', label: 'v', children: [] }, leaf('laugh', 'laugh'))))], [{ nodeIds: ['t', 'laugh'], text: 'laughed' }]), 'Mary laughed.');
+  assert.ok(wordless.ok, JSON.stringify(wordless.diagnostics));
+  // A group read after a word that follows it in the tree does not spell the sentence either.
+  const late = convertOne(oneStage([node('s', 'S', node('vp', 'VP', leaf('v', 'laugh'), leaf('t', 'PAST')), leaf('mia', 'Mia'))],
+    [{ nodeIds: ['v', 't'], text: 'laughed' }]), 'Mia laughed.');
+  assert.equal(late.diagnostics[0].rule, 'SPELLOUT_MISMATCH');
+  // Ordinary words keep tree order.
+  assert.equal(convertOne(flat('laughed', 'Mia'), 'Mia laughed.').diagnostics[0].rule, 'SPELLOUT_MISMATCH');
 });
 
 test('a live response is checked and converted inside parsing, with typed failures', () => {

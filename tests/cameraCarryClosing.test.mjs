@@ -61,6 +61,6 @@ test('Opus n4-12: the plan records its closing at the crossing into frame 69, an
   assert.equal(to.closing, true, 'the plan records the closing at this crossing');
   const faults = record => replayMotionFaults(record).filter(fault => fault.frame === 69 && fault.distance >= 20);
   assert.deepEqual(faults(measured['n4-12']), []);
-  const unrecorded = { ...measured['n4-12'], frames: measured['n4-12'].frames.map(({ closing, ...frame }) => frame) };
+  const unrecorded = { ...measured['n4-12'], frames: measured['n4-12'].frames.map(({ closing, held, ...frame }) => frame) };
   assert.ok(faults(unrecorded).length, 'without the record the midpoint carry jumps the attached syntax');
 });

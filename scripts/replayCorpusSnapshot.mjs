@@ -77,7 +77,7 @@ export async function buildCorpusSnapshot(root, records, { width, height, direct
       const roots = [...scene.nodes.values()].filter(node => !node.parent || !scene.nodes.has(display.getNodeId(node.parent)));
       return { stage: scene.step.replayFrameIndex, kind: scene.step.replayKind, operation: scene.step.operation,
         target: scene.step.targetNodeId, relationIndex: scene.step.replayRelationIdentity?.relationIndex,
-        ...motionFrame(scene.step, scene.nodes, display.getNodeId, scene.closing),
+        ...motionFrame(scene.step, scene.nodes, display.getNodeId, scene.closing, scene.held),
         widths: scene.step.replayKind === 'macro' ? [
           { root: '@forest', width: span([...scene.nodes.values()]) },
           ...roots.map(root => ({ root: display.getNodeId(root), width: span(root.descendants()

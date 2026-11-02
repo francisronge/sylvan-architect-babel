@@ -111,7 +111,7 @@ test('both frameworks select the theory and share the open derivation contract w
     const frameworkInstruction = instruction.slice(0, instruction.indexOf('\n\n'));
     assert.match(frameworkInstruction, framework === 'xbar'
       ? /X-bar Theory and Government and Binding Theory/
-      : /Minimalist Program using Bare Phrase Structure/);
+      : /^Analyze the exact input within the Minimalist Program\.$/);
     assert.match(frameworkInstruction, /^Analyze the exact input within [^.]+\.$/);
     assert.doesNotMatch(frameworkInstruction, /endocentric|binary|one or two children|Attach overt words|bar-level prime|X-bar shells/);
     assert.equal(instruction.slice(frameworkInstruction.length + 2), buildDerivationStagesInstruction(framework));
@@ -122,7 +122,9 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(instruction, /Do not add a relation solely to announce one of these construction events\./);
     assert.match(instruction, /Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events\./);
     assert.doesNotMatch(instruction, /construction steps recoverable from workspace changes|not fully expressed by the forest's ordinary mother-daughter or sisterhood branching/);
-    assert.match(instruction, /- stageRecord: .* Explain the choices specific to this sentence, not the framework's general conventions\. Do not mention node ids, field names or how the JSON encodes the analysis\./);
+    assert.match(instruction, framework === 'xbar'
+      ? /- stageRecord: .* Explain the choices specific to this sentence, not the framework's general conventions\. Do not mention node ids, field names or how the JSON encodes the analysis\./
+      : /- stageRecord: .* Explain the choices this sentence required\. Do not mention node ids, field names or how the JSON encodes the analysis\./);
     assert.match(instruction, /- relations: an array of relations introduced or changed in this stage\. Record each relation once, in the stage where it is established; list it again in a later stage only if the analysis changes it\./);
     assert.match(instruction, /Babel replays a stage's relations in the order they are listed; if the analysis needs an order that this cannot show, record the intermediate workspace as a separate stage rather than describing it only in prose\./);
     assert.match(instruction, /An occurrence keeps its id in every later stage, including when it is redefined\. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id\./);
@@ -139,7 +141,10 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.doesNotMatch(instruction, /Explain them in stageRecord\.|List relations in the order their establishing operations occur/);
     assert.doesNotMatch(instruction, /with prerequisites before dependent relations/);
     assert.doesNotMatch(instruction, /their sequence is represented by the ordered relations/);
-    assert.match(instruction, /Label each node according to the selected framework, preserving the distinctions made in the analysis\./);
+    assert.match(instruction, framework === 'xbar'
+      ? /Label each node according to the selected framework, preserving the distinctions made in the analysis\./
+      : /Label each node in Bare Phrase Structure notation, preserving the distinctions made in the analysis\./);
+    assert.doesNotMatch(frameworkInstruction, /Bare Phrase Structure/);
     assert.match(instruction, /The writing of the sentence, including its spacing, does not prescribe word, syntactic or morpheme boundaries\./);
     assert.doesNotMatch(instruction, /A projection's label names the projection, not merely its head/);
     assert.match(instruction, /values: a nonempty object with nonblank entry names/);
@@ -158,13 +163,22 @@ test('both frameworks select the theory and share the open derivation contract w
   }
 });
 
-test('Minimalism is the default framework, and only X-bar names a projection among the construction events', () => {
+test('Minimalism is the default framework, only X-bar names a projection among the construction events, only Minimalism names its label notation, and the frameworks differ in the stage-record focus sentence', () => {
   assert.equal(buildSystemInstruction(), buildSystemInstruction('minimalism'));
   // Bare Phrase Structure has no bar levels; a label comes from Merge.
   assert.doesNotMatch(buildSystemInstruction('minimalism'), /projection/i);
   assert.match(buildSystemInstruction('xbar'), /adding a projection/);
+  // Bare Phrase Structure is named once, in the label field, never in the task line.
+  assert.equal(buildSystemInstruction('minimalism').match(/Bare Phrase Structure/g).length, 1);
+  assert.doesNotMatch(buildSystemInstruction('xbar'), /Bare Phrase Structure/);
+  // Only X-bar names the copy-or-trace choice; either stays open in both.
+  assert.match(buildSystemInstruction('xbar'), /including its choice of copy or trace representation\./);
+  assert.doesNotMatch(buildSystemInstruction('minimalism'), /\btrace\b/);
   const [xbarRest, minimalismRest] = ['xbar', 'minimalism'].map(framework => buildDerivationStagesInstruction(framework)
-    .replace(/from the workspace states: [^.]+\./, 'from the workspace states: EVENTS.'));
+    .replace(/from the workspace states: [^.]+\./, 'from the workspace states: EVENTS.')
+    .replace(/Label each node [^,]+, preserving/, 'Label each node NOTATION, preserving')
+    .replace(/Explain the choices [^.]+\. Do not mention/, 'FOCUS Do not mention')
+    .replace(/according to the analysis(, including its choice of copy or trace representation)?\./, 'according to the analysis REPRESENTATION.'));
   assert.equal(minimalismRest, xbarRest, 'the frameworks share every other sentence of the contract');
 });
 

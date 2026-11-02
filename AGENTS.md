@@ -98,9 +98,11 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
   saved records read one form. Analyses authored as nested forests with `refId`,
   including every saved record, are read unchanged; one analysis cannot mix forms.
 - The model receives only the sentence and decides where its words are. In the
-  final stage, each realization group's text claims its stretches of the
-  sentence (one string, or pieces in sentence order), and the remaining
-  pronounced terminals, in tree order, spell the rest. `spellout.js` checks this
+  final stage, the pronounced terminals in tree order spell the sentence, and
+  each realization group's text (one string, or pieces in sentence order)
+  stands where its terminals stand: its first piece at its first pronounced
+  terminal, and no other pronounced terminal among the terminals of a
+  one-string group. `spellout.js` checks this
   and converts the analyses to token positions over one word list, cut wherever
   any analysis or stage divides a word; parsing, Replay and saved records keep
   that form. Records saved earlier keep their tokenizer word lists.
