@@ -227,10 +227,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       index,
       frameId: frame.frameId,
       stepId: frame.stepId,
-      operation: frame.operation,
       recipe: frame.recipe,
-      chainId: frame.chainId,
-      movement: frame.movement || null,
       change: frame.change || null,
       workspaceForest: frame.workspaceForest || [],
       ...(frame.after?.realizations ? { realizations: frame.after.realizations } : {})

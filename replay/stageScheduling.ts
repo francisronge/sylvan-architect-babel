@@ -79,7 +79,7 @@ export const finalizeStageReplay = (
     index,
     plannedStage,
     frameHasNonMovementTreeTransition,
-    frameHasMovementPayload,
+    frameRelocatesPriorLanding,
     frameRelationSteps,
     nonMovementTransitionNodeIds,
     workspaceRoots,
@@ -113,7 +113,7 @@ export const finalizeStageReplay = (
     });
     const releasedWrappers = new Set<string>();
     const foldedHost = (nodeId: string) => transitionHostNodeIds.has(nodeId) && !laterAttachments.has(nodeId);
-    if (frameHasNonMovementTreeTransition && !frameHasMovementPayload
+    if (frameHasNonMovementTreeTransition && !frameRelocatesPriorLanding
       && !frameRelationSteps.some(relation => relation.recoveredMovement?.transition)) {
       // A claim's moment builds its output and those parents. Every other
       // step remains ordinary construction; one that consumes an output

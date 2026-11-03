@@ -11,7 +11,7 @@ import {
   type ReplayIdentityContext
 } from './displayIdentity.ts';
 import { isResolvedMovementLink, resolveDerivationMovementTransitions } from './movementLinks.ts';
-import { resolveLeafSurface, shouldExpandPreterminalLeaf } from './replaySurfaceNotation.ts';
+import { shouldExpandPreterminalLeaf } from './replaySurfaceNotation.ts';
 import { cloneSyntaxTree, findExactNodeByIdInForest, projectAuthoredSyntaxNode } from './syntaxForest.ts';
 import { type HierNode, type ReplayDerivationFrame } from './types.ts';
 
@@ -182,14 +182,12 @@ export const collectVisibleDerivationNodeIds = (
 export interface VisibleSyntaxSnapshotInput {
   root: HierNode;
   visibleNodeIds?: Set<string>;
-  detachedRootSideHints?: Map<string, number>;
   identity?: ReplayIdentityContext;
 }
 
 export const buildVisibleSyntaxSnapshotFromHierarchy = ({
   root,
   visibleNodeIds,
-  detachedRootSideHints,
   identity = createReplayIdentityContext([root.data])
 }: VisibleSyntaxSnapshotInput): SyntaxNode | null => {
   if (!visibleNodeIds || visibleNodeIds.size === 0)
@@ -238,24 +236,7 @@ export const buildVisibleSyntaxSnapshotFromHierarchy = ({
         return true;
       return !nodeMatchesVisibleId(parent);
     })
-    .sort((a, b) => {
-      const resolveDetachedRootSideHint = (node: HierNode): number => {
-        let current: HierNode | null = node;
-        while (current) {
-          const currentId = getNodeId(current);
-          if (detachedRootSideHints?.has(currentId)) {
-            return Number(detachedRootSideHints.get(currentId) || 0);
-          }
-          current = current.parent;
-        }
-        return 0;
-      };
-      const sideA = resolveDetachedRootSideHint(a);
-      const sideB = resolveDetachedRootSideHint(b);
-      if (sideA !== sideB)
-        return sideA - sideB;
-      return (preorderIndex.get(getNodeId(a)) ?? 0) - (preorderIndex.get(getNodeId(b)) ?? 0);
-    });
+    .sort((a, b) => (preorderIndex.get(getNodeId(a)) ?? 0) - (preorderIndex.get(getNodeId(b)) ?? 0));
   const forest = visibleRoots
     .map((node) => cloneVisibleNode(node))
     .filter((node): node is SyntaxNode => Boolean(node));
@@ -323,31 +304,6 @@ export const extractReplayWorkspaceLabels = (canvasData: SyntaxNode | null): str
     .filter(Boolean);
 };
 
-/** The first terminal of `root`, and `ownerId`, the authored node it spells, when that terminal is the node's display word. */
-export const getReplayLeafSelectionTarget = (root: SyntaxNode, identity: ReplayIdentityContext): {
-  nodeId: string;
-  surface: string;
-  ownerId?: string;
-} | null => {
-  const renderableRoot = buildRenderableDerivationCanvasData([cloneSyntaxTree(root) || root], identity);
-  if (!renderableRoot)
-    return null;
-  const hierarchy = d3.hierarchy(renderableRoot);
-  applyVizIds(hierarchy);
-  const leaf = hierarchy.descendants().find((node) => !node.children || node.children.length === 0);
-  if (!leaf)
-    return null;
-  const surface = resolveLeafSurface(leaf);
-  if (!surface)
-    return null;
-  const ownerId = leaf.parent && isReplayDisplayChild(leaf.data, getNodeId(leaf.parent)) ? getNodeId(leaf.parent) : undefined;
-  return {
-    nodeId: getNodeId(leaf),
-    surface,
-    ...(ownerId ? { ownerId } : {})
-  };
-};
-
 export const materializeReplayPreterminals = (node: SyntaxNode, identity = createReplayIdentityContext([node])): SyntaxNode => {
   const walk = (current: SyntaxNode): SyntaxNode => {
     if (!current || typeof current !== 'object') {
@@ -400,7 +356,6 @@ export interface ReplaySnapshotInput {
   visibleNodeIds?: Set<string>;
   layoutNodeIds?: Set<string>;
   derivationFrames?: ReplayDerivationFrame[];
-  detachedRootSideHints?: Map<string, number>;
   layoutScaffoldForest?: SyntaxNode[];
   identity?: ReplayIdentityContext;
 }
@@ -412,7 +367,6 @@ export const buildDerivationReplaySnapshot = ({
   visibleNodeIds,
   layoutNodeIds,
   derivationFrames,
-  detachedRootSideHints,
   layoutScaffoldForest,
   identity = createReplayIdentityContext(derivationFrames?.flatMap(frame => frame.workspaceForest || []) ?? forest)
 }: ReplaySnapshotInput): {
@@ -492,7 +446,6 @@ export const buildDerivationReplaySnapshot = ({
   const visibleRawCanvas = buildVisibleSyntaxSnapshotFromHierarchy({
     root: rawHierarchy,
     visibleNodeIds: effectiveLayoutNodeIds,
-    detachedRootSideHints,
     identity
   });
   const renderableCanvas = visibleRawCanvas

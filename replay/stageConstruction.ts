@@ -1,41 +1,30 @@
 /** Build the ordinary candidate micro-steps before relation ownership schedules them. */
 import type { ReplayCompilation } from './compilationContext.ts';
-import { isMoveLikeOperation } from './movementLinks.ts';
-import { buildStructuralReplayFallback } from './playbackFormatting.ts';
-import { buildDerivationReplaySnapshot, getReplayLeafSelectionTarget } from './replayCanvas.ts';
 import type { ReplayStageContext } from './stageContext.ts';
-import { inferFutureWorkspaceRootOrder, reorderWorkspaceRootsForReplay } from './stageLayout.ts';
 import { buildStructuralDerivationPlaybackSteps } from './structuralPlayback.ts';
-import {
-  collectSyntaxSubtreeNodeIds,
-  countOvertLeafSyntaxNodes,
-  hasBranchingSyntaxSubtree
-} from './syntaxForest.ts';
 import { type PlaybackStep } from './types.ts';
 
 export const buildStageConstruction = (compilation: ReplayCompilation, stage: ReplayStageContext): {
   steps: PlaybackStep[];
   finalize: boolean;
 } => {
-  const { frames, sentence, inputTokens, identity, previousWorkspaceRootIds, getPreFrontingLexicalSurface } = compilation;
+  const { frames, sentence, inputTokens, identity } = compilation;
   const {
     index,
-    frameMovementPayloadReplacesConstruction,
-    fallbackOperation,
+    relocationReplacesConstruction,
     structuralWorkspaceRoots,
     priorVisibleNodeIds,
     authoredPreviousRelationRelationLinks,
     structuralLayoutScaffold,
     frameIsPureVisualTrajectoryStage,
-    nextFramePendingRootSubtreeIds,
-    nextFrame,
-    preferredWorkspaceRootSideHints,
     frameSemanticStep,
     frameCarriesAuthoredEffect,
     plannedStage,
     frameRelationSteps
   } = stage;
-  const structuralMicrosteps = !frameMovementPayloadReplacesConstruction && !isMoveLikeOperation(fallbackOperation)
+  // Built even for a stage that plays none of them: construction allocates
+  // the compilation's display ids in stage order.
+  const structuralMicrosteps = !relocationReplacesConstruction
     ? buildStructuralDerivationPlaybackSteps({
       forest: structuralWorkspaceRoots,
       frameIndex: index,
@@ -51,128 +40,6 @@ export const buildStageConstruction = (compilation: ReplayCompilation, stage: Re
     : [];
   if (frameIsPureVisualTrajectoryStage) {
     return { steps: [], finalize: true };
-  }
-  if (String(fallbackOperation || '').trim() === 'LexicalSelect') {
-    const newlySelectedRoots = structuralWorkspaceRoots.filter((root) => {
-      const rootId = String(root?.id || '');
-      return rootId && !previousWorkspaceRootIds.has(rootId);
-    });
-    const packsInternalBaseGeneration = newlySelectedRoots.some((root) => countOvertLeafSyntaxNodes(root) > 1 || hasBranchingSyntaxSubtree(root));
-    if (packsInternalBaseGeneration && structuralMicrosteps.length > 1) {
-      return { steps: structuralMicrosteps, finalize: true };
-    }
-    if (newlySelectedRoots.length > 0) {
-      const projectedRootIds = new Set(previousWorkspaceRootIds);
-      const projectedRootSubtreeIds = new Set<string>();
-      const lexicalSnapshotRoots = nextFramePendingRootSubtreeIds.size > 0 && Array.isArray(nextFrame?.workspaceForest)
-        ? reorderWorkspaceRootsForReplay(nextFrame.workspaceForest, inferFutureWorkspaceRootOrder(nextFrame.workspaceForest, frames, index + 1))
-        : structuralWorkspaceRoots;
-      let lexicalStepCursor = 0;
-      const buildWorkspaceLabelsForState = (
-        activeRootId: string,
-        activeLabel: string,
-        mode: 'leaf' | 'projected'
-      ): string[] => structuralWorkspaceRoots
-        .map((candidateRoot) => {
-          const candidateId = String(candidateRoot?.id || '');
-          if (!candidateId)
-            return '';
-          if (candidateId === activeRootId) {
-            return mode === 'leaf'
-              ? activeLabel
-              : String(candidateRoot?.label || '').trim();
-          }
-          if (!projectedRootIds.has(candidateId))
-            return '';
-          return String(candidateRoot?.label || '').trim();
-        })
-        .filter(Boolean);
-      const lexicalReplaySteps = newlySelectedRoots.flatMap((root, rootIndex) => {
-        const rootId = String(root?.id || '') || `__derivation_${index}_lex_${lexicalStepCursor + 1}`;
-        const projectedLabel = String(root?.label || '').trim() || 'Workspace';
-        const leafTarget = getReplayLeafSelectionTarget(root, identity);
-        const rootSubtreeIds = collectSyntaxSubtreeNodeIds(root);
-        const pendingRootSubtreeIds = newlySelectedRoots
-          .slice(rootIndex + 1)
-          .flatMap((pendingRoot) => collectSyntaxSubtreeNodeIds(pendingRoot));
-        const lexicalSteps: PlaybackStep[] = [];
-        // A word is selected together with the authored node it spells; when
-        // that node is the root, its selection is the root's complete state.
-        const selectedNodeId = leafTarget?.ownerId || leafTarget?.nodeId;
-        if (leafTarget && selectedNodeId !== rootId) {
-          const leafSurface = getPreFrontingLexicalSurface(leafTarget.surface, index);
-          const selectVisibleNodeIds = new Set<string>(projectedRootIds);
-          selectVisibleNodeIds.add(leafTarget.nodeId);
-          if (leafTarget.ownerId)
-            selectVisibleNodeIds.add(leafTarget.ownerId);
-          const selectLayoutNodeIds = new Set<string>(selectVisibleNodeIds);
-          projectedRootSubtreeIds.forEach((subtreeNodeId) => selectLayoutNodeIds.add(subtreeNodeId));
-          rootSubtreeIds.forEach((subtreeNodeId) => selectLayoutNodeIds.add(subtreeNodeId));
-          pendingRootSubtreeIds.forEach((subtreeNodeId) => selectLayoutNodeIds.add(subtreeNodeId));
-          nextFramePendingRootSubtreeIds.forEach((subtreeNodeId) => selectLayoutNodeIds.add(subtreeNodeId));
-          const lexicalSelectSnapshot = buildDerivationReplaySnapshot({
-            forest: lexicalSnapshotRoots,
-            activeFrameIndex: index,
-            relationLinks: authoredPreviousRelationRelationLinks,
-            visibleNodeIds: selectVisibleNodeIds,
-            layoutNodeIds: selectLayoutNodeIds,
-            derivationFrames: frames,
-            detachedRootSideHints: preferredWorkspaceRootSideHints,
-            identity
-          });
-          lexicalStepCursor += 1;
-          lexicalSteps.push({
-            ...frameSemanticStep,
-            targetNodeId: selectedNodeId,
-            targetLabel: leafSurface,
-            sourceNodeIds: [selectedNodeId!],
-            sourceLabels: [leafSurface],
-            recipe: buildStructuralReplayFallback('LexicalSelect', leafSurface, [leafSurface]),
-            workspaceAfter: buildWorkspaceLabelsForState(rootId, leafSurface, 'leaf'),
-            replayCanvasData: lexicalSelectSnapshot.canvasData,
-            replayVisibleNodeIds: lexicalSelectSnapshot.visibleNodeIds,
-            replayRelationLinks: lexicalSelectSnapshot.relationLinks,
-            stepId: frameSemanticStep.stepId ? `${frameSemanticStep.stepId}.${lexicalStepCursor}` : undefined
-          } satisfies PlaybackStep);
-        }
-        projectedRootIds.add(rootId);
-        rootSubtreeIds.forEach((subtreeNodeId) => projectedRootSubtreeIds.add(subtreeNodeId));
-        const projectVisibleNodeIds = new Set<string>(projectedRootIds);
-        const projectLayoutNodeIds = new Set<string>(projectVisibleNodeIds);
-        projectedRootSubtreeIds.forEach((subtreeNodeId) => projectLayoutNodeIds.add(subtreeNodeId));
-        pendingRootSubtreeIds.forEach((subtreeNodeId) => projectLayoutNodeIds.add(subtreeNodeId));
-        nextFramePendingRootSubtreeIds.forEach((subtreeNodeId) => projectLayoutNodeIds.add(subtreeNodeId));
-        const lexicalProjectSnapshot = buildDerivationReplaySnapshot({
-          forest: lexicalSnapshotRoots,
-          activeFrameIndex: index,
-          relationLinks: authoredPreviousRelationRelationLinks,
-          visibleNodeIds: projectVisibleNodeIds,
-          layoutNodeIds: projectLayoutNodeIds,
-          derivationFrames: frames,
-          detachedRootSideHints: preferredWorkspaceRootSideHints,
-          identity
-        });
-        lexicalStepCursor += 1;
-        const selectsRoot = Boolean(leafTarget) && selectedNodeId === rootId;
-        const rootSurface = selectsRoot ? getPreFrontingLexicalSurface(leafTarget!.surface, index) : projectedLabel;
-        lexicalSteps.push({
-          ...frameSemanticStep,
-          operation: selectsRoot ? 'LexicalSelect' : 'Project',
-          targetNodeId: rootId,
-          targetLabel: rootSurface,
-          sourceNodeIds: [rootId],
-          sourceLabels: [rootSurface],
-          recipe: buildStructuralReplayFallback(selectsRoot ? 'LexicalSelect' : 'Project', rootSurface, [rootSurface]),
-          workspaceAfter: buildWorkspaceLabelsForState(rootId, projectedLabel, 'projected'),
-          replayCanvasData: lexicalProjectSnapshot.canvasData,
-          replayVisibleNodeIds: lexicalProjectSnapshot.visibleNodeIds,
-          replayRelationLinks: lexicalProjectSnapshot.relationLinks,
-          stepId: frameSemanticStep.stepId ? `${frameSemanticStep.stepId}.${lexicalStepCursor}` : undefined
-        } satisfies PlaybackStep);
-        return lexicalSteps;
-      });
-      return { steps: lexicalReplaySteps, finalize: true };
-    }
   }
   if (structuralMicrosteps.length > 1) {
     return { steps: structuralMicrosteps, finalize: true };

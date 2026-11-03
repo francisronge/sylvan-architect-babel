@@ -21,7 +21,6 @@ export interface PlaybackStep {
   operation: DerivationOperation;
   sourceKind?: 'microstep' | 'derivation-effect' | 'derived';
   trajectoryKind?: ResolvedRelationLink['trajectoryKind'];
-  movementSerializationStatus?: 'complete' | 'underspecified' | 'incoherent';
   movementDiagnostics?: string[];
   sourceFrameIndex?: number;
   visualFrameIndex?: number;
@@ -102,20 +101,6 @@ export interface MovementArrow {
 }
 
 
-export interface ReplayDerivationMovementPayload {
-  operation?: DerivationOperation;
-  sourceNodeId?: string;
-  landingNodeId?: string;
-  targetNodeId?: string;
-  hostNodeId?: string;
-  traceNodeId?: string;
-  chainId?: string;
-  note?: string;
-  serializationStatus?: 'complete' | 'underspecified' | 'incoherent';
-  diagnostics?: string[];
-}
-
-
 export interface ReplayDerivationAnchor {
   role?: string;
   nodeId?: string;
@@ -151,10 +136,7 @@ export interface ReplayDerivationFrame {
   after?: ReplayDerivationAfterState;
   change?: ReplayDerivationChange;
   workspaceForest: SyntaxNode[];
-  operation?: DerivationOperation;
   recipe?: string;
-  chainId?: string;
-  movement?: ReplayDerivationMovementPayload | null;
 }
 
 

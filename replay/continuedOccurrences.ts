@@ -1,9 +1,7 @@
 /** Preceding occurrences that a stage authors again under a new id. */
 import type { ResolvedRelationLink } from '../relationLinks.ts';
 import type { SyntaxNode } from '../types.ts';
-import { getMovementLandingNodeId } from './authoredFrames.ts';
 import type { ReplayIdentityContext } from './displayIdentity.ts';
-import { isMoveLikeOperation } from './movementLinks.ts';
 import {
   getRelationAllAnchorNodeIds,
   getRelationSourceNodeIds,
@@ -194,8 +192,7 @@ function relationOwnedNodeIds(
   return owned;
 }
 
-/** The continuations a stage authors over its preceding stage. A stage that
- * encodes movement in its own payload has none; movement rules own it. A node
+/** The continuations a stage authors over its preceding stage. A node
  * that a relation of an earlier stage moves, copies or rewrites keeps its exact
  * id in that stage's frames (`displayContinuedOccurrences`), so it is not
  * raised: its continuation could not be painted under one id across stages. */
@@ -207,8 +204,6 @@ export function stageContinuedOccurrences(
 ): Map<string, string> {
   const frame = frames[index], previousForest = frames[index - 1]?.workspaceForest;
   if (!frame || !Array.isArray(previousForest) || !Array.isArray(frame.workspaceForest)) return new Map();
-  if (isMoveLikeOperation(frame.movement?.operation || frame.operation) || getMovementLandingNodeId(frame.movement)
-    || frame.movement?.sourceNodeId || frame.movement?.traceNodeId || frame.chainId) return new Map();
   let exact: Set<string> | undefined;
   return continuedOccurrences(previousForest, frame.workspaceForest,
     () => relationOwnedNodeIds(frame, relations, previousForest, frame.workspaceForest),
