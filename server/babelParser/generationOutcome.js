@@ -22,34 +22,20 @@ const isSuccessfulGenerationStop = (generation) => {
   return SUCCESSFUL_GENERATION_STOPS.has(finishReason);
 };
 
+/**
+ * Reads the generation shape every provider runtime in modelRuntime.js
+ * returns: `text`, `status`, `candidates[0].finishReason` and
+ * `usageMetadata` token counts.
+ */
 export const summarizeGeneration = (generation) => {
-  const contentParts = Array.isArray(generation?.candidates?.[0]?.content?.parts)
-    ? generation.candidates[0].content.parts
-    : [];
-  const nonThoughtText = contentParts
-    .filter((part) => !part?.thought && typeof part?.text === 'string')
-    .map((part) => String(part.text || ''))
-    .join('');
-  const rawText = String(nonThoughtText || generation?.text || '');
+  const rawText = String(generation?.text || '');
   const finishReason = String(generation?.candidates?.[0]?.finishReason || '').toUpperCase() || 'UNKNOWN';
   const status = String(generation?.status || finishReason || 'UNKNOWN').toUpperCase();
-  const promptTokenCount = Number(
-    generation?.usageMetadata?.promptTokenCount
-    || generation?.usageMetadata?.inputTokenCount
-    || generation?.usageMetadata?.promptTokens
-    || 0
-  ) || undefined;
-  const outputTokenCount = Number(
-    generation?.usageMetadata?.candidatesTokenCount
-    || generation?.usageMetadata?.outputTokenCount
-    || generation?.usageMetadata?.completionTokenCount
-    || 0
-  ) || undefined;
-  const totalTokenCount = Number(
-    generation?.usageMetadata?.totalTokenCount
-    || generation?.usageMetadata?.totalTokens
-    || 0
-  ) || (promptTokenCount && outputTokenCount ? (promptTokenCount + outputTokenCount) : undefined);
+  const usage = generation?.usageMetadata;
+  const promptTokenCount = Number(usage?.inputTokenCount || 0) || undefined;
+  const outputTokenCount = Number(usage?.outputTokenCount || 0) || undefined;
+  const totalTokenCount = Number(usage?.totalTokenCount || 0)
+    || (promptTokenCount && outputTokenCount ? (promptTokenCount + outputTokenCount) : undefined);
   const preview = rawText
     .slice(0, 220)
     .replace(/\s+/g, ' ')
@@ -62,12 +48,7 @@ export const summarizeGeneration = (generation) => {
     promptTokenCount,
     outputTokenCount,
     totalTokenCount,
-    reasoningTokenCount: Number(
-      generation?.usageMetadata?.reasoningTokenCount
-      || generation?.usageMetadata?.thoughtsTokenCount
-      || generation?.usageMetadata?.totalThoughtTokens
-      || 0
-    ) || undefined,
+    reasoningTokenCount: Number(usage?.reasoningTokenCount || 0) || undefined,
     status
   };
 };

@@ -1,7 +1,7 @@
 // Counterfactual token cost, not subscription allowance or an account charge.
 // Keep dated rates with their primary sources so saved receipts remain reproducible.
 // A rate added after the snapshot date carries its own retrieval date.
-export const API_PRICE_SNAPSHOT = {
+const API_PRICE_SNAPSHOT = {
   asOf: '2026-10-11', currency: 'USD', tier: 'standard', geography: 'global',
   sources: {
     openai: 'https://developers.openai.com/api/docs/pricing',

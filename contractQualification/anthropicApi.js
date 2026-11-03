@@ -11,7 +11,7 @@ import { qualificationResponseHeaders, qualificationTransportError } from './tel
 // Qualification transport only; Babel's public Anthropic route is unchanged.
 export const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
 export const ANTHROPIC_API_VERSION = '2023-06-01';
-export const DEFAULT_ANTHROPIC_QUALIFICATION_MODEL = 'anthropic:claude-opus-5-5';
+const DEFAULT_ANTHROPIC_QUALIFICATION_MODEL = 'anthropic:claude-opus-5-5';
 export const DEFAULT_ANTHROPIC_KEYCHAIN_SERVICE = 'Babel Anthropic API';
 
 /** The body Babel's Anthropic route builds, plus `stream: true` for long generations. */
@@ -29,7 +29,7 @@ export const buildAnthropicQualificationRequest = ({
       ...buildAnthropicRequestBody({
         model: selection.providerModel,
         contents: buildParseContentsPrompt(sentence),
-        systemInstruction: buildSystemInstruction(framework, 'claude'),
+        systemInstruction: buildSystemInstruction(framework),
         maxOutputTokens,
         effort: selection.nativeSettings['output_config.effort'],
         thinking: thinking?.requestMode === 'explicit-adaptive' ? thinking.value : null

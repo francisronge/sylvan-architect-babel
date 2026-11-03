@@ -1,7 +1,7 @@
 import { normalizeSurfaceToken } from './surfaceTokens.js';
 import { normalizeTokenIndex } from './treeBasics.js';
 import { ParseApiError } from './error.js';
-import { collectPronouncedLeaves, isPronouncedLeafWithin } from './nodePronunciation.js';
+import { isPronouncedLeafWithin } from './nodePronunciation.js';
 
 export const sameTokenSequence = (leftTokens, rightTokens) => {
   if (leftTokens.length !== rightTokens.length) return false;
@@ -12,10 +12,6 @@ export const sameTokenSequence = (leftTokens, rightTokens) => {
   }
   return true;
 };
-
-// Pronunciation is an authored-field decision, inherited from silent
-// ancestors; see nodePronunciation.js.
-export const collectOvertTerminalNodes = (tree) => collectPronouncedLeaves(tree);
 
 /**
  * Sets each node's surfaceSpan. With realized token indices, unclaimed holds

@@ -41,7 +41,7 @@ export const isWordlessLeaf = (node) => isLeafNode(node) && !authoredWord(node);
  * Silence covers a whole occurrence: `silent: true` on a phrase leaves every
  * terminal beneath it unpronounced. Walks each leaf with that inherited flag.
  */
-export const forEachLeaf = (root, visit, underSilentAncestor = false) => {
+const forEachLeaf = (root, visit, underSilentAncestor = false) => {
   if (!root || typeof root !== 'object') return;
   const silentHere = underSilentAncestor || root.silent === true;
   const children = Array.isArray(root.children) ? root.children : [];

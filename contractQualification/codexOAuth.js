@@ -29,7 +29,7 @@ export const buildCodexQualificationRequest = ({
     selection,
     body: {
       model: selection.providerModel,
-      instructions: buildSystemInstruction(framework, 'gpt'),
+      instructions: buildSystemInstruction(framework),
       input: [{ role: 'user', content: [{ type: 'input_text', text: buildParseContentsPrompt(sentence) }] }],
       reasoning: { effort: selection.nativeSettings['reasoning.effort'] },
       store: false,
