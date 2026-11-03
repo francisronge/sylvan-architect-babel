@@ -15,45 +15,43 @@ syntactic rules. Desktop remains the primary experience.
 1. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed. On 2026-10-24 the claim
    option had not yet appeared in Billing. Spend only those credits.
-2. Renderer follow-ups left after the October renderer pass. Each has saved
-   evidence.
-   - A movement does not wait for a contextual anchor, so the Icelandic
-     raising chain's verb-trace role ("Þessum börnum virðist hafa verið
-     hjálpað") lacks its anchor at its moment: the model lists the raising
-     before the V-to-I movement that makes the trace. Head movement before
-     phrasal movement in one stage would resolve it; that order is parked (see
-     Explicitly Not Active).
-   - Movements still drawn as copies without an arrow, all in saved runs on the
-     earlier prompt: across-the-board and right-node-raising movement, where
-     one landing has several lower copies, a claim that names two
-     displacements at once (T and the auxiliary in negative inversion, a German
-     V2 auxiliary), and Japanese topicalization, Dutch stripping focus and
-     English past-affix lowering, whose wording draws only an identity coindex
-     or badge. Claims
-     whose role names offer more than one candidate landing or source (four
-     saved runs) stay neutral by design: structure ignores role names, so it
-     cannot tell redundant naming from a contradictory claim, which must not
-     draw.
-   - Phones: in 9 fixtures a moved constituent first paints past the
-     canvas edge at its movement, then the camera zooms out to it within
-     about a third of a second (`MOVED_OFF_CANVAS` in
-     `tests/helpers/cameraExceptions.mjs`). Avoiding it would mean fitting
-     earlier stages smaller on phones, or jumping the unmoved syntax. The
-     desktop minimum zoom no longer clips: the Canopy has no minimum, and
-     Replay containment shrinks below it.
-   - Camera jumps where unmoved syntax shifts 27–66 px when a stage begins
-     or inside a stage (`STAGE_RELAYOUT`, `RELAYOUT_WITHIN_STAGE` in
-     `tests/helpers/cameraExceptions.mjs`); they come from the same shared
-     stage layout as the parked step order (Explicitly Not Active). Its first
-     prototype
-     (`refactor/stage-layout-from-finished-tree`) did not meet the
-     zero-regression bar. The crossings where a movement closes its room now
-     hold the rest of the syntax still (the stage plan's held carry). The
-     within-stage jumps are parents inserted above a host together with a new
-     sister: a centred parent then moves either the host sideways (camera
-     jump, attachment motion) or the spine above it (shape motion); letting the
-     host's leaves keep one contour slot across its row change moved the fault
-     from the camera to the motion gate (measured 31 Oct).
+2. Renderer work left before launch (Francis, 2 Nov 2026, on calling it
+   optional: "Wtf are you saying? NO"):
+   - **Head movement before phrasal movement in one stage** (approved
+     2026-10-23). When one stage moves both a head and a phrase, Replay shows
+     the head movement first. The patch (`feat/head-before-phrasal-order`)
+     works: on 2 Nov it lowered the real-analysis jumps from 382 to 371. Before
+     it can ship, about 20 finished trees change shape and 8 plaques sit
+     12–20% beyond their usual distance; Francis reviews those changes on a
+     before/after page. It also fixes the Icelandic raising sentence ("Þessum
+     börnum virðist hafa verið hjálpað"), whose verb-trace role has no anchor
+     at its moment because the raising plays before the verb movement that
+     makes the trace.
+   - **Phones: a moved phrase starts off screen.** In 8 test trees, only on a
+     phone-sized screen, part of a moved phrase first draws past the screen
+     edge at its movement, and the camera zooms out to it within about a
+     third of a second (`MOVED_OFF_CANVAS` in
+     `tests/helpers/cameraExceptions.mjs`; a ninth on desktop is approved).
+     The fixes are to zoom out before the movement, so the tree is drawn
+     smaller in the steps before it, or to shift the unmoved syntax, which
+     breaks the no-jump rule. Francis chooses from a recording.
+   - **Camera jumps when a stage starts.** Unmoved syntax shifts 57 px on a
+     phone in one tree (`compact-current-root`), and 66 px in the Chinese
+     tree with 我 and 昨天 when stepping back a stage; Francis approved that
+     jump stepping forward (21 Oct).
+   - **Movements drawn without an arrow.** Every known case comes from runs on
+     the earlier prompt: across-the-board and right-node-raising movement
+     (one landing, several lower copies), a claim naming two movements at once
+     (T and the auxiliary in negative inversion, a German V2 auxiliary), and
+     Japanese topicalization, Dutch stripping focus and English past-affix
+     lowering, whose wording draws only a coindex or badge. Check whether runs
+     on the current prompt still produce them. Claims whose role names offer
+     more than one candidate landing or source stay neutral by design:
+     structure cannot tell redundant naming from a contradiction.
+   - Settled, not open: a waiting phrase that slides when its new parent is
+     drawn above it. A parent stands centred over its daughters, so the phrase
+     or the tree above it must move; Francis accepted this on 27 Oct ("alright.
+     then it's whatever.").
 3. Recognition:
    - Neutral relations can earn a shared-lineage coindex or a single-host
      plaque from structure alone; the adjunction fork stays off because
@@ -86,9 +84,7 @@ keeps later work buildable. Launch is public Babel only, as defined in
 Babel from Program 3 (3A, 3B, 3D), Program 5 and the Generation Archive (6A).
 It also needs the Replay layout follow-ups still open in the current work
 order, item 2 (Francis, 2026-11-02, on calling them optional: "Wtf are you
-saying? NO"). The rise rule landed in #365; the stage layout planned from
-derivation states and the step order it would unblock were parked on
-2026-11-03 (Explicitly Not Active).
+saying? NO").
 The research workbench (3C), the Reviewed Derivational Corpus (6B) and the
 benchmark in Programs 7 and 8 come after launch.
 
@@ -446,17 +442,14 @@ review authority, and correction path.
   2026-10-23; "if there's no way to solve it easily, then it's probably fine"
   on 2026-10-24).
 
-- Head movement before phrasal movement in one stage (approved 2026-10-23),
-  and finished trees tighter than their stage's widest step. Every frame of a
+- Finished trees tighter than their stage's widest step. Every frame of a
   stage shares one set of leaf positions (`reserveContours` in
   `buildStageLocalCoordinates`), so a finished tree keeps the spacing its most
   crowded step needed: 46 of 234 fixtures paint a finished tree wider than the
-  same last frame laid out alone, by up to about 40% (measured 3 Nov). Gap
-  closing already takes all the room its rules allow; the rest needs a visible
-  tidy-up step at the end of a stage, or a Canopy that differs from the last
-  frame, and the step order hits the same coupling (on main after #367 it
-  reshapes about 20 finished trees). Francis on 2026-11-03: "I don't want 1 or
-  2, they sound ugly. so I guess we're keeping 3."
+  same last frame laid out alone, by up to about 40% (measured 3 Nov). Closing
+  more would need a visible tidy-up step at the end of a stage, or a finished
+  tree that differs from the last frame. Francis on 2026-11-03: "I don't want 1
+  or 2, they sound ugly. so I guess we're keeping 3."
 
 - Bending movement arrows or connector lines around words and labels they
   cross. Their shape stays as designed (Francis: "I'm fine with movement
