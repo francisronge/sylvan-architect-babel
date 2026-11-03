@@ -13,8 +13,8 @@ import { buildSystemInstruction } from '../server/babelParser/systemInstruction.
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 import { planSpelloutAttempts, writeSpelloutAttempts } from '../contractQualification/spelloutArtifacts.js';
 import { resolveResearchModelSelection } from '../server/babelParser/researchModelCatalog.js';
-
-const repoRoot = path.resolve(import.meta.dirname, '..');
+import { fixtureRecords } from './helpers/fixtureRecords.mjs';
+import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
 const normalize = (payload, sentence, inputTokens, framework = 'xbar') =>
   normalizeParseBundle(structuredClone(payload), framework, sentence, 'gpt', true, { inputTokens });
@@ -46,58 +46,6 @@ test('the prompt sends only the sentence and asks the model to spell it', () => 
   assert.equal(buildParseContentsPrompt('Mia laughed.'), 'Sentence: "Mia laughed."');
 });
 
-const fixtureRecords = () => {
-  const records = [];
-  const walk = (value, label) => {
-    if (!value || typeof value !== 'object') return;
-    if (Array.isArray(value)) return value.forEach((item, index) => walk(item, `${label}[${index}]`));
-    if (typeof value.sentence === 'string' && (Array.isArray(value.derivationStages) || Array.isArray(value.analyses))) {
-      records.push({ label, sentence: value.sentence, framework: value.framework === 'minimalism' ? 'minimalism' : 'xbar',
-        inputTokens: value.inputTokens,
-        payload: Array.isArray(value.analyses) ? { analyses: value.analyses } : { derivationStages: value.derivationStages } });
-      return;
-    }
-    Object.entries(value).forEach(([key, item]) => walk(item, `${label}.${key}`));
-  };
-  const visit = (directory) => fs.readdirSync(directory, { withFileTypes: true }).forEach((entry) => {
-    const full = path.join(directory, entry.name);
-    if (entry.isDirectory()) visit(full);
-    else if (entry.name.endsWith('.json')) walk(JSON.parse(fs.readFileSync(full, 'utf8')), path.relative(repoRoot, full));
-  });
-  visit(path.join(repoRoot, 'fixtures'));
-  return records;
-};
-
-/** Today's analysis as a spell-out response: no tokenIndex, and groups name their text. */
-const restateAsSpellout = (analysis, sentence, tokens) => {
-  const text = sentence.normalize('NFC');
-  let at = 0;
-  const spans = tokens.map((token) => {
-    const start = text.toLowerCase().indexOf(token.normalize('NFC').toLowerCase(), at);
-    at = start + token.normalize('NFC').length;
-    return [start, at];
-  });
-  const strip = (item) => {
-    if (!item || typeof item !== 'object' || (Object.keys(item).length === 1 && 'refId' in item)) return item;
-    const { tokenIndex, ...rest } = item;
-    return Array.isArray(item.children) ? { ...rest, children: item.children.map(strip) } : rest;
-  };
-  const derivationStages = analysis.derivationStages.map((stage) => ({
-    ...stage,
-    workspaceForest: stage.workspaceForest.map(strip),
-    ...(Array.isArray(stage.realizations) ? { realizations: stage.realizations.map(({ nodeIds, tokenIndices }) => {
-      // Positions that are not adjacent become separate pieces.
-      const runs = tokenIndices.reduce((list, index) => {
-        if (list.length && index === list.at(-1).at(-1) + 1) list.at(-1).push(index); else list.push([index]);
-        return list;
-      }, []);
-      const pieces = runs.map(run => text.slice(spans[run[0]][0], spans[run.at(-1)][1]));
-      return { nodeIds, text: pieces.length === 1 ? pieces[0] : pieces };
-    }) } : {})
-  }));
-  return { analysis: { ...analysis, derivationStages } };
-};
-
 test('every complete fixture restated as spell-out reaches the same parse and Replay', () => {
   const derived = (bundle, sentence) => bundle.analyses.map(({ provenance, derivationStages, ...rest }) => ({
     rest, replay: buildReplaySnapshotProjection({ ...bundle, sentence, analyses: [{ provenance, derivationStages, ...rest }] })
@@ -107,9 +55,7 @@ test('every complete fixture restated as spell-out reaches the same parse and Re
     const tokens = resolveSavedInputTokens(record.sentence, record.inputTokens);
     let baseline;
     try { baseline = normalize(record.payload, record.sentence, tokens, record.framework); } catch { continue; }
-    const analyses = record.payload.analyses || [record.payload];
-    const restated = analyses.map(analysis => restateAsSpellout(analysis, record.sentence, tokens));
-    const spellout = record.payload.analyses ? { analyses: restated.map(item => item.analysis) } : restated[0].analysis;
+    const spellout = restateAsSpellout(record.payload, record.sentence, tokens);
     const results = convertSpelloutPayload(spellout, record.sentence);
     results.forEach(result => assert.ok(result.ok, `${record.label}: ${JSON.stringify(result.diagnostics)}`));
     const derivedTokens = results[0].inputTokens;
@@ -146,7 +92,7 @@ test('a spelling group the conversion makes stands from its word\'s first stage 
     if (record.payload.analyses) continue;
     const tokens = resolveSavedInputTokens(record.sentence, record.inputTokens);
     try { normalize(record.payload, record.sentence, tokens, record.framework); } catch { continue; }
-    const spellout = restateAsSpellout(record.payload, record.sentence, tokens).analysis;
+    const spellout = restateAsSpellout(record.payload, record.sentence, tokens);
     const [plain] = convertSpelloutPayload(spellout, record.sentence);
     const text = record.sentence.normalize('NFC');
     const unit = plain.ok && plain.units.find(({ nodeId, span: [start, end] }) => nodeId && end - start >= 2

@@ -17,7 +17,7 @@ import { layoutVisualFrames, prepareVisualRecord, VIEWPORTS } from './helpers/vi
  * n3-24-qu-evidential step 35 (now step 29): the arrowhead went through the t it points at and
  * ended above it. */
 
-const record = JSON.parse(readFileSync(new URL('./helpers/wordLandingRecord.json', import.meta.url), 'utf8'));
+const record = JSON.parse(readFileSync(new URL('./data/wordLandingRecord.json', import.meta.url), 'utf8'));
 
 const quadratic = d => {
   const [sx, sy, cx, cy, ex, ey] = d.match(/-?\d+(?:\.\d+)?/g).map(Number);

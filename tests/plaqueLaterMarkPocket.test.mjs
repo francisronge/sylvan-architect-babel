@@ -14,7 +14,7 @@ import { ownOccupant } from '../replay/relations/pocketHold.ts';
  * pocket for steps 25–34 that the link takes made the grid jump 529 units beside lv2
  * at frame 38. */
 
-const record = JSON.parse(readFileSync(new URL('./helpers/laterMarkPocketRecord.json', import.meta.url), 'utf8'));
+const record = JSON.parse(readFileSync(new URL('./data/laterMarkPocketRecord.json', import.meta.url), 'utf8'));
 const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: Array.from({ length: 11 }, (_, i) => 29 + i) });
 const grid = frame => frame.plaques.find(plaque => plaque.grid && plaque.anchorNodeId === 'lv2');
 

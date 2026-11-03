@@ -486,19 +486,6 @@ export const orderDetachedReplayWorkspaces = (steps: PlaybackStep[], frames: Rep
   });
 };
 
-export const buildWorkspaceRootSideHints = (workspaceRoots: SyntaxNode[], preferredRootIds?: string[] | null): Map<string, number> => {
-  const orderedRootIds = (Array.isArray(preferredRootIds) && preferredRootIds.length > 0
-    ? preferredRootIds
-    : collectWorkspaceRootIds(workspaceRoots))
-    .map((id) => String(id || ''))
-    .filter(Boolean);
-  const hints = new Map<string, number>();
-  orderedRootIds.forEach((rootId, index) => {
-    hints.set(rootId, index);
-  });
-  return hints;
-};
-
 /** Outer projections can change a root's immediate parent without changing
  * its first attachment or its order beside roots already merged with it. */
 const preservesFirstRootAttachments = (forest: SyntaxNode[], attachments: ReadonlyMap<string, SyntaxNode>): boolean => {
@@ -637,15 +624,3 @@ export const inferFutureWorkspaceRootOrder = (
   return bestPreferredOrder;
 };
 
-export const collectNextFramePendingRootSubtreeIds = (workspaceRoots: SyntaxNode[], nextFrame?: ReplayDerivationFrame | null): Set<string> => {
-  const currentRootIds = new Set((Array.isArray(workspaceRoots) ? workspaceRoots : [])
-    .map((node) => String(node?.id || ''))
-    .filter(Boolean));
-  const nextRoots = Array.isArray(nextFrame?.workspaceForest) ? nextFrame.workspaceForest : [];
-  return new Set(nextRoots
-    .filter((node) => {
-      const nodeId = String(node?.id || '');
-      return Boolean(nodeId) && !currentRootIds.has(nodeId);
-    })
-    .flatMap((node) => collectSubtreeNodeIds(node)));
-};

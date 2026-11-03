@@ -11,7 +11,7 @@ import { checkStaleShell } from './helpers/visualRules.mjs';
  * finite-agreement-checking supersedes the finite-features row of the nominative Case
  * plaque; main kept the two-row shell empty until stage 3 began at frame 36. */
 
-const record = JSON.parse(readFileSync(new URL('./helpers/caseRowsLeaveRecord.json', import.meta.url), 'utf8'));
+const record = JSON.parse(readFileSync(new URL('./data/caseRowsLeaveRecord.json', import.meta.url), 'utf8'));
 const subject = 'plaque(0:2 directed-path case-assignment)@a_i';
 
 test('a Case plaque shrinks in place at the step its features row leaves', () => {

@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 import { paintedTextCollisions } from '../replay/treeTextCollision.ts';
 import { auditVisualRecord, TEXT_METRICS, VIEWPORTS } from './helpers/visualFrames.mjs';
 
-const record = JSON.parse(readFileSync(new URL('./helpers/applicativeHeadLandingRecord.json', import.meta.url)));
+const record = JSON.parse(readFileSync(new URL('./data/applicativeHeadLandingRecord.json', import.meta.url)));
 
 // Opus's Xhosa applicative: stage 3 moves V phek into the Appl complex, whose
 // left daughter it becomes. The attachment plan kept the complex at the old

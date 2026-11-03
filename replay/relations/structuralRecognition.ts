@@ -79,7 +79,7 @@ export type StructuralReading = { claims: StructuralClaim[]; abstentions: Struct
 export const SAFE_STRUCTURAL_RULES: readonly StructuralRuleId[] = [
   'fork.two-segment', 'identity.shared-lineage', 'plaque.single-host'
 ];
-export const ALL_STRUCTURAL_RULES: readonly StructuralRuleId[] = [
+const ALL_STRUCTURAL_RULES: readonly StructuralRuleId[] = [
   ...SAFE_STRUCTURAL_RULES, 'fork.two-segment-in-context', 'ellipsis.silenced-site', 'plaque.paired-entry', 'plaque.annotation-owner', 'verdict.symbol-on-root'
 ];
 

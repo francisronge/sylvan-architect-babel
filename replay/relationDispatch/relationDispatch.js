@@ -1,4 +1,4 @@
-import { findRelationRegistryEntry } from './relationRegistry.js';
+import { findRelationRegistryEntry, isRecord } from './relationRegistry.js';
 import { bindRelationRoles } from './roleBinding.js';
 
 const STRUCTURED_FIELDS = Object.freeze([
@@ -6,12 +6,6 @@ const STRUCTURED_FIELDS = Object.freeze([
   'priorAnchors',
   'values'
 ]);
-
-const isRecord = (value) => (
-  Boolean(value)
-  && typeof value === 'object'
-  && !Array.isArray(value)
-);
 
 const cloneAuthored = (value) => {
   if (Array.isArray(value)) return value.map(cloneAuthored);

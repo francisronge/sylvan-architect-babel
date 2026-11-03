@@ -7,9 +7,9 @@ import { authoredOutcomeLiterals, hasUnestablishedCovertMovementOutcome, negativ
 import { PRODUCTION_RENDER_FAMILIES, PRODUCTION_SCALAR_VALUE_KEYS } from '../relations/renderFamilies.ts';
 
 import { productionValueRules } from './productionRoleConcepts.js';
+import { isRecord } from './relationRegistry.js';
 
 const items = value => Array.isArray(value) ? value : [value];
-const isRecord = value => value && typeof value === 'object' && !Array.isArray(value);
 const roleVocabulary = buildTier2SynonymIndex();
 const MOVEMENT_ENDPOINTS = new Set(['movement.source', 'movement.witness', 'movement.landing']);
 /** The slot concept each proved movement endpoint fills in a registered

@@ -1,3 +1,4 @@
+import { canonicalize } from './planSyntax.ts';
 import type { Tier2ForestIndexes, TreeIndex } from './tier2EvidenceQueries.ts';
 import {
   INDEPENDENT_TIER2_VALUE_ROLES,
@@ -27,19 +28,6 @@ export type Tier2FacetOutputIdentityInput = {
   evidence: Tier2FacetEvidence;
   authoredStageIndex: number;
   parentFacetIdentities?: readonly string[];
-};
-
-const canonicalizeIdentity = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(canonicalizeIdentity);
-  if (value && typeof value === 'object') {
-    return Object.keys(value as Record<string, unknown>)
-      .sort()
-      .reduce<Record<string, unknown>>((canonical, key) => {
-        canonical[key] = canonicalizeIdentity((value as Record<string, unknown>)[key]);
-        return canonical;
-      }, {});
-  }
-  return value;
 };
 
 const identityWitnesses = (
@@ -163,7 +151,7 @@ const buildFacetIdentity = ({
       .filter(Boolean))].sort();
     if (parents.length === 0) return null;
     const { currentIndex, priorIndex } = indexes;
-    return JSON.stringify(canonicalizeIdentity({
+    return JSON.stringify(canonicalize({
       facet: recipeEntry.id,
       parents,
       authoredMoment: authoredStageIndex,
@@ -188,7 +176,7 @@ const buildFacetIdentity = ({
   }
 
   const { currentIndex, priorIndex } = indexes;
-  return JSON.stringify(canonicalizeIdentity({
+  return JSON.stringify(canonicalize({
     facet: recipeEntry.id,
     authoredMoment: persistent ? null : authoredStageIndex,
     currentAnchors: identityRoleBlock(
@@ -238,9 +226,9 @@ export const buildTier2FacetOutputIdentities = (
     ? JSON.parse(buildFacetIdentity(input, true) ?? 'null') : null;
   if (bindingPath) delete bindingPath.currentAnchors['scope.domain'];
   const pathIdentity = bindingPath && Object.keys(bindingPath.priorAnchors).length === 0
-    ? JSON.stringify(canonicalizeIdentity(bindingPath)) : null;
+    ? JSON.stringify(canonicalize(bindingPath)) : null;
   return input.evaluation.outputs.map((piece) => {
     const pieceIdentity = pathIdentity && piece === 'Variable-binding path' ? pathIdentity : facetIdentity;
-    return { piece, key: JSON.stringify(canonicalizeIdentity({ facetIdentity: pieceIdentity, piece })) };
+    return { piece, key: JSON.stringify(canonicalize({ facetIdentity: pieceIdentity, piece })) };
   });
 };

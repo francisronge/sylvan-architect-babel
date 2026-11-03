@@ -27,7 +27,7 @@ export const stripEdgePunctuationAndSymbols = (value) => {
  * A token made only of punctuation (and spacing). Each analysis decides whether
  * such punctuation is a syntactic word, so an analysis may leave it unclaimed.
  */
-export const isPunctuationOnlyToken = (value) => /^[\p{P}\p{White_Space}\u200B]+$/u.test(String(value).normalize('NFC'));
+const isPunctuationOnlyToken = (value) => /^[\p{P}\p{White_Space}\u200B]+$/u.test(String(value).normalize('NFC'));
 
 export const normalizeSurfaceToken = (value) =>
   stripEdgePunctuationAndSymbols(value).toLowerCase().normalize('NFC');

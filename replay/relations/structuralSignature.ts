@@ -136,7 +136,7 @@ export type StructureIndex = {
   roots: string[];
 };
 
-export const indexStructure = (forest: readonly SyntaxNode[] | undefined): StructureIndex => {
+const indexStructure = (forest: readonly SyntaxNode[] | undefined): StructureIndex => {
   const byId = new Map<string, IndexedNode>();
   const counts = new Map<string, number>();
   const lineages = new Map<string, number>();
@@ -158,7 +158,7 @@ export const indexStructure = (forest: readonly SyntaxNode[] | undefined): Struc
 };
 
 /** Bracketed annotations in a label, as authored text. */
-export const labelAnnotations = (label?: string): string[] => [...String(label ?? '').matchAll(/\[([^\[\]]*)\]/gu)]
+const labelAnnotations = (label?: string): string[] => [...String(label ?? '').matchAll(/\[([^\[\]]*)\]/gu)]
   .flatMap(match => match[1].split(/[,;]/u)).map(item => item.trim()).filter(Boolean);
 
 const fold = (text: string) => text.normalize('NFKC').toLocaleLowerCase('und').replace(/\s+/gu, ' ').trim();
@@ -191,12 +191,12 @@ const subtreeShape = (node: SyntaxNode): unknown[] => [
 ];
 const subtreeFingerprint = (node: SyntaxNode): string => JSON.stringify(subtreeShape(node));
 
-export const dominates = (index: StructureIndex, upper: string, lower: string): boolean =>
+const dominates = (index: StructureIndex, upper: string, lower: string): boolean =>
   upper !== lower && Boolean(index.byId.get(lower)?.ancestors.includes(upper));
 
 /** Standard c-command: neither dominates the other, and the first branching
  * node above `a` dominates `b`. */
-export const cCommands = (index: StructureIndex, a: string, b: string): boolean => {
+const cCommands = (index: StructureIndex, a: string, b: string): boolean => {
   const left = index.byId.get(a), right = index.byId.get(b);
   if (!left || !right || a === b || left.rootId !== right.rootId) return false;
   if (dominates(index, a, b) || dominates(index, b, a)) return false;
@@ -207,7 +207,7 @@ export const cCommands = (index: StructureIndex, a: string, b: string): boolean 
   return false;
 };
 
-export const pairRelation = (index: StructureIndex, a: string, b: string): StructuralPairRelation => {
+const pairRelation = (index: StructureIndex, a: string, b: string): StructuralPairRelation => {
   if (a === b) return 'same';
   const left = index.byId.get(a), right = index.byId.get(b);
   if (!left || !right || left.rootId !== right.rootId) return 'different-workspace';

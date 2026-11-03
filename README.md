@@ -54,6 +54,8 @@ Babel has two primary users:
 
 #### Babel as a benchmark framework
 
+Babel has not published a benchmark yet; a reviewed, claim-bearing benchmark comes after the public app (see [ROADMAP.md](./ROADMAP.md), Programs 7 and 8).
+
 With Babel's model routes in the local runtime, you can run controlled syntax sweeps, for example:
 
 - hundreds of syntactic test sentences in a short evaluation window.
@@ -200,12 +202,15 @@ The view also includes:
 
 ### 10) Output artifacts
 
-The authored model output is exactly `derivationStages`. Every stage has four required fields:
+The authored model output is exactly `derivationStages`. Every stage has five required fields:
 
 - `statement`
 - `stageRecord`
 - `relations`
-- `workspaceForest`
+- `workspace` (the stage's current roots)
+- `nodes` (only what the stage introduces or changes, written as trees)
+
+Babel expands `workspace` and `nodes` into a nested `workspaceForest` before any other check. Analyses written directly as nested forests, including every record saved earlier, are read unchanged.
 
 Babel sends the model only the sentence; the model decides where its words are, and Babel checks that the final stage spells the sentence. A complete tree whose words are the sentence's in another order is still drawn, marked as an invalid analysis: the header says how many words are out of order, and the last step and the Canopy show the sentence beside the model's tree, with those words in amber. An optional `realizations` field associates existing syntax nodes with the text they realize. For example, separate `walk` and `-ed` leaves may jointly realize `walked`, and one node may realize separate pieces such as French *ne … pas*. The model supplies the association; Babel preserves the pieces and checks the spelling without deriving morphology or changing the tree. Analyses whose nodes' own words spell the sentence omit the field. See the [realization contract](docs/research/morphology-realization-audit.md#contract-reuse-check-and-proposed-extension).
 
@@ -264,7 +269,9 @@ Saving and reopening Tree Bank entries also need a secure page (`https://` or
 
 Babel is being built as an open resource for linguistics and AI interpretability work.
 
-The current dependency order is maintained in [ROADMAP.md](./ROADMAP.md):
-contract qualification, durable Tree Bank integration, the new web application,
-syntactician workspace features, operations and shipping, a generation archive
-and reviewed derivational corpus, and, last, benchmark releases.
+The remaining work is maintained in [ROADMAP.md](./ROADMAP.md). The current
+focus is the public app: a simple interface built around Replay, and a Tree
+Bank that grows into a minimal syntactician's workbench. Hosting, a generation
+archive, a reviewed derivational corpus and, last, benchmark releases follow.
+The model and effort menus described above belong to the local app; the
+public app will not show them.

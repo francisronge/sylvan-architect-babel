@@ -170,7 +170,7 @@ test('control: mark-distance reports a plaque left far from its anchor, as the a
 test('control: duplicate-plaque reports one node showing the same plaque for two claims', () => {
   // Sol h1-038 (29 October held-out batch) showed two Agent grids on higherVbar at
   // steps 37-38 (now 32-33): the stage-2 theta claim and the stage-4 chain claim restating it.
-  const records = JSON.parse(readFileSync(new URL('./helpers/heldoutDefectRecords.json', import.meta.url), 'utf8'));
+  const records = JSON.parse(readFileSync(new URL('./data/heldoutDefectRecords.json', import.meta.url), 'utf8'));
   const { sentence, inputTokens, derivationStages } = records['sol-h1-038-a1'];
   const frames = layoutVisualFrames(prepareVisualRecord({ sentence, inputTokens, derivationStages }), [VIEWPORTS[0]], { steps: [31, 32, 33] });
   const agents = frame => frame.plaques.filter(plaque => plaque.anchorNodeId === 'higherVbar' && plaque.text === 'theta Agent');

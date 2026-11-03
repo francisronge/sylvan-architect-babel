@@ -3,8 +3,8 @@ import { createFailure, withFailureDetails } from './validationErrors.js';
 import { resolveRealizations, validateRealizations } from './realizations.js';
 import { alignWordsToTokens, tokenizeSentenceSurfaceOrder } from './surfaceTokens.js';
 import { collectNodeReferencesById } from './treeBasics.js';
-import { authoredWord } from './nodePronunciation.js';
-import { collectOvertTerminalNodes, deriveCanonicalSurfaceSpans } from './syntaxTree.js';
+import { authoredWord, collectPronouncedLeaves } from './nodePronunciation.js';
+import { deriveCanonicalSurfaceSpans } from './syntaxTree.js';
 import { createAuthoredWorkspaceHelpers } from './authoredWorkspace.js';
 
 const { cloneJson, expandWorkspaceForest, createExpansionBudget, ...authoredWorkspace } =
@@ -96,7 +96,7 @@ const canonicalizeDerivationRootCandidateForSentence = (root, sentenceTokens = [
         }
       ])
     );
-    const overtTerminals = roots.flatMap(collectOvertTerminalNodes);
+    const overtTerminals = roots.flatMap(collectPronouncedLeaves);
     const overtTerminalIds = new Set(
       overtTerminals.map((node) => String(node.id || ''))
     );
@@ -172,7 +172,7 @@ const canonicalizeDerivationRootCandidateForSentence = (root, sentenceTokens = [
     }
     return null;
   }
-  const overtTerminals = roots.flatMap(collectOvertTerminalNodes)
+  const overtTerminals = roots.flatMap(collectPronouncedLeaves)
     .map((node) => authoredWord(node))
     .map((token) => String(token || '').trim())
     .filter(Boolean);
@@ -194,7 +194,7 @@ export const buildCanonicalDerivationFromDerivationFrames = (
   );
   if (!finalForest) return null;
   const rootCandidates = finalForest.filter((root) => {
-    const overtTerminals = collectOvertTerminalNodes(root).map((node) => authoredWord(node)).filter(Boolean);
+    const overtTerminals = collectPronouncedLeaves(root).map((node) => authoredWord(node)).filter(Boolean);
     return Boolean(alignWordsToTokens(overtTerminals, sentenceTokens));
   });
   const realizationSources = new Set((frame?.after?.realizations || []).flatMap((group) => group.nodeIds));

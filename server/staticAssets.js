@@ -7,7 +7,7 @@ import path from 'node:path';
 export const HASHED_ASSET_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 export const HASHED_ASSET_NAME = /-[A-Za-z0-9_-]{8}\.[A-Za-z0-9]+$/;
 
-export const isHashedAsset = (distPath, filePath) => {
+const isHashedAsset = (distPath, filePath) => {
   const relative = path.relative(path.join(distPath, 'assets'), filePath);
   return !relative.startsWith('..') && !path.isAbsolute(relative) && HASHED_ASSET_NAME.test(path.basename(relative));
 };

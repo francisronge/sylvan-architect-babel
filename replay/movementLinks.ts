@@ -2,7 +2,6 @@
 import { type ResolvedRelationLink } from '../relationLinks.ts';
 import { type DerivationOperation, type SyntaxNode } from '../types.ts';
 import {
-  isFrontingMovementIdentity,
   isMovementIdentity,
   isRegisteredTrajectoryRelation,
   movementIdentityKind
@@ -45,8 +44,6 @@ export const normalizeTrajectoryKind = (kind?: ResolvedRelationLink['trajectoryK
 const isHeadLikeOperationLabel = (operation?: string): boolean => movementIdentityKind(operation) === 'head';
 
 export const isPhrasalReplayMovement = (link: ResolvedRelationLink): boolean => normalizeTrajectoryKind(link.trajectoryKind) === 'phrasal';
-
-export const isFrontingLikeOperationLabel = (operation?: string): boolean => isFrontingMovementIdentity(operation);
 
 const isPhrasalTrajectoryOperationLabel = (operation?: string): boolean => movementIdentityKind(operation) === 'phrasal';
 
@@ -209,13 +206,11 @@ export const resolveDerivationMovementTransitions = (
 };
 
 /*
- * Exact folded-identity movement classification. The substring/regex fallback
- * that used to live here drew movement arrows for authored non-movement
- * relations (an authored `CliticCluster` or `FocusShift` matched the
- * pattern). Classification now consults the declared exact identity set and
- * nothing else. Unlisted names are not movement — they dispatch through the
- * exact registry and, when unregistered, take the neutral fallback
- * presentation.
+ * Exact folded-identity movement classification, never a text pattern: a
+ * pattern would draw movement arrows for non-movement relations such as an
+ * authored `CliticCluster` or `FocusShift`. Unlisted names are not movement;
+ * they dispatch through the exact registry and, when unregistered, take the
+ * neutral fallback presentation.
  */
 export const isMoveLikeOperation = (operation?: DerivationOperation | string): boolean => isMovementIdentity(String(operation || ''));
 
@@ -260,8 +255,6 @@ export const stepRepresentsMovement = (step?: PlaybackStep | null): boolean => {
   if (isMoveLikeOperation(step.operation))
     return true;
   if (getActiveReplayRelationLinks(step).some(isResolvedMovementLink))
-    return true;
-  if (String(step.chainId || ''))
     return true;
   if (isTraceLike(step.targetLabel))
     return true;

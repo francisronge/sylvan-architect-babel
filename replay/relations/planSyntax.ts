@@ -1,6 +1,20 @@
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import { TRAJECTORY_WITNESS_ROLES } from './renderFamilies.ts';
 
+/** A value with every object's keys sorted, so `JSON.stringify` gives one key per content. */
+export const canonicalize = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>)
+      .sort()
+      .reduce<Record<string, unknown>>((result, key) => {
+        result[key] = canonicalize((value as Record<string, unknown>)[key]);
+        return result;
+      }, {});
+  }
+  return value;
+};
+
 export const flattenAnchorIds = (value: string | string[] | undefined): string[] =>
   (Array.isArray(value) ? value : [value])
     .map((item) => String(item || ''))

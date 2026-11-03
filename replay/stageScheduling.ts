@@ -18,7 +18,7 @@ import { orderRelationMoments } from './relationMomentOrder.ts';
 import { buildRenderableCommittedCanvasData, buildVisibleSyntaxSnapshotFromHierarchy, extractReplayWorkspaceLabels } from './replayCanvas.ts';
 import { mergeReplayDetailBlocks } from './replayPanelFormatting.ts';
 import type { ReplayStageContext } from './stageContext.ts';
-import { planStageRelations, type RelationPlacement } from './stageRelationPlan.ts';
+import { ownsTrajectoryPlacement, planStageRelations, type RelationPlacement } from './stageRelationPlan.ts';
 import { createStageRelationSnapshots } from './stageRelationSnapshot.ts';
 import {
   collectSyntaxSubtreeNodeIds,
@@ -39,6 +39,9 @@ const withShownWorkspaceLabels = (step: PlaybackStep): PlaybackStep => {
   const visibleNodeIds = new Set((step.replayVisibleNodeIds || []).map(String));
   return { ...step, workspaceAfter: extractReplayWorkspaceLabels(buildVisibleSyntaxSnapshotFromHierarchy({ root: hierarchy, visibleNodeIds })) };
 };
+
+/** The authored node a step builds, through a display node that stands for it. */
+const stepOwnerId = (step: PlaybackStep): string => replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
 
 /**
  * Preceding nodes each construction step attaches to their parent in the
@@ -79,7 +82,7 @@ export const finalizeStageReplay = (
     index,
     plannedStage,
     frameHasNonMovementTreeTransition,
-    frameHasMovementPayload,
+    frameRelocatesPriorLanding,
     frameRelationSteps,
     nonMovementTransitionNodeIds,
     workspaceRoots,
@@ -113,7 +116,7 @@ export const finalizeStageReplay = (
     });
     const releasedWrappers = new Set<string>();
     const foldedHost = (nodeId: string) => transitionHostNodeIds.has(nodeId) && !laterAttachments.has(nodeId);
-    if (frameHasNonMovementTreeTransition && !frameHasMovementPayload
+    if (frameHasNonMovementTreeTransition && !frameRelocatesPriorLanding
       && !frameRelationSteps.some(relation => relation.recoveredMovement?.transition)) {
       // A claim's moment builds its output and those parents. Every other
       // step remains ordinary construction; one that consumes an output
@@ -127,7 +130,7 @@ export const finalizeStageReplay = (
       const operation = String(step.operation || '').trim();
       if (!['LexicalSelect', 'Project', 'ExternalMerge'].includes(operation))
         return false;
-      const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
+      const stepTargetNodeId = stepOwnerId(step);
       if (!stepTargetNodeId)
         return false;
       return relationPlacements.some((placement) => {
@@ -138,7 +141,7 @@ export const finalizeStageReplay = (
             || foldedHost(stepTargetNodeId) && transitionHostNodeIds.get(stepTargetNodeId) === placement.relationIndex)) {
           return true;
         }
-        if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition)
+        if (!ownsTrajectoryPlacement(placement))
           return false;
         if ((placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).flatMap(movement => newReceivingHeadNodeIds(movement, previousFrameWorkspaceRoots, workspaceRoots)).includes(stepTargetNodeId))
           return true;
@@ -162,11 +165,11 @@ export const finalizeStageReplay = (
      */
     const activeRelationIndexes = new Set<number>();
     const normalizeWithheldLandingHostStep = (step: PlaybackStep): PlaybackStep => {
-      const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
+      const stepTargetNodeId = stepOwnerId(step);
       if (!stepTargetNodeId)
         return step;
       const withheldLandingNodeIds = new Set(relationPlacements
-        .filter((placement) => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
+        .filter(ownsTrajectoryPlacement)
         .flatMap((placement) => placement.authoredTargetNodeIds.filter(id => findParentNodeIdInForest(workspaceRoots, id) === stepTargetNodeId))
         .filter(Boolean));
       if (withheldLandingNodeIds.size === 0)
@@ -241,12 +244,12 @@ export const finalizeStageReplay = (
       const beforeMovement: typeof pendingStructuralStepEntries = [];
       const afterMovement: typeof pendingStructuralStepEntries = [];
       pendingStructuralStepEntries.forEach((entry) => {
-        const stepTargetNodeId = replayOwnerId(entry.step.replayCanvasData, String(entry.step.targetNodeId || ''));
+        const stepTargetNodeId = stepOwnerId(entry.step);
         (movementPrerequisiteNodeIds.has(stepTargetNodeId) ? beforeMovement : afterMovement).push(entry);
       });
       const deferredVisibleNodeIds = new Set(afterMovement.flatMap((entry) => entry.introducedVisibleNodeIds));
       const deferredStructuralTargetNodeIds = new Set(afterMovement
-        .map((entry) => replayOwnerId(entry.step.replayCanvasData, String(entry.step.targetNodeId || '')))
+        .map((entry) => stepOwnerId(entry.step))
         .filter(Boolean));
       const scrubDeferredVisibility = (entry: (typeof beforeMovement)[number]) => ({
         ...entry,
@@ -283,7 +286,7 @@ export const finalizeStageReplay = (
     const structuralProducers = new Map(pendingStructuralSteps.map((step, stepIndex) => [step.targetNodeId, stepIndex]));
     const relationProducers = new Map<string, number>();
     relationPlacements.forEach((placement) => {
-      const ownedIds = placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
+      const ownedIds = ownsTrajectoryPlacement(placement)
         ? [
           ...[...placement.authoredTargetNodeIds, ...placement.sourceNodeIds].flatMap(nodeId => collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId)))
             .filter(nodeId => !findExactNodeByIdInForest(structuralWorkspaceRoots, nodeId)),
@@ -328,7 +331,7 @@ export const finalizeStageReplay = (
         .forEach(child => attachmentPrerequisites.push(child.id));
       // A landing joins a parent that ordinary construction builds (one an
       // earlier claim needs first) only once that construction has run.
-      if (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
+      if (ownsTrajectoryPlacement(placement))
         placement.authoredTargetNodeIds.map(nodeId => findParentNodeIdInForest(workspaceRoots, nodeId))
           .filter(parentId => parentId && structuralProducers.has(parentId) && !landingHostIds.has(parentId))
           .forEach(parentId => attachmentPrerequisites.push(parentId));
@@ -336,7 +339,7 @@ export const finalizeStageReplay = (
     };
     // A movement's other current anchors are context: its moment neither
     // waits for them nor builds them early.
-    const contextNodeIds = (placement: RelationPlacement): string[] => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
+    const contextNodeIds = (placement: RelationPlacement): string[] => ownsTrajectoryPlacement(placement)
       ? [...new Set(relationAnchorNodeIds(placement.relation.anchors))].filter(nodeId => !placement.relationAnchorNodeIds.includes(nodeId)
         && findExactNodeByIdInForest(workspaceRoots, nodeId))
       : [];
@@ -363,15 +366,14 @@ export const finalizeStageReplay = (
     // parent that keeps its id is introduced at its current place by the
     // movement whose moved phrase contains it: a landing inside a phrase
     // another movement of the stage relocates waits for that relocation.
-    const movesPhrase = (placement: RelationPlacement) => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition;
     const relocatingOwners = new Map<string, Set<number>>();
-    relationPlacements.filter(movesPhrase).forEach(placement => {
+    relationPlacements.filter(ownsTrajectoryPlacement).forEach(placement => {
       const relocated = [...placement.authoredTargetNodeIds.filter(nodeId => findParentNodeIdInForest(workspaceRoots, nodeId)
         !== findParentNodeIdInForest(previousFrameWorkspaceRoots, nodeId)), ...getMovementPiedPipedNodeIds(placement)];
       relocated.flatMap(nodeId => collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId)))
         .forEach(nodeId => relocatingOwners.set(nodeId, (relocatingOwners.get(nodeId) ?? new Set()).add(placement.relationIndex)));
     });
-    const landingParentOwners = (placement: RelationPlacement): number[] => movesPhrase(placement)
+    const landingParentOwners = (placement: RelationPlacement): number[] => ownsTrajectoryPlacement(placement)
       ? placement.authoredTargetNodeIds.map(nodeId => findParentNodeIdInForest(workspaceRoots, nodeId))
         .filter(Boolean)
         .flatMap(parentId => [
@@ -386,14 +388,14 @@ export const finalizeStageReplay = (
     // order), unless the movement itself needs the merge's output.
     const subtreeIds = (nodeId: string) => collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId));
     const landingCompletions = new Map<string, number[]>();
-    relationPlacements.filter(placement => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition).forEach(placement => {
+    relationPlacements.filter(ownsTrajectoryPlacement).forEach(placement => {
       placement.authoredTargetNodeIds.map(nodeId => findParentNodeIdInForest(workspaceRoots, nodeId))
         .filter(parentId => parentId && initiallyAvailableNodeIds.has(parentId) && !relationProducers.has(parentId)
           && placement.sourceNodeIds.some(sourceId => subtreeIds(parentId).includes(sourceId)))
         .forEach(parentId => landingCompletions.set(parentId, [...new Set([...(landingCompletions.get(parentId) ?? []), placement.relationIndex])]));
     });
     const completingMovements = (step: PlaybackStep): { relationIndex: number; phraseId: string }[] => {
-      const targetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
+      const targetNodeId = stepOwnerId(step);
       return (step.sourceNodeIds || []).filter(nodeId => nodeId !== step.targetNodeId)
         .flatMap(phraseId => (landingCompletions.get(phraseId) ?? []).map(relationIndex => ({ relationIndex, phraseId })))
         .filter(({ relationIndex }) => !requiredNodeIds(relationPlacements.find(placement => placement.relationIndex === relationIndex)!, initiallyAvailableNodeIds)
@@ -439,13 +441,13 @@ export const finalizeStageReplay = (
       () => new Set([...laterAttachments].flatMap(([wrapper, hosts]) => releasedWrappers.has(wrapper) ? [] : hosts)),
       playsAfter
     );
-    const relationInsertionIndex = (placement: NonNullable<RelationPlacement>): number => {
+    const relationInsertionIndex = (placement: RelationPlacement): number => {
       const landingHostNodeIds = getMovementCreatedLandingHostPaths(placement).map(path => path.at(-1)!);
       if (!landingHostNodeIds.length)
         return pendingStructuralSteps.length;
       if (movementCreatedLandingHosts.length === 1) {
         const firstNonPrerequisiteIndex = pendingStructuralSteps.findIndex((step) => {
-          const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
+          const stepTargetNodeId = stepOwnerId(step);
           return !movementPrerequisiteNodeIds.has(stepTargetNodeId);
         });
         return firstNonPrerequisiteIndex >= 0
@@ -453,7 +455,7 @@ export const finalizeStageReplay = (
           : pendingStructuralSteps.length;
       }
       const firstHigherProjectionIndex = pendingStructuralSteps.findIndex((step) => {
-        const stepTargetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
+        const stepTargetNodeId = stepOwnerId(step);
         if (!stepTargetNodeId)
           return false;
         return landingHostNodeIds.some(id => collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, stepTargetNodeId)).includes(id));
@@ -602,6 +604,13 @@ export const finalizeStageReplay = (
     // follows at once: a relation waiting for that moment plays right after
     // it, once any construction step in progress, which may build what the
     // relation needs, completes.
+    const timingConflictSubject = (placement: RelationPlacement) =>
+      `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${placement.relation.authoredRelationIndex + 1} (${placement.relationLabel})`;
+    const describeUnavailable = (nodeIds: string[]) => nodeIds.map(nodeId => {
+      const owner = relationProducers.get(nodeId);
+      return owner === undefined ? `${nodeId} before its structural prerequisites are available`
+        : `${nodeId} before relation ${frameRelationSteps[owner].authoredRelationIndex + 1} (${frameRelationSteps[owner].relation}) introduces it`;
+    }).join('; ');
     let latestAuthored = -1;
     const relationDue = (through: number) => nextRelation < orderedPlacements.length && (nextRelation <= through
       || visitingStructuralSteps.size === 0 && orderedPlacements[nextRelation].relationIndex < latestAuthored);
@@ -614,12 +623,7 @@ export const finalizeStageReplay = (
         const requiredIds = requiredNodeIds(placement, availableNodeIds);
         const missing = Array.from(new Set(requiredIds.flatMap(nodeId => ensureNodeAvailable(nodeId, placement.relationIndex))));
         if (missing.length) {
-          const descriptions = missing.map(nodeId => {
-            const owner = relationProducers.get(nodeId);
-            return owner === undefined ? `${nodeId} before its structural prerequisites are available`
-              : `${nodeId} before relation ${(frameRelationSteps[owner].authoredRelationIndex ?? owner) + 1} (${frameRelationSteps[owner].relation}) introduces it`;
-          });
-          const message = `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${(placement.relation.authoredRelationIndex ?? placement.relationIndex) + 1} (${placement.relationLabel}) requires ${descriptions.join('; ')}. No Replay order provides it first, so authored relation order is kept; unavailable structure is not introduced early.`;
+          const message = `${timingConflictSubject(placement)} requires ${describeUnavailable(missing)}. No Replay order provides it first, so authored relation order is kept; unavailable structure is not introduced early.`;
           const involvedRelations = new Set([
             placement.relationIndex,
             ...missing.map(nodeId => relationProducers.get(nodeId))
@@ -643,15 +647,10 @@ export const finalizeStageReplay = (
         // without delaying the movement or revealing that context early.
         const unavailableContext = contextNodeIds(placement).filter(nodeId => !missing.includes(nodeId) && !availableNodeIds.has(nodeId));
         if (unavailableContext.length) {
-          const descriptions = unavailableContext.map(nodeId => {
-            const owner = relationProducers.get(nodeId);
-            return owner === undefined ? `${nodeId} before its structural prerequisites are available`
-              : `${nodeId} before relation ${(frameRelationSteps[owner].authoredRelationIndex ?? owner) + 1} (${frameRelationSteps[owner].relation}) introduces it`;
-          });
           placement.relation = {
             ...placement.relation, movementDiagnostics: [
               ...(placement.relation.movementDiagnostics || []),
-              `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${(placement.relation.authoredRelationIndex ?? placement.relationIndex) + 1} (${placement.relationLabel}) has unavailable authored context: ${descriptions.join('; ')}. Its proven movement keeps its moment; unavailable context is not introduced early.`
+              `${timingConflictSubject(placement)} has unavailable authored context: ${describeUnavailable(unavailableContext)}. Its proven movement keeps its moment; unavailable context is not introduced early.`
             ]
           };
         }
