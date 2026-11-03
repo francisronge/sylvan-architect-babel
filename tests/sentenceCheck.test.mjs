@@ -72,3 +72,10 @@ test('a realization group that spells several words is matched word by word', ()
   assert.equal(result.sentenceCheck.treeReading, 'New York. Mary likes');
   assert.deepEqual(result.sentenceCheck.words.map(word => [word.text, word.nodeIds]), [['New', ['ny']], ['York.', ['ny']], ['Mary', ['mary']], ['likes', ['likes']]]);
 });
+
+test('a punctuation terminal keeps its place in the tree\'s own reading', () => {
+  const payload = clause(['john', 'John'], ['mary', 'Mary'], ['likes', 'likes'], ['stop', '.']);
+  const [result] = convertSpelloutPayload(payload, 'Mary likes John.');
+  assert.equal(result.sentenceCheck.treeReading, 'John Mary likes .');
+  assert.deepEqual(outOfOrder(result.sentenceCheck), ['John.']);
+});

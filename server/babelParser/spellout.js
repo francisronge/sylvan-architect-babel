@@ -719,8 +719,9 @@ const readWordOrder = (treeReading, sentence, meter) => {
   const wanted = sentenceWords.map(caselessSpelling);
   // A group's text may spell several words; each is matched on its own and
   // keeps the group's terminals.
-  const items = treeReading.flatMap(item => item.text.split(SPACE).map(text => ({ text, nodeIds: item.nodeIds })))
-    .filter(item => caselessSpelling(item.text));
+  const pieces = treeReading.flatMap(item => item.text.split(SPACE).filter(Boolean).map(text => ({ text, nodeIds: item.nodeIds })));
+  // Punctuation terminals spell themselves where the tree puts them (below).
+  const items = pieces.filter(item => caselessSpelling(item.text));
   const folded = items.map(item => caselessSpelling(item.text));
   if (!items.length || !wanted.length) return null;
   const left = new Map();
@@ -761,7 +762,19 @@ const readWordOrder = (treeReading, sentence, meter) => {
   // A word is in every longest run when it alone holds its position in one.
   const fixed = order.map((_, i) => onBest[i] && !order.some((__, j) => j !== i && onBest[j] && ending[j] === ending[i]));
   return {
-    reading: groups.map((_, index) => sentenceWords[order[index]]).join(' '),
+    // The tree's own reading: the sentence words in tree order. Where the tree
+    // writes punctuation terminals, the words lose their edge punctuation and
+    // the terminals stand where the tree puts them.
+    reading: !pieces.some(piece => !caselessSpelling(piece.text)) ? groups.map((_, index) => sentenceWords[order[index]]).join(' ') : (() => {
+      const core = text => { const points = codePoints(text.trim()), { lead, trail } = edgePunctuation(text); return points.slice(lead, points.length - trail).join(''); };
+      const out = [];
+      pieces.forEach((piece) => {
+        if (!caselessSpelling(piece.text)) { out.push(piece.text); return; }
+        const group = groups.findIndex(candidate => items[candidate.start] === piece);
+        if (group >= 0) out.push(core(sentenceWords[order[group]]));
+      });
+      return out.join(' ');
+    })(),
     words: groups.map((group, index) => ({
       text: sentenceWords[order[index]],
       sentenceIndex: order[index],
