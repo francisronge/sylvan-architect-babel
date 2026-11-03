@@ -3,7 +3,7 @@ import { normalizeTier2Synonym } from './tier2Synonyms.ts';
 
 const mappingLabel = /^(?:(?:an?|the|authored|explicit|local|morphological|pf) )*(?:realization|realisation|exponence|vocabulary insertion|spell out|pf) (?:mapping|rewrite)(?: rule)?$/u;
 const clauses = (name: string) => normalizeTier2Synonym(name).split(/\s*(?:[;,]|\band\b|\bbut\b)\s*/u);
-export const hasExplicitPFMappingLabel = (name: string | undefined): boolean =>
+const hasExplicitPFMappingLabel = (name: string | undefined): boolean =>
   clauses(name ?? '').some(clause => mappingLabel.test(clause));
 
 /** Unqualified status fields belong to this mapping only in an otherwise

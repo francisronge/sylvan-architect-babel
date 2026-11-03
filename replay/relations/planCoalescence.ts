@@ -1,7 +1,7 @@
 import type { SyntaxNode } from '../../types.ts';
 import { collectionAssignment, composeFeatureBundles } from './featureComposition.ts';
 import { authoredOutcomeLiterals } from './outcomeResolver.ts';
-import { flattenAnchorIds } from './planSyntax.ts';
+import { canonicalize, flattenAnchorIds } from './planSyntax.ts';
 import type { RelationClaimDispatch } from './relationClaims.ts';
 import { mergeAnchorSetOrganization } from './relationFrame.ts';
 import {
@@ -57,18 +57,6 @@ export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], 
     'positionNodeIds',
     'orthogonalDepartureNodeIds'
   ]);
-  const canonicalize = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(canonicalize);
-    if (value && typeof value === 'object') {
-      return Object.keys(value as Record<string, unknown>)
-        .sort()
-        .reduce<Record<string, unknown>>((out, key) => {
-          out[key] = canonicalize((value as Record<string, unknown>)[key]);
-          return out;
-        }, {});
-    }
-    return value;
-  };
   const coalesceKeyOf = (item: RelationPlanItem): string => {
     if (item.canonicalClaimIdentity) {
       return JSON.stringify(canonicalize({

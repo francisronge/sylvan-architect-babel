@@ -89,7 +89,7 @@ export const isMovementIdentity = (label?: string): boolean => {
 /**
  * Authored relations use the production registry's exact identity policy.
  * This is deliberately narrower than `isMovementIdentity`, which also knows
- * Replay's own operation labels and folded legacy operation spellings.
+ * Replay's own pipeline operation and chain labels.
  */
 export const registeredTrajectoryDisplayKind = (
   label?: string,
@@ -142,11 +142,6 @@ export const isRegisteredTrajectoryRelation = (
   anchors?: AuthoredTrajectoryAnchors
 ): boolean => Boolean(registeredTrajectoryDisplayKind(label, anchors));
 
-export const isRegisteredFrontingTrajectoryRelation = (
-  label?: string,
-  anchors?: AuthoredTrajectoryAnchors
-): boolean => isRegisteredTrajectoryRelation(label, anchors) && isFrontingMovementIdentity(label);
-
 /**
  * Exact head/phrasal kind per movement identity. Generic labels (move,
  * movement, internalmerge, remerge, achain) carry no kind — structure decides
@@ -154,7 +149,7 @@ export const isRegisteredFrontingTrajectoryRelation = (
  * another workspace. Unlisted names carry none either: no text pattern ever
  * assigns a kind.
  */
-export const MOVEMENT_IDENTITY_KINDS: Readonly<Record<string, 'head' | 'phrasal'>> = {
+const MOVEMENT_IDENTITY_KINDS: Readonly<Record<string, 'head' | 'phrasal'>> = {
   headmove: 'head',
   headmovement: 'head',
   headchain: 'head',
@@ -178,12 +173,9 @@ export const MOVEMENT_IDENTITY_KINDS: Readonly<Record<string, 'head' | 'phrasal'
 export const movementIdentityKind = (label?: string): 'head' | 'phrasal' | '' =>
   MOVEMENT_IDENTITY_KINDS[foldMovementIdentityKey(label)] || '';
 
-/**
- * Exact fronting-type (A-bar-flavored) movement identities, replacing the old
- * fronting regex. Used by replay step sequencing (e.g. pre-fronting casing and
- * landing-step synthesis exclusions).
- */
-export const FRONTING_MOVEMENT_IDENTITIES: ReadonlySet<string> = new Set([
+/** Exact fronting-type (A-bar-flavored) movement identities; Replay
+ * synthesizes no pre-movement landing merge for them. */
+const FRONTING_MOVEMENT_IDENTITIES: ReadonlySet<string> = new Set([
   'headmove',
   'abarmove',
   'abarmovement',
