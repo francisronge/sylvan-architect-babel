@@ -62,3 +62,13 @@ test('in a response with several analyses each reordered one is kept beside the 
   assert.equal(bundle.analyses[1].sentenceCheck.treeReading, 'Mary John persuaded to leave.');
   assert.deepEqual(bundle.inputTokens, ['Mary', 'persuaded', 'John', 'to', 'leave']);
 });
+
+test('a realization group that spells several words is matched word by word', () => {
+  const payload = { derivationStages: [{ statement: 'Done.', stageRecord: 'Done.', relations: [],
+    workspaceForest: [node('s', 'S', node('n', 'N', leaf('ny', 'NY')), leaf('mary', 'Mary'), leaf('likes', 'likes'))],
+    realizations: [{ nodeIds: ['n'], text: 'New York' }] }] };
+  const [result] = convertSpelloutPayload(payload, 'Mary likes New York.');
+  assert.equal(result.ok, false);
+  assert.equal(result.sentenceCheck.treeReading, 'New York. Mary likes');
+  assert.deepEqual(result.sentenceCheck.words.map(word => [word.text, word.nodeIds]), [['New', ['ny']], ['York.', ['ny']], ['Mary', ['mary']], ['likes', ['likes']]]);
+});

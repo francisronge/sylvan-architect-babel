@@ -717,7 +717,10 @@ const convertAligned = (item, tokens) => {
 const readWordOrder = (treeReading, sentence, meter) => {
   const sentenceWords = sentence.split(SPACE).map(text => text.trim()).filter(text => caselessSpelling(text));
   const wanted = sentenceWords.map(caselessSpelling);
-  const items = treeReading.filter(item => caselessSpelling(item.text));
+  // A group's text may spell several words; each is matched on its own and
+  // keeps the group's terminals.
+  const items = treeReading.flatMap(item => item.text.split(SPACE).map(text => ({ text, nodeIds: item.nodeIds })))
+    .filter(item => caselessSpelling(item.text));
   const folded = items.map(item => caselessSpelling(item.text));
   if (!items.length || !wanted.length) return null;
   const left = new Map();
