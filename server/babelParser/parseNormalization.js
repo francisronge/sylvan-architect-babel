@@ -254,27 +254,13 @@ export const normalizeParseBundle = (
     }));
   }
   if (enforceDerivationRouteContract) {
-    const topLevelFields = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? Object.keys(parsed)
-      : [];
-    const hasSingleAnalysisShape = (
-      topLevelFields.length !== 1
-        ? false
-        : Object.prototype.hasOwnProperty.call(parsed || {}, 'derivationStages')
-    );
-    const hasAmbiguityShape = (
-      topLevelFields.length === 1
-      && Object.prototype.hasOwnProperty.call(parsed || {}, 'analyses')
+    const hasOnlyField = (object, field) => Boolean(object) && typeof object === 'object' && !Array.isArray(object)
+      && Object.keys(object).length === 1 && Object.hasOwn(object, field);
+    const hasSingleAnalysisShape = hasOnlyField(parsed, 'derivationStages');
+    const hasAmbiguityShape = hasOnlyField(parsed, 'analyses')
       && Array.isArray(parsed.analyses)
       && parsed.analyses.length > 0
-      && parsed.analyses.every((analysis) => (
-        analysis
-        && typeof analysis === 'object'
-        && !Array.isArray(analysis)
-        && Object.keys(analysis).length === 1
-        && Object.prototype.hasOwnProperty.call(analysis, 'derivationStages')
-      ))
-    );
+      && parsed.analyses.every((analysis) => hasOnlyField(analysis, 'derivationStages'));
     if (!hasSingleAnalysisShape && !hasAmbiguityShape) {
       throw new ParseApiError(
         'BAD_MODEL_RESPONSE',
@@ -289,18 +275,20 @@ export const normalizeParseBundle = (
       );
     }
   }
+  // Expansion keeps the response's envelope, so this holds before and after it.
+  const multiple = Array.isArray(parsed?.analyses);
   // A parts-list analysis is expanded into nested workspace forests before any
   // other check, so every later step and the stored analysis read one form.
   const partsList = expandPartsListPayload(parsed);
   if (partsList.issues.length) {
-    const failed = partsList.issues.map(issue => partsListFailure(issue, Array.isArray(parsed?.analyses)));
+    const failed = partsList.issues.map(issue => partsListFailure(issue, multiple));
     failed.forEach(error => options.analysisOutcomes?.push({ analysisIndex: error.failure.analysisIndex, status: 'failed', failure: error.failure }));
     throw failed[0];
   }
   parsed = partsList.payload;
   // ParseBundle is an internal/product envelope. Each analysis inside it still
   // has the same authored derivation-stage contract.
-  let analysesSource = Array.isArray(parsed?.analyses)
+  let analysesSource = multiple
     ? parsed.analyses
     : parsed
       ? [parsed]
@@ -311,7 +299,7 @@ export const normalizeParseBundle = (
     // A model response names words by spelling them. Babel checks each
     // analysis and derives one shared word list before parsing.
     const results = convertSpelloutPayload(parsed, sentence);
-    const failed = results.filter(result => !result.ok && !result.sentenceCheck).map(result => spelloutFailure(result, Array.isArray(parsed?.analyses)));
+    const failed = results.filter(result => !result.ok && !result.sentenceCheck).map(result => spelloutFailure(result, multiple));
     failed.forEach(error => options.analysisOutcomes?.push({ analysisIndex: error.failure.analysisIndex, status: 'failed', failure: error.failure }));
     if (failed.length) throw failed[0];
     analysesSource = results.map(result => result.analysis);
@@ -331,12 +319,12 @@ export const normalizeParseBundle = (
       const normalized = normalizeWithTokenIndexRecovery(
         analysis, framework, check ? check.treeReading : sentence, modelRoute,
         { ...options, inputTokens: check ? check.inputTokens : inputTokens, expansionBudget },
-        Array.isArray(parsed?.analyses) ? `$.analyses[${analysisIndex}]` : '$'
+        multiple ? `$.analyses[${analysisIndex}]` : '$'
       );
       if (check) {
         // Shown, but not a valid analysis of the sentence.
         options.analysisOutcomes?.push({ analysisIndex, status: 'failed', kept: true,
-          failure: spelloutFailure({ analysisIndex, diagnostics: [{ rule: check.ruleId, detail: `The tree reads "${check.treeReading}".` }] }, Array.isArray(parsed?.analyses)).failure });
+          failure: spelloutFailure({ analysisIndex, diagnostics: [{ rule: check.ruleId, detail: `The tree reads "${check.treeReading}".` }] }, multiple).failure });
         return { ...normalized, sentenceCheck: check };
       }
       options.analysisOutcomes?.push({ analysisIndex, status: 'succeeded' });
@@ -344,10 +332,10 @@ export const normalizeParseBundle = (
     } catch (error) {
       if (!(error instanceof ParseApiError)) throw error;
       const failure = error.failure;
-      const fieldPath = Array.isArray(parsed?.analyses)
+      const fieldPath = multiple
         ? `$.analyses[${analysisIndex}]${failure.fieldPath.slice(1)}`
         : failure.fieldPath;
-      const message = Array.isArray(parsed?.analyses)
+      const message = multiple
         ? `Analysis ${analysisIndex + 1}: ${error.message.replace(failure.fieldPath, fieldPath)}`
         : error.message;
       // A failure after the spell-out check carries the derived word list, so
