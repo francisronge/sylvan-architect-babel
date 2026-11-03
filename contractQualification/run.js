@@ -13,7 +13,7 @@ import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { buildQualificationAnalysisEvidence } from './review.js';
 import { resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 
-export const QUALIFICATION_ITEM_SET_STATUSES = Object.freeze([
+const QUALIFICATION_ITEM_SET_STATUSES = Object.freeze([
   'unselected',
   'selected-draft',
   'frozen'

@@ -1,7 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
@@ -11,8 +9,7 @@ import { expandPartsListAnalysis, workspaceFormOf } from '../server/babelParser/
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
-
-const repoRoot = path.resolve(import.meta.dirname, '..');
+import { fixtureRecords } from './helpers/fixtureRecords.mjs';
 
 const normalize = (payload, sentence, framework = 'xbar', options = {}) =>
   normalizeParseBundle(structuredClone(payload), framework, sentence, 'gpt', true, { spellout: true, ...options });
@@ -42,28 +39,6 @@ const toPartsList = (analysis) => {
     return { ...fields, workspace: forest.map(root => root.id), nodes, ...(realizations ? { realizations } : {}) };
   });
   return { ...analysis, derivationStages };
-};
-
-const fixtureRecords = () => {
-  const records = [];
-  const walk = (value, label) => {
-    if (!value || typeof value !== 'object') return;
-    if (Array.isArray(value)) return value.forEach((item, index) => walk(item, `${label}[${index}]`));
-    if (typeof value.sentence === 'string' && (Array.isArray(value.derivationStages) || Array.isArray(value.analyses))) {
-      records.push({ label, sentence: value.sentence, framework: value.framework === 'minimalism' ? 'minimalism' : 'xbar',
-        inputTokens: value.inputTokens,
-        payload: Array.isArray(value.analyses) ? { analyses: value.analyses } : { derivationStages: value.derivationStages } });
-      return;
-    }
-    Object.entries(value).forEach(([key, item]) => walk(item, `${label}.${key}`));
-  };
-  const visit = (directory) => fs.readdirSync(directory, { withFileTypes: true }).forEach((entry) => {
-    const full = path.join(directory, entry.name);
-    if (entry.isDirectory()) visit(full);
-    else if (entry.name.endsWith('.json')) walk(JSON.parse(fs.readFileSync(full, 'utf8')), path.relative(repoRoot, full));
-  });
-  visit(path.join(repoRoot, 'fixtures'));
-  return records;
 };
 
 const derived = (bundle, sentence) => bundle.analyses.map(({ provenance, derivationStages, ...rest }) => ({

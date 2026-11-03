@@ -2,7 +2,7 @@
 // through helmet; `vercel.json` repeats helmet's output as static headers, and
 // tests/securityHeaders.test.mjs keeps the two identical.
 
-export const CONTENT_SECURITY_DIRECTIVES = Object.freeze({
+const CONTENT_SECURITY_DIRECTIVES = Object.freeze({
   defaultSrc: ["'self'"],
   scriptSrc: ["'self'"],
   styleSrc: ["'self'", "'unsafe-inline'"],

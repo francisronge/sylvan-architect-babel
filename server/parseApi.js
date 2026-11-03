@@ -1,4 +1,4 @@
-﻿import { ParseApiError, parseSentenceWithResearchModel } from './babelParser.js';
+import { ParseApiError, parseSentenceWithResearchModel } from './babelParser.js';
 import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './babelParser/researchModelCatalog.js';
 import {
   FAILURE_CLASSES,
@@ -11,92 +11,41 @@ import {
 const FRAMEWORKS = new Set(['xbar', 'minimalism']);
 const MAX_SENTENCE_LENGTH = 600;
 
+/** A 400 for a request body Babel cannot send to a provider, typed by the rule it breaks. */
+const invalidRequest = (message, ruleId, fieldPath, offendingValue) => new ParseApiError(
+  'INVALID_REQUEST',
+  message,
+  400,
+  withFailureDetails({}, { failureClass: 'transport_serialization', ruleId, fieldPath, offendingValue })
+);
+
 export const validateParseBody = (body) => {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    throw new ParseApiError(
-      'INVALID_REQUEST',
-      'Request body must be a JSON object.',
-      400,
-      withFailureDetails({}, {
-        failureClass: 'transport_serialization',
-        ruleId: 'REQUEST_BODY_OBJECT',
-        fieldPath: '$',
-        offendingValue: body
-      })
-    );
+    throw invalidRequest('Request body must be a JSON object.', 'REQUEST_BODY_OBJECT', '$', body);
   }
 
   const sentence = typeof body.sentence === 'string' ? body.sentence : '';
   const framework = typeof body.framework === 'string' ? body.framework.trim() : 'minimalism';
 
   if (!sentence.trim()) {
-    throw new ParseApiError(
-      'INVALID_REQUEST',
-      'Sentence is required.',
-      400,
-      withFailureDetails({}, {
-        failureClass: 'transport_serialization',
-        ruleId: 'REQUEST_SENTENCE_REQUIRED',
-        fieldPath: '$.sentence',
-        offendingValue: body.sentence
-      })
-    );
+    throw invalidRequest('Sentence is required.', 'REQUEST_SENTENCE_REQUIRED', '$.sentence', body.sentence);
   }
 
   if (sentence.length > MAX_SENTENCE_LENGTH) {
-    throw new ParseApiError(
-      'INVALID_REQUEST',
-      `Sentence exceeds ${MAX_SENTENCE_LENGTH} characters.`,
-      400,
-      withFailureDetails({}, {
-        failureClass: 'transport_serialization',
-        ruleId: 'REQUEST_SENTENCE_LENGTH',
-        fieldPath: '$.sentence',
-        offendingValue: sentence
-      })
-    );
+    throw invalidRequest(`Sentence exceeds ${MAX_SENTENCE_LENGTH} characters.`, 'REQUEST_SENTENCE_LENGTH', '$.sentence', sentence);
   }
 
   if (!FRAMEWORKS.has(framework)) {
-    throw new ParseApiError(
-      'INVALID_REQUEST',
-      'Framework must be "xbar" or "minimalism".',
-      400,
-      withFailureDetails({}, {
-        failureClass: 'transport_serialization',
-        ruleId: 'REQUEST_FRAMEWORK_SUPPORTED',
-        fieldPath: '$.framework',
-        offendingValue: framework
-      })
-    );
+    throw invalidRequest('Framework must be "xbar" or "minimalism".', 'REQUEST_FRAMEWORK_SUPPORTED', '$.framework', framework);
   }
 
   // Every request names a catalog model; there is no server default model.
   if (!Object.hasOwn(body, 'modelId')) {
-    throw new ParseApiError(
-      'INVALID_REQUEST',
-      'Name the model with modelId; modelRoute and reasoningEffort are no longer accepted.',
-      400,
-      withFailureDetails({}, {
-        failureClass: 'transport_serialization',
-        ruleId: 'REQUEST_MODEL_ID_REQUIRED',
-        fieldPath: '$.modelId',
-        offendingValue: null
-      })
-    );
+    throw invalidRequest('Name the model with modelId; modelRoute and reasoningEffort are no longer accepted.',
+      'REQUEST_MODEL_ID_REQUIRED', '$.modelId', null);
   }
   if (!GENERATION_MODEL_IDS.includes(body.modelId)) {
-    throw new ParseApiError(
-      'INVALID_REQUEST',
-      'This model is not enabled for generation.',
-      400,
-      withFailureDetails({}, {
-        failureClass: 'transport_serialization',
-        ruleId: 'REQUEST_MODEL_ID_SUPPORTED',
-        fieldPath: '$.modelId',
-        offendingValue: body.modelId
-      })
-    );
+    throw invalidRequest('This model is not enabled for generation.', 'REQUEST_MODEL_ID_SUPPORTED', '$.modelId', body.modelId);
   }
   if (Object.hasOwn(body, 'modelRoute') || Object.hasOwn(body, 'reasoningEffort')) {
     throw new ParseApiError('INVALID_REQUEST', 'Use modelId and native settings, without modelRoute or reasoningEffort.', 400);

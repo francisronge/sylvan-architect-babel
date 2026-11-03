@@ -27,13 +27,11 @@ This file answers one question: which document should be trusted for what?
 - [`docs/design/benchmark-provenance-conditions.md`](design/benchmark-provenance-conditions.md):
   benchmark provenance conditions.
 - [`contractQualification/program-1.item-set.json`](../contractQualification/program-1.item-set.json)
-  and [`frozen-item-set-contract.manifest.json`](implementation/contract-qualification/frozen-item-set-contract.manifest.json):
-  the frozen 14-item qualification set and its original contract manifest.
+  and the manifests in
+  [`docs/implementation/contract-qualification/`](implementation/contract-qualification/):
+  the frozen 14-item qualification set and the contract fingerprints read by
+  `scripts/captureContractFingerprint.mjs` and the qualification smoke plan.
   They are historical baselines and do not describe today's contract.
-- [`docs/implementation/contract-qualification/incumbent-contract-audit-2026-08-28.md`](implementation/contract-qualification/incumbent-contract-audit-2026-08-28.md):
-  Program 1 fingerprint and audit of the current model-facing interface.
-- [`docs/implementation/contract-qualification/fable-review-2026-08-28.md`](implementation/contract-qualification/fable-review-2026-08-28.md):
-  independent review of that Program 1 audit and fingerprint.
 
 ## Renderer Research Archive
 
@@ -49,17 +47,37 @@ links as the release record.
 
 The public artifact is [`docs/research/relation-orchard/`](research/relation-orchard/).
 
+## Research Site And Studies
+
+[`docs/index.md`](index.md) and [`docs/research/`](research/index.md) are the
+published research site (GitHub Pages). Its
+[archive](research/archive/index.md) keeps earlier Codex-generated papers as
+project history. Two dated studies sit beside them and record the state they
+measured:
+
+- [`input-segmentation.md`](research/input-segmentation.md): how Babel split
+  input into tokens (17 Oct 2026). Babel no longer tokenizes before the model
+  sees the sentence; [`AGENTS.md`](../AGENTS.md#derivation-contract) states
+  today's rule.
+- [`morphology-realization-audit.md`](research/morphology-realization-audit.md):
+  morphology and surface realization, and the `realizations` contract it led
+  to.
+
 ## History
 
-`docs/history/` preserves old plans, Mac handoffs, checkpoints, audit ledgers,
-and reviewer receipts. Historical text is intentionally not rewritten to look
-current. Read the README beside each history set before using it.
+`docs/history/` keeps two records. Historical text is intentionally not
+rewritten to look current; read the README beside each set before using it.
 
-The [Fable Zero Unknowns packet](history/architecture/fable-zero-unknowns-2026-07-17/README.md)
-is a primary architecture source preserved in full. Its
-[live reconciliation audit](history/architecture/2026-07-fable-packet-audit.md)
-maps the packet's decisions, residual unknowns, W0-W18 program, and later
-workspace plan to live code and the master roadmap.
+- The [Fable Zero Unknowns packet](history/architecture/fable-zero-unknowns-2026-07-17/README.md)
+  is a primary architecture source preserved in full. Its
+  [reconciliation audit](history/architecture/2026-07-fable-packet-audit.md)
+  maps the packet's decisions and W0-W18 program to the code and roadmap as
+  they stood on 25 Aug 2026.
+- [`docs/history/renderer/`](history/renderer/README.md) keeps the renderer
+  closeout's audit ledger and review receipts.
+
+Older plans, device handoffs and dated reports were removed; Git history keeps
+them.
 
 ## Generated And Local-Only Material
 

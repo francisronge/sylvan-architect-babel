@@ -12,7 +12,7 @@ import { returnsWithinReach } from '../replay/relations/pocketHold.ts';
  * this 590-unit plate for oku -DIK-AGR.3SG -(n)I stood 5.9 nearby reaches from its
  * verb, below the whole tree, from frame 66 on. */
 
-const record = JSON.parse(readFileSync(new URL('./helpers/realizationPlateRecord.json', import.meta.url), 'utf8'));
+const record = JSON.parse(readFileSync(new URL('./data/realizationPlateRecord.json', import.meta.url), 'utf8'));
 
 test('a wide realization plate stands by its owner, in the nearest pocket that stays clear', () => {
   const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]], { steps: Array.from({ length: 28 }, (_, i) => 66 + i) });

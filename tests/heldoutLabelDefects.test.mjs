@@ -13,9 +13,9 @@ import { checkOneLetterPerLabel, checkPlanIdentityUnique } from './helpers/repla
 import { checkMovementUnrendered } from './helpers/replayContractWarnings.mjs';
 
 /* Defects of the 29 October 2026 held-out batch and the 30 October confirmation
- * batch, each reproduced from its saved analysis (tests/helpers/heldoutDefectRecords.json). */
+ * batch, each reproduced from its saved analysis (tests/data/heldoutDefectRecords.json). */
 
-const records = JSON.parse(readFileSync(new URL('./helpers/heldoutDefectRecords.json', import.meta.url), 'utf8'));
+const records = JSON.parse(readFileSync(new URL('./data/heldoutDefectRecords.json', import.meta.url), 'utf8'));
 const prepare = key => {
   const { sentence, inputTokens, derivationStages } = records[key];
   return prepareReplay({ sentence, inputTokens, derivationStages: structuredClone(derivationStages), includePlayback: true });
