@@ -57,7 +57,6 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ modelIds }) => {
   const models = useModelSelection(modelIds);
   const { modelRoute, reasoningEffort, activeReasoningEffort, inferModelRoute, adoptModel, adoptEffort } = models;
-  const appContainerRef = useRef<HTMLDivElement>(null);
   const copyStatusTimeoutRef = useRef<number | null>(null);
   const copyAttemptRef = useRef(0);
   const showcaseMode = useMemo(() => {
@@ -284,7 +283,6 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
 
   return (
     <div
-      ref={appContainerRef}
       className={`app-shell flex flex-col overflow-hidden selection:bg-emerald-500 selection:text-white ${
         isFullscreen ? 'is-fullscreen' : ''
       }`}
