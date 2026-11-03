@@ -215,8 +215,10 @@ export interface TokenIndexCorrection {
 /** One sentence word of an analysis kept by the sentence check, in tree order. */
 export interface SentenceCheckWord {
   text: string;
-  /** The word's place in the input sentence. */
+  /** The word's place among the sentence's words. */
   sentenceIndex: number;
+  /** Its code-point span in the input sentence. */
+  span: [number, number];
   /** Outside some longest run of words that keeps sentence order. */
   outOfOrder: boolean;
   /** The pronounced terminals that spell it. */
@@ -229,8 +231,12 @@ export interface SentenceCheckWord {
 export interface SentenceCheck {
   status: 'failed';
   ruleId: 'SPELLOUT_MISMATCH';
+  /** The input sentence. */
+  sentence: string;
   /** The sentence words in the tree's order. */
   treeReading: string;
+  /** Whether the sentence separates its words with spaces. */
+  spaced: boolean;
   inputTokens: string[];
   words: SentenceCheckWord[];
 }

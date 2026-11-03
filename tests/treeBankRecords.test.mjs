@@ -61,9 +61,9 @@ test('generation prompt contract framework must match the saved work', async () 
 });
 test('an analysis kept by the sentence check is saved with its check and counted as invalid', async () => {
   const source = input();
-  const check = { status: 'failed', ruleId: 'SPELLOUT_MISMATCH', treeReading: 'sees 猫 café 🦉', inputTokens: ['sees', '猫', 'café', '🦉'],
-    words: [{ text: 'sees', sentenceIndex: 1, outOfOrder: true, nodeIds: ['s'] }, { text: '猫', sentenceIndex: 0, outOfOrder: true, nodeIds: ['猫'] },
-      { text: 'café', sentenceIndex: 2, outOfOrder: false, nodeIds: ['café'] }, { text: '🦉', sentenceIndex: 3, outOfOrder: false, nodeIds: ['o'] }] };
+  const check = { status: 'failed', ruleId: 'SPELLOUT_MISMATCH', sentence: '猫 sees café 🦉', treeReading: 'sees 猫 café 🦉', spaced: true, inputTokens: ['sees', '猫', 'café', '🦉'],
+    words: [{ text: 'sees', sentenceIndex: 1, span: [2, 6], outOfOrder: true, nodeIds: ['s'] }, { text: '猫', sentenceIndex: 0, span: [0, 1], outOfOrder: true, nodeIds: ['猫'] },
+      { text: 'café', sentenceIndex: 2, span: [7, 11], outOfOrder: false, nodeIds: ['café'] }, { text: '🦉', sentenceIndex: 3, span: [12, 13], outOfOrder: false, nodeIds: ['o'] }] };
   source.bundle.analyses[1].sentenceCheck = check;
   const result = await prepareTreeBankSave(source);
   assert.equal(result.work.invalidAnalyses, 1);

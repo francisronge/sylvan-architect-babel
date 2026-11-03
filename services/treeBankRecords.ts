@@ -93,10 +93,12 @@ const analysis = (value: any) => {
   if (value.sentenceCheck !== undefined) {
     const check = value.sentenceCheck;
     requirePlainRecord(check, 'sentenceCheck');
-    if (check.status !== 'failed' || check.ruleId !== 'SPELLOUT_MISMATCH' || typeof check.treeReading !== 'string'
+    if (check.status !== 'failed' || check.ruleId !== 'SPELLOUT_MISMATCH' || typeof check.sentence !== 'string'
+      || typeof check.treeReading !== 'string' || typeof check.spaced !== 'boolean'
       || !Array.isArray(check.inputTokens) || check.inputTokens.some((token: unknown) => typeof token !== 'string')
       || !Array.isArray(check.words) || check.words.some((word: any) => typeof word?.text !== 'string'
-        || !Number.isInteger(word.sentenceIndex) || typeof word.outOfOrder !== 'boolean' || !Array.isArray(word.nodeIds))) fail('Invalid sentence check.');
+        || !Number.isInteger(word.sentenceIndex) || typeof word.outOfOrder !== 'boolean' || !Array.isArray(word.nodeIds)
+        || !Array.isArray(word.span) || word.span.length !== 2 || !word.span.every(Number.isInteger))) fail('Invalid sentence check.');
   }
 };
 export async function validateTreeBankRecord(value: unknown): Promise<TreeBankRecord> {

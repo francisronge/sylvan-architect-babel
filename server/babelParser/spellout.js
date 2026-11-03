@@ -706,52 +706,63 @@ const convertAligned = (item, tokens) => {
 };
 
 /**
- * The sentence check for a tree whose words are the sentence's words in another
- * order. Reads the tree's words and group pieces, in tree order, as whole
- * sentence words, each sentence word used once. Returns null unless every
- * sentence word is read once and the order differs. `words` lists the words in
- * tree order with their place in the sentence; a word is out of order when it
- * stands outside some longest run that keeps sentence order, so both words of a
- * swap are marked but a phrase that moved as a whole marks only itself.
+ * The sentence check for a tree whose words are the sentence's in another
+ * order. The tree's words and group pieces, each a run of the sentence's
+ * letters, must tile the sentence with every one used once, in any order; word
+ * boundaries come from the tree, not from spaces. Returns null unless they do
+ * and the order differs. `words` lists them in tree order with their place and
+ * span in the sentence; a word is out of order when it stands outside some
+ * longest run that keeps sentence order, so both words of a swap are marked
+ * but a word that moved alone marks only itself.
  */
-const readWordOrder = (treeReading, sentence, meter) => {
-  const sentenceWords = sentence.split(SPACE).map(text => text.trim()).filter(text => caselessSpelling(text));
-  const wanted = sentenceWords.map(caselessSpelling);
-  // A group's text may spell several words; each is matched on its own and
-  // keeps the group's terminals.
+const readWordOrder = (treeReading, sentenceText, meter) => {
+  const sentence = readSentence(sentenceText);
+  const significantAt = [];
+  sentence.chars.forEach((_, index) => { if (!sentence.ignored[index]) significantAt.push(index); });
+  const letters = significantAt.map(index => sentence.fold[index]);
+  // Group text may cover several stretches of the sentence; each is its own piece.
   const pieces = treeReading.flatMap(item => item.text.split(SPACE).filter(Boolean).map(text => ({ text, nodeIds: item.nodeIds })));
-  // Punctuation terminals spell themselves where the tree puts them (below).
   const items = pieces.filter(item => caselessSpelling(item.text));
-  const folded = items.map(item => caselessSpelling(item.text));
-  if (!items.length || !wanted.length) return null;
-  const left = new Map();
-  wanted.forEach(word => left.set(word, (left.get(word) ?? 0) + 1));
-  const longest = Math.max(...wanted.map(word => word.length));
-  const failed = new Set(), groups = [];
-  const search = (index) => {
-    if (index === items.length) return [...left.values()].every(count => count === 0);
-    meter.charge();
-    const key = `${index}|${[...left.values()].join(',')}`;
-    if (failed.has(key)) return false;
+  if (!items.length || !letters.length) return null;
+  const spelled = items.map(item => [...caselessSpelling(item.text)]);
+  // Each folded character of a spelling may fold to more than one sentence
+  // letter's worth; compare whole folded strings at each start.
+  const word = items.map((_, index) => spelled[index].join(''));
+  const used = items.map(() => false), tiles = [], failed = new Set();
+  const matches = (index, at) => {
     let text = '';
-    for (let end = index; end < items.length; end += 1) {
-      text += folded[end];
-      if (text.length > longest) break;
-      if (!left.get(text)) continue;
-      left.set(text, left.get(text) - 1);
-      groups.push({ start: index, end: end + 1, word: text });
-      if (search(end + 1)) return true;
-      groups.pop();
-      left.set(text, left.get(text) + 1);
+    for (let end = at; end < letters.length && text.length < word[index].length; end += 1) {
+      text += letters[end];
+      if (text === word[index]) return end + 1;
+    }
+    return -1;
+  };
+  const tile = (at) => {
+    if (at === letters.length) return used.every(Boolean);
+    meter.charge();
+    const key = `${at}|${used.map(flag => (flag ? 1 : 0)).join('')}`;
+    if (failed.has(key)) return false;
+    const tried = new Set();
+    for (let index = 0; index < items.length; index += 1) {
+      // Equal spellings are interchangeable here; the first unused one is tried.
+      if (used[index] || tried.has(word[index])) continue;
+      tried.add(word[index]);
+      const end = matches(index, at);
+      if (end < 0) continue;
+      used[index] = true; tiles.push({ index, start: at, end });
+      if (tile(end)) return true;
+      tiles.pop(); used[index] = false;
     }
     failed.add(key);
     return false;
   };
-  if (!search(0)) return null;
-  // Repeated words take their sentence places in tree order.
-  const places = new Map();
-  wanted.forEach((word, index) => places.set(word, [...(places.get(word) ?? []), index]));
-  const order = groups.map(group => places.get(group.word).shift());
+  if (!tile(0)) return null;
+  // Equal spellings take their sentence places in tree order.
+  const placesBySpelling = new Map();
+  tiles.forEach((placed, place) => placesBySpelling.set(word[placed.index], [...(placesBySpelling.get(word[placed.index]) ?? []), { place, placed }]));
+  const assigned = items.map(() => null);
+  items.forEach((_, index) => { assigned[index] = placesBySpelling.get(word[index]).shift(); });
+  const order = assigned.map(entry => entry.place);
   if (order.every((place, index) => !index || place > order[index - 1])) return null;
   // Longest increasing run ending at and starting from each word.
   const ending = order.map(() => 1), starting = order.map(() => 1);
@@ -761,25 +772,29 @@ const readWordOrder = (treeReading, sentence, meter) => {
   const onBest = order.map((_, i) => ending[i] + starting[i] - 1 === best);
   // A word is in every longest run when it alone holds its position in one.
   const fixed = order.map((_, i) => onBest[i] && !order.some((__, j) => j !== i && onBest[j] && ending[j] === ending[i]));
+  // Each word's surface: the sentence's own characters over its letters.
+  const spanOf = ({ start, end }) => [significantAt[start], significantAt[end - 1] + 1];
+  const surface = ([start, end]) => sentence.chars.slice(start, end).join('');
+  const spaced = sentence.space.some(Boolean);
+  // The tree's own reading: its words in tree order, with the tree's
+  // punctuation terminals where they stand, or else the sentence's final
+  // punctuation at the end.
+  const treePunctuation = pieces.some(piece => !caselessSpelling(piece.text));
+  const parts = [];
+  pieces.forEach((piece) => {
+    if (!caselessSpelling(piece.text)) { parts.push(piece.text); return; }
+    parts.push(surface(spanOf(assigned[items.indexOf(piece)].placed)));
+  });
+  let reading = parts.join(spaced ? ' ' : '');
+  if (!treePunctuation) reading += surface([significantAt.at(-1) + 1, sentence.chars.length]).trim();
   return {
-    // The tree's own reading: the sentence words in tree order. Where the tree
-    // writes punctuation terminals, the words lose their edge punctuation and
-    // the terminals stand where the tree puts them.
-    reading: !pieces.some(piece => !caselessSpelling(piece.text)) ? groups.map((_, index) => sentenceWords[order[index]]).join(' ') : (() => {
-      const core = text => { const points = codePoints(text.trim()), { lead, trail } = edgePunctuation(text); return points.slice(lead, points.length - trail).join(''); };
-      const out = [];
-      pieces.forEach((piece) => {
-        if (!caselessSpelling(piece.text)) { out.push(piece.text); return; }
-        const group = groups.findIndex(candidate => items[candidate.start] === piece);
-        if (group >= 0) out.push(core(sentenceWords[order[group]]));
-      });
-      return out.join(' ');
-    })(),
-    words: groups.map((group, index) => ({
-      text: sentenceWords[order[index]],
+    reading,
+    words: items.map((item, index) => ({
+      text: surface(spanOf(assigned[index].placed)),
+      span: spanOf(assigned[index].placed),
       sentenceIndex: order[index],
       outOfOrder: !fixed[index],
-      nodeIds: [...new Set(items.slice(group.start, group.end).flatMap(item => item.nodeIds))]
+      nodeIds: [...new Set(item.nodeIds)]
     }))
   };
 };
@@ -826,7 +841,8 @@ export const convertSpelloutPayload = (payload, sentence) => {
       const converted = convertAligned({ analysisIndex: item.analysisIndex, analysis: item.analysis, ...realigned }, segmentSentence([realigned], own));
       if (converted.diagnostics.length) return;
       reordered.set(item, { analysisIndex: item.analysisIndex, ok: false, ...converted, diagnostics: item.diagnostics,
-        sentenceCheck: { status: 'failed', ruleId: 'SPELLOUT_MISMATCH', treeReading: order.reading, inputTokens: converted.inputTokens, words: order.words } });
+        sentenceCheck: { status: 'failed', ruleId: 'SPELLOUT_MISMATCH', sentence, treeReading: order.reading, spaced: readSentence(sentence).space.some(Boolean),
+          inputTokens: converted.inputTokens, words: order.words } });
     } catch (error) {
       if (!(error instanceof SpelloutWorkLimitError || error instanceof SpelloutStructureError)) throw error;
     }

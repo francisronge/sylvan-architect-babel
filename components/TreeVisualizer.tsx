@@ -179,7 +179,25 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const outOfOrderNodeIds = useMemo(() => new Set(sentenceCheck?.words.filter(word => word.outOfOrder)
     .flatMap(word => word.nodeIds) ?? []), [sentenceCheck]);
   const outOfOrderCount = sentenceCheck?.words.filter(word => word.outOfOrder).length ?? 0;
-  const sentenceOrder = useMemo(() => [...(sentenceCheck?.words ?? [])].sort((a, b) => a.sentenceIndex - b.sentenceIndex), [sentenceCheck]);
+  // The input sentence as written, cut where an out-of-order word stands.
+  const sentenceSpans = useMemo(() => {
+    if (!sentenceCheck) return [];
+    const chars = [...sentenceCheck.sentence.normalize('NFC')], spans: [string, boolean][] = [];
+    let at = 0;
+    for (const word of [...sentenceCheck.words].sort((a, b) => a.span[0] - b.span[0])) {
+      if (word.span[0] > at) spans.push([chars.slice(at, word.span[0]).join(''), false]);
+      spans.push([chars.slice(word.span[0], word.span[1]).join(''), word.outOfOrder]);
+      at = word.span[1];
+    }
+    if (at < chars.length) spans.push([chars.slice(at).join(''), false]);
+    return spans;
+  }, [sentenceCheck]);
+  // The sentence's closing punctuation also ends the tree's reading line.
+  const sentenceClosing = useMemo(() => {
+    if (!sentenceCheck) return '';
+    const chars = [...sentenceCheck.sentence.normalize('NFC')];
+    return chars.slice(Math.max(...sentenceCheck.words.map(word => word.span[1]))).join('').trim();
+  }, [sentenceCheck]);
   const openingSelectionRef = useRef<{ steps: typeof playbackSteps; startedAt: number } | null>(null);
   const collectionRevealRef = useRef<{ steps: typeof playbackSteps; stepIndex: number; startedAt: number } | null>(null);
   const hasDerivationFrames = replayDerivationFrames.length > 0;
@@ -877,16 +895,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         )}
         {sentenceCheck && showsSentenceCheck && (
           <dl data-babel-sentence-check="true" className="mt-3 grid grid-cols-[auto,1fr] items-baseline gap-x-4 gap-y-0.5">
-            {([['Sentence', sentenceOrder], ["Model's tree", sentenceCheck.words]] as const).map(([label, words]) => (
-              <React.Fragment key={label}>
-                <dt className="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-100/80">{label}</dt>
-                <dd className="serif italic text-[15px] text-emerald-50/80">
-                  {words.map((word, index) => (
-                    <span key={index} className={word.outOfOrder ? 'text-amber-400' : undefined}>{index ? ' ' : ''}{word.text}</span>
-                  ))}
-                </dd>
-              </React.Fragment>
-            ))}
+            <dt className="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-100/80">Sentence</dt>
+            <dd className="serif italic text-[15px] text-emerald-50/80">
+              {sentenceSpans.map(([text, outOfOrderSpan], index) => (
+                <span key={index} className={outOfOrderSpan ? 'text-amber-400' : undefined}>{text}</span>
+              ))}
+            </dd>
+            <dt className="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-100/80">Model&apos;s tree</dt>
+            <dd className="serif italic text-[15px] text-emerald-50/80">
+              {sentenceCheck.words.map((word, index) => (
+                <span key={index} className={word.outOfOrder ? 'text-amber-400' : undefined}>{index && sentenceCheck.spaced ? ' ' : ''}{word.text}</span>
+              ))}
+              {sentenceClosing}
+            </dd>
           </dl>
         )}
       </div>

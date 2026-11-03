@@ -30,7 +30,7 @@ test('a tree with the sentence words in another order is kept, still failing, wi
 
 test('a word that moved alone is the only one marked', () => {
   const [result] = convertSpelloutPayload(tree('leave', 'mary', 'persuaded', 'john', 'to'), sentence);
-  assert.deepEqual(outOfOrder(result.sentenceCheck), ['leave.']);
+  assert.deepEqual(outOfOrder(result.sentenceCheck), ['leave']);
 });
 
 test('a missing or extra word is not a word-order failure and still fails the response', () => {
@@ -69,13 +69,21 @@ test('a realization group that spells several words is matched word by word', ()
     realizations: [{ nodeIds: ['n'], text: 'New York' }] }] };
   const [result] = convertSpelloutPayload(payload, 'Mary likes New York.');
   assert.equal(result.ok, false);
-  assert.equal(result.sentenceCheck.treeReading, 'New York. Mary likes');
-  assert.deepEqual(result.sentenceCheck.words.map(word => [word.text, word.nodeIds]), [['New', ['ny']], ['York.', ['ny']], ['Mary', ['mary']], ['likes', ['likes']]]);
+  assert.equal(result.sentenceCheck.treeReading, 'New York Mary likes.');
+  assert.deepEqual(result.sentenceCheck.words.map(word => [word.text, word.nodeIds]), [['New', ['ny']], ['York', ['ny']], ['Mary', ['mary']], ['likes', ['likes']]]);
 });
 
 test('a punctuation terminal keeps its place in the tree\'s own reading', () => {
   const payload = clause(['john', 'John'], ['mary', 'Mary'], ['likes', 'likes'], ['stop', '.']);
   const [result] = convertSpelloutPayload(payload, 'Mary likes John.');
   assert.equal(result.sentenceCheck.treeReading, 'John Mary likes .');
-  assert.deepEqual(outOfOrder(result.sentenceCheck), ['John.']);
+  assert.deepEqual(outOfOrder(result.sentenceCheck), ['John']);
+});
+
+test('a sentence written without spaces is read by the tree\'s own word boundaries', () => {
+  const bundle = normalizeParseBundle(clause(['le', '来了'], ['li', '小李']), 'xbar', '小李来了。', 'gpt', true, { spellout: true });
+  const [{ sentenceCheck: check }] = bundle.analyses;
+  assert.equal(check.treeReading, '来了小李。');
+  assert.equal(check.spaced, false);
+  assert.deepEqual(check.words.map(word => [word.text, word.sentenceIndex, word.span]), [['来了', 1, [2, 4]], ['小李', 0, [0, 2]]]);
 });
