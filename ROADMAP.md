@@ -20,8 +20,9 @@ are not.
 
 1. **Public Babel's UI** (Program 3): a new public front end on the shared
    engine, with today's first screen minus its framework switch (Minimalism
-   only); Replay as the only view; no model controls; automatic saving; a small way back to the input screen;
-   the waiting screen; the failure screen. Today's app stays as the internal
+   only); Replay as the only view; no model controls; automatic saving; a
+   small way back to the input screen; the waiting screen; the failure
+   screen. Today's app stays as the internal
    one.
 2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
    minimal version inside the Tree Bank, shipped with launch.
