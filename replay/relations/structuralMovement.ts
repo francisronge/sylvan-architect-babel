@@ -202,8 +202,14 @@ export const readStageDisplacements = (
     const occupantOf = (priorId: string) => fresh.filter(id => sameMovementSourceSlot(current, prior, id, priorId));
     type Reading = Pick<StructuralDisplacement, 'identity' | 'priorSourceNodeId' | 'sourceNodeId' | 'targetNodeId'>;
     let readings: Reading[];
-    // Whether a landing's parent contains every lower occurrence it pairs with.
-    const commandsAll = (landing: string, lowers: readonly string[]) => lowers.every(id => parentContains(current, landing, id));
+    // Whether a landing commands every lower occurrence it pairs with: its
+    // parent contains them, or, for a landing inside a complex head, the
+    // parent of that whole head does, as a head moved into C commands from C.
+    const commandsAll = (landing: string, lowers: readonly string[]) => {
+      let from = landing;
+      for (let parent = current.parents.get(from); parent?.id && isHeadAssembly(parent); parent = current.parents.get(from)) from = parent.id;
+      return lowers.every(id => parentContains(current, from, id));
+    };
     if (moved.length === 1) {
       // The landing kept its id; the new occurrence in its old slot is the lower one.
       const [landing] = moved, occupants = occupantOf(landing);
