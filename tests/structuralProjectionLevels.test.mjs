@@ -81,12 +81,14 @@ test('every notation recognizes the same movements; panel positions differ only 
     assert.deepEqual(movements(other.replay), movements(xbar.replay));
     assert.deepEqual(tierLines(other.replay.relationRenderPlan), tierLines(xbar.replay.relationRenderPlan));
   }
-  assert.deepEqual(sourceAndLanding(xbar), [['Source: Mia (Spec,vP)', 'Landing: Spec,TP'], ['Source: what (DP in VP)', 'Landing: Spec,CP'],
-    ['Source: will (T in T′)', 'Landing: will (T) in C']]);
-  assert.deepEqual(sourceAndLanding(xp), [['Source: Mia (DP in vP)', 'Landing: DP in TP'], ['Source: what (DP in VP)', 'Landing: DP in CP'],
-    ['Source: will (T in TP)', 'Landing: will (T) in C']]);
-  assert.deepEqual(sourceAndLanding(bare), [['Source: Mia (D in v)', 'Landing: D in T'], ['Source: what (D in V)', 'Landing: D in C'],
-    ['Source: will (T in T)', 'Landing: will (T) in C']]);
+  // Panels follow Replay order: will moves to C before what lands above it
+  // (head movement before phrasal movement, approved 23 Oct 2026).
+  assert.deepEqual(sourceAndLanding(xbar), [['Source: Mia (Spec,vP)', 'Landing: Spec,TP'], ['Source: will (T in T′)', 'Landing: will (T) in C'],
+    ['Source: what (DP in VP)', 'Landing: Spec,CP']]);
+  assert.deepEqual(sourceAndLanding(xp), [['Source: Mia (DP in vP)', 'Landing: DP in TP'], ['Source: will (T in TP)', 'Landing: will (T) in C'],
+    ['Source: what (DP in VP)', 'Landing: DP in CP']]);
+  assert.deepEqual(sourceAndLanding(bare), [['Source: Mia (D in v)', 'Landing: D in T'], ['Source: will (T in T)', 'Landing: will (T) in C'],
+    ['Source: what (D in V)', 'Landing: D in C']]);
 });
 
 // Labels without X′ cannot tell a specifier from an adjunct, so every phrase

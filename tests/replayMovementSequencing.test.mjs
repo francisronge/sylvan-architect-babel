@@ -968,12 +968,15 @@ test('ordered phrase and head movements do not leak the later head trace into ea
     replayPlan
   }
   );
+  // The auxiliary moves to C before the object lands above it in Spec,CP
+  // (head movement before phrasal movement in one stage, approved by Francis on
+  // 23 Oct 2026), whatever order the stage lists them in.
   const phraseMoveIndex = steps.findIndex((step) => step.operation === 'AbarMove');
   const headMoveIndex = steps.findIndex((step) => step.operation === 'HeadMove');
-  assert.ok(phraseMoveIndex > 0);
-  assert.equal(headMoveIndex, phraseMoveIndex + 1);
+  assert.ok(headMoveIndex > 0);
+  assert.equal(phraseMoveIndex, headMoveIndex + 1);
 
-  for (const step of steps.slice(0, phraseMoveIndex).filter((step) => step.replayFrameIndex === 1)) {
+  for (const step of steps.slice(0, headMoveIndex).filter((step) => step.replayFrameIndex === 1)) {
     assert.notEqual(findNode(step.replayCanvasData, 'did_high')?.replayLayoutOnly, false);
     assert.equal(step.replayVisibleNodeIds?.includes('dp_what_high'), false);
     assert.equal(step.replayVisibleNodeIds?.includes('did_high'), false);
@@ -991,25 +994,25 @@ test('ordered phrase and head movements do not leak the later head trace into ea
     assert.notEqual(findNode(step.replayCanvasData, 'did_low')?.silent, true);
   }
 
-  const phraseMove = steps[phraseMoveIndex];
-  assert.ok(findNode(phraseMove.replayCanvasData, 'dp_what_high'));
-  assert.equal(findNode(phraseMove.replayCanvasData, 'd_what_low')?.silent, true);
-  assert.equal(findNode(phraseMove.replayCanvasData, 'did_high'), null);
-  assert.equal(
-    findNode(phraseMove.replayCanvasData, 'did_low')?.word
-      || findNode(phraseMove.replayCanvasData, 'did_low')?.label,
-    'did'
-  );
-  assert.notEqual(findNode(phraseMove.replayCanvasData, 'did_low')?.silent, true);
-
   const headMove = steps[headMoveIndex];
-  assert.ok(findNode(headMove.replayCanvasData, 'dp_what_high'));
+  assert.equal(headMove.replayVisibleNodeIds?.includes('dp_what_high'), false);
   assert.equal(
     findNode(headMove.replayCanvasData, 'c_ordered')?.children?.[0]?.word
       || findNode(headMove.replayCanvasData, 'c_ordered')?.children?.[0]?.label,
     'did'
   );
   assert.equal(findNode(headMove.replayCanvasData, 'did_low')?.silent, true);
+  assert.equal(
+    findNode(headMove.replayCanvasData, 'd_what_low')?.word
+      || findNode(headMove.replayCanvasData, 'd_what_low')?.label,
+    'what'
+  );
+  assert.notEqual(findNode(headMove.replayCanvasData, 'd_what_low')?.silent, true);
+
+  const phraseMove = steps[phraseMoveIndex];
+  assert.ok(findNode(phraseMove.replayCanvasData, 'dp_what_high'));
+  assert.equal(findNode(phraseMove.replayCanvasData, 'd_what_low')?.silent, true);
+  assert.equal(findNode(phraseMove.replayCanvasData, 'did_low')?.silent, true);
 });
 
 test('a non-movement relation waits for its exact new anchor and never reveals syntax', () => {

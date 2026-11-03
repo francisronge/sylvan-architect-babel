@@ -116,8 +116,14 @@ const inferPlaybackStepTrajectoryKind = (step?: PlaybackStep | null): PlaybackSt
   const explicitKind = normalizeTrajectoryKind(step?.trajectoryKind);
   if (explicitKind)
     return explicitKind;
-  const linkKinds = Array.isArray(step?.replayRelationLinks)
-    ? step.replayRelationLinks
+  // A step's own claim decides; links of earlier moments still on screen
+  // (an earlier head movement's arrow) describe other movements.
+  const identity = step?.replayRelationIdentity;
+  const key = identity && `${identity.stageIndex}:${identity.relationIndex}`;
+  const links = Array.isArray(step?.replayRelationLinks) ? step.replayRelationLinks : [];
+  const own = key ? links.filter((link) => link?.authoredRelationKey === key && normalizeTrajectoryKind(link?.trajectoryKind)) : [];
+  const linkKinds = links.length
+    ? (own.length ? own : links)
       .map((link) => normalizeTrajectoryKind(link?.trajectoryKind))
       .filter((kind): kind is NonNullable<ResolvedRelationLink['trajectoryKind']> => Boolean(kind))
     : [];
