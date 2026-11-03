@@ -23,6 +23,8 @@ test('public Babel never reaches the research controls or the internal app', () 
 
 test('public Babel asks for Minimalism and makes no model choice the user sees', () => {
   assert.equal(PUBLIC_GENERATION.framework, 'minimalism');
+  assert.equal(PUBLIC_GENERATION.modelId, 'openai:gpt-6.1-sol');
+  assert.deepEqual({ ...PUBLIC_GENERATION.settings }, { 'reasoning.effort': 'high' });
 });
 
 test('the public first screen is the sentence box and Analyze, without the internal controls', async () => {
