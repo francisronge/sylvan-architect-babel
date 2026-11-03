@@ -299,7 +299,6 @@ export const prepareReplayStage = (
     operation: 'Other',
     sourceKind: 'derivation-effect',
     trajectoryKind: frameTrajectoryKind || undefined,
-    movementSerializationStatus: undefined,
     movementDiagnostics: undefined,
     sourceFrameIndex: index,
     visualFrameIndex: index,
