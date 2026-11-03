@@ -57,7 +57,7 @@ export const mutableProviderError = (error) => {
   );
 };
 
-export const summarizeErrorForLog = (error) => {
+const summarizeErrorForLog = (error) => {
   const { msg, statusCode } = getErrorMeta(error);
   const cause = getErrorChain(error).at(-1);
   const shortMessage = String(msg || '')

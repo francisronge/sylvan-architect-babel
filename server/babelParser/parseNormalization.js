@@ -8,8 +8,7 @@ import {
   normalizeDerivationFrames,
   buildCanonicalDerivationFromDerivationFrames
 } from './derivationCompiler.js';
-import { collectOvertTerminalNodes } from './syntaxTree.js';
-import { authoredWord } from './nodePronunciation.js';
+import { authoredWord, collectPronouncedLeaves } from './nodePronunciation.js';
 import { omitMismatchedOptionalTokenIndices } from './tokenIndexRecovery.js';
 import { convertSpelloutPayload } from './spellout.js';
 import { expandPartsListPayload } from './partsList.js';
@@ -86,7 +85,7 @@ const normalizeParseResult = (
         withFailureDetails({}, { ...failure, failureClass: failure.class }));
     }
     const observedRootSurfaceOrders = finalForest.map((root) => (
-      collectOvertTerminalNodes(root)
+      collectPronouncedLeaves(root)
         .map((node) => authoredWord(node))
         .map((token) => String(token || '').trim())
         .filter(Boolean)

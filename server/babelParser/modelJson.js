@@ -2,8 +2,9 @@ import { ParseApiError } from './error.js';
 import { withFailureDetails } from './validationErrors.js';
 import { parseStrictModelJsonDetailed } from './strictJson.js';
 
-// Transport parsing preserves the original output and byte-level repair evidence
-// in the same error envelope as the rest of the parser.
+// A response that is not one JSON object fails in the same error envelope as
+// the rest of the parser, keeping the original output and strictJson.js's
+// byte-level diagnostic. Babel never repairs the JSON.
 const modelJsonError = (code, message, status, offendingRawText) => new ParseApiError(
   code,
   message,

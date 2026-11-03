@@ -6,7 +6,7 @@ export { FAILURE_CLASSES, FAILURE_RULES } from './failureRecord.js';
 // Bound on a complete failure body. formatApiError enforces it across every
 // artifact the body carries.
 export const MAX_RAW_OUTPUT_BODY_BYTES = 2 * 1024 * 1024;
-export const MAX_INLINE_OFFENDING_VALUE_BYTES = 64 * 1024;
+const MAX_INLINE_OFFENDING_VALUE_BYTES = 64 * 1024;
 // Base64 expands bytes by 4/3. Reserve 128 KiB for the typed failure,
 // attempt receipts, and JSON envelope so a body carrying one artifact at this
 // cap still fits.
