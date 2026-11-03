@@ -1,5 +1,8 @@
 name: Renderer performance
 
+# Every checkout leaves out docs/research/assets (research screenshots, most of
+# the repository's size), which no check reads; a sparse checkout also fetches
+# only the files it keeps (tests/ciChangeScope.test.mjs).
 on:
   pull_request:
   workflow_dispatch:
@@ -21,19 +24,19 @@ jobs:
     name: Renderer performance
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: candidate
           persist-credentials: false
-
-      - name: Check out PR base
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.base.sha || inputs.baseline_ref }}
-          path: baseline
-          persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -42,12 +45,43 @@ jobs:
           cache: npm
           cache-dependency-path: candidate/package-lock.json
 
+      # This job is a required check, so it always reports. A change outside
+      # what the renderer page reads (scripts/ciChangeScope.mjs) passes
+      # without measuring; manual runs always measure.
+      - name: Decide whether the change can affect the renderer
+        id: scope
+        working-directory: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo "replay=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          gh api --paginate "repos/$REPOSITORY/pulls/$NUMBER/files" --jq '.[] | "\(.status)\t\(.filename)", (select(.previous_filename) | "\(.status)\t\(.previous_filename)")' > "$RUNNER_TEMP/files.txt"
+          node scripts/ciChangeScope.mjs --files "$RUNNER_TEMP/files.txt" --github-output
+
+      - name: Check out PR base
+        if: steps.scope.outputs.replay == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha || inputs.baseline_ref }}
+          path: baseline
+          persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
+
       - name: Install both locked dependency sets
+        if: steps.scope.outputs.replay == 'true'
         run: |
           npm ci --prefix baseline
           npm ci --prefix candidate
 
       - name: Install the pinned Chromium runtime
+        if: steps.scope.outputs.replay == 'true'
         working-directory: candidate
         # Bounded and retried, as in browser-verification.yml.
         run: |
@@ -69,6 +103,7 @@ jobs:
           exit 1
 
       - name: Compare actual browser opening times
+        if: steps.scope.outputs.replay == 'true'
         working-directory: candidate
         run: npm run verify:renderer-performance -- --baseline-root ../baseline --report "$RUNNER_TEMP/renderer-performance.json"
 

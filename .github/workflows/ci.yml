@@ -5,6 +5,9 @@ name: CI
 # main, so the merged tree is the tree its pull request already verified. The
 # nightly run covers what changes without a commit (new dependency advisories,
 # runner images) and keeps main's dependency cache warm.
+# Every checkout leaves out docs/research/assets (research screenshots, most of
+# the repository's size), which no check reads; a sparse checkout also fetches
+# only the files it keeps (tests/ciChangeScope.test.mjs).
 on:
   pull_request:
   schedule:
@@ -24,8 +27,51 @@ concurrency:
 # other jobs split `npm run verify:all`, the visual and camera audits and the
 # release checks across parallel runners; together they run the same checks.
 jobs:
+  scope:
+    name: Decide which checks the change needs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      markdown-only: ${{ steps.scope.outputs.markdown-only }}
+      replay: ${{ steps.scope.outputs.replay }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+
+      # scripts/ciChangeScope.mjs: a Markdown-only change skips every job
+      # below; a change outside what the Replay checks read skips the Replay
+      # geometry, camera and motion jobs. Nightly and manual runs run all.
+      - name: Decide from the files the pull request changes
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            printf 'markdown-only=false\nreplay=true\n' >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          gh api --paginate "repos/$REPOSITORY/pulls/$NUMBER/files" --jq '.[] | "\(.status)\t\(.filename)", (select(.previous_filename) | "\(.status)\t\(.previous_filename)")' > "$RUNNER_TEMP/files.txt"
+          node scripts/ciChangeScope.mjs --files "$RUNNER_TEMP/files.txt" --github-output
+
   contract:
     name: Typecheck, contract and release build
+    needs: scope
+    if: needs.scope.outputs.markdown-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -34,6 +80,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -104,6 +154,8 @@ jobs:
 
   offline-tests:
     name: Offline tests (${{ matrix.shard }}/6)
+    needs: scope
+    if: needs.scope.outputs.markdown-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -117,6 +169,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -137,8 +193,11 @@ jobs:
   # the corpus comparison refuses shards with different harnesses, and runner
   # images cache different Node.js 24 releases while a new image rolls out.
   # This job resolves the newest Node.js 24 once for the whole run.
+  # The Replay jobs below all need this job, so skipping it skips them.
   node-release:
     name: Resolve one Node.js 24 release
+    needs: scope
+    if: needs.scope.outputs.replay == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -168,6 +227,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -208,6 +271,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -252,6 +319,10 @@ jobs:
         with:
           path: candidate
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       - name: Check out PR base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -259,6 +330,10 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha || github.event.before || 'main' }}
           path: baseline
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -309,6 +384,10 @@ jobs:
         with:
           path: candidate
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       # The comparison judges a fixture the base checkout lacks by motion only.
       - name: Check out PR base
@@ -317,6 +396,10 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha || github.event.before || 'main' }}
           path: baseline
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -364,20 +447,27 @@ jobs:
 
   verify:
     name: Provider-free verification
-    needs: [contract, offline-tests, node-release, replay-offline-shard, replay-offline, corpus-motion-shard, corpus-motion]
+    needs: [scope, contract, offline-tests, node-release, replay-offline-shard, replay-offline, corpus-motion-shard, corpus-motion]
     # GitHub treats a skipped required check as passing, so this job always
-    # runs and fails unless every needed job succeeded.
+    # runs. It fails unless every needed job succeeded, or was skipped
+    # because the change cannot affect it.
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Require every verification job to succeed
+      - name: Require every needed verification job to succeed
         env:
           RESULTS: ${{ toJSON(needs) }}
+          MARKDOWN_ONLY: ${{ needs.scope.outputs.markdown-only }}
+          REPLAY: ${{ needs.scope.outputs.replay }}
         run: |
           node -e '
             const results = Object.entries(JSON.parse(process.env.RESULTS));
+            const replayJobs = new Set(["node-release", "replay-offline-shard", "replay-offline", "corpus-motion-shard", "corpus-motion"]);
+            const maySkip = job => job !== "scope" && (process.env.MARKDOWN_ONLY === "true" || (replayJobs.has(job) && process.env.REPLAY !== "true"));
+            console.log(`Markdown only: ${process.env.MARKDOWN_ONLY}; Replay checks needed: ${process.env.REPLAY}`);
             for (const [job, { result }] of results) console.log(`${job}: ${result}`);
-            process.exit(results.length > 0 && results.every(([, { result }]) => result === "success") ? 0 : 1);
+            const passed = ([job, { result }]) => result === "success" || (result === "skipped" && maySkip(job));
+            process.exit(results.length > 0 && results.every(passed) ? 0 : 1);
           '

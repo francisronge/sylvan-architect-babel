@@ -151,9 +151,30 @@ record still needs its own review.
 
 CI and browser verification run on every pull request and nightly on main, not
 after a merge: a pull request must be up to date with main, so it has already
-verified the merged tree. Browser verification skips a pull request that changes
-only Markdown. The required check is the aggregating `Provider-free verification`
-job.
+verified the merged tree. The required checks are the aggregating
+`Provider-free verification` job and `Renderer performance`.
+
+A pull request runs only the checks its files can affect
+(`scripts/ciChangeScope.mjs`, `tests/ciChangeScope.test.mjs`):
+
+- Only Markdown that no check reads, with nothing deleted or renamed: every
+  heavy job is skipped and the required checks pass at once. Markdown a test
+  or script names (README.md's browser list, the Tier 2 dispatch spec's audit
+  table, the documents whose links the release check follows) runs the
+  checks, and so does a deleted or renamed Markdown file, which can break a
+  link.
+- Nothing the Replay checks read: typecheck, offline tests, the build and
+  browser behavior run; static Replay geometry and camera, Replay motion and
+  renderer performance are skipped. Those checks build their own page around
+  the renderer and never load `App.tsx`, so a change to the app's screens
+  cannot reach them. "What they read" is the import graph of their entry
+  scripts plus `fixtures/`, `tests/helpers/`, dependency locks, build
+  configuration and the workflows.
+- Anything else runs everything. So do nightly and manual runs.
+
+Every checkout leaves out `docs/research/assets` (research screenshots, about
+140 MB, most of the repository), which no check reads; before, downloading it
+took most of each job's first minute and a half.
 
 CI splits the heavy gates across runners without changing what they judge.
 `verify:replay-offline` and `verify:corpus` each run as two shards
@@ -173,8 +194,11 @@ so wall times vary between runs.
 
 `verify:browser-visual` is not a CI job: Linux Chromium paints slightly
 differently from macOS, where its bounds were measured. Before merging a pull
-request that changes `replay/`, `components/`, styles, fonts or the visual rules,
-run it on macOS against the pull request's head.
+request that touches what the Replay checks read, run it on macOS against the
+pull request's head. `node scripts/ciChangeScope.mjs --base origin/main` says
+whether a branch does; when it says no, skip the local Replay gates too
+(`verify:replay-offline`, `verify:corpus`, `verify:browser-visual`, renderer
+performance).
 
 ## Evidence
 
