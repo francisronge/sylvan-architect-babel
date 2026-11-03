@@ -40,11 +40,6 @@ below are not launch work.
      plaques sit 1.12–1.2 times their reach in four trees; and the Portuguese
      coordination first paints 25 px off the desktop canvas when stepping
      back. Recordings: `head-before-phrasal/` (german, hebrew, participle).
-   - **Camera jump when a stage starts** (measured 3 Nov, no fix within the
-     rules): the Chinese tree with 我 and 昨天 jumps 60 px when stepping back
-     into stage 2. It is the mirror of the forward jump Francis approved on
-     21 Oct: the same 494.5 tree units, and no carry brings it under the
-     24 px limit (best 30 px).
    - **Movements drawn without an arrow** (measured 3 Nov over 3,692 saved
      analyses): on the current and the previous prompt, one across-the-board
      movement into a complex head lacked its arrows; #374 draws them. What
@@ -69,6 +64,10 @@ below are not launch work.
      the camera zooms out to it within about a third of a second (8 test trees,
      `MOVED_OFF_CANVAS` in `tests/helpers/cameraExceptions.mjs`). Francis, 3 Nov
      2026, after watching the recordings: "the phone recording is fine."
+   - Settled: the Chinese tree with 我 and 昨天 jumps 60 px when stepping back
+     into stage 2, the mirror of the forward jump approved on 21 Oct; no carry
+     brings it under the 24 px limit (best 30 px). Francis accepted it on
+     3 Nov 2026 after the click-through page ("I approve of 1. and 2.").
    - Settled: in compact-current-root a new landing pushes the T head 57 px
      past the phone canvas's left edge as stage 3 begins; only a first pose
      that zooms out (by 16%) would clear it, which changes the shared camera
