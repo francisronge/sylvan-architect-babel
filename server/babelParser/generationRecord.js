@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { SPELLOUT_CONTRACT_VERSION } from './spellout.js';
 
-export const PROMPT_TEMPLATE_PROBE_SENTENCE = 'Babel provenance probe.';
+const PROMPT_TEMPLATE_PROBE_SENTENCE = 'Babel provenance probe.';
 
 /** Input tokens are the model's own words, aligned to the sentence by Babel's
  * spell-out check. Alignment uses the runtime's Unicode data, so a record names
@@ -25,7 +25,7 @@ const compactScalars = (value) => Object.fromEntries(
   ))
 );
 
-export const buildPromptContract = ({
+const buildPromptContract = ({
   framework,
   promptRoute,
   systemInstruction,
@@ -45,7 +45,7 @@ export const buildPromptContract = ({
   };
 };
 
-export const describeSentRequest = (provider, body = {}) => {
+const describeSentRequest = (provider, body = {}) => {
   if (provider === 'gpt' || provider === 'grok') {
     return compactScalars({
       model: body.model,

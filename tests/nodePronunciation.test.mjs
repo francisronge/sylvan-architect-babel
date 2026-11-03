@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
-import { collectOvertTerminalNodes } from '../server/babelParser/syntaxTree.js';
+import { collectPronouncedLeaves as collectOvertTerminalNodes } from '../server/babelParser/nodePronunciation.js';
 import { ParseApiError } from '../server/babelParser/error.js';
 import {
   authoredWord,
