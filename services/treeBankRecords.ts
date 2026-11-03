@@ -22,6 +22,8 @@ export interface TreeBankWork {
   replayStep: number | null;
   abstractionMode: boolean;
   stageCounts: number[];
+  /** How many of the analyses the sentence check kept as invalid; absent when none. */
+  invalidAnalyses?: number;
   createdAt: string;
   updatedAt: string;
   previewId?: string;
@@ -88,6 +90,16 @@ const analysis = (value: any) => {
     if (stage.realizations !== undefined && !Array.isArray(stage.realizations)) fail('Invalid realizations.');
   }
   if (value.provenance !== undefined) requirePlainRecord(value.provenance, 'provenance');
+  if (value.sentenceCheck !== undefined) {
+    const check = value.sentenceCheck;
+    requirePlainRecord(check, 'sentenceCheck');
+    if (check.status !== 'failed' || check.ruleId !== 'SPELLOUT_MISMATCH' || typeof check.sentence !== 'string'
+      || typeof check.treeReading !== 'string' || typeof check.spaced !== 'boolean'
+      || !Array.isArray(check.inputTokens) || check.inputTokens.some((token: unknown) => typeof token !== 'string')
+      || !Array.isArray(check.words) || check.words.some((word: any) => typeof word?.text !== 'string'
+        || !Number.isInteger(word.sentenceIndex) || typeof word.outOfOrder !== 'boolean' || !Array.isArray(word.nodeIds)
+        || !Array.isArray(word.span) || word.span.length !== 2 || !word.span.every(Number.isInteger))) fail('Invalid sentence check.');
+  }
 };
 export async function validateTreeBankRecord(value: unknown): Promise<TreeBankRecord> {
   const record = copySnapshot(value) as TreeBankRecord;
@@ -107,7 +119,8 @@ export async function validateTreeBankWork(value: unknown): Promise<TreeBankWork
   requireExactFields(work, [
     'schemaVersion', 'id', 'sentence', 'framework', 'analysisIds', 'contextId',
     'activeParseIndex', 'view', 'replayStep', 'abstractionMode', 'stageCounts',
-    'createdAt', 'updatedAt', 'sha256', ...('previewId' in work ? ['previewId'] : [])
+    'createdAt', 'updatedAt', 'sha256', ...('previewId' in work ? ['previewId'] : []),
+    ...('invalidAnalyses' in work ? ['invalidAnalyses'] : [])
   ], 'work');
   if (work.schemaVersion !== 2 || !['xbar', 'minimalism'].includes(work.framework)) fail('Unsupported Tree Bank work.');
   requireNonemptyString(work.id, 'id'); requireNonemptyString(work.sentence, 'sentence');
@@ -122,6 +135,10 @@ export async function validateTreeBankWork(value: unknown): Promise<TreeBankWork
   date(work.createdAt, 'createdAt'); date(work.updatedAt, 'updatedAt');
   if (Date.parse(work.updatedAt) < Date.parse(work.createdAt)) fail('updatedAt precedes createdAt.');
   if (work.previewId !== undefined && !/^preview:[a-f0-9]{64}$/.test(work.previewId)) fail('Invalid preview reference.');
+  if (work.invalidAnalyses !== undefined) {
+    integer(work.invalidAnalyses, 'invalidAnalyses');
+    if (work.invalidAnalyses < 1 || work.invalidAnalyses > work.analysisIds.length) fail('Invalid analysis count.');
+  }
   await checkHash(work); return freezeJsonData(work);
 }
 // SVG previews are image data URLs for img elements, never inline SVG markup.
@@ -168,6 +185,7 @@ export async function prepareTreeBankSave(input: TreeBankSaveInput): Promise<Pre
     replayStep: input.replayStep ?? null,
     abstractionMode: input.abstractionMode ?? false,
     stageCounts: analyses.map(item => item.derivationStages?.length ?? 0),
+    ...(analyses.some(item => item.sentenceCheck) ? { invalidAnalyses: analyses.filter(item => item.sentenceCheck).length } : {}),
     createdAt: input.createdAt,
     updatedAt: input.updatedAt,
     ...(preview ? { previewId: preview.id } : {})

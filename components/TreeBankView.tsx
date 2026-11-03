@@ -95,6 +95,11 @@ export function TreeBankView({ entries, loading, error, opening, onOpen, onDelet
                   <span className="px-3 py-1.5 rounded-full border border-white/15 text-white/70 bg-white/5">
                     {stageCount} {stageCount === 1 ? 'Stage' : 'Stages'}
                   </span>
+                  {entry.invalidAnalyses > 0 && (
+                    <span className="px-3 py-1.5 rounded-full border border-amber-500/40 text-amber-300 bg-amber-500/10">
+                      {entry.analysisCount === 1 ? 'Invalid analysis' : `${entry.invalidAnalyses} Invalid`}
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-6 rounded-[1.4rem] border border-white/10 bg-[#020806] overflow-hidden h-56">

@@ -307,16 +307,19 @@ export const normalizeParseBundle = (
       ? [parsed]
       : [];
 
-  let inputTokens;
+  let inputTokens, sentenceChecks = [];
   if (options.spellout) {
     // A model response names words by spelling them. Babel checks each
     // analysis and derives one shared word list before parsing.
     const results = convertSpelloutPayload(parsed, sentence);
-    const failed = results.filter(result => !result.ok).map(result => spelloutFailure(result, Array.isArray(parsed?.analyses)));
+    const failed = results.filter(result => !result.ok && !result.sentenceCheck).map(result => spelloutFailure(result, Array.isArray(parsed?.analyses)));
     failed.forEach(error => options.analysisOutcomes?.push({ analysisIndex: error.failure.analysisIndex, status: 'failed', failure: error.failure }));
     if (failed.length) throw failed[0];
     analysesSource = results.map(result => result.analysis);
-    inputTokens = results[0].inputTokens;
+    // An analysis kept by the sentence check reads its own word list; the
+    // response's list is the passing analyses', or the sentence's own.
+    sentenceChecks = results.map(result => result.sentenceCheck);
+    inputTokens = results.find(result => result.ok)?.inputTokens ?? tokenizeSentenceSurfaceOrder(sentence);
   } else {
     inputTokens = resolveSavedInputTokens(sentence, options.inputTokens ?? tokenizeSentenceSurfaceOrder(sentence));
   }
@@ -324,11 +327,19 @@ export const normalizeParseBundle = (
   // Every analysis of the response, and any token-index retry, shares one budget.
   const expansionBudget = createExpansionBudget();
   const analyses = analysesSource.map((analysis, analysisIndex) => {
+    const check = sentenceChecks[analysisIndex];
     try {
       const normalized = normalizeWithTokenIndexRecovery(
-        analysis, framework, sentence, modelRoute, { ...options, inputTokens, expansionBudget },
+        analysis, framework, check ? check.treeReading : sentence, modelRoute,
+        { ...options, inputTokens: check ? check.inputTokens : inputTokens, expansionBudget },
         Array.isArray(parsed?.analyses) ? `$.analyses[${analysisIndex}]` : '$'
       );
+      if (check) {
+        // Shown, but not a valid analysis of the sentence.
+        options.analysisOutcomes?.push({ analysisIndex, status: 'failed', kept: true,
+          failure: spelloutFailure({ analysisIndex, diagnostics: [{ rule: check.ruleId, detail: `The tree reads "${check.treeReading}".` }] }, Array.isArray(parsed?.analyses)).failure });
+        return { ...normalized, sentenceCheck: check };
+      }
       options.analysisOutcomes?.push({ analysisIndex, status: 'succeeded' });
       return normalized;
     } catch (error) {

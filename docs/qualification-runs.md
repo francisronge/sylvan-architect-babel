@@ -70,7 +70,9 @@ Both runners send Babel's prompts unchanged and apply Babel's spelling check
 through `contractQualification/spelloutArtifacts.js`. The analyses that pass
 become one attempt over their shared word list; each analysis that fails is
 recorded as its own attempt, and `spellout.json` keeps the alignment. (The app
-instead rejects a response when any analysis fails the check.)
+instead rejects a response when any analysis fails the check, except an analysis
+whose words are the sentence's in another order: it shows that one as an invalid
+analysis, and qualification still records it as failed.)
 
 ## Artifacts
 

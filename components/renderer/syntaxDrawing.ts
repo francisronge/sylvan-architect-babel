@@ -50,6 +50,8 @@ type TriangulatedNode = HierNode & {isTriangulated?: boolean; triangulatedWords?
 
 export interface SyntaxDrawingContext {
   treeData: d3.HierarchyPointNode<SyntaxNode>;
+  /** Pronounced words the sentence check found out of order, painted amber (empty unless shown). */
+  outOfOrderNodeIds?: ReadonlySet<string>;
   replayVisibleNodeIdSet: Set<string> | null;
   playbackSteps: PlaybackStep[];
   animated: boolean;
@@ -97,12 +99,14 @@ export function paintSyntaxTree({
   measureCategoryText,
   currentReplayStep,
   pendingPhraseFrontingSourceNodeIds,
-  hasDerivationFrames
+  hasDerivationFrames,
+  outOfOrderNodeIds
 }: SyntaxDrawingContext) {
   const BRANCH_COLOR = '#593a0e';
   const PURE_WHITE = '#ffffff';
   const TARGET_EMERALD = '#10b981';
   const SILENT_SAGE = '#9caf99';
+  const OUT_OF_ORDER_AMBER = '#f5b544';
 
   // 1. RENDER BRANCHES
   const visibleNodes = treeData.descendants().filter((node) =>
@@ -562,8 +566,14 @@ export function paintSyntaxTree({
     // The deferred theta painter resets the label to this step's staged text.
     .attr('data-staged-label', function () { return this.textContent || ''; });
 
-  // Pronounced leaves stay emerald; silent leaves stay muted.
-  appendTerminalText(overtTerminals, TARGET_EMERALD);
+  // Pronounced leaves stay emerald, or amber where the sentence check found
+  // them out of order; silent leaves stay muted.
+  // A word is painted on its terminal or on the word leaf Babel adds below it.
+  const outOfOrder = (d: HierNode) => Boolean(outOfOrderNodeIds?.size) && [d, d.parent]
+    .some(owner => owner && (outOfOrderNodeIds!.has(getNodeId(owner)) || outOfOrderNodeIds!.has(String(owner.data.id ?? ''))));
+  appendTerminalText(overtTerminals.filter(d => !outOfOrder(d)), TARGET_EMERALD);
+  appendTerminalText(overtTerminals.filter(outOfOrder), OUT_OF_ORDER_AMBER)
+    .classed('babel-out-of-order-word', true);
   appendTerminalText(silentTerminals, SILENT_SAGE);
   g.selectAll<SVGTextElement, HierNode>('.terminal-label')
     .filter((candidate) => {
