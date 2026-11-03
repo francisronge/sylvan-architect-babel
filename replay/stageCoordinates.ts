@@ -6,7 +6,7 @@ import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayo
 import { compactCurrentRootForks } from './currentRootCompaction.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
 import { retainCurrentSiblingRanks, retainCurrentDaughterRanks } from './currentSiblingRanks.ts';
-import { applyVizIds, getNodeId, isPaintedSyntax } from './displayIdentity.ts';
+import { applyVizIds, getNodeId, isPaintedSyntax, paintedSyntaxParent } from './displayIdentity.ts';
 import { retainedSubtreeMaterial } from './displayWordMaterial.ts';
 import { closeMovementGaps } from './movementGapClosing.ts';
 import { motionFrame, replayMotionFaults } from './motionRule.ts';
@@ -55,14 +55,12 @@ const textCollisionPlans = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateRes
  * the plan repaired for ordered sister contours, or neither ordered. */
 export const getContourPlanStatuses = (steps: readonly PlaybackStep[]) => [...(contourPlans.get(steps)?.values() ?? [])];
 
-const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => node.ancestors().slice(1).find(isPaintedSyntax);
-
 function reserveScene(current: Scene, reference: Scene, retained: TreeCoordinateReservation): Scene {
   const relocated = new Set<string>();
   current.nodes.forEach((node, id) => {
     const other = reference.nodes.get(id);
     if (node.data.replayLayoutOnly || !other || other.data.replayLayoutOnly) return;
-    const oldParent = syntaxParent(node);
+    const oldParent = paintedSyntaxParent(node);
     if (oldParent && !other.ancestors().some(ancestor => getNodeId(ancestor) === getNodeId(oldParent))) {
       node.each(descendant => relocated.add(getNodeId(descendant)));
     }
