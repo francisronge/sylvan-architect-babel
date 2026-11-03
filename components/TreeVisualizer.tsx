@@ -25,7 +25,7 @@ import {
 import { buildMovementProtectedNodeIds } from '../replay/triangulation.ts';
 import type { PlaybackStep } from '../replay/types.ts';
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
-import { type DerivationStage, type SyntaxNode } from '../types';
+import { type DerivationStage, type SentenceCheck, type SyntaxNode } from '../types';
 import { selectReplayCanvas } from './replayStepCanvas.ts';
 import { withPlaqueTextMeasure } from './renderer/plaqueText.ts';
 import { applyRelationEmphasis } from './renderer/relationInteraction.ts';
@@ -64,6 +64,8 @@ export interface TreeVisualizerProps {
   abstractionMode?: boolean;
   sentence?: string;
   inputTokens?: string[];
+  /** The tree does not spell the sentence: marked from the first step, detailed at the end. */
+  sentenceCheck?: SentenceCheck;
 }
 
 type RelationMoment = {
@@ -82,6 +84,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   abstractionMode = false,
   sentence = '',
   inputTokens,
+  sentenceCheck,
   preparedReplay,
   manualCameraState
 }) => {
@@ -170,6 +173,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       movementChainIndexCatalogue, measureCategoryText, settledFontText, fontText]);
   const initialStepIndex = initialReplayStepIndex(playbackSteps, initialReplayMoment, initialReplayStep);
   const [activeStepIndex, setActiveStepIndex] = useState(initialStepIndex);
+  // The sentence check marks the analysis from the first step and shows its
+  // reading lines and amber words where the tree is finished.
+  const showsSentenceCheck = Boolean(sentenceCheck) && (!animated || activeStepIndex === playbackSteps.length - 1);
+  const outOfOrderNodeIds = useMemo(() => new Set(sentenceCheck?.words.filter(word => word.outOfOrder)
+    .flatMap(word => word.nodeIds) ?? []), [sentenceCheck]);
+  const outOfOrderCount = sentenceCheck?.words.filter(word => word.outOfOrder).length ?? 0;
+  const sentenceOrder = useMemo(() => [...(sentenceCheck?.words ?? [])].sort((a, b) => a.sentenceIndex - b.sentenceIndex), [sentenceCheck]);
   const openingSelectionRef = useRef<{ steps: typeof playbackSteps; startedAt: number } | null>(null);
   const collectionRevealRef = useRef<{ steps: typeof playbackSteps; stepIndex: number; startedAt: number } | null>(null);
   const hasDerivationFrames = replayDerivationFrames.length > 0;
@@ -642,7 +652,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         currentReplayStep,
         pendingPhraseFrontingSourceNodeIds,
         hasDerivationFrames,
-        completedReplayStep
+        completedReplayStep,
+        outOfOrderNodeIds: showsSentenceCheck ? outOfOrderNodeIds : undefined
       }, relations: {
         relationRenderPlan,
         playedRelationIndices,
@@ -672,6 +683,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately keyed; see above.
   }, [
     layoutReady,
+    showsSentenceCheck,
+    outOfOrderNodeIds,
     replayCoordinates,
     canopyPlaces,
     zoomBehavior,
@@ -851,15 +864,30 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         className="babel-replay-header absolute pointer-events-none z-10 opacity-75 select-none"
         style={{ top: Math.max(24, uiBounds.top), right: uiBounds.right }}
       >
-        <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.6em] flex items-center gap-3">
-          <div className={`w-2 h-2 rounded-full ${abstractionMode ? 'bg-amber-500 shadow-[0_0_15px_#f59e0b]' : 'bg-emerald-500 shadow-[0_0_15px_#10b981]'}`}></div>
-          {abstractionMode ? 'CONSTITUENT GLYPHING ACTIVE' : (animated ? 'DERIVATION SEQUENCE ACTIVE' : 'ARBORETUM CANOPY')}
+        <div className={`text-[10px] font-black uppercase tracking-[0.6em] flex items-center gap-3 ${sentenceCheck ? 'text-amber-400' : 'text-emerald-500'}`}>
+          <div className={`w-2 h-2 rounded-full ${abstractionMode || sentenceCheck ? 'bg-amber-500 shadow-[0_0_15px_#f59e0b]' : 'bg-emerald-500 shadow-[0_0_15px_#10b981]'}`}></div>
+          {sentenceCheck ? `INVALID ANALYSIS \u00b7 ${outOfOrderCount} ${outOfOrderCount === 1 ? 'WORD' : 'WORDS'} OUT OF ORDER`
+            : abstractionMode ? 'CONSTITUENT GLYPHING ACTIVE' : (animated ? 'DERIVATION SEQUENCE ACTIVE' : 'ARBORETUM CANOPY')}
         </div>
         {animated && playbackSteps.length > 0 && (
           <div className="mt-2 text-[9px] font-black text-emerald-500 uppercase tracking-[0.35em]">
             Replay Frame {activeStepIndex + 1}/{playbackSteps.length}
             {activeStageDisplayLabel ? ` \u00b7 ${activeStageDisplayLabel}` : ''}
           </div>
+        )}
+        {sentenceCheck && showsSentenceCheck && (
+          <dl data-babel-sentence-check="true" className="mt-3 grid grid-cols-[auto,1fr] items-baseline gap-x-4 gap-y-0.5">
+            {([['Sentence', sentenceOrder], ["Model's tree", sentenceCheck.words]] as const).map(([label, words]) => (
+              <React.Fragment key={label}>
+                <dt className="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-100/50">{label}</dt>
+                <dd className="serif italic text-[15px] text-emerald-50/80">
+                  {words.map((word, index) => (
+                    <span key={index} className={word.outOfOrder ? 'text-amber-400' : undefined}>{index ? ' ' : ''}{word.text}</span>
+                  ))}
+                </dd>
+              </React.Fragment>
+            ))}
+          </dl>
         )}
       </div>
       {animated && playbackSteps.length > 0 && (

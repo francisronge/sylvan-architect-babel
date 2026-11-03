@@ -402,6 +402,14 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
     return false;
   };
   if (!search(0)) {
+    // The tree's own reading in tree order, for the sentence check (readWordOrder).
+    const terminalsOf = item => {
+      if (item.word !== undefined) return [words[item.word].nodeId];
+      const ids = [];
+      groups[item.group].nodeIds.forEach(id => eachPronounced(reading, id, meter, node => ids.push(node.id)));
+      return ids;
+    };
+    const treeReading = preferred.map(item => ({ text: textOf(item), nodeIds: terminalsOf(item) }));
     // Report where reading straight through the tree stops matching.
     let position = 0;
     for (const item of preferred) {
@@ -409,7 +417,7 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
       if (!spelled.complete) {
         diagnostics.push(failure('SPELLOUT_MISMATCH',
           `"${textOf(item)}" does not spell the sentence at "${chars.slice(spelled.start, spelled.start + spelled.length + 2).join('')}".`));
-        return { units: [], diagnostics, observations: [] };
+        return { units: [], diagnostics, observations: [], treeReading };
       }
       position = spelled.end;
     }
@@ -417,7 +425,7 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
     diagnostics.push(position < chars.length
       ? failure('SPELLOUT_INCOMPLETE', `The final stage leaves "${chars.slice(position).join('')}" unspelled.`)
       : failure('SPELLOUT_MISMATCH', 'The groups and the remaining words cannot spell the sentence in order.'));
-    return { units: [], diagnostics, observations: [] };
+    return { units: [], diagnostics, observations: [], treeReading };
   }
   const observations = [];
   const units = trail.map(({ item, span: [start, end] }) => {
@@ -543,8 +551,8 @@ const alignAnalysis = (analysis, sentence, meter) => {
   const readings = expandStages(stages, meter).map(readForest);
   const finalReading = readings.at(-1);
   const finalGroups = stages.at(-1).realizations || [];
-  const { units, diagnostics, observations } = alignFinalStage(finalReading, finalGroups, sentence, meter);
-  if (diagnostics.length) return { diagnostics, observations, units };
+  const { units, diagnostics, observations, treeReading } = alignFinalStage(finalReading, finalGroups, sentence, meter);
+  if (diagnostics.length) return { diagnostics, observations, units, ...(treeReading ? { treeReading } : {}) };
   const earlierGroups = stages.slice(0, -1).flatMap((stage, stageIndex) => (Array.isArray(stage.realizations) ? stage.realizations : [])
     .map((group, groupIndex) => ({ group, stageIndex, groupIndex })));
   const earlier = [];
@@ -698,6 +706,69 @@ const convertAligned = (item, tokens) => {
 };
 
 /**
+ * The sentence check for a tree whose words are the sentence's words in another
+ * order. Reads the tree's words and group pieces, in tree order, as whole
+ * sentence words, each sentence word used once. Returns null unless every
+ * sentence word is read once and the order differs. `words` lists the words in
+ * tree order with their place in the sentence; a word is out of order when it
+ * stands outside some longest run that keeps sentence order, so both words of a
+ * swap are marked but a phrase that moved as a whole marks only itself.
+ */
+const readWordOrder = (treeReading, sentence, meter) => {
+  const sentenceWords = sentence.split(SPACE).map(text => text.trim()).filter(text => caselessSpelling(text));
+  const wanted = sentenceWords.map(caselessSpelling);
+  const items = treeReading.filter(item => caselessSpelling(item.text));
+  const folded = items.map(item => caselessSpelling(item.text));
+  if (!items.length || !wanted.length) return null;
+  const left = new Map();
+  wanted.forEach(word => left.set(word, (left.get(word) ?? 0) + 1));
+  const longest = Math.max(...wanted.map(word => word.length));
+  const failed = new Set(), groups = [];
+  const search = (index) => {
+    if (index === items.length) return [...left.values()].every(count => count === 0);
+    meter.charge();
+    const key = `${index}|${[...left.values()].join(',')}`;
+    if (failed.has(key)) return false;
+    let text = '';
+    for (let end = index; end < items.length; end += 1) {
+      text += folded[end];
+      if (text.length > longest) break;
+      if (!left.get(text)) continue;
+      left.set(text, left.get(text) - 1);
+      groups.push({ start: index, end: end + 1, word: text });
+      if (search(end + 1)) return true;
+      groups.pop();
+      left.set(text, left.get(text) + 1);
+    }
+    failed.add(key);
+    return false;
+  };
+  if (!search(0)) return null;
+  // Repeated words take their sentence places in tree order.
+  const places = new Map();
+  wanted.forEach((word, index) => places.set(word, [...(places.get(word) ?? []), index]));
+  const order = groups.map(group => places.get(group.word).shift());
+  if (order.every((place, index) => !index || place > order[index - 1])) return null;
+  // Longest increasing run ending at and starting from each word.
+  const ending = order.map(() => 1), starting = order.map(() => 1);
+  order.forEach((place, i) => { for (let j = 0; j < i; j += 1) if (order[j] < place) ending[i] = Math.max(ending[i], ending[j] + 1); });
+  for (let i = order.length - 1; i >= 0; i -= 1) for (let j = i + 1; j < order.length; j += 1) if (order[j] > order[i]) starting[i] = Math.max(starting[i], starting[j] + 1);
+  const best = Math.max(...ending);
+  const onBest = order.map((_, i) => ending[i] + starting[i] - 1 === best);
+  // A word is in every longest run when it alone holds its position in one.
+  const fixed = order.map((_, i) => onBest[i] && !order.some((__, j) => j !== i && onBest[j] && ending[j] === ending[i]));
+  return {
+    reading: groups.map((_, index) => sentenceWords[order[index]]).join(' '),
+    words: groups.map((group, index) => ({
+      text: sentenceWords[order[index]],
+      sentenceIndex: order[index],
+      outOfOrder: !fixed[index],
+      nodeIds: [...new Set(items.slice(group.start, group.end).flatMap(item => item.nodeIds))]
+    }))
+  };
+};
+
+/**
  * Checks each analysis of a spell-out response and converts the passing ones
  * into Babel's current contract over one shared word list. Results keep the
  * authored analysis index.
@@ -725,9 +796,29 @@ export const convertSpelloutPayload = (payload, sentence) => {
       return { analysisIndex, diagnostics: [failure('SPELLOUT_UNREADABLE', detail)] };
     }
   });
+  // An analysis whose words are the sentence's in another order is kept for
+  // display, aligned to its own reading over its own word list: it still fails
+  // (`ok` false), and `sentenceCheck` says which words are out of order.
+  const reordered = new Map();
+  aligned.forEach((item) => {
+    if (!item.treeReading || !item.diagnostics.every(diagnostic => diagnostic.rule === 'SPELLOUT_MISMATCH')) return;
+    try {
+      const order = readWordOrder(item.treeReading, sentence, meter);
+      const own = order && readSentence(order.reading);
+      const realigned = own && alignAnalysis(item.analysis, own, meter);
+      if (!realigned || realigned.diagnostics.length) return;
+      const converted = convertAligned({ analysisIndex: item.analysisIndex, analysis: item.analysis, ...realigned }, segmentSentence([realigned], own));
+      if (converted.diagnostics.length) return;
+      reordered.set(item, { analysisIndex: item.analysisIndex, ok: false, ...converted, diagnostics: item.diagnostics,
+        sentenceCheck: { status: 'failed', ruleId: 'SPELLOUT_MISMATCH', treeReading: order.reading, inputTokens: converted.inputTokens, words: order.words } });
+    } catch (error) {
+      if (!(error instanceof SpelloutWorkLimitError || error instanceof SpelloutStructureError)) throw error;
+    }
+  });
   const passing = aligned.filter(item => !item.diagnostics.length);
   const tokens = segmentSentence(passing, reading);
   return aligned.map((item) => {
+    if (reordered.has(item)) return reordered.get(item);
     const result = item.diagnostics.length
       ? { diagnostics: item.diagnostics, observations: item.observations, units: item.units }
       : convertAligned(item, tokens);

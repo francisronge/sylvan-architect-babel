@@ -109,7 +109,11 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
   one-string group. `spellout.js` checks this
   and converts the analyses to token positions over one word list, cut wherever
   any analysis or stage divides a word; parsing, Replay and saved records keep
-  that form. Records saved earlier keep their tokenizer word lists.
+  that form. Records saved earlier keep their tokenizer word lists. An analysis
+  whose pronounced words are exactly the sentence's words in another order is
+  the one failure the app keeps: its `sentenceCheck` names the words out of
+  order and carries its own reading and word list, it is drawn as an invalid
+  analysis, and qualification still records it as failed.
 - Final trees, surface order, render plans, Replay steps and stage explanations
   are derived. Never reintroduce parallel authored ledgers, growth frames,
   commitment graphs or compatibility aliases. Stages are syntactic states, not

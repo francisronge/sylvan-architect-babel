@@ -23,6 +23,8 @@ export interface TreeBankEntrySummary {
   updatedAt: string;
   analysisCount: number;
   stageCount: number;
+  /** Analyses kept by the sentence check as invalid. */
+  invalidAnalyses: number;
   previewId?: string;
   legacy: boolean;
 }
@@ -41,6 +43,7 @@ const summary = (w: TreeBankWork): TreeBankEntrySummary => ({
   updatedAt: w.updatedAt,
   analysisCount: w.analysisIds.length,
   stageCount: w.stageCounts[w.activeParseIndex] ?? 0,
+  invalidAnalyses: w.invalidAnalyses ?? 0,
   previewId: w.previewId,
   legacy: false,
 });
@@ -91,6 +94,7 @@ function legacySummary(v: any): TreeBankEntrySummary {
     updatedAt: v.updatedAt || v.createdAt || "",
     analysisCount: v.bundle.analyses.length,
     stageCount: stages?.length ?? 0,
+    invalidAnalyses: 0,
     previewId: v.treeSnapshotDataUrl ? v.id : undefined,
     legacy: true,
   };
