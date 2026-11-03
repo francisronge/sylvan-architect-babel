@@ -95,12 +95,18 @@ test('a later stage listing the unchanged lower copies of an earlier chain asser
   assert(!checkMovementUnrendered(replay, record).some(found => found.subject === '2:0'));
 });
 
-test('the same claim at the stage that raises T, or listing a copy twice, keeps its refusal', () => {
+test('the same claim at the stage that raises T asserts the movement, and listing a copy twice keeps its refusal', () => {
   const { before, raised, pronounced, doSupport } = doSupportRecord();
+  // At the raising stage the claim names the landing and every lower copy,
+  // so it owns the across-the-board head movement, as it owns the movement
+  // when T raises from one clause; wording alone refuses its endpoint list.
   const atRaising = { sentence: 'buy and sell', derivationStages: [stage(before), stage(raised, [doSupport])] };
   const raisingReplay = prepareReplay({ ...structuredClone(atRaising), includePlayback: true });
-  assert.ok(movementCodes(moment(raisingReplay, 1, 0)).some(text => text.startsWith('MOVEMENT_ENDPOINTS_UNRESOLVED')));
-  assert.ok(checkMovementUnrendered(raisingReplay, atRaising).some(found => found.subject === '1:0'));
+  assert.equal(recoverMovementEvidence(doSupport, raised, before).failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED');
+  assert.deepEqual(raisingReplay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory')
+    .map(item => `${item.sourceNodeId}->${item.targetNodeId} ${item.trajectoryKind}`), ['tBuy->tHigh head', 'tSell->tHigh head']);
+  assert.deepEqual(movementCodes(moment(raisingReplay, 1, 0)), []);
+  assert.deepEqual(checkMovementUnrendered(raisingReplay, atRaising), []);
   const repeated = { ...doSupport, anchors: { ...doSupport.anchors, lowerTenseOccurrences: ['tBuy', 'tBuy'] } };
   const twice = { sentence: 'did buy and sell', derivationStages: [stage(before), stage(raised), stage(pronounced, [repeated])] };
   assert.ok(movementCodes(moment(prepareReplay({ ...structuredClone(twice), includePlayback: true }), 2, 0))

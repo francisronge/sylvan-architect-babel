@@ -376,7 +376,9 @@ readable ways:
   kept occurrence repeating its material, no two sharing one, are that many
   displacements;
 - one shared landing (across-the-board movement), whose parent contains every
-  lower occurrence: one new copy over several newest kept occurrences, or a
+  lower occurrence (for a landing inside a complex head, the parent of that
+  whole head, as when both conjuncts' auxiliary raises into C): one new copy
+  over several newest kept occurrences, or a
   landing that keeps its ID while a new occurrence holds its old slot and the
   slot of each other earlier occurrence, which is removed. Each lower
   occurrence is one displacement into the same landing.
