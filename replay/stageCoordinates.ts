@@ -17,7 +17,7 @@ import { proximityPlaqueRequests, type PlaquePlacement } from './relations/plaqu
 import { trajectoryPlaqueObstacles, treeLabelBoxes } from './relations/trajectoryObstacles.ts';
 import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlan.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
-import { lessMotion, retainMovementSourceSlots } from './movementSourceContinuity.ts';
+import { lessMotion, offersOutwardSources, retainMovementSourceSlots } from './movementSourceContinuity.ts';
 import { siblingContoursOrdered } from './siblingContours.ts';
 import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
 import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
@@ -760,6 +760,27 @@ function closedMotionFaults(steps: readonly PlaybackStep[], sizes: ReadonlyMap<n
   return new Map(replayMotionFaults({ frames }, PLANNING).map(fault => [`${fault.step} ${fault.kind} ${fault.node}`, fault.distance] as const));
 }
 
+/** The painted width of each stage's completed forest and of each of its trees
+ * (its macro frame) under a closed plan, by stage and root. */
+function closedCompletedWidths(steps: readonly PlaybackStep[], sizes: ReadonlyMap<number, [number, number]>,
+  plan: ReturnType<typeof closeMovementGaps>) {
+  const widths = new Map<string, number>();
+  const span = (nodes: Iterable<d3.HierarchyPointNode<SyntaxNode>>) => {
+    const xs = [...nodes].map(node => node.x);
+    return xs.length ? Math.max(...xs) - Math.min(...xs) : 0;
+  };
+  for (const step of steps) {
+    const coordinates = step.replayKind === 'macro' && step.replayCanvasData && sizes.has(step.replayFrameIndex!)
+      && plan.stages.get(step.replayFrameIndex!)?.get(step.replayCanvasData);
+    if (!coordinates) continue;
+    const nodes = paintedSyntax(step, sizes.get(step.replayFrameIndex!)!, coordinates);
+    widths.set(`${step.replayFrameIndex}`, span(nodes.values()));
+    for (const node of nodes.values()) if (!node.parent || !nodes.has(getNodeId(node.parent)))
+      widths.set(`${step.replayFrameIndex} ${getNodeId(node)}`, span(node.descendants().filter(child => nodes.has(getNodeId(child)))));
+  }
+  return widths;
+}
+
 /** Every stage's plan with the room movements leave closed at those movements
  * (closeMovementGaps), or null when this stage's size is not the planned one.
  * One closing pass serves every stage of these steps. */
@@ -784,8 +805,8 @@ function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: numb
   let closed = byKey.get(key);
   if (!closed) {
     const schedule = plaques?.schedule, stageCount = plaques?.plan?.frames.length ?? 0;
-    const planned = (branchedSources: boolean) => new Map([...sizes].map(([stage, stageSize]) => [stage, planStageCoordinates(steps,
-      stage, stageSize, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, branchedSources)] as const));
+    const planned = (branchedSources: boolean, outwardSources = false) => new Map([...sizes].map(([stage, stageSize]) => [stage, planStageCoordinates(steps,
+      stage, stageSize, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, branchedSources, outwardSources)] as const));
     const close = (stages: ReturnType<typeof planned>) => closeMovementGaps({ steps, sizes, planned: stages, measureCategoryText, plaques: room,
       plaqueDistances: schedule && ((stages, closings) => plaqueDistancesOver(schedule, stageCount, stages, closings)),
       ink: { measureTreeInk, treeLabelRuns, measureTreeLabel } });
@@ -796,9 +817,21 @@ function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: numb
     // motion, none of it new or larger.
     // planStageCoordinates builds a new map each call; a plan differs only
     // where a frame's reservation does.
-    if ([...phrases].some(([stage, frames]) => [...frames].some(([canvas, coordinates]) => coordinates !== established.get(stage)?.get(canvas)))) {
+    const differs = (plan: typeof established, from: typeof established) => [...plan].some(([stage, frames]) =>
+      [...frames].some(([canvas, coordinates]) => coordinates !== from.get(stage)?.get(canvas)));
+    if (differs(phrases, established)) {
       const kept = close(phrases);
       if (lessMotion(closedMotionFaults(steps, sizes, closed), closedMotionFaults(steps, sizes, kept))) closed = kept;
+    }
+    // Sources waiting in their lower occurrences' farther slots (retainMovementSourceSlots'
+    // `outwardSources`) stand only where the closed plan then paints less motion,
+    // none of it new or larger, and no stage's completed tree grows wider. Without
+    // an offer that plan is the phrase plan, so it is not made.
+    const outward = offersOutwardSources(steps) ? planned(true, true) : phrases;
+    if (differs(outward, phrases)) {
+      const kept = close(outward), widths = closedCompletedWidths(steps, sizes, closed);
+      if ([...closedCompletedWidths(steps, sizes, kept)].every(([key, width]) => !widths.has(key) || width <= widths.get(key)! + 1e-6)
+        && lessMotion(closedMotionFaults(steps, sizes, closed), closedMotionFaults(steps, sizes, kept))) closed = kept;
     }
     byKey.set(key, closed);
     for (const stage of closed.closings) { const frames = closed.stages.get(stage); if (frames) closingEntries.add(frames); }
@@ -856,7 +889,7 @@ export function leftToRightReservations(steps: readonly PlaybackStep[], reflecte
 function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
-  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, branchedSources = false): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, branchedSources = false, outwardSources = false): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
   const sizes = new Map<number, [number, number]>();
   if (sizeForStage) for (const step of steps) {
     if (step.replayFrameIndex === undefined || sizes.has(step.replayFrameIndex)) continue;
@@ -878,7 +911,7 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
     const planned = reserveWorkspaceAttachments({ steps, sizes, direction: 'ltr', minimumSiblingGap: TREE_SIBLING_GAP, coordinatesForStage: local,
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, orderedContours, alignedStages: alignStages, clearText });
     const compact = compactCurrentRootForks(steps, sizes, planned, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
-    const retained = retainMovementSourceSlots(steps, sizes, compact, 'ltr', measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, branchedSources);
+    const retained = retainMovementSourceSlots(steps, sizes, compact, 'ltr', measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, branchedSources, outwardSources);
     let slotted = slotPlans.get(retained);
     if (!slotted) slotPlans.set(retained, slotted = new Map());
     let continuous = mode === 'stage' ? retained : slotted.get(mode);

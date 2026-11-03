@@ -16,10 +16,18 @@ import { workspaceContinuityReflows, PLANNING } from './workspaceShapeReflows.ts
 
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
 type Node = d3.HierarchyPointNode<SyntaxNode>;
-const caches = [new WeakMap<Reservations, Reservations>(), new WeakMap<Reservations, Reservations>()];
-/** The branched sources each plan left in place (`${frame}:${source}`), which a
- * plan keeping branched sources may try. */
+const caches = [new WeakMap<Reservations, Reservations>(), new WeakMap<Reservations, Reservations>(), new WeakMap<Reservations, Reservations>()];
+/** The trials each plan left untried, which a plan keeping branched sources may
+ * try: a branched source that may wait in its lower occurrence's smaller slot
+ * (`${frame}:${source}`), and a source that may wait in its lower occurrence's
+ * farther slot (`out:${frame}:${source}`). */
 const branchedCandidates = new WeakMap<Reservations, ReadonlySet<string>>();
+/** The trials a plan keeping branched sources accepted. */
+const acceptedTrials = new WeakMap<Reservations, ReadonlySet<string>>();
+/** Steps whose established plans offered a source a farther lower slot; only
+ * their closed plans try those offers (closedStageCoordinates). */
+const outwardOffers = new WeakSet<readonly PlaybackStep[]>();
+export const offersOutwardSources = (steps: readonly PlaybackStep[]) => outwardOffers.has(steps);
 const epsilon = 1e-6;
 /** How much wider a completed stage's forest may become for a receiving host
  * waiting as its own workspace to wait nearer the slot that keeps its parent
@@ -29,14 +37,16 @@ const COMPLETED_WIDTH_GROWTH = 0.01;
 
 /** An unbranched source replaced in its exact parent slot should not start farther out than
  * its lower occurrence. Reserve the proved compact slot throughout construction,
- * retaining current syntax and pronunciation. A receiving head may use its new
- * center. An unchanged receiving component occupies the outer slot of its new
- * movement or ordinary-merge wrapper, regardless of its interior branching.
+ * retaining current syntax and pronunciation. A source whose lower occurrence
+ * stands farther out may wait in that slot instead (`outwardSources`). A
+ * receiving head may use its new center. An unchanged receiving component
+ * occupies the outer slot of its new movement or ordinary-merge wrapper,
+ * regardless of its interior branching.
  * New parents and daughters still appear only at their owning step. */
 export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes: ReadonlyMap<number, [number, number]>,
   reserved: Reservations, direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
-  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, branchedSources = false): Reservations {
-  const cache = caches[Number(branchedSources)];
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, branchedSources = false, outwardSources = false): Reservations {
+  const cache = caches[branchedSources ? 1 + Number(outwardSources) : 0];
   const cached = cache.get(reserved);
   if (cached) return cached;
   const frames = steps.flatMap(step => {
@@ -124,38 +134,39 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
       candidate.set(frames[earlier].canvas, points);
       const placed = positioned(earlier, candidate);
       candidateScenes.set(earlier, placed);
+      // A completed frame that must keep its width is judged by its node extents
+      // before the measured ink, which costs far more; both must hold.
+      const keepsWidth = preserveCompletedWidth && frames[earlier].step.replayKind === 'macro';
+      const width = (nodes: readonly Node[]) => {
+        const xs = nodes.map(node => node.x);
+        return Math.max(...xs) - Math.min(...xs);
+      };
+      const roots = keepsWidth ? [...nodes.values()].filter(node => !node.parent || !nodes.has(getNodeId(node.parent))) : [];
+      // `growth` widens only the forest, where a host waits as its own workspace;
+      // every root keeps its width.
+      const within = (next: number, old: number, forest = false) => next <= old * (1 + (forest ? growth : 0)) + epsilon;
+      if (keepsWidth && !(within(width([...placed.values()]), width([...nodes.values()]), true)
+        && roots.every(root => {
+          const ids = root.descendants().map(getNodeId).filter(id => nodes.has(id));
+          return within(width(ids.map(id => placed.get(id)!)), width(ids.map(id => nodes.get(id)!)));
+        }))) { valid = false; break; }
       const placedInk = inkAt(earlier, placed);
       valid = paintClear(placed, placedInk);
-      if (valid && preserveCompletedWidth && frames[earlier].step.replayKind === 'macro') {
-        const width = (nodes: readonly Node[]) => {
-          const xs = nodes.map(node => node.x);
-          return Math.max(...xs) - Math.min(...xs);
+      if (valid && keepsWidth) {
+        // Fixed outer nodes can hide a wider label or word inside the tree.
+        // Reuse the same measured ink as clearance, per root and forest.
+        const priorInk = inkAt(earlier, nodes);
+        const inkWidth = (roots: readonly Node[], ink: ReturnType<typeof inkAt>) => {
+          let left = Infinity, right = -Infinity;
+          for (const root of roots) for (const box of ink(root)) {
+            left = Math.min(left, box.x);
+            right = Math.max(right, box.x + box.width);
+          }
+          return left === Infinity ? 0 : right - left;
         };
-        const roots = [...nodes.values()].filter(node => !node.parent || !nodes.has(getNodeId(node.parent)));
-        // `growth` widens only the forest, where a host waits as its own workspace;
-        // every root keeps its width.
-        const within = (next: number, old: number, forest = false) => next <= old * (1 + (forest ? growth : 0)) + epsilon;
-        valid = within(width([...placed.values()]), width([...nodes.values()]), true)
-          && roots.every(root => {
-            const ids = root.descendants().map(getNodeId).filter(id => nodes.has(id));
-            return within(width(ids.map(id => placed.get(id)!)), width(ids.map(id => nodes.get(id)!)));
-          });
-        if (valid) {
-          // Fixed outer nodes can hide a wider label or word inside the tree.
-          // Reuse the same measured ink as clearance, per root and forest.
-          const priorInk = inkAt(earlier, nodes);
-          const inkWidth = (roots: readonly Node[], ink: ReturnType<typeof inkAt>) => {
-            let left = Infinity, right = -Infinity;
-            for (const root of roots) for (const box of ink(root)) {
-              left = Math.min(left, box.x);
-              right = Math.max(right, box.x + box.width);
-            }
-            return left === Infinity ? 0 : right - left;
-          };
-          const nextRoots = roots.map(root => placed.get(getNodeId(root))!);
-          valid = within(inkWidth(nextRoots, placedInk), inkWidth(roots, priorInk), true)
-            && roots.every((root, i) => within(inkWidth([nextRoots[i]], placedInk), inkWidth([root], priorInk)));
-        }
+        const nextRoots = roots.map(root => placed.get(getNodeId(root))!);
+        valid = within(inkWidth(nextRoots, placedInk), inkWidth(roots, priorInk), true)
+          && roots.every((root, i) => within(inkWidth([nextRoots[i]], placedInk), inkWidth([root], priorInk)));
       }
     }
     if (!valid) return false;
@@ -170,11 +181,15 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
     scenes.clear();
     return candidate;
   };
-  // The noticeable motion (replayMotionFaults) these coordinates paint into frames `from` to `to`.
-  const motionCost = (coordinates: Reservations, from: number, to: number) => replayMotionFaults({ frames:
+  // The motion faults (replayMotionFaults) these coordinates paint into frames `from` to `to`.
+  const paintedFaults = (coordinates: Reservations, from: number, to: number) => replayMotionFaults({ frames:
     frames.slice(Math.max(0, from - 1), to + 1).map((frame, offset) => motionFrame(frame.step,
-      positioned(Math.max(0, from - 1) + offset, coordinates), getNodeId)) }, PLANNING)
+      positioned(Math.max(0, from - 1) + offset, coordinates), getNodeId)) }, PLANNING);
+  // Their noticeable motion, and each fault's distance by step, kind and node.
+  const motionCost = (coordinates: Reservations, from: number, to: number) => paintedFaults(coordinates, from, to)
     .filter(fault => noticeableMotion(fault)).reduce((sum, fault) => sum + fault.distance, 0);
+  const motionFaults = (coordinates: Reservations, from: number, to: number) => new Map(paintedFaults(coordinates, from, to)
+    .map(fault => [`${fault.step} ${fault.kind} ${fault.node}`, fault.distance] as const));
   const reserveReceivingSlot = (index: number, includeConstruction: boolean, nearest = false) => {
     const nextStep = frames[index + 1].step;
     if (nextStep.replayKind !== 'relation'
@@ -285,12 +300,30 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
         before.get(id)!.y - after.get(id)!.y) <= epsilon)) continue;
       const span = (points: number[]) => Math.max(...points) - Math.min(...points);
       const peers = siblings.map(id => before.get(id)!.x), dx = lower.x - source.x;
-      if (span([...peers, lower.x]) >= span([...peers, source.x]) - epsilon) continue;
-      const sourceNodes = source.descendants().filter(node => before.has(getNodeId(node)));
+      const sourceNodes = source.descendants().filter(node => before.has(getNodeId(node))), key = `${index}:${movement.priorSourceNodeId}`;
+      if (span([...peers, lower.x]) >= span([...peers, source.x]) - epsilon) {
+        // A lower occurrence standing farther out than its source moves their
+        // parent outward at the movement. The source may wait in that slot from
+        // its first frame instead, where `allowed` names it; this plan offers it
+        // only where that clears, no completed tree or forest grows wider and its
+        // frames paint less motion, none of it new or larger.
+        if (Math.abs(dx) <= epsilon || !allowed.has(`out:${key}`) && !branched) continue;
+        let first = index;
+        while (first > 0 && sourceNodes.some(node => sceneAt(first - 1).has(getNodeId(node)))) first--;
+        const outward = (commit: boolean) => reserveTranslations(index, new Map(sourceNodes.map(node => [getNodeId(node), dx])),
+          new Map(sourceNodes.map(node => [getNodeId(node), movement.priorSourceNodeId])), first, true, commit);
+        if (allowed.has(`out:${key}`)) { outward(true); continue; }
+        const candidate = outward(false);
+        if (candidate && lessMotion(motionFaults(result, Math.max(1, first), index + 1), motionFaults(candidate, Math.max(1, first), index + 1))) {
+          branched!.add(`out:${key}`);
+          outwardOffers.add(steps);
+        }
+        continue;
+      }
       // A complete phrase has its own retained contour and receiving-host rule.
       // This slot correction concerns a head/stem chain beside unchanged syntax;
       // a complete phrase takes the smaller slot only where `allowed` names it.
-      const phrase = sourceNodes.some(node => children(node, before).length > 1), key = `${index}:${movement.priorSourceNodeId}`;
+      const phrase = sourceNodes.some(node => children(node, before).length > 1);
       if (phrase && !allowed.has(key)) { branched?.add(key); continue; }
       const translations = new Map<string, number>(sourceNodes.map(node => [getNodeId(node), dx]));
       const owners = new Map<string, string>(sourceNodes.map(node => [getNodeId(node), movement.priorSourceNodeId]));
@@ -346,8 +379,15 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
   } else {
     // A complete phrase that leaves its parent waits in its lower occurrence's
     // smaller slot from the start, one phrase at a time, where that clears and
-    // paints less motion with none new or larger anywhere in the Replay.
-    result = retainMovementSourceSlots(steps, sizes, reserved, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+    // paints less motion with none new or larger anywhere in the Replay. With
+    // `outwardSources`, that plan then tries each source offered to wait in its
+    // lower occurrence's farther slot the same way.
+    const established = retainMovementSourceSlots(steps, sizes, reserved, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+    const outward = (key: string) => key.startsWith('out:');
+    const trials = [...branchedCandidates.get(established) ?? []].filter(key => outward(key) === outwardSources);
+    result = outwardSources ? retainMovementSourceSlots(steps, sizes, reserved, direction, measureCategoryText, measureTreeInk,
+      treeLabelRuns, measureTreeLabel, true) : established;
+    const allowed = new Set<string>(outwardSources ? acceptedTrials.get(result) : []);
     const faultsOf = (coordinates: Reservations) => new Map(replayMotionFaults({ frames: frames.map(({ step, canvas, size, visible }) => {
       const root = d3.hierarchy(canvas);
       applyVizIds(root);
@@ -355,14 +395,14 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
         .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
         .map(node => [getNodeId(node), node])), getNodeId);
     }) }, PLANNING).map(fault => [`${fault.step} ${fault.kind} ${fault.node}`, fault.distance] as const));
-    const allowed = new Set<string>();
     let faults: Map<string, number> | undefined;
-    for (const key of branchedCandidates.get(result) ?? []) {
+    for (const key of trials) {
       const candidate = compute(new Set([...allowed, key]));
       faults ??= faultsOf(result);
       const next = faultsOf(candidate);
       if (lessMotion(faults, next)) { allowed.add(key); result = candidate; faults = next; }
     }
+    acceptedTrials.set(result, allowed);
   }
   cache.set(reserved, result);
   return result;
