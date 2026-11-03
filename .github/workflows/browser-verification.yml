@@ -8,6 +8,9 @@ name: Functional browser verification
 # request skips the browser jobs. The nightly run checks main as merged, covers
 # what changes without a commit (runner images, browser downloads) and keeps
 # main's dependency and browser caches warm.
+# Every checkout leaves out docs/research/assets (research screenshots, most of
+# the repository's size), which no check reads; a sparse checkout also fetches
+# only the files it keeps (tests/ciChangeScope.test.mjs).
 on:
   pull_request:
   schedule:
@@ -75,6 +78,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
@@ -197,6 +204,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/docs/research/assets/
+          sparse-checkout-cone-mode: false
 
       - name: Set up Node.js 24
         if: needs.changes.outputs.markdown-only != 'true'

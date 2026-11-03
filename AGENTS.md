@@ -201,6 +201,10 @@ focused tests and captures plus `npm run verify:all`.
 
 `docs/verification.md` explains every check and what it can and cannot see.
 
+Run only what a change can affect: `node scripts/ciChangeScope.mjs --base
+origin/main` says whether it touches what the Replay checks read. When it says
+no, skip the Replay rows below (CI skips them too).
+
 | Change | Run |
 |---|---|
 | Any code change, while working | The smallest focused test that proves it. |
@@ -209,7 +213,7 @@ focused tests and captures plus `npm run verify:all`.
 | Renderer, `replay/`, layout, camera, fonts, Replay motion | `npm run verify:replay-offline`; explain any `fixtures/replay-snapshots/` diff with `node scripts/explainLayoutChange.mjs --baseline-root <main checkout>`. |
 | Shared Replay or layout | `npm run verify:corpus` against a main checkout (CI also runs it). |
 | Relation drawing | `npm run verify:renderer-browser`. |
-| `replay/`, `components/`, styles, fonts, visual rules (before merge) | `npm run verify:browser-visual` on macOS against the PR head. |
+| What the Replay checks read: `replay/`, the renderer's components, styles, fonts, visual rules (before merge) | `npm run verify:browser-visual` on macOS against the PR head. |
 | Renderer, layout, worker or font | `npm run verify:renderer-performance -- --baseline-root <main checkout>`. Fix any slowdown; never weaken the fixture, timing boundary or budget. Budget changes need Francis. |
 | App behavior, failure recovery, Tree Bank | `npm run verify:browser`. |
 | Release | `npm run release:check` plus renderer performance. |
