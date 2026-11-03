@@ -9,7 +9,7 @@ type Node = d3.HierarchyPointNode<SyntaxNode>;
 export type TreeTextBox = { x: number; y: number; width: number; height: number; halo: number };
 
 /** Room kept between the outlines of two nodes' text. */
-export const TREE_TEXT_GAP = 8;
+const TREE_TEXT_GAP = 8;
 /** Text boxes of adjacent rows graze: a word's box, a font cell where indices
  * are styled, reaches a few units into a two-line label below it. Text that runs
  * into text overlaps it vertically by more than an outline's width. */
