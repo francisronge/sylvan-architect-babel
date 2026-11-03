@@ -26,6 +26,10 @@ import {
   withFailureDetails
 } from './validationErrors.js';
 
+// A provider call needs more than this much of the request budget left, and
+// its attempt deadline ends this far before the budget does.
+const MIN_PROVIDER_BUDGET_MS = 1200;
+
 export const createParseRoutes = ({
   ParseApiError,
   normalizeParseBundle,
@@ -35,6 +39,14 @@ export const createParseRoutes = ({
   generateKimi = generateKimiStructuredContent,
   generateGrok = generateGrokStructuredContent
 }) => {
+  /** Each catalog provider's server key, display label, runtime and request body. */
+  const providers = {
+    openai: { key: 'OPENAI_API_KEY', label: 'OpenAI', generate: generateOpenAI, buildRequest: buildOpenAIRequestBody },
+    anthropic: { key: 'ANTHROPIC_API_KEY', label: 'Anthropic', generate: generateClaude, buildRequest: buildAnthropicRequestBody },
+    moonshot: { key: 'MOONSHOT_API_KEY', label: 'Kimi', generate: generateKimi, buildRequest: buildKimiRequestBody },
+    xai: { key: 'XAI_API_KEY', label: 'xAI', generate: generateGrok, buildRequest: buildGrokRequestBody }
+  };
+
   /**
    * Records the token use of the one generation behind an analysis. The
    * `primary*` and `parse*` counts are the same numbers under the two names
@@ -290,12 +302,12 @@ export const createParseRoutes = ({
     modelRoute,
     apiKey,
     selectedModel,
-    providerLabel,
-    generate,
+    provider,
     selection,
     abortSignal,
     deadlineAt = Number.POSITIVE_INFINITY
   }) => {
+    const { label: providerLabel, generate, buildRequest } = provider;
     if (!apiKey) {
       throw new ParseApiError('API_KEY_MISSING', `${providerLabel} API key is not configured on the server.`, 500);
     }
@@ -319,39 +331,27 @@ export const createParseRoutes = ({
         thinking: selection.requestPolicy.thinking?.value ?? null
       } : {})
     };
-    const requestBuilder = {
-      gpt: buildOpenAIRequestBody,
-      claude: buildAnthropicRequestBody,
-      kimi: buildKimiRequestBody,
-      grok: buildGrokRequestBody
-    }[modelRoute];
-    const sentRequest = requestBuilder(generationOptions);
+    // The body the provider runtime sends, recorded and hashed in the generation record.
+    const sentRequest = buildRequest(generationOptions);
+    const budgetExhausted = () => new ParseApiError(
+      'PROVIDER_UNAVAILABLE',
+      `${providerLabel} is unavailable; please try again in a moment.`,
+      503
+    );
 
     let generationFailureEvidence = null;
     let generationStartedAt = null;
     try {
       const remainingBudgetMs = remainingBudget();
-      if (remainingBudgetMs <= 1200) {
-        throw new ParseApiError(
-          'PROVIDER_UNAVAILABLE',
-          `${providerLabel} is unavailable; please try again in a moment.`,
-          503
-        );
-      }
+      if (remainingBudgetMs <= MIN_PROVIDER_BUDGET_MS) throw budgetExhausted();
 
       generationStartedAt = Date.now();
       const generationReceipt = await runProviderAttempt({
         abortSignal,
-        deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
+        deadlineAt: generationStartedAt + remainingBudgetMs - MIN_PROVIDER_BUDGET_MS,
         run: async () => {
           const attemptRemainingBudgetMs = remainingBudget();
-          if (attemptRemainingBudgetMs <= 1200) {
-            throw new ParseApiError(
-              'PROVIDER_UNAVAILABLE',
-              `${providerLabel} is unavailable; please try again in a moment.`,
-              503
-            );
-          }
+          if (attemptRemainingBudgetMs <= MIN_PROVIDER_BUDGET_MS) throw budgetExhausted();
           return withTimeout(
             (attemptSignal) => generate({
               apiKey,
@@ -461,20 +461,14 @@ export const createParseRoutes = ({
       throw new ParseApiError('INVALID_REQUEST', 'This model is not enabled for generation.', 400);
     }
     const selection = resolveResearchModelSelection(modelId, options.settings);
-    const provider = {
-      openai: { key: 'OPENAI_API_KEY', label: 'OpenAI', generate: generateOpenAI },
-      anthropic: { key: 'ANTHROPIC_API_KEY', label: 'Anthropic', generate: generateClaude },
-      moonshot: { key: 'MOONSHOT_API_KEY', label: 'Kimi', generate: generateKimi },
-      xai: { key: 'XAI_API_KEY', label: 'xAI', generate: generateGrok }
-    }[selection.provider];
+    const provider = providers[selection.provider];
     return parseSentenceWithExternalProvider({
       sentence,
       framework,
       modelRoute: selection.providerRoute,
       apiKey: String(process.env[provider.key] || '').trim(),
       selectedModel: selection.providerModel,
-      providerLabel: provider.label,
-      generate: provider.generate,
+      provider,
       abortSignal: options.abortSignal,
       deadlineAt: options.deadlineAt,
       selection
