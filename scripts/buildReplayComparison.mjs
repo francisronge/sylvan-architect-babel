@@ -77,12 +77,12 @@ export function resolveCase(spec, { root }) {
   if (!sentence) throw new Error(`Case "${spec.title}" has no saved sentence.`);
   return { title: spec.title, watch: spec.watch, steps: spec.steps, sentence,
     inputTokens: nearest(item => [item?.response?.inputTokens, item?.inputTokens].find(Array.isArray)),
-    derivationStages: analysis.derivationStages };
+    derivationStages: analysis.derivationStages, ...(analysis.sentenceCheck ? { sentenceCheck: analysis.sentenceCheck } : {}) };
 }
 
 const ENTRY = `import React from 'react';import{createRoot}from'react-dom/client';import TreeVisualizer from './components/AsyncTreeVisualizer';import{buildDerivationCanvasData}from'./replay/replayCanvas.ts';import'./styles.css';
 const records=JSON.parse(document.getElementById('replay-records').textContent),q=new URLSearchParams(location.search),r=records[Number(q.get('case')??0)];
-createRoot(document.getElementById('root')).render(r?<TreeVisualizer data={buildDerivationCanvasData(r.derivationStages.at(-1).workspaceForest)} sentence={r.sentence} inputTokens={r.inputTokens} derivationStages={r.derivationStages} animated autoPlay={false} initialReplayStep={q.has('step')?Number(q.get('step'))-1:0}/>:<p>Unknown case</p>);`;
+createRoot(document.getElementById('root')).render(r?<TreeVisualizer data={buildDerivationCanvasData(r.derivationStages.at(-1).workspaceForest)} sentence={r.sentenceCheck?.treeReading??r.sentence} inputTokens={r.sentenceCheck?.inputTokens??r.inputTokens} sentenceCheck={r.sentenceCheck} derivationStages={r.derivationStages} animated autoPlay={false} initialReplayStep={q.has('step')?Number(q.get('step'))-1:0}/>:<p>Unknown case</p>);`;
 
 const safeJson = value => JSON.stringify(value).replaceAll('<', '\\u003c');
 const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -90,7 +90,7 @@ const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp
 export async function paneHtml(root, records) {
   const { buildQualificationReviewRuntime } = await import(pathToFileURL(path.join(root, 'scripts/buildContractQualificationReviewRuntime.mjs')).href);
   const runtime = await buildQualificationReviewRuntime({ root, entrySource: ENTRY });
-  return `<!doctype html><html lang="en"><meta charset="utf-8"><title>Replay</title><style>${runtime.css.replace(/<\/style/gi, '<\\/style')}html,body,#root{height:100%;margin:0}body{background:#03100a}</style><div id="root"></div><script id="replay-records" type="application/json">${safeJson(records.map(({ sentence, inputTokens, derivationStages }) => ({ sentence, inputTokens, derivationStages })))}</script><script>${runtime.js.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--')}</script></html>`;
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><title>Replay</title><style>${runtime.css.replace(/<\/style/gi, '<\\/style')}html,body,#root{height:100%;margin:0}body{background:#03100a}</style><div id="root"></div><script id="replay-records" type="application/json">${safeJson(records.map(({ sentence, inputTokens, derivationStages, sentenceCheck }) => ({ sentence, inputTokens, derivationStages, sentenceCheck })))}</script><script>${runtime.js.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--')}</script></html>`;
 }
 
 /** The review page. Its panes step together: shared navigation does nothing

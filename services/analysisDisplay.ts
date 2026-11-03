@@ -18,7 +18,7 @@ export interface AnalysisDisplay {
  */
 export const deriveAnalysisDisplay = (bundle: ParseBundle, analysis: ParseResult, sentence: string): AnalysisDisplay => ({
   displayTree: displayTreeForAnalysis(analysis),
-  inputTokens: bundle.inputTokens ?? recoverLegacyInputTokens(analysis, sentence),
+  inputTokens: analysis.sentenceCheck?.inputTokens ?? bundle.inputTokens ?? recoverLegacyInputTokens(analysis, sentence),
   notation: buildMilesNotation(finalForestForAnalysis(analysis)),
   stageRecords: collectDerivationStageRecords(analysis.derivationStages)
 });

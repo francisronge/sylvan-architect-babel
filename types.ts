@@ -212,6 +212,35 @@ export interface TokenIndexCorrection {
   inputTokenAtAuthoredIndex: string;
 }
 
+/** One sentence word of an analysis kept by the sentence check, in tree order. */
+export interface SentenceCheckWord {
+  text: string;
+  /** The word's place among the sentence's words. */
+  sentenceIndex: number;
+  /** Its code-point span in the input sentence. */
+  span: [number, number];
+  /** Outside some longest run of words that keeps sentence order. */
+  outOfOrder: boolean;
+  /** The pronounced terminals that spell it. */
+  nodeIds: string[];
+}
+
+/** A complete analysis whose pronounced words are the sentence's in another
+ * order. It is shown, aligned to its own reading and word list, and is not a
+ * valid analysis of the sentence. */
+export interface SentenceCheck {
+  status: 'failed';
+  ruleId: 'SPELLOUT_MISMATCH';
+  /** The input sentence. */
+  sentence: string;
+  /** The sentence words in the tree's order. */
+  treeReading: string;
+  /** Whether the sentence separates its words with spaces. */
+  spaced: boolean;
+  inputTokens: string[];
+  words: SentenceCheckWord[];
+}
+
 export interface ParseResult {
   /** Present when one authored root covers every pronounced input token. */
   tree?: SyntaxNode;
@@ -219,6 +248,8 @@ export interface ParseResult {
   finalForest?: SyntaxNode[];
   derivationStages?: DerivationStage[];
   provenance?: Provenance;
+  /** Present when the tree does not spell the sentence; see SentenceCheck. */
+  sentenceCheck?: SentenceCheck;
 }
 
 export interface ParseBundle {

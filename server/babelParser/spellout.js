@@ -402,6 +402,14 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
     return false;
   };
   if (!search(0)) {
+    // The tree's own reading in tree order, for the sentence check (readWordOrder).
+    const terminalsOf = item => {
+      if (item.word !== undefined) return [words[item.word].nodeId];
+      const ids = [];
+      groups[item.group].nodeIds.forEach(id => eachPronounced(reading, id, meter, node => ids.push(node.id)));
+      return ids;
+    };
+    const treeReading = preferred.map(item => ({ text: textOf(item), nodeIds: terminalsOf(item) }));
     // Report where reading straight through the tree stops matching.
     let position = 0;
     for (const item of preferred) {
@@ -409,7 +417,7 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
       if (!spelled.complete) {
         diagnostics.push(failure('SPELLOUT_MISMATCH',
           `"${textOf(item)}" does not spell the sentence at "${chars.slice(spelled.start, spelled.start + spelled.length + 2).join('')}".`));
-        return { units: [], diagnostics, observations: [] };
+        return { units: [], diagnostics, observations: [], treeReading };
       }
       position = spelled.end;
     }
@@ -417,7 +425,7 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
     diagnostics.push(position < chars.length
       ? failure('SPELLOUT_INCOMPLETE', `The final stage leaves "${chars.slice(position).join('')}" unspelled.`)
       : failure('SPELLOUT_MISMATCH', 'The groups and the remaining words cannot spell the sentence in order.'));
-    return { units: [], diagnostics, observations: [] };
+    return { units: [], diagnostics, observations: [], treeReading };
   }
   const observations = [];
   const units = trail.map(({ item, span: [start, end] }) => {
@@ -543,8 +551,8 @@ const alignAnalysis = (analysis, sentence, meter) => {
   const readings = expandStages(stages, meter).map(readForest);
   const finalReading = readings.at(-1);
   const finalGroups = stages.at(-1).realizations || [];
-  const { units, diagnostics, observations } = alignFinalStage(finalReading, finalGroups, sentence, meter);
-  if (diagnostics.length) return { diagnostics, observations, units };
+  const { units, diagnostics, observations, treeReading } = alignFinalStage(finalReading, finalGroups, sentence, meter);
+  if (diagnostics.length) return { diagnostics, observations, units, ...(treeReading ? { treeReading } : {}) };
   const earlierGroups = stages.slice(0, -1).flatMap((stage, stageIndex) => (Array.isArray(stage.realizations) ? stage.realizations : [])
     .map((group, groupIndex) => ({ group, stageIndex, groupIndex })));
   const earlier = [];
@@ -698,6 +706,134 @@ const convertAligned = (item, tokens) => {
 };
 
 /**
+ * The sentence check for a tree whose words are the sentence's in another
+ * order. The tree's words and group pieces, each a run of the sentence's
+ * letters, must tile the sentence with every one used once, in any order; word
+ * boundaries come from the tree, not from spaces. Returns null unless they do
+ * and the order differs. `words` lists them in tree order with their place and
+ * span in the sentence; a word is out of order when it stands outside some
+ * longest run that keeps sentence order, so both words of a swap are marked
+ * but a word that moved alone marks only itself.
+ */
+const readWordOrder = (treeReading, sentenceText, meter) => {
+  const sentence = readSentence(sentenceText);
+  const significantAt = [];
+  sentence.chars.forEach((_, index) => { if (!sentence.ignored[index]) significantAt.push(index); });
+  const letters = significantAt.map(index => sentence.fold[index]);
+  // Group text may cover several stretches of the sentence; each is its own piece.
+  const pieces = treeReading.flatMap(item => item.text.split(SPACE).filter(Boolean).map(text => ({ text, nodeIds: item.nodeIds })));
+  const items = pieces.filter(item => caselessSpelling(item.text));
+  if (!items.length || !letters.length) return null;
+  // Punctuation terminals spell themselves, so each must be punctuation the
+  // sentence has, counted with repeats; only the word order may differ.
+  const marks = new Map();
+  sentence.chars.forEach((character, index) => {
+    if (sentence.ignored[index] && !sentence.space[index]) marks.set(character, (marks.get(character) ?? 0) + 1);
+  });
+  for (const piece of pieces) {
+    if (caselessSpelling(piece.text)) continue;
+    for (const character of codePoints(piece.text)) {
+      if (SPACE.test(character)) continue;
+      if (!marks.get(character)) return null;
+      marks.set(character, marks.get(character) - 1);
+    }
+  }
+  const spelled = items.map(item => [...caselessSpelling(item.text)]);
+  // Each folded character of a spelling may fold to more than one sentence
+  // letter's worth; compare whole folded strings at each start.
+  const word = items.map((_, index) => spelled[index].join(''));
+  // The words must spell exactly the sentence's letters, so their lengths add up.
+  if (word.reduce((sum, text) => sum + text.length, 0) !== letters.join('').length) return null;
+  const used = items.map(() => false), tiles = [], failed = new Set();
+  const matches = (index, at) => {
+    let text = '';
+    for (let end = at; end < letters.length && text.length < word[index].length; end += 1) {
+      meter.charge();
+      text += letters[end];
+      if (text === word[index]) {
+        // Characters that fold to nothing (a combining dot) belong to the word they follow.
+        let after = end + 1;
+        while (after < letters.length && letters[after] === '') after += 1;
+        return after;
+      }
+    }
+    return -1;
+  };
+  const tile = (at) => {
+    if (at === letters.length) return used.every(Boolean);
+    meter.charge();
+    const key = `${at}|${used.map(flag => (flag ? 1 : 0)).join('')}`;
+    if (failed.has(key)) return false;
+    const tried = new Set();
+    for (let index = 0; index < items.length; index += 1) {
+      meter.charge();
+      // Equal spellings are interchangeable here; the first unused one is tried.
+      if (used[index] || tried.has(word[index])) continue;
+      tried.add(word[index]);
+      const end = matches(index, at);
+      if (end < 0) continue;
+      used[index] = true; tiles.push({ index, start: at, end });
+      if (tile(end)) return true;
+      tiles.pop(); used[index] = false;
+    }
+    failed.add(key);
+    return false;
+  };
+  if (!tile(0)) return null;
+  // Equal spellings take their sentence places in tree order.
+  const placesBySpelling = new Map();
+  tiles.forEach((placed, place) => placesBySpelling.set(word[placed.index], [...(placesBySpelling.get(word[placed.index]) ?? []), { place, placed }]));
+  const assigned = items.map(() => null);
+  items.forEach((_, index) => { assigned[index] = placesBySpelling.get(word[index]).shift(); });
+  const order = assigned.map(entry => entry.place);
+  if (order.every((place, index) => !index || place > order[index - 1])) return null;
+  // Longest increasing run ending at and starting from each word.
+  const ending = order.map(() => 1), starting = order.map(() => 1);
+  order.forEach((place, i) => { for (let j = 0; j < i; j += 1) if (order[j] < place) ending[i] = Math.max(ending[i], ending[j] + 1); });
+  for (let i = order.length - 1; i >= 0; i -= 1) for (let j = i + 1; j < order.length; j += 1) if (order[j] > order[i]) starting[i] = Math.max(starting[i], starting[j] + 1);
+  const best = Math.max(...ending);
+  const onBest = order.map((_, i) => ending[i] + starting[i] - 1 === best);
+  // A word is in every longest run when it alone holds its position in one.
+  const fixed = order.map((_, i) => onBest[i] && !order.some((__, j) => j !== i && onBest[j] && ending[j] === ending[i]));
+  // Each word's surface: the sentence's own characters over its letters, with
+  // the punctuation the word itself writes at its edges where the sentence has
+  // it there (the apostrophe of 's).
+  const spanOf = ({ index, start, end }) => {
+    const { lead, trail } = edgePunctuation(items[index].text);
+    const mark = at => at >= 0 && at < sentence.chars.length && sentence.ignored[at] && !sentence.space[at];
+    let from = significantAt[start], to = significantAt[end - 1] + 1;
+    for (let count = 0; count < lead && mark(from - 1); count += 1) from -= 1;
+    for (let count = 0; count < trail && mark(to); count += 1) to += 1;
+    return [from, to];
+  };
+  const surface = ([start, end]) => sentence.chars.slice(start, end).join('');
+  const spaced = sentence.space.some(Boolean);
+  // The tree's own reading: its words in tree order, with the tree's
+  // punctuation terminals where they stand, or else the sentence's final
+  // punctuation at the end.
+  const treePunctuation = pieces.some(piece => !caselessSpelling(piece.text));
+  const parts = [];
+  pieces.forEach((piece) => {
+    if (!caselessSpelling(piece.text)) { parts.push(piece.text); return; }
+    parts.push(surface(spanOf(assigned[items.indexOf(piece)].placed)));
+  });
+  let reading = parts.join(spaced ? ' ' : '');
+  // The sentence's closing punctuation, unless a word or the tree already writes it.
+  const covered = Math.max(...items.map((_, index) => spanOf(assigned[index].placed)[1]));
+  if (!treePunctuation) reading += surface([covered, sentence.chars.length]).trim();
+  return {
+    reading,
+    words: items.map((item, index) => ({
+      text: surface(spanOf(assigned[index].placed)),
+      span: spanOf(assigned[index].placed),
+      sentenceIndex: order[index],
+      outOfOrder: !fixed[index],
+      nodeIds: [...new Set(item.nodeIds)]
+    }))
+  };
+};
+
+/**
  * Checks each analysis of a spell-out response and converts the passing ones
  * into Babel's current contract over one shared word list. Results keep the
  * authored analysis index.
@@ -725,9 +861,33 @@ export const convertSpelloutPayload = (payload, sentence) => {
       return { analysisIndex, diagnostics: [failure('SPELLOUT_UNREADABLE', detail)] };
     }
   });
+  // An analysis whose words are the sentence's in another order is kept for
+  // display, aligned to its own reading over its own word list: it still fails
+  // (`ok` false), and `sentenceCheck` says which words are out of order. Every
+  // stage must align to that reading as authored: an earlier group whose text
+  // follows the sentence's order across the reordering would need its text
+  // rewritten, so such an analysis fails as before.
+  const reordered = new Map();
+  aligned.forEach((item) => {
+    if (!item.treeReading || !item.diagnostics.every(diagnostic => diagnostic.rule === 'SPELLOUT_MISMATCH')) return;
+    try {
+      const order = readWordOrder(item.treeReading, sentence, meter);
+      const own = order && readSentence(order.reading);
+      const realigned = own && alignAnalysis(item.analysis, own, meter);
+      if (!realigned || realigned.diagnostics.length) return;
+      const converted = convertAligned({ analysisIndex: item.analysisIndex, analysis: item.analysis, ...realigned }, segmentSentence([realigned], own));
+      if (converted.diagnostics.length) return;
+      reordered.set(item, { analysisIndex: item.analysisIndex, ok: false, ...converted, diagnostics: item.diagnostics,
+        sentenceCheck: { status: 'failed', ruleId: 'SPELLOUT_MISMATCH', sentence, treeReading: order.reading, spaced: readSentence(sentence).space.some(Boolean),
+          inputTokens: converted.inputTokens, words: order.words } });
+    } catch (error) {
+      if (!(error instanceof SpelloutWorkLimitError || error instanceof SpelloutStructureError)) throw error;
+    }
+  });
   const passing = aligned.filter(item => !item.diagnostics.length);
   const tokens = segmentSentence(passing, reading);
   return aligned.map((item) => {
+    if (reordered.has(item)) return reordered.get(item);
     const result = item.diagnostics.length
       ? { diagnostics: item.diagnostics, observations: item.observations, units: item.units }
       : convertAligned(item, tokens);

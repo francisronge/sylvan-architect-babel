@@ -68,6 +68,7 @@ interface FrameReplay extends Pick<SyntaxDrawingContext,
   | 'currentReplayStep'
   | 'pendingPhraseFrontingSourceNodeIds'
   | 'hasDerivationFrames'
+  | 'outOfOrderNodeIds'
 > {
   measureTreeInk: TreeInkTextMeasure;
   activeDerivationFrameIndex: number;
@@ -139,7 +140,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     currentReplayStep,
     pendingPhraseFrontingSourceNodeIds,
     hasDerivationFrames,
-    completedReplayStep
+    completedReplayStep,
+    outOfOrderNodeIds
   } = replay;
   const {
     relationRenderPlan,
@@ -267,7 +269,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     measureCategoryText,
     currentReplayStep,
     pendingPhraseFrontingSourceNodeIds,
-    hasDerivationFrames
+    hasDerivationFrames,
+    outOfOrderNodeIds
   });
   /*
    * Production visual-relations overlay.

@@ -59,3 +59,17 @@ test('generation prompt contract framework must match the saved work', async () 
   assert.deepEqual(await restoreTreeBankBundle(saved.work, saved.records), source.bundle);
   await assert.rejects(prepareTreeBankSave({ ...source, framework: 'xbar' }), /Generation framework/);
 });
+test('an analysis kept by the sentence check is saved with its check and counted as invalid', async () => {
+  const source = input();
+  const check = { status: 'failed', ruleId: 'SPELLOUT_MISMATCH', sentence: '猫 sees café 🦉', treeReading: 'sees 猫 café 🦉', spaced: true, inputTokens: ['sees', '猫', 'café', '🦉'],
+    words: [{ text: 'sees', sentenceIndex: 1, span: [2, 6], outOfOrder: true, nodeIds: ['s'] }, { text: '猫', sentenceIndex: 0, span: [0, 1], outOfOrder: true, nodeIds: ['猫'] },
+      { text: 'café', sentenceIndex: 2, span: [7, 11], outOfOrder: false, nodeIds: ['café'] }, { text: '🦉', sentenceIndex: 3, span: [12, 13], outOfOrder: false, nodeIds: ['o'] }] };
+  source.bundle.analyses[1].sentenceCheck = check;
+  const result = await prepareTreeBankSave(source);
+  assert.equal(result.work.invalidAnalyses, 1);
+  assert.deepEqual((await restoreTreeBankBundle(result.work, result.records)).analyses[1].sentenceCheck, check);
+  // A work without one keeps the old record shape.
+  assert.equal('invalidAnalyses' in (await prepareTreeBankSave(input())).work, false);
+  source.bundle.analyses[1].sentenceCheck = { ...check, words: [{ text: 'sees' }] };
+  await assert.rejects(prepareTreeBankSave(source), /Invalid sentence check/);
+});
