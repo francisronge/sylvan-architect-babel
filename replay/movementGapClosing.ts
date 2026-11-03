@@ -393,14 +393,33 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
     const changed = new Set<string>();
     for (const id of departing) for (let parent = prior.get(id)!.parent; parent; parent = parent.parent)
       if (!departing.has(getNodeId(parent))) changed.add(getNodeId(parent));
+    // Word order of the prior frame's painted leaves in the departing phrase's
+    // workspace. Syntax wholly before or after the departing leaves in word
+    // order is a side even where its x falls inside their extent: a shallow
+    // sister after a deep phrase stands over that phrase's last words.
+    const leafOrder = new Map<string, number>();
+    let top = participants.map(id => prior.get(id)).find(node => node && departing.has(getNodeId(node)))
+      ?? [...departing].map(id => prior.get(id)).find(Boolean);
+    if (top) for (let id = shownParent(prior, top); id; id = shownParent(prior, top)) top = prior.get(id)!;
+    top?.eachBefore(node => {
+      const id = getNodeId(node);
+      if (prior.has(id) && !(node.children ?? []).some(child => prior.has(getNodeId(child)))) leafOrder.set(id, leafOrder.size);
+    });
+    const departingOrder = [...departing].flatMap(id => leafOrder.has(id) ? [leafOrder.get(id)!] : []);
+    const firstOut = Math.min(...departingOrder), lastOut = Math.max(...departingOrder);
+    const wordSide = (old: Node) => {
+      const order: number[] = [];
+      old.each(member => { const at = leafOrder.get(getNodeId(member)); if (at !== undefined) order.push(at); });
+      return !order.length ? 0 : Math.max(...order) < firstOut ? -1 : Math.min(...order) > lastOut ? 1 : 0;
+    };
     let before = -Infinity, after = Infinity;
     const blocked: [number, number][] = [];
     for (const [id, node] of current) {
       const old = prior.get(id);
       if (old && !departing.has(id)) {
-        const [a, b] = priorExtent(old);
-        if (b < lo) before = Math.max(before, span(node)[1]);
-        else if (a > hi) after = Math.min(after, span(node)[0]);
+        const [a, b] = priorExtent(old), side = wordSide(old);
+        if (b < lo || a <= hi && side < 0) before = Math.max(before, span(node)[1]);
+        else if (a > hi || side > 0) after = Math.min(after, span(node)[0]);
       }
       if (old && !changed.has(id) && node.children?.some(child => current.has(getNodeId(child)))) blocked.push(span(node));
     }
@@ -651,11 +670,15 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
         frames[index], frames[index + 1], index ? closed[index - 1] : frames[0], frame, index ? Boolean(scenes[m + index].closing) : closingNow).length);
       // With the lower occurrence keeping the moved phrase's id, the room is
       // closed early only where the derivation closes it anyway: the completed
-      // tree keeps its shape, and only the hole before it goes.
-      const keepsCompletedShape = departed || sameShape(all.at(-1)!, closed.at(-1)!);
+      // tree keeps its shape, and only the hole before it goes, or the closing
+      // closes the hole in the completed tree too, which then paints narrower.
+      const narrows = spanOf(closed.at(-1)!) < spanOf(all.at(-1)!) - MIN_CLOSING;
+      const keepsCompletedShape = departed || narrows || sameShape(all.at(-1)!, closed.at(-1)!);
       if (continuous && keepsCompletedShape && closed.slice(1).every((frame, index) =>
         sameMotion(scenes, m + index + 1, frames[index + 1], frames[index + 2], closed[index], frame))
-        && keepsPlaqueRoom(sceneSteps, all, [...all.slice(0, m), ...closed], m, plaques, measureCategoryText)) {
+        // A closing that narrows the completed tree may take the pocket a
+        // plaque stood in, when the plaque finds another no farther away.
+        && keepsPlaqueRoom(sceneSteps, all, [...all.slice(0, m), ...closed], m, plaques, measureCategoryText, { repocket: narrows })) {
         closed.forEach((frame, index) => { all[m + index] = frame; });
         // Recorded only where it moves painted syntax across the crossing.
         if (joinCarry && [...closed[0]].some(([id, node]) => { const was = current.get(id); return was && Math.hypot(node.x - was.x, node.y - was.y) > 1e-6; }))

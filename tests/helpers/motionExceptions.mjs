@@ -25,6 +25,15 @@ const widerTheta = (subject, at) => ({ reason: WIDER_THETA_LABEL, record: 'fixtu
 const SUBJECT_LANDING_REASON = 'Accepted trade-off (#333, 31 Oct): when the subject lands at frame 28 (subject A-chain), IP re-centres under its new parent by 307 units. Main slides C 1018 units at that step with nothing to own the motion, and C and IP 190 units each; this change removes the slide of C, leaving only IP’s re-centring.';
 const SUBJECT_LANDING_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-31', note: 'Asked “Should #333 ship, accepting two small flaws? 1) In the Spanish sentence, one phrase re-centres by 307 units when the subject lands (limit 210). 2) In the English sentence, three small plaques sit a bit farther from their words than usual.” after viewing the comparison page main b82e630 vs #333 ac7fe9f: “yep it\'s fine” (primary Claude Code session, 31 Oct)', accepts: at });
 
+const HEAD_FIRST_REASON = 'Accepted trade-off (head movement before phrasal movement, 3 Nov): when one stage moves a head and a phrase, the head '
+  + 'moves first, so the stage lays out the head\u2019s new host before the phrase lands; these slides are where that layout differs from main.';
+const HEAD_FIRST_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-11-03', note: 'Shown the click-through pages against main, 3 Nov 2026 in the lead '
+  + 'session: German embedded (the jump two steps later, embedded IP 639 \u2192 752), Hebrew relative (V\u2032 slides 241 where main slid mi 1,051), '
+  + 'German participle (a new 80-unit slide): \u201cI approve of 1. and 2.\u201d; then the three slides not shown before (German adverb phrase 136, '
+  + 'matrix VP 164, participle lexical VP 63): \u201ci\u2019m fine with those. yes.\u201d', accepts: at });
+const headFirst = (record, subject, at) => ({ reason: HEAD_FIRST_REASON, record, rule: 'motion', subtype: 'shape-motion', subject, at,
+  approval: HEAD_FIRST_APPROVAL(at) });
+
 export const EXCEPTIONS = [
   x('relative-clause-waiting-clearance', 'attachment-site-motion', 'letterInnerNBar', { '-': { '51': 678.46 } }),
   x('relative-clause-waiting-clearance', 'attachment-site-motion', 'relativeCP', { '-': { '51': 428.6 } }),
@@ -41,4 +50,19 @@ export const EXCEPTIONS = [
   ...['buyV', 'embeddedI', 'maryNP', 'thatC'].map(subject => widerTheta(subject, { '-': { '34': 283.59 } })),
   { reason: SUBJECT_LANDING_REASON, record: 'fixture:replay-regressions/sol-spanish-qr.json#/analyses/1', rule: 'motion', subtype: 'shape-motion',
     subject: 'ip', at: { '-': { '28': 307.04 } }, approval: SUBJECT_LANDING_APPROVAL({ '-': { '28': 307.04 } }) },
+  // Head movement first (3 Nov).
+  headFirst('fixture:performance/german-embedded.json#', 'auxiliaryVP', { '-': { '49': 186.92 } }),
+  headFirst('fixture:performance/german-embedded.json#', 'embeddedCP', { '-': { '49': 375.92 } }),
+  headFirst('fixture:performance/german-embedded.json#', 'embeddedIP', { '-': { '49': 751.84 } }),
+  headFirst('fixture:performance/german-embedded.json#', 'matrixVbar', { '-': { '49': 187.96 } }),
+  headFirst('fixture:performance/german-embedded.json#', 'readingVP', { '-': { '49': 373.83 } }),
+  headFirst('fixture:performance/german-embedded.json#', 'carefullyAdvP', { '-': { '51': 135.94 } }),
+  headFirst('fixture:performance/german-embedded.json#', 'readingVbar', { '-': { '51': 135.94 } }),
+  headFirst('fixture:performance/german-embedded.json#', 'readingVbarAdjunct', { '-': { '51': 67.97 } }),
+  headFirst('fixture:performance/german-embedded.json#', 'teacherTrace', { '-': { '51': 67.97 } }),
+  headFirst('fixture:performance/german-embedded.json#', 'matrixVP', { '-': { '55': 163.84 } }),
+  headFirst('fixture:replay-regressions/inserted-adjunction-segment.json#', 'mvb', { '-': { '40': 240.53 } }),
+  headFirst('fixture:replay-regressions/inserted-adjunction-segment.json#', 'mvp', { '-': { '40': 29.74 } }),
+  headFirst('fixture:replay-regressions/workspace-reservation.json#/cases/2', 'matrixVP', { '-': { '31': 79.97 } }),
+  headFirst('fixture:replay-regressions/workspace-reservation.json#/cases/2', 'lexicalVP', { '-': { '18': 62.95 } }),
 ];

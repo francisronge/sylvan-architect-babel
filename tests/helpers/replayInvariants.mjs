@@ -261,10 +261,28 @@ function coveredByClaim(stage, relation, id) {
   return relationMentions({ anchors: relation?.anchors }).some(anchor => lineage(anchor).includes(id) || lineage(id).includes(anchor));
 }
 
+/** Whether the phrasal movement at `moment` lands above the head complex that
+ * the head movement at `other` lands in: in one stage a head moves before a
+ * phrase lands above it (Francis approved the order on 23 Oct 2026). */
+function landsAboveHeadMovement(steps, moment, other, parents) {
+  const links = index => steps[index].replayRelationLinks ?? [];
+  const ownLanding = (link, key, kind) => link.authoredRelationKey === key && link.movementTransition === true && link.trajectoryKind === kind;
+  if (!links(moment.index).some(link => ownLanding(link, moment.key, 'phrasal'))) return false;
+  const heads = new Set(links(other.index).filter(link => ownLanding(link, other.key, 'head')).map(link => link.targetNodeId).filter(Boolean));
+  if (!heads.size) return false;
+  const structure = frameStructure(steps[moment.index]);
+  return [...structure.displayed].some(id => {
+    if (!named(structure.nodes.get(id), heads)) return false;
+    for (let at = structure.parent.get(id); at; at = structure.parent.get(at)) if (named(structure.nodes.get(at), parents)) return true;
+    return false;
+  });
+}
+
 /**
  * Each renderable relation has exactly one moment, in its own stage. Moments
  * follow authored order, except that a relation may wait for a later relation of
- * its stage that introduces syntax it needs. A relation that plays after a
+ * its stage that introduces syntax it needs, and a phrasal movement waits for a
+ * head movement of its stage into a head complex below its landing. A relation that plays after a
  * later authored one must have waited: from the last such relation's moment to
  * its own, some moment first displays one of its needs (`momentNeeds`) that
  * belongs to that moment's own authored claim, or relocates, within its claim,
@@ -299,7 +317,8 @@ export function checkRelationMoments(replay, record) {
       const waited = played.slice(played.indexOf(overtaking), position).some(other => {
         const before = other.index ? displayedNames(frameStructure(steps[other.index - 1])) : new Set();
         return [...needs].some(id => shown.has(id) && !before.has(id) && coveredByClaim(stage, other.relation, id))
-          || [...parents].some(id => relocatesAt(steps, other.index, id) && coveredByClaim(stage, other.relation, id));
+          || [...parents].some(id => relocatesAt(steps, other.index, id) && coveredByClaim(stage, other.relation, id))
+          || landsAboveHeadMovement(steps, moment, other, parents);
       });
       if (!waited) out.push(violation('relation-moments', moment.index + 1,
         `relation ${moment.key} plays after later authored relation ${overtaking.key} without waiting for syntax it introduces`));

@@ -292,15 +292,15 @@ test('link-only compatibility callers also retain movement values literally', ()
 
 const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url), 'utf8'));
 test('a saved relation timing conflict remains stored without appearing in the Replay panel', () => {
-  // The raising chain names, as context, the verb trace that the later V-to-I movement introduces.
-  const stages = JSON.parse(readFileSync(new URL('../fixtures/movement/holdout-transitions.json', import.meta.url)))[1].derivationStages;
+  // The successive-cyclic movement needs the embedded CP that a later relation's construction brings.
+  const stages = JSON.parse(readFileSync(new URL('../fixtures/movement/holdout-transitions.json', import.meta.url)))[0].derivationStages;
   const plan = buildDerivationReplayPlan({ derivationStages: stages });
   const steps = buildPlaybackStepsFromDerivationFrames({
     frames: adaptDerivationStagesForReplay(stages),
     replayPlan: plan
   });
-  const chain = steps.find(step => step.replayRelationIdentity?.stageIndex === 1 && step.replayRelationIdentity?.relationIndex === 0);
-  assert.match(chain.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 2, relation 1 .* matrixVTrace before relation 2/);
+  const chain = steps.find(step => step.replayRelationIdentity?.stageIndex === 0 && step.replayRelationIdentity?.relationIndex === 0);
+  assert.match(chain.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 1, relation 1 .* requires eCP/);
   const content = buildReplayPanelContent(chain, stages);
   assert.deepEqual(content, buildReplayPanelContent({ ...chain, movementDiagnostics: [] }, stages));
   assert.ok(!JSON.stringify(content).includes('RELATION_TIMING_CONFLICT'));

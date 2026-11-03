@@ -106,10 +106,11 @@ for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of
   });
 
   // Raising completes IP before C merges with it, so the subject lands first and C′ then adopts
-  // the completed IP.
+  // the completed IP. The verb moves to I just before the raising lands above it (head movement
+  // before phrasal movement, approved 23 Oct 2026), so C waits through frames 30 and 31.
   if (runs('icelandic-raising-passive/0', direction)) test(`${width}px ${direction}: Icelandic lands the subject without moving C, then merges C with the completed IP`, () => {
     const { frame, immutable } = setup('icelandic-raising-passive/0', width, height, direction);
-    const waiting = frame(30), landed = frame(31), merged = frame(32);
+    const waiting = frame(31), landed = frame(32), merged = frame(33);
     assert(!waiting.nodes.has('matrixSubjectDP') && waiting.nodes.has('rootC'));
     assert(landed.nodes.has('matrixSubjectDP'));
     assert(!landed.nodes.has('rootCbar'), 'C′ waits for the movement that completes its IP daughter');

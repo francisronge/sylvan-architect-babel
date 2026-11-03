@@ -10,9 +10,6 @@
 
 const UNRESOLVED_ENDPOINTS = 'Open: movement recognition finds no single source and landing (list-valued or competing landing '
   + 'fields), so the claim stays neutral and draws no path; its own moment still introduces the copy.';
-const CONTEXT_NOT_AWAITED = 'Diagnosed RELATION_TIMING_CONFLICT: the raising chain names, only as context, the verb trace that the '
-  + 'later V-to-I movement introduces. A movement keeps its own moment rather than wait for a contextual anchor, so this mark has '
-  + 'no displayed anchor at its moment.';
 const RENAMED = 'Authored data: the model writes a moved or restated occurrence under a new id, so marks anchored at the old id end.';
 const SELF_SPELLED = 'Authored data: a whole unspaced sentence grouped as one word under the spell-out contract.';
 const OBJECT_LANGUAGE = 'Authored data: the analysis names relations, roles and labels in Chinese.';
@@ -28,8 +25,6 @@ const x = (reason, record, rule, subtype, subject, frames, approval) => ({ reaso
 
 export const STEP_EXCEPTIONS = [
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/3', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '26'),
-  x(CONTEXT_NOT_AWAITED, 'movement/holdout-transitions.json#/1', 'mark-persistence', 'never-paints', "fallback 1:0", '28'),
-  x(CONTEXT_NOT_AWAITED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 3:0", '31'),
   x(RENAMED, 'movement/source-occurrence-ownership.json#/0', 'contract-output', 'renamed-anchor', "4:a1_vi", 'record'),
   x(RENAMED, 'replay-regressions/case-source-transfer.json#', 'contract-output', 'renamed-anchor', "3:v2", 'record'),
   x(RENAMED, 'replay-regressions/complex-head-chain-restatement.json#', 'contract-output', 'renamed-anchor', "3:i0", 'record'),

@@ -176,9 +176,10 @@ function cachedPockets(window: readonly Framed[], plaques: readonly PlaqueAnchor
  * not meet before: the plaque layout keeps a pocket while it stays clear, and
  * when it must search again it may not find the one this search finds.
  * Used by closeMovementGaps, which does not see plaques, so that the room a
- * closing takes is never a plaque's. */
+ * closing takes is never a plaque's. With `repocket`, a plaque may leave its
+ * pocket for another no farther from its anchor. */
 export function keepsPlaqueRoom(steps: readonly PlaybackStep[], before: readonly Painted[], after: readonly Painted[],
-  first: number, room: PlaqueRoom, measureCategoryText?: CategoryTextMeasure) {
+  first: number, room: PlaqueRoom, measureCategoryText?: CategoryTextMeasure, { repocket = false }: { repocket?: boolean } = {}) {
   if (!room.anchors.size) return true;
   const runs = new Map<number, number[]>();
   for (let index = Math.max(0, first - 1); index < after.length; index++) {
@@ -196,7 +197,7 @@ export function keepsPlaqueRoom(steps: readonly PlaybackStep[], before: readonly
       const was = cachedPockets(window.map(index => ({ frame: before[index], step: steps[index] })), own, room, measureCategoryText);
       const now = plaquePockets(window.map(index => ({ frame: after[index], step: steps[index] })), own, room, measureCategoryText,
         was, was.map(entry => (entry?.ratio ?? 0) + SLACK));
-      if (now.some((entry, index) => entry && (!entry.kept || entry.ratio > (was[index]?.ratio ?? 0) + SLACK))) return false;
+      if (now.some((entry, index) => entry && (!entry.kept && !repocket || entry.ratio > (was[index]?.ratio ?? 0) + SLACK))) return false;
     }
   }
   return true;

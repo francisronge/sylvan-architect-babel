@@ -164,7 +164,9 @@ const assertCompleteLandingParent = (step, landingId) => {
     `${parent.id} must have every current branch at the landing`);
 };
 
-test('saved German subject landing has its independently constructed I-bar before later head movement', () => {
+// Head movement before phrasal movement in one stage (approved by Francis on
+// 23 Oct 2026): the verb moves into I before the subject lands above I-bar.
+test('saved German V-to-I movement uses the independently constructed I-bar before the subject lands', () => {
   const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/independent-infl-context.json', import.meta.url)));
   const steps = buildPlaybackStepsFromDerivationFrames({
     frames: adaptDerivationStagesForReplay(saved.derivationStages),
@@ -174,12 +176,12 @@ test('saved German subject landing has its independently constructed I-bar befor
   const subject = steps.findIndex(step => step.operation === 'A-movement');
   const head = steps.findIndex(step => step.operation === 'V-to-I head movement');
   const projection = steps.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'ibar');
-  assert.ok(projection >= 0 && projection < subject && subject < head);
-  assertCompleteLandingParent(steps[subject], 'subjectIP');
-  assert.deepEqual(findNode(steps[subject].replayCanvasData, 'ibar').children.map(child => child.id), ['vp', 'inflFeatures']);
-  assert.equal(findNode(steps[subject].replayCanvasData, 'verbBase').word, 'gefallen');
-  assert.ok(!steps[subject].replayVisibleNodeIds.includes('verbI'));
+  assert.ok(projection >= 0 && projection < head && head < subject);
   assertCompleteLandingParent(steps[head], 'verbI');
+  assert.deepEqual(findNode(steps[head].replayCanvasData, 'ibar').children.map(child => child.id), ['vp', 'inflComplex']);
+  assert.ok(!steps[head].replayVisibleNodeIds.includes('subjectIP'));
+  assertCompleteLandingParent(steps[subject], 'subjectIP');
+  assert.ok(steps[subject].replayVisibleNodeIds.includes('verbI'));
   assert.ok(steps.every(step => step.replayKind !== 'micro' || step.replayVisibleNodeIds.includes(step.targetNodeId)));
 });
 
@@ -204,7 +206,9 @@ for (const firstMovement of ['subject', 'head']) {
       replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
     });
     const relationSteps = steps.filter(step => step.replayKind === 'relation');
-    assert.deepEqual(relationSteps.map(step => step.operation), ordered.map(relation => relation.relation));
+    // Whatever the authored order, the verb moves into T before the subject
+    // lands above T′ (head movement before phrasal movement, approved 23 Oct 2026).
+    assert.deepEqual(relationSteps.map(step => step.operation), [relations.head.relation, relations.subject.relation]);
     const first = steps.indexOf(relationSteps[0]);
     assert.ok(steps.slice(0, first).some(step => step.replayKind === 'micro' && step.targetNodeId === 'tense'));
     if (firstMovement === 'subject') {
