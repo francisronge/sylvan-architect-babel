@@ -6,6 +6,7 @@ import { applyVizIds, getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import { prepareTreeInkSubtrees, treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
+import { stageStepOrder } from './stageStepOrder.ts';
 import type { PlaybackStep } from './types.ts';
 import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { currentForkBranchesClear, relativeChildInk } from './workspaceForkClearance.ts';
@@ -32,8 +33,7 @@ export function compactCurrentRootForks(steps: readonly PlaybackStep[], sizes: R
     if (!canvas || !size || !reserved.has(canvas)) return [];
     return [{ step, canvas, size }];
   }).sort((a, b) => (a.step.replayFrameIndex! - b.step.replayFrameIndex!)
-    || ((a.step.replayStageStepIndex ?? (a.step.replayKind === 'macro' ? Infinity : 0))
-      - (b.step.replayStageStepIndex ?? (b.step.replayKind === 'macro' ? Infinity : 0))));
+    || (stageStepOrder(a.step) - stageStepOrder(b.step)));
   let result = reserved;
   const scenes = new Map<number, { nodes: Map<string, Node> }>();
   const positioned = (index: number, coordinates: Reservations): Node[] => {

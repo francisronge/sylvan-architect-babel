@@ -13,6 +13,7 @@ import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts'
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import type { PlaqueRect } from './relations/plaquePlacement.ts';
 import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from './treeSpacing.ts';
+import { stageStepOrder } from './stageStepOrder.ts';
 import type { PlaybackStep } from './types.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
@@ -42,7 +43,6 @@ const NOTICED = 20;
 /** tryShift's refusal when every check holds but its `accept` does not. */
 const NO_GAIN = 'not accepted';
 
-const stageOrder = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
 
 /** The participants of a relation step's own trajectory links. */
 function trajectoryParticipants(step: PlaybackStep) {
@@ -297,7 +297,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
     closings: ReadonlySet<number>) => ReadonlyMap<string, number>;
 }): { stages: Map<number, Map<SyntaxNode, TreeCoordinateReservation>>; closings: Set<number> } {
   const ordered = steps.filter(step => step.replayCanvasData && step.replayFrameIndex !== undefined && sizes.has(step.replayFrameIndex))
-    .sort((a, b) => a.replayFrameIndex! - b.replayFrameIndex! || stageOrder(a) - stageOrder(b));
+    .sort((a, b) => a.replayFrameIndex! - b.replayFrameIndex! || stageStepOrder(a) - stageStepOrder(b));
   const scenes: Scene[] = ordered.map(step => {
     const canvas = step.replayCanvasData!;
     const root = d3.hierarchy(canvas); applyVizIds(root);

@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import { applyVizIds, getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
+import { stageStepOrder } from './stageStepOrder.ts';
 import type { PlaybackStep } from './types.ts';
 
 /** Each painted node's row height (tree units) in each step, by step and node id. */
@@ -28,9 +29,8 @@ export function planReplayRows(steps: readonly PlaybackStep[], finalRows?: Reado
   if (cached && (cached.seeded || !finalRows)) return cached.rows;
   // Stage order, then each stage's own step order (as the stage layout reads
   // it), so the plan never depends on how the step list is ordered.
-  const within = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
   const framed = steps.filter(step => step.replayCanvasData && step.replayFrameIndex !== undefined)
-    .sort((a, b) => a.replayFrameIndex! - b.replayFrameIndex! || within(a) - within(b));
+    .sort((a, b) => a.replayFrameIndex! - b.replayFrameIndex! || stageStepOrder(a) - stageStepOrder(b));
   const geometry = new Map<number, ReturnType<typeof stageVerticalGeometry>>();
   const scenes = framed.map(step => {
     const stage = step.replayFrameIndex!;

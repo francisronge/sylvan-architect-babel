@@ -27,6 +27,7 @@ import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts
 import { layoutSyntaxTree, paintedSyntaxById, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import { paintedTextCollisions } from './treeTextCollision.ts';
 import { clearTreeText, paintedTreeText } from './treeTextClearance.ts';
+import { stageStepOrder } from './stageStepOrder.ts';
 import type { PlaybackStep } from './types.ts';
 import { separateWorkspaceContours } from './workspaceContourClearance.ts';
 import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
@@ -249,8 +250,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
   let stages = cache.get(steps);
   if (!stages) cache.set(steps, stages = new Map());
   const frames = steps.filter(step => step.replayFrameIndex === stageIndex && step.replayCanvasData)
-    .sort((a, b) => (a.replayStageStepIndex ?? (a.replayKind === 'macro' ? Infinity : 0))
-      - (b.replayStageStepIndex ?? (b.replayKind === 'macro' ? Infinity : 0)));
+    .sort((a, b) => stageStepOrder(a) - stageStepOrder(b));
   const previous = frames[0]?.replayKind === 'relation' && sizeForStage && steps.find(step => step.replayFrameIndex === stageIndex - 1 && step.replayKind === 'macro');
   const previousSize = previous && sizeForStage!(stageIndex - 1);
   const precedingCoordinates = previous?.replayCanvasData && previousSize
@@ -343,7 +343,6 @@ const alignedChoices = new WeakMap<StageFrames, PlanChoice>();
 const shiftedReservations = new WeakMap<TreeCoordinateReservation, Map<string, TreeCoordinateReservation>>();
 // The slot pass per planned reservation, so a reused layout does not repeat it.
 const slotPlans = new WeakMap<StageFrames, Map<string, StageFrames>>();
-const stageStepOrder = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
 const stageSteps = (steps: readonly PlaybackStep[], stage: number) => steps
   .filter(step => step.replayFrameIndex === stage && step.replayCanvasData).sort((a, b) => stageStepOrder(a) - stageStepOrder(b));
 
@@ -634,9 +633,8 @@ const rowedPlans = new WeakMap<StageFrames, StageFrames>();
 function rowedReservations(steps: readonly PlaybackStep[], stageIndex: number, planned: StageFrames, last: boolean): StageFrames {
   const cached = rowedPlans.get(planned);
   if (cached) return cached;
-  const within = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
   const finalStep = last ? steps.filter(step => step.replayFrameIndex === stageIndex && step.replayCanvasData)
-    .sort((a, b) => within(a) - within(b)).at(-1) : undefined;
+    .sort((a, b) => stageStepOrder(a) - stageStepOrder(b)).at(-1) : undefined;
   const finalCoordinates = finalStep && planned.get(finalStep.replayCanvasData!);
   const rows = planReplayRows(steps, finalCoordinates ? new Map([...finalCoordinates].map(([id, point]) => [id, point.y])) : undefined);
   const result = new Map(planned);

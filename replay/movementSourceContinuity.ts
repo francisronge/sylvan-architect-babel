@@ -8,6 +8,7 @@ import { inkBoxesCollide } from './relations/rectGeometry.ts';
 import { prepareTreeInkSubtrees, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import { paintedSyntaxById, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { stageStepOrder } from './stageStepOrder.ts';
 import type { PlaybackStep } from './types.ts';
 import { extentOverlap, obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { currentForkBranchesClear, relativeChildInk } from './workspaceForkClearance.ts';
@@ -53,8 +54,7 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
     const canvas = step.replayCanvasData, size = sizes.get(step.replayFrameIndex!);
     return canvas && size && reserved.has(canvas) ? [{ step, canvas, size, visible: new Set(step.replayVisibleNodeIds) }] : [];
   }).sort((a, b) => (a.step.replayFrameIndex! - b.step.replayFrameIndex!)
-    || ((a.step.replayStageStepIndex ?? (a.step.replayKind === 'macro' ? Infinity : 0))
-      - (b.step.replayStageStepIndex ?? (b.step.replayKind === 'macro' ? Infinity : 0))));
+    || (stageStepOrder(a.step) - stageStepOrder(b.step)));
   const compute = (allowed: ReadonlySet<string>, branched?: Set<string>): Reservations => {
   let result = reserved;
   const scenes = new Map<number, Map<string, Node>>();
