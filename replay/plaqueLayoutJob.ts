@@ -42,24 +42,42 @@ export type PlaqueLayoutProgress = PlaqueLayoutResult & { preparedStages: number
 export type PreparedPlaqueLayout = { schedule: ReplayPlaqueSchedule; coordinates: MeasuredStageCoordinates };
 const textKey = (text: string, style: PlaqueTextStyle | TreeInkTextStyle) => JSON.stringify([text, style]);
 
-/** Preserve exact structured-clone values and graph sharing in request receipts. */
+/** Preserve exact structured-clone values and graph sharing in request receipts.
+ * Equal keys mean equal values: every number (including -0), undefined, array
+ * hole, string, Map, Set and repeated reference is written with its own tag.
+ * Keys only compare within one session, so the format is free to change. */
 function valueKey(value: unknown): string {
   const references = new Map<object, number>();
-  const encode = (entry: unknown): unknown => {
-    if (entry === undefined) return ['undefined'];
-    if (typeof entry === 'number') return ['number', Object.is(entry, -0) ? '-0' : String(entry)];
-    if (entry === null || typeof entry !== 'object') return entry;
+  const parts: string[] = [];
+  const encode = (entry: unknown): void => {
+    if (entry === undefined) { parts.push('u'); return; }
+    if (typeof entry === 'number') { parts.push(Object.is(entry, -0) ? 'n-0' : `n${entry}`); return; }
+    if (typeof entry === 'string') { parts.push(JSON.stringify(entry)); return; }
+    if (entry === null || typeof entry !== 'object') { parts.push(`p${String(entry)}`); return; }
     const prior = references.get(entry);
-    if (prior !== undefined) return ['reference', prior];
+    if (prior !== undefined) { parts.push(`r${prior}`); return; }
     const id = references.size;
     references.set(entry, id);
-    if (entry instanceof Map) return ['map', id, [...entry].map(([key, value]) => [encode(key), encode(value)])];
-    if (entry instanceof Set) return ['set', id, [...entry].map(encode)];
-    if (Array.isArray(entry)) return ['array', id, Array.from({ length: entry.length }, (_, index) =>
-      index in entry ? encode(entry[index]) : ['hole'])];
-    return ['object', id, Object.entries(entry).map(([key, value]) => [key, encode(value)])];
+    if (entry instanceof Map) {
+      parts.push(`M${id}:${entry.size}(`);
+      for (const [key, item] of entry) { encode(key); encode(item); }
+    } else if (entry instanceof Set) {
+      parts.push(`S${id}:${entry.size}(`);
+      for (const item of entry) encode(item);
+    } else if (Array.isArray(entry)) {
+      parts.push(`A${id}:${entry.length}(`);
+      for (let index = 0; index < entry.length; index++) {
+        if (index in entry) encode(entry[index]); else parts.push('h');
+      }
+    } else {
+      const keys = Object.keys(entry);
+      parts.push(`O${id}:${keys.length}(`);
+      for (const key of keys) { parts.push(JSON.stringify(key)); encode((entry as Record<string, unknown>)[key]); }
+    }
+    parts.push(')');
   };
-  return JSON.stringify(encode(value));
+  encode(value);
+  return parts.join(',');
 }
 function serializableInput(input: StageLayoutInput): PlaqueLayoutInput {
   const { measureCategoryText: _category, measurePlaqueText: _plaque, measureTreeInk: _ink, measureTreeLabel: _label, ...serializable } = input;
