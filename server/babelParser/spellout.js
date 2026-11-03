@@ -728,10 +728,13 @@ const readWordOrder = (treeReading, sentenceText, meter) => {
   // Each folded character of a spelling may fold to more than one sentence
   // letter's worth; compare whole folded strings at each start.
   const word = items.map((_, index) => spelled[index].join(''));
+  // The words must spell exactly the sentence's letters, so their lengths add up.
+  if (word.reduce((sum, text) => sum + text.length, 0) !== letters.join('').length) return null;
   const used = items.map(() => false), tiles = [], failed = new Set();
   const matches = (index, at) => {
     let text = '';
     for (let end = at; end < letters.length && text.length < word[index].length; end += 1) {
+      meter.charge();
       text += letters[end];
       if (text === word[index]) return end + 1;
     }
@@ -744,6 +747,7 @@ const readWordOrder = (treeReading, sentenceText, meter) => {
     if (failed.has(key)) return false;
     const tried = new Set();
     for (let index = 0; index < items.length; index += 1) {
+      meter.charge();
       // Equal spellings are interchangeable here; the first unused one is tried.
       if (used[index] || tried.has(word[index])) continue;
       tried.add(word[index]);
@@ -795,7 +799,9 @@ const readWordOrder = (treeReading, sentenceText, meter) => {
     parts.push(surface(spanOf(assigned[items.indexOf(piece)].placed)));
   });
   let reading = parts.join(spaced ? ' ' : '');
-  if (!treePunctuation) reading += surface([significantAt.at(-1) + 1, sentence.chars.length]).trim();
+  // The sentence's closing punctuation, unless a word or the tree already writes it.
+  const covered = Math.max(...items.map((_, index) => spanOf(assigned[index].placed)[1]));
+  if (!treePunctuation) reading += surface([covered, sentence.chars.length]).trim();
   return {
     reading,
     words: items.map((item, index) => ({

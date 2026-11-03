@@ -95,3 +95,21 @@ test('a terminal keeps the punctuation it writes, such as the apostrophe of a po
   assert.deepEqual(check.inputTokens, ['book', 'John', "'s", 'fell']);
   assert.deepEqual(check.words.map(word => word.text), ['book', 'John', "'s", 'fell']);
 });
+
+test('closing punctuation a word already writes is not added again', () => {
+  const [late] = convertSpelloutPayload(clause(['likes', 'likes'], ['mary', 'Mary'], ['john', 'John.']), 'Mary likes John.');
+  assert.equal(late.sentenceCheck.treeReading, 'likes Mary John.');
+  const [early] = convertSpelloutPayload(clause(['john', 'John.'], ['mary', 'Mary'], ['likes', 'likes']), 'Mary likes John.');
+  assert.equal(early.sentenceCheck.treeReading, 'John. Mary likes');
+});
+
+test('the word-order search stays within the spelling check budget', () => {
+  const sentence = `${'a'.repeat(171)}.`;
+  const words = [...Array.from({ length: 18 }, (_, index) => [`a${index}`, 'a'.repeat(index + 1)]),
+    ...Array.from({ length: 50 }, (_, index) => [`b${index}`, `${'b'.repeat(99)}${index}`])];
+  const started = performance.now();
+  const [result] = convertSpelloutPayload(clause(...words), sentence);
+  assert.equal(result.ok, false);
+  assert.equal(result.sentenceCheck, undefined);
+  assert.ok(performance.now() - started < 1000);
+});
