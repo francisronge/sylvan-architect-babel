@@ -18,9 +18,11 @@ a syntaciticians workbench without being super opinionated, we'll start off
 simple and minimalistic)". Items 1 to 4 are launch work, in order; items 5 to 8
 are not.
 
-1. **Public Babel's UI** (Program 3): a simple, good first screen; Replay as
-   the only view, with the sentence bar redesigned (#343); hidden model
-   controls; the waiting screen; the failure screen.
+1. **Public Babel's UI** (Program 3): a new public front end on the shared
+   engine, with a simple, good first screen; Replay as the only view; no
+   model controls; automatic saving; a small way back to the input screen;
+   the waiting screen; the failure screen. Today's app stays as the internal
+   one.
 2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
    minimal version inside the Tree Bank, shipped with launch.
 3. **Server work**: a GPT-6.1 Sol route, visitor and spend limits, and
@@ -165,8 +167,17 @@ quarantined or reported honestly.
 
 Goal: make public Babel a simple, good syntax generator around the completed
 engine. The public app has no research surface: no model controls, no
-research link and no `/research` route. Do not continue growing the current
-monolith and do not build two Babel implementations.
+research link and no `/research` route.
+
+Public Babel is a new front end in this repo on the shared engine (Francis,
+3 Nov 2026, choosing it over a separate app or stripping down today's app:
+"Then we'll go with **New public front end on the shared engine**"). It uses
+the same `replay/` engine, renderer, parser and Tree Bank records as today's
+app, so an analysis saved in one opens in the other; only the front end is
+new, and only the public front end is deployed. Today's app becomes the
+internal one Francis runs locally, with its model and effort menus; it loses
+Canopy and Notes too (#343; Francis: "we don't want them anyway"). Do not
+copy the engine, and do not keep growing today's `App.tsx`.
 
 ### 3A. Product Foundation
 
@@ -183,17 +194,22 @@ monolith and do not build two Babel implementations.
 1. Make the first screen the usable product: sentence input, Minimalism or
    X-bar, and Generate, following the existing product unless iteration reveals
    a real reason to change it. Do not add a marketing landing page before it.
+   The "Arboretum link" label and its glowing dot go, with nothing in their
+   place for now (Francis, 3 Nov: "we don't need it yet, let's keep
+   minimal"). Constituent glyphing goes from the public app (see Program 4).
 2. Replay is the only view (Francis, 31 Oct 2026: "we should remove Canopy
    ... and Babel will just be Replay"): no Canopy tab, no Notes, and no labeled
    bracketing in the public app. Keep Tree Bank, ambiguity selection, save and
    export. Preserve the established visual design unless a concrete product
-   defect requires change. #343 removes the views and is held until the
-   sentence bar no longer takes the tree's room: while a parse is shown the bar
-   is out of the way, and a small control ("Try another sentence") returns to
-   the default area, where the bar shows again (Francis, 31 Oct). That design
-   waits for the frontend and product design ("I want to do this later when we
-   do frontend and product design").
-3. Hide provider, model, and reasoning controls; the server chooses them and
+   defect requires change. While a tree is shown, nothing takes its room: a
+   small control, for example in a top corner, returns to the input screen to
+   parse another sentence (Francis, 3 Nov: "anything is fine as long as it
+   doesn't hog space from the tree"). Its exact form is part of the design.
+3. Every finished parse is saved to the Tree Bank automatically; the header
+   has one "Tree Bank" entry instead of "Tree Bank" and "Save to Tree Bank";
+   a star on the tree marks the analyses to keep, and unkept ones can be
+   cleared later (Francis, 3 Nov: "Yes, perfect.").
+4. Hide provider, model, and reasoning controls; the server chooses them and
    ignores the browser's choice. The public model is GPT-6.1 Sol at high effort
    (Francis, 3 Nov 2026: "Then we'll go with high."), through the OpenAI API key
    already saved for Babel (Francis, 3 Nov: "yes we already have one saved").
@@ -204,7 +220,7 @@ monolith and do not build two Babel implementations.
    backend retention honestly through appropriate About and Privacy surfaces.
    Raw responses, hashes, provider settings, token use, latency, and other
    research details never appear in the ordinary public workspace.
-4. Retire Notes as a top-level view (#343 does this). `stageRecord` remains
+5. Retire Notes as a top-level view (#343 does this). `stageRecord` remains
    part of every stage and stays visible with its corresponding Replay frame.
    Decide separately, after auditing actual use, whether labeled bracketing
    and Miles Shang output remain as exports or are retired.
@@ -255,8 +271,19 @@ Goal: make the Personal Tree Bank much more interesting by turning it into a
 syntactician's workbench, without being opinionated about how syntacticians
 work. It starts simple and minimal, inside the Tree Bank: the first version
 ships with launch (Francis, 3 Nov 2026, quoted in the current work order).
-What that first version holds, and how it looks, is designed with Francis as
-part of the product design.
+What that first version holds, and how it looks, is decided with Francis
+later (3 Nov: "tree bank workbench: we'll figure this out later").
+
+Triangles (constituent glyphing) come back here as something you do by hand,
+not as automatic pattern matching: you click a phrase to collapse it into a
+triangle or open it again, as in Miles Shang's tool, because no rule can say
+which phrases should be shortened. The textbook use is to abbreviate a phrase
+whose inner structure is not the point of the tree. Guard rails: only phrases,
+never a single head; never a phrase holding something the tree shows (a
+movement's start or end, a coindex, a plaque's word); and a view setting on
+the saved analysis that never changes the derivation. Whether triangles also
+apply during Replay is decided in the design, and the collapsed tree must
+still look right.
 
 The capabilities below are the longer list, in dependency order. Each later
 tranche comes after launch, and its workflow and visual form are found with
