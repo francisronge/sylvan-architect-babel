@@ -49,3 +49,8 @@ test('the public first screen is the sentence box and Analyze, without the inter
     assert.ok(!html.includes(absent), `the public first screen shows no "${absent}"`);
   }
 });
+
+test('Tailwind generates the classes only public Babel uses', () => {
+  const { content } = require('../tailwind.config.cjs');
+  assert.ok(content.includes('./publicApp/**/*.{ts,tsx}'), 'tailwind.config.cjs scans publicApp/');
+});
