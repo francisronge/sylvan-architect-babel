@@ -18,14 +18,14 @@ import {
 import TreeVisualizer, { preloadTreeVisualizer } from './components/LazyTreeVisualizer';
 import ViewErrorBoundary from './components/ViewErrorBoundary';
 import RootLogo from './components/RootLogo';
-import LoadingMark from './components/LoadingMark';
+import BabelTitle from './components/workspace/BabelTitle';
+import { FullscreenButton, TreeBankToggle } from './components/workspace/HeaderButtons';
+import SentenceForm from './components/workspace/SentenceForm';
+import { EmptyWorkspace, GenerationLoading, ParseChoices } from './components/workspace/WorkspaceStates';
 import FailurePanel, { dismissesFailure } from './components/FailurePanel';
-import { submitsSentence } from './components/sentenceSubmitKey';
 import ModelControls from './components/ModelControls';
 import ForestBackdrop from './components/ForestBackdrop';
-import { 
-  RotateCcw, 
-  Sparkles,
+import {
   Layers,
   FileText,
   ChevronUp,
@@ -34,8 +34,6 @@ import {
   Key,
   Triangle,
   EyeOff,
-  Maximize2,
-  Minimize2,
   Check,
   Archive
 } from 'lucide-react';
@@ -208,8 +206,7 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
     };
   }, []);
 
-  const handleParse = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleParse = async () => {
     if (loading) return;
     const request = submittedGenerationRequest(input, {
       framework,
@@ -290,15 +287,7 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
       <ForestBackdrop paused={loading} />
       <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-4 py-3 md:px-8 md:py-4 shrink-0 shadow-2xl">
         <div className="w-full flex flex-wrap min-[1600px]:flex-nowrap items-center gap-3 md:gap-6">
-            <div className="flex items-center gap-3 md:gap-4 shrink-0">
-              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,78,59,0.5)]">
-                <RootLogo size={40} shape="square" blend={true} zoom={1.12} className="w-full h-full" />
-              </div>
-              <div>
-                <h1 className="text-lg md:text-xl font-bold tracking-tighter text-white serif leading-tight">Sylvan Architect Babel</h1>
-                <p className="text-[6px] md:text-[7px] font-black uppercase tracking-[0.35em] md:tracking-[0.5em] text-emerald-500/80 leading-none">Generative Grammar Arboretum</p>
-              </div>
-            </div>
+            <BabelTitle />
 
             <div className="basis-full min-[1600px]:basis-auto min-w-0 flex-1">
               <div className="flex flex-wrap xl:flex-nowrap items-center gap-2 md:gap-3">
@@ -367,31 +356,13 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
                     </button>
                   )}
 
-                  <button
-                    onClick={toggleTreeBank}
-                    className={`flex items-center gap-2 px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest whitespace-nowrap ${
-                      isTreeBankView
-                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
-                        : 'border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30'
-                    }`}
-                    title={isTreeBankView ? 'Return to Arboretum' : 'Open Tree Bank'}
-                  >
-                    <Archive size={12} />
-                    {isTreeBankView ? 'Back to Arboretum' : `Tree Bank (${treeBank.entries.length})`}
-                  </button>
+                  <TreeBankToggle open={isTreeBankView} count={treeBank.entries.length} onToggle={toggleTreeBank} />
 
                   {!isTreeBankView && (
                     <ModelControls models={models} lastModelUsed={analysisBundle?.modelUsed} disabled={loading} />
                   )}
 
-                  <button
-                    onClick={toggleFullscreen}
-                    className="flex items-center gap-2 px-3.5 md:px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest whitespace-nowrap"
-                    title="Toggle Fullscreen"
-                  >
-                    {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-                    {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                  </button>
+                  <FullscreenButton fullscreen={isFullscreen} onToggle={toggleFullscreen} />
                 </div>
               </div>
             </div>
@@ -420,38 +391,13 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
         )}
 
         {!isTreeBankView && hasAmbiguity && (
-          <div data-babel-tree-controls="top" className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2">
-            <div className="flex max-w-[min(92vw,64rem)] flex-wrap items-center justify-center gap-2 p-1 rounded-2xl border border-white/10 bg-black/50 backdrop-blur-lg shadow-2xl">
-              {(analysisBundle?.analyses || []).map((_, parseIndex) => (
-                <button
-                  key={`parse-choice-${parseIndex}`}
-                  aria-pressed={activeParseIndex === parseIndex}
-                  onClick={() => changeParse(parseIndex)}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    activeParseIndex === parseIndex
-                      ? 'moss-gradient text-white border border-emerald-400/50'
-                      : 'text-white/60 hover:text-emerald-300'
-                  }`}
-                >
-                  Parse {parseIndex + 1}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ParseChoices count={analysisBundle?.analyses.length ?? 0} active={activeParseIndex} onChoose={changeParse} />
         )}
 
         {!isTreeBankView && (
         <div className="absolute inset-0 z-0">
           <ViewErrorBoundary resetKey={viewResetKey}>
-            {loading && (
-              <div className="loading-overlay absolute inset-0 z-50 bg-[#020806]/95 backdrop-blur-xl flex flex-col items-center justify-center gap-10 animate-in fade-in duration-700">
-                <LoadingMark />
-                <div role="status" className="text-center z-10 min-h-[88px] flex flex-col justify-start">
-                  <p className="text-white font-black serif italic text-2xl mb-1">Synthesizing Neural Roots...</p>
-                  <p className="text-emerald-500/75 font-black uppercase text-[9px] tracking-[0.7em]">Deep Parsing {framework === 'xbar' ? 'X-Bar' : 'Minimalist'} Structures</p>
-                </div>
-              </div>
-            )}
+            {loading && <GenerationLoading structures={framework === 'xbar' ? 'X-Bar' : 'Minimalist'} />}
 
             {!loading && activeParse && activeDisplayTree && (activeTab === 'tree' || activeTab === 'derivation') ? (
               <TreeVisualizer
@@ -468,20 +414,7 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
               />
             ) : activeParse && activeTab === 'notes' ? (
               <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copyStatus={copyStatus} onCopy={(text) => void copyNotation(text)} />
-            ) : !loading && (
-              <div className="w-full h-full flex flex-col items-center justify-center text-emerald-900/10 gap-10">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full scale-150"></div>
-                  <div className="relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-full border border-white/5 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
-                    <RootLogo size={104} shape="circle" blend={true} zoom={0.92} className="w-[78px] h-[78px] md:w-[104px] md:h-[104px]" />
-                  </div>
-                </div>
-                <div className="text-center z-10 min-h-[88px] flex flex-col justify-start">
-                  <p className="font-extrabold text-white text-2xl md:text-3xl mono mb-3 tracking-tighter">Awaiting Structural Genesis</p>
-                  <p className="text-emerald-500/85 font-black uppercase text-[9px] md:text-[10px] tracking-[0.5em] md:tracking-[0.8em] text-balance max-w-lg mx-auto px-4">Cast a thought into the generative soil to begin its derivation.</p>
-                </div>
-              </div>
-            )}
+            ) : !loading && <EmptyWorkspace />}
           </ViewErrorBoundary>
         </div>
         )}
@@ -573,37 +506,14 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
                         </FailurePanel>
                       )}
 
-                      <form onSubmit={handleParse} className="flex gap-3 md:gap-4 items-end">
-                        <div className="flex-1 relative">
-                          <textarea
-                            ref={sentenceInputRef}
-                            aria-label="Sentence to analyze"
-                            className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 md:p-4 text-emerald-50 serif italic placeholder:text-emerald-500/75 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all resize-none h-16 md:h-20 text-base md:text-lg shadow-inner leading-relaxed"
-                            placeholder={`Plant a ${framework === 'xbar' ? 'Generative' : 'Minimalist'} linguistic seed...`}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (submitsSentence(e)) {
-                                e.preventDefault();
-                                void handleParse();
-                              }
-                            }}
-                            disabled={loading}
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          aria-label={loading ? 'Analyzing sentence' : 'Analyze sentence'}
-                          disabled={loading}
-                          className="moss-gradient hover:brightness-110 disabled:opacity-40 text-white font-black w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.4)] active:scale-90 transition-all group shrink-0"
-                        >
-                          {loading ? (
-                            <RotateCcw className="animate-spin" size={20} />
-                          ) : (
-                            <Sparkles size={20} className="group-hover:rotate-12 group-hover:scale-110 transition-transform md:w-6 md:h-6" />
-                          )}
-                        </button>
-                      </form>
+                      <SentenceForm
+                        inputRef={sentenceInputRef}
+                        value={input}
+                        onChange={setInput}
+                        onSubmit={() => void handleParse()}
+                        loading={loading}
+                        placeholder={`Plant a ${framework === 'xbar' ? 'Generative' : 'Minimalist'} linguistic seed...`}
+                      />
                     </div>
                     {!isInputExpanded && (
                       <button type="button" aria-label="Expand Arbor Control" className="w-full px-5 md:px-7 py-3 md:py-4 flex items-center justify-between cursor-pointer group hover:bg-white/5 transition-colors" onClick={() => setIsInputExpanded(true)}>

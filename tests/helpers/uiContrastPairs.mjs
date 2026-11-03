@@ -23,7 +23,7 @@ const TEXT = 4.5, LARGE = 3, ICON = 3;
 
 export const UI_CONTRAST_PAIRS = [
   // Header
-  { where: 'Header subtitle "Generative Grammar Arboretum"', file: 'App.tsx', snippet: 'text-emerald-500/80 leading-none', fg: 'emerald-500/80', bg: HEADER, min: TEXT },
+  { where: 'Header subtitle "Generative Grammar Arboretum"', file: 'components/workspace/BabelTitle.tsx', snippet: 'text-emerald-500/80 leading-none', fg: 'emerald-500/80', bg: HEADER, min: TEXT },
   { where: 'Framework button, Minimalist', file: 'App.tsx', snippet: "'bg-purple-500/20 border-purple-500/40 text-purple-400'", fg: 'purple-400', bg: [...HEADER, 'purple-500/20'], min: TEXT },
   { where: 'Framework button, X-bar', file: 'App.tsx', snippet: "'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'", fg: 'emerald-400', bg: [...HEADER, 'emerald-500/10'], min: TEXT },
   { where: 'Constituent Glyphing, off', file: 'App.tsx', snippet: "'bg-white/5 border-white/10 text-white/50 hover:text-emerald-400", fg: 'white/50', bg: [...HEADER, 'white/5'], min: TEXT },
@@ -47,18 +47,19 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Fullscreen and Tree Bank error banners', file: 'App.tsx', snippet: 'bg-[#261114] px-4 py-3 text-rose-200', fg: 'rose-200', bg: ['#261114'], min: TEXT },
 
   // Workspace
-  { where: 'Parse selector, unselected', file: 'App.tsx', snippet: "'text-white/60 hover:text-emerald-300'", fg: 'white/60', bg: [...SHELL, 'black/50'], min: TEXT },
-  { where: 'Parse selector / view tab, selected', file: 'App.tsx', snippet: "'moss-gradient text-white border border-emerald-400/50'", fg: 'white', bg: ['#065f46'], min: TEXT },
-  { where: 'Loading: "Deep Parsing … Structures"', file: 'App.tsx', snippet: 'text-emerald-500/75 font-black uppercase text-[9px]', fg: 'emerald-500/75', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
-  { where: 'Empty workspace: "Cast a thought…"', file: 'App.tsx', snippet: 'text-emerald-500/85 font-black uppercase text-[9px] md:text-[10px] tracking-[0.5em] md:tracking-[0.8em]', fg: 'emerald-500/85', bg: SHELL, min: TEXT },
+  { where: 'Public: back to the sentence box', file: 'publicApp/PublicApp.tsx', snippet: 'bg-black/50 backdrop-blur-lg text-emerald-400/80', fg: 'emerald-400/80', bg: [...TREE, 'black/50'], min: ICON },
+  { where: 'Parse selector, unselected', file: 'components/workspace/WorkspaceStates.tsx', snippet: "'text-white/60 hover:text-emerald-300'", fg: 'white/60', bg: [...SHELL, 'black/50'], min: TEXT },
+  { where: 'Parse selector / view tab, selected', file: 'components/workspace/WorkspaceStates.tsx', snippet: "'moss-gradient text-white border border-emerald-400/50'", fg: 'white', bg: ['#065f46'], min: TEXT },
+  { where: 'Loading: "Deep Parsing … Structures"', file: 'components/workspace/WorkspaceStates.tsx', snippet: 'text-emerald-500/75 font-black uppercase text-[9px]', fg: 'emerald-500/75', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
+  { where: 'Empty workspace: "Cast a thought…"', file: 'components/workspace/WorkspaceStates.tsx', snippet: 'text-emerald-500/85 font-black uppercase text-[9px] md:text-[10px] tracking-[0.5em] md:tracking-[0.8em]', fg: 'emerald-500/85', bg: SHELL, min: TEXT },
   { where: 'View tabs, unselected icon', file: 'App.tsx', snippet: "'glass-dark text-emerald-600/70 border-white/5", fg: 'emerald-600/70', bg: GLASS, min: ICON },
   { where: 'View tab name on hover', file: 'App.tsx', snippet: 'bg-black/90 backdrop-blur-xl text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400', fg: 'emerald-400', bg: [...SHELL, 'black/90'], min: TEXT },
 
   // Sentence console
   { where: 'Console title "Arboretum Link"', file: 'App.tsx', snippet: 'tracking-[0.4em] text-emerald-500/80">Arboretum Link', fg: 'emerald-500/80', bg: PANEL_STRIP, min: TEXT },
   { where: 'Console collapse and hide icons', file: 'App.tsx', snippet: 'rounded-xl transition-colors text-emerald-500/60', fg: 'emerald-500/60', bg: PANEL_STRIP, min: ICON },
-  { where: 'Sentence text', file: 'App.tsx', snippet: 'text-emerald-50 serif italic', fg: 'emerald-50', bg: [...GLASS, 'black/40'], min: TEXT },
-  { where: 'Sentence placeholder', file: 'App.tsx', snippet: 'placeholder:text-emerald-500/75', fg: 'emerald-500/75', bg: [...GLASS, 'black/40'], min: TEXT },
+  { where: 'Sentence text', file: 'components/workspace/SentenceForm.tsx', snippet: 'text-emerald-50 serif italic', fg: 'emerald-50', bg: [...GLASS, 'black/40'], min: TEXT },
+  { where: 'Sentence placeholder', file: 'components/workspace/SentenceForm.tsx', snippet: 'placeholder:text-emerald-500/75', fg: 'emerald-500/75', bg: [...GLASS, 'black/40'], min: TEXT },
   { where: 'Collapsed console: sentence', file: 'App.tsx', snippet: 'text-emerald-50/50 serif italic', fg: 'emerald-50/50', bg: GLASS, min: TEXT },
   { where: 'Collapsed console: "Expand Arbor Control"', file: 'App.tsx', snippet: 'text-emerald-500/75 uppercase tracking-[0.4em]', fg: 'emerald-500/75', bg: GLASS, min: TEXT },
   { where: 'External API Key Required (console)', file: 'App.tsx', snippet: 'bg-amber-500/10 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-200', fg: 'amber-200', bg: [...GLASS, 'amber-500/10'], min: TEXT },
