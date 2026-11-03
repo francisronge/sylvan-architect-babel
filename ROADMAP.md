@@ -19,9 +19,10 @@ simple and minimalistic)". Items 1 to 4 are launch work, in order; items 5 to 8
 are not.
 
 1. **Public Babel's UI** (Program 3): a new public front end on the shared
-   engine, with a simple, good first screen; Replay as the only view; no
-   model controls; automatic saving; a small way back to the input screen;
-   the waiting screen; the failure screen. Today's app stays as the internal
+   engine, with today's first screen minus its framework switch (Minimalism
+   only); Replay as the only view; no model controls; automatic saving; a
+   small way back to the input screen; the waiting screen; the failure
+   screen. Today's app stays as the internal
    one.
 2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
    minimal version inside the Tree Bank, shipped with launch.
@@ -191,9 +192,13 @@ copy the engine, and do not keep growing today's `App.tsx`.
 
 ### 3B. Public Babel At `/`
 
-1. Make the first screen the usable product: sentence input, Minimalism or
-   X-bar, and Generate, following the existing product unless iteration reveals
-   a real reason to change it. Do not add a marketing landing page before it.
+1. Make the first screen the usable product: sentence input and Generate,
+   kept as it is today apart from the removals below (Francis, 3 Nov: "We
+   don't need to change anything for 1 right?"). Do not add a marketing
+   landing page before it. Public Babel is Minimalism only, with no framework
+   switch, and the public route ignores any framework the browser sends
+   (Francis, 3 Nov: "Of course it's just going to be Minimalism???"). X-bar
+   stays in the internal app and the qualification runners.
    The "Arboretum link" label and its glowing dot go, with nothing in their
    place for now (Francis, 3 Nov: "we don't need it yet, let's keep
    minimal"). Constituent glyphing goes from the public app (see Program 4).
