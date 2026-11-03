@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { collectDerivationStageRecords } from '../derivationNotes.js';
-import { createTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
+import { createTreeBankBundleSnapshot } from '../services/treeBankSnapshot.js';
 import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 

@@ -6,7 +6,7 @@ import { normalizeParseBundle } from '../server/babelParser/parseNormalization.j
 import { parseModelJsonDetailed } from '../server/babelParser/modelJson.js';
 import { ParseApiError } from '../server/babelParser/error.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
-import { createTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
+import { createTreeBankBundleSnapshot } from '../services/treeBankSnapshot.js';
 import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
 // Babel used to rebalance brackets until a response parsed; Francis removed that

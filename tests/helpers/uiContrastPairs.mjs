@@ -34,16 +34,16 @@ export const UI_CONTRAST_PAIRS = [
   ...[['openai:gpt-6.1-sol', '#f6bf69'], ['openai:gpt-6-astra', '#eef59a'], ['anthropic:claude-opus-5', '#d8ac86'],
     ['anthropic:claude-fable-5-1', '#93baf3'], ['moonshot:kimi-k3', '#8ebfba'], ['xai:grok-4.6', '#d7dce2']]
     .flatMap(([id, color]) => [
-      { where: `Model menu, ${id}`, file: 'App.tsx', snippet: `'${id}': '${color}'`, ...accent(color), min: TEXT },
-      { where: `Model menu option, ${id}`, file: 'App.tsx', snippet: 'className="bg-[#061810]" style={{ color: MODEL_ACCENT_COLORS[model.id] }}', fg: `[${color}]`, bg: ['#061810'], min: TEXT }
+      { where: `Model menu, ${id}`, file: 'components/ModelControls.tsx', snippet: `'${id}': '${color}'`, ...accent(color), min: TEXT },
+      { where: `Model menu option, ${id}`, file: 'components/ModelControls.tsx', snippet: 'className="bg-[#061810]" style={{ color: MODEL_ACCENT_COLORS[model.id] }}', fg: `[${color}]`, bg: ['#061810'], min: TEXT }
     ]),
-  { where: 'Effort menu, None', file: 'App.tsx', snippet: "none: 'border-white/20 bg-white/5 text-white/70'", fg: 'white/70', bg: [...HEADER, 'white/5'], min: TEXT },
-  { where: 'Effort menu, Minimal', file: 'App.tsx', snippet: 'bg-slate-500/10 text-slate-200', fg: 'slate-200', bg: [...HEADER, 'slate-500/10'], min: TEXT },
-  { where: 'Effort menu, Low', file: 'App.tsx', snippet: 'bg-cyan-950/20 text-cyan-200', fg: 'cyan-200', bg: [...HEADER, 'cyan-950/20'], min: TEXT },
-  { where: 'Effort menu, Medium', file: 'App.tsx', snippet: 'bg-teal-500/15 text-teal-200', fg: 'teal-200', bg: [...HEADER, 'teal-500/15'], min: TEXT },
-  { where: 'Effort menu, High', file: 'App.tsx', snippet: 'bg-[#b7791f]/24 text-[#f3c777]', fg: '[#f3c777]', bg: [...HEADER, '[#b7791f]/24'], min: TEXT },
-  { where: 'Effort menu, XHigh', file: 'App.tsx', snippet: 'bg-orange-500/20 text-orange-200', fg: 'orange-200', bg: [...HEADER, 'orange-500/20'], min: TEXT },
-  { where: 'Effort menu, Max / Ultra', file: 'App.tsx', snippet: 'bg-[#7f1d1d]/36 text-[#fecaca]', fg: '[#fecaca]', bg: [...HEADER, '[#7f1d1d]/36'], min: TEXT },
+  { where: 'Effort menu, None', file: 'components/ModelControls.tsx', snippet: "none: 'border-white/20 bg-white/5 text-white/70'", fg: 'white/70', bg: [...HEADER, 'white/5'], min: TEXT },
+  { where: 'Effort menu, Minimal', file: 'components/ModelControls.tsx', snippet: 'bg-slate-500/10 text-slate-200', fg: 'slate-200', bg: [...HEADER, 'slate-500/10'], min: TEXT },
+  { where: 'Effort menu, Low', file: 'components/ModelControls.tsx', snippet: 'bg-cyan-950/20 text-cyan-200', fg: 'cyan-200', bg: [...HEADER, 'cyan-950/20'], min: TEXT },
+  { where: 'Effort menu, Medium', file: 'components/ModelControls.tsx', snippet: 'bg-teal-500/15 text-teal-200', fg: 'teal-200', bg: [...HEADER, 'teal-500/15'], min: TEXT },
+  { where: 'Effort menu, High', file: 'components/ModelControls.tsx', snippet: 'bg-[#b7791f]/24 text-[#f3c777]', fg: '[#f3c777]', bg: [...HEADER, '[#b7791f]/24'], min: TEXT },
+  { where: 'Effort menu, XHigh', file: 'components/ModelControls.tsx', snippet: 'bg-orange-500/20 text-orange-200', fg: 'orange-200', bg: [...HEADER, 'orange-500/20'], min: TEXT },
+  { where: 'Effort menu, Max / Ultra', file: 'components/ModelControls.tsx', snippet: 'bg-[#7f1d1d]/36 text-[#fecaca]', fg: '[#fecaca]', bg: [...HEADER, '[#7f1d1d]/36'], min: TEXT },
   { where: 'Fullscreen and Tree Bank error banners', file: 'App.tsx', snippet: 'bg-[#261114] px-4 py-3 text-rose-200', fg: 'rose-200', bg: ['#261114'], min: TEXT },
 
   // Workspace

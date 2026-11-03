@@ -6,7 +6,7 @@ import { normalizeParseBundle } from '../server/babelParser/parseNormalization.j
 import { convertSpelloutPayload } from '../server/babelParser/spellout.js';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { planSpelloutAttempts } from '../contractQualification/spelloutArtifacts.js';
-import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
+import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../services/treeBankSnapshot.js';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import { plaqueIdentity } from '../replay/relations/plaquePlacement.ts';
 import { checkOneLetterPerLabel, checkPlanIdentityUnique } from './helpers/replayInvariants.mjs';

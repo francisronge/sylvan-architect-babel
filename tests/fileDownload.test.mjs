@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { build } from 'esbuild';
-import { createFileDownloads, DOWNLOAD_URL_LIFETIME_MS, failureRecordBlob, rawOutputBlob } from '../components/fileDownload.ts';
+import { createFileDownloads, DOWNLOAD_URL_LIFETIME_MS, failureRecordBlob, rawOutputBlob } from '../services/fileDownload.ts';
 
 const browser = (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
@@ -65,7 +65,7 @@ test('the failure record names the build that produced it, and loads in Node wit
 
   // Vite replaces __BABEL_BUILD__ with the stamp scripts/buildVersionPlugin.mjs reads.
   const bundled = await build({
-    entryPoints: [new URL('../components/fileDownload.ts', import.meta.url).pathname],
+    entryPoints: [new URL('../services/fileDownload.ts', import.meta.url).pathname],
     bundle: true, write: false, platform: 'node', format: 'esm',
     define: { __BABEL_BUILD__: JSON.stringify('0.1.0-beta+abc1234') }
   });

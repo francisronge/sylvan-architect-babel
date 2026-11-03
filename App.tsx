@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useGeneration } from './hooks/useGeneration';
 import { submittedGenerationRequest } from './services/generationState';
-import { useSporeDrift, type Spore } from './hooks/useSporeDrift';
 import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
 import { deriveAnalysisDisplay } from './services/analysisDisplay';
 import { useTreeBank } from './hooks/useTreeBank';
+import { useModelSelection } from './hooks/useModelSelection';
+import { useFullscreen } from './hooks/useFullscreen';
 import { useDevPreview, type DevAnalysisOptions, type SavedPreview } from './hooks/useDevPreview';
 import type { TreeBankEntrySummary } from './services/treeBankStore';
 import { TreeBankView, TreeBankDeleteDialog } from './components/TreeBankView';
@@ -20,13 +21,12 @@ import RootLogo from './components/RootLogo';
 import LoadingMark from './components/LoadingMark';
 import FailurePanel, { dismissesFailure } from './components/FailurePanel';
 import { submitsSentence } from './components/sentenceSubmitKey';
-import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
+import ModelControls from './components/ModelControls';
+import ForestBackdrop from './components/ForestBackdrop';
 import { 
   RotateCcw, 
   Sparkles,
   Layers,
-  Zap,
-  Brain,
   FileText,
   ChevronUp,
   ChevronDown,
@@ -48,72 +48,15 @@ const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number; c
   { id: 'notes', icon: FileText, label: 'Notes' },
 ];
 
-const formatModelLabel = (modelUsed: string | undefined, models = GENERATION_MODEL_IDS.map(id => getResearchModel(id)!)): string => {
-  const model = String(modelUsed || '').trim();
-  if (!model) return 'Model unavailable';
-  const catalogModel = models.find((entry) => entry.providerModel === model);
-  if (catalogModel) return catalogModel.label;
-  if (/^gpt/i.test(model)) return model.toUpperCase();
-  if (/^claude/i.test(model)) return model.replace(/^claude/i, 'Claude');
-  if (model === 'gemini-3.1-pro-preview') return 'Gemini 3.1 Pro';
-  if (model === 'gemini-3-pro-preview') return 'Gemini 3 Pro';
-  return model.replace(/^gemini-/i, 'Gemini ').replace(/-preview$/i, '');
-};
-
-type ModelMode = string;
-type ReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'ultra';
-
-const MODEL_ACCENT_COLORS: Record<string, string> = {
-  'openai:gpt-6.1-sol': '#f6bf69',
-  'openai:gpt-6-astra': '#eef59a',
-  'openai:gpt-6-sol': '#f6bf69',
-  'anthropic:claude-opus-5': '#d8ac86',
-  'anthropic:claude-fable-5-1': '#93baf3',
-  'moonshot:kimi-k3': '#8ebfba',
-  'xai:grok-4.6': '#d7dce2'
-};
-
-const REASONING_EFFORT_LABELS: Record<ReasoningEffort, string> = {
-  none: 'None',
-  minimal: 'Minimal',
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-  xhigh: 'XHigh',
-  max: 'Max',
-  ultra: 'Ultra'
-};
-
-const REASONING_PILL_STYLES: Record<ReasoningEffort, string> = {
-  none: 'border-white/20 bg-white/5 text-white/70',
-  minimal: 'border-slate-500/35 bg-slate-500/10 text-slate-200 shadow-[0_0_16px_rgba(148,163,184,0.12)]',
-  low: 'border-cyan-700/35 bg-cyan-950/20 text-cyan-200 shadow-[0_0_16px_rgba(8,145,178,0.14)]',
-  medium: 'border-teal-500/45 bg-teal-500/15 text-teal-200 shadow-[0_0_16px_rgba(20,184,166,0.16)]',
-  high: 'border-[#b7791f]/55 bg-[#b7791f]/24 text-[#f3c777] shadow-[0_0_18px_rgba(183,121,31,0.22)]',
-  xhigh: 'border-orange-500/60 bg-orange-500/20 text-orange-200 shadow-[0_0_20px_rgba(249,115,22,0.22)]',
-  max: 'border-[#dc2626]/70 bg-[#7f1d1d]/36 text-[#fecaca] shadow-[0_0_22px_rgba(220,38,38,0.28)]',
-  ultra: 'border-[#dc2626]/70 bg-[#7f1d1d]/36 text-[#fecaca] shadow-[0_0_22px_rgba(220,38,38,0.28)]'
-};
-
-const coerceReasoningEffortForRoute = (route: ModelMode, value?: string): ReasoningEffort => {
-  const control = getResearchModel(route)!.controls[0];
-  return (control.values.includes(value || '') ? value : control.qualificationDefault) as ReasoningEffort;
-};
-
 type WorkspaceView = 'arboretum' | 'treeBank';
 interface AppProps {
   /** Local harnesses can offer their own catalog subset without changing public provider routes. */
   modelIds?: readonly string[];
 }
 
-const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
-  const MODEL_OPTIONS = useMemo(() => modelIds.map(id => getResearchModel(id)!), [modelIds]);
-  const DEFAULT_MODEL_ID = modelIds[0];
-  const coerceModelRoute = useCallback((value?: string): ModelMode =>
-    modelIds.includes(value || '') ? value! : DEFAULT_MODEL_ID, [modelIds, DEFAULT_MODEL_ID]);
-  const inferModelRouteFromModel = useCallback((modelUsed?: string): ModelMode =>
-    MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID, [MODEL_OPTIONS, DEFAULT_MODEL_ID]);
-  const appContainerRef = useRef<HTMLDivElement>(null);
+const App: React.FC<AppProps> = ({ modelIds }) => {
+  const models = useModelSelection(modelIds);
+  const { modelRoute, reasoningEffort, activeReasoningEffort, inferModelRoute, adoptModel, adoptEffort } = models;
   const copyStatusTimeoutRef = useRef<number | null>(null);
   const copyAttemptRef = useRef(0);
   const showcaseMode = useMemo(() => {
@@ -121,17 +64,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     const value = new URLSearchParams(window.location.search).get('showcase');
     return ['1', 'true', 'yes'].includes(String(value || '').toLowerCase());
   }, []);
-  const spores = useMemo<Spore[]>(
-    () =>
-      Array.from({ length: 12 }, () => ({
-        left: Math.random() * 100,
-        delay: Math.random() * 24,
-        duration: 20 + Math.random() * 16,
-        drift: 40 + Math.random() * 120
-      })),
-    []
-  );
-  const sporeLayerRef = useRef<HTMLDivElement>(null);
   const sentenceInputRef = useRef<HTMLTextAreaElement>(null);
   const activeTabButtonRef = useRef<HTMLButtonElement>(null);
   const [input, setInput] = useState('The farmer eats the pig');
@@ -139,7 +71,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   // user dismisses it, also while the model or effort for that next request is
   // being chosen.
   const { loading, error, needsKey, generate, clearFailure, dismissFailure, resetGeneration, reportError } = useGeneration();
-  useSporeDrift(sporeLayerRef, spores, loading);
   const [analysisBundle, setAnalysisBundle] = useState<ParseBundle | null>(null);
   const [activeParseIndex, setActiveParseIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<AppTab>('tree');
@@ -148,8 +79,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('minimalism');
   const [parsedFramework, setParsedFramework] = useState<'xbar' | 'minimalism'>('minimalism');
-  const [modelRoute, setModelRoute] = useState<ModelMode>(DEFAULT_MODEL_ID);
-  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('high');
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
   const showCopyStatus = useCallback((status: CopyStatus) => {
     if (copyStatusTimeoutRef.current !== null) {
@@ -169,8 +98,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     copyAttemptRef.current += 1;
     showCopyStatus('idle');
   }, [showCopyStatus]);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [fullscreenError, setFullscreenError] = useState<string | null>(null);
+  const { isFullscreen, fullscreenError, toggleFullscreen } = useFullscreen();
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('arboretum');
   const treeBank = useTreeBank();
@@ -205,12 +133,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const milesNotation = activeDisplay?.notation ?? '';
   const derivationalNoteParagraphs = activeDisplay?.stageRecords ?? [];
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) > 1;
-  const selectedModel = getResearchModel(modelRoute)!;
-  const selectedModelLabel = selectedModel.label;
-  const modelLabel = formatModelLabel(analysisBundle?.modelUsed, MODEL_OPTIONS);
-  const activeReasoningEffort = coerceReasoningEffortForRoute(modelRoute, reasoningEffort);
-  const activeReasoningOptions = selectedModel.controls[0].values as ReasoningEffort[];
-  const reasoningControlLabel = selectedModel.controls[0].label;
   const isTreeBankView = workspaceView === 'treeBank';
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
   // Replay gives the input bar's space to the tree and its panel; a new sentence
@@ -237,13 +159,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     // A record naming no framework predates Minimalism as the default, when an
     // unnamed request was X-bar, so it keeps reading as X-bar.
     setParsedFramework(options.framework || bundle.analyses[0]?.provenance?.framework || 'xbar');
-    if (options.modelRoute) {
-      const nextRoute = coerceModelRoute(options.modelRoute);
-      setModelRoute(nextRoute);
-      setReasoningEffort(coerceReasoningEffortForRoute(nextRoute, options.reasoningEffort || reasoningEffort));
-    } else if (options.reasoningEffort) {
-      setReasoningEffort(coerceReasoningEffortForRoute(modelRoute, options.reasoningEffort));
-    }
+    if (options.modelRoute) adoptModel(options.modelRoute, options.reasoningEffort || reasoningEffort);
+    else if (options.reasoningEffort) adoptEffort(options.reasoningEffort);
     setActiveParseIndex(0);
     setActiveTab('tree');
     resetCopyStatus();
@@ -251,19 +168,17 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setIsInputExpanded(true);
     setWorkspaceView('arboretum');
     resetGeneration();
-  }, [modelRoute, reasoningEffort, coerceModelRoute, resetGeneration, resetCopyStatus]);
+  }, [reasoningEffort, adoptModel, adoptEffort, resetGeneration, resetCopyStatus]);
 
   const acceptSavedPreview = useCallback((preview: SavedPreview) => {
     const { bundle, sentence, framework: nextFramework, tab, captureMode } = preview;
-    const nextRoute = coerceModelRoute(preview.modelRoute || inferModelRouteFromModel(bundle.modelUsed));
     setInitialReplayPosition(null);
     setAnalysisBundle(bundle);
     setParsedSentence(sentence);
     setInput(sentence);
     setFramework(nextFramework);
     setParsedFramework(nextFramework);
-    setModelRoute(nextRoute);
-    setReasoningEffort(coerceReasoningEffortForRoute(nextRoute, preview.reasoningEffort || reasoningEffort));
+    adoptModel(preview.modelRoute || inferModelRoute(bundle.modelUsed), preview.reasoningEffort || reasoningEffort);
     setActiveParseIndex(0);
     setActiveTab(tab);
     resetCopyStatus();
@@ -271,7 +186,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     resetGeneration();
     setIsInputVisible(!(showcaseMode || captureMode));
     setIsInputExpanded(!(showcaseMode || captureMode));
-  }, [showcaseMode, reasoningEffort, coerceModelRoute, inferModelRouteFromModel, resetGeneration, resetCopyStatus]);
+  }, [showcaseMode, reasoningEffort, adoptModel, inferModelRoute, resetGeneration, resetCopyStatus]);
 
   const devCaptureMode = useDevPreview({
     analysisBundle,
@@ -282,32 +197,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     onError: reportError
   });
 
-  useEffect(() => {
-    setReasoningEffort((current) => coerceReasoningEffortForRoute(modelRoute, current));
-  }, [modelRoute]);
-
   // The tree view is a separate chunk; fetch it once the first screen is up.
   useEffect(() => { preloadTreeVisualizer().catch(() => {}); }, []);
-
-  useEffect(() => {
-    const syncFullscreenState = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-      window.requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        window.dispatchEvent(new Event('resize'));
-      });
-      window.setTimeout(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        window.dispatchEvent(new Event('resize'));
-      }, 80);
-    };
-
-    syncFullscreenState();
-    document.addEventListener('fullscreenchange', syncFullscreenState);
-    return () => {
-      document.removeEventListener('fullscreenchange', syncFullscreenState);
-    };
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -323,7 +214,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     const request = submittedGenerationRequest(input, {
       framework,
       modelId: modelRoute,
-      settings: { [selectedModel.controls[0].id]: activeReasoningEffort }
+      settings: models.requestSettings
     });
     if (!request) return;
 
@@ -331,9 +222,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     await generate(request, data => {
       setInitialReplayPosition(null);
       setAnalysisBundle(data);
-      const nextModelRoute = coerceModelRoute(data.requestedModelId || modelRoute);
-      setModelRoute(nextModelRoute);
-      setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, data.requestedReasoningEffort || activeReasoningEffort));
+      adoptModel(data.requestedModelId || modelRoute, data.requestedReasoningEffort || activeReasoningEffort);
       setParsedSentence(request.sentence);
       setParsedFramework(framework);
       setActiveParseIndex(0);
@@ -373,9 +262,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setInput(entry.sentence);
       setFramework(entry.framework);
       setParsedFramework(entry.framework);
-      const nextModelRoute = coerceModelRoute(bundle.requestedModelId || inferModelRouteFromModel(bundle.modelUsed));
-      setModelRoute(nextModelRoute);
-      setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, bundle.requestedReasoningEffort || reasoningEffort));
+      adoptModel(bundle.requestedModelId || inferModelRoute(bundle.modelUsed), bundle.requestedReasoningEffort || reasoningEffort);
       setActiveParseIndex(entry.activeParseIndex);
       setActiveTab(view);
       setAbstractionMode(savedAbstraction);
@@ -394,33 +281,13 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     if (attempt === copyAttemptRef.current) showCopyStatus(copied ? 'copied' : 'failed');
   };
 
-  const toggleFullscreen = async () => {
-    setFullscreenError(null);
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
-        await document.documentElement.requestFullscreen();
-      }
-    } catch (err) {
-      setFullscreenError('The browser blocked fullscreen. Select this tab and try again, or use the browser\'s fullscreen command.');
-      console.error('Fullscreen toggle failed', err);
-    }
-  };
-
   return (
     <div
-      ref={appContainerRef}
       className={`app-shell flex flex-col overflow-hidden selection:bg-emerald-500 selection:text-white ${
         isFullscreen ? 'is-fullscreen' : ''
       }`}
     >
-      <div className="god-rays"></div>
-      <div ref={sporeLayerRef} className="spore-layer" aria-hidden="true">
-        {spores.map((spore, idx) => (
-          <div key={idx} className="spore" style={{ left: `${spore.left}vw` }} />
-        ))}
-      </div>
+      <ForestBackdrop paused={loading} />
       <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-4 py-3 md:px-8 md:py-4 shrink-0 shadow-2xl">
         <div className="w-full flex flex-wrap min-[1600px]:flex-nowrap items-center gap-3 md:gap-6">
             <div className="flex items-center gap-3 md:gap-4 shrink-0">
@@ -514,56 +381,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                   </button>
 
                   {!isTreeBankView && (
-                    <div
-                      className="flex flex-wrap xl:contents items-center gap-2"
-                      title={
-                        analysisBundle?.modelUsed
-                          ? `Selected model: ${selectedModelLabel}. Last parse used: ${modelLabel}.`
-                          : 'Choose parsing model'
-                      }
-                    >
-                      <label
-                        className="flex xl:grow items-center gap-2 px-3 py-2 rounded-lg border"
-                        style={{
-                          color: MODEL_ACCENT_COLORS[modelRoute],
-                          backgroundColor: `${MODEL_ACCENT_COLORS[modelRoute]}1f`,
-                          borderColor: `${MODEL_ACCENT_COLORS[modelRoute]}80`,
-                          boxShadow: `0 0 16px ${MODEL_ACCENT_COLORS[modelRoute]}22`
-                        }}
-                      >
-                        <Zap size={10} className="fill-current" />
-                        <select
-                          aria-label="Generation model"
-                          value={modelRoute}
-                          disabled={loading}
-                          onChange={(event) => {
-                            setModelRoute(event.target.value);
-                            setReasoningEffort('high');
-                          }}
-                          className="w-40 xl:grow bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
-                        >
-                          {MODEL_OPTIONS.map((model) => (
-                            <option key={model.id} value={model.id} className="bg-[#061810]" style={{ color: MODEL_ACCENT_COLORS[model.id] }}>
-                              {model.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className={`flex xl:grow items-center gap-2 px-3 py-2 rounded-lg border ${REASONING_PILL_STYLES[activeReasoningEffort]}`} title={reasoningControlLabel}>
-                        <Brain size={10} className="fill-current" />
-                        <select
-                          aria-label={reasoningControlLabel}
-                          value={activeReasoningEffort}
-                          disabled={loading}
-                          onChange={(event) => {
-                            setReasoningEffort(event.target.value as ReasoningEffort);
-                          }}
-                          className="w-24 xl:grow bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
-                        >
-                          {activeReasoningOptions.map((effort) => <option key={effort} value={effort} className="bg-[#061810]">{REASONING_EFFORT_LABELS[effort]}</option>)}
-                        </select>
-                      </label>
-                    </div>
+                    <ModelControls models={models} lastModelUsed={analysisBundle?.modelUsed} disabled={loading} />
                   )}
 
                   <button

@@ -6,7 +6,7 @@ import { ParseApiError } from '../server/babelParser/error.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 import { resolveSavedInputTokens, tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
-import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
+import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../services/treeBankSnapshot.js';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { runQualificationAttempt, validateQualificationPlan } from '../contractQualification/run.js';
 import { buildCodexQualificationRequest } from '../contractQualification/codexOAuth.js';

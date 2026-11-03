@@ -19,6 +19,8 @@ const explicitSections = {
   ],
   requestBoundary: [
     'App.tsx',
+    'hooks/useModelSelection.ts',
+    'components/ModelControls.tsx',
     'hooks/useGeneration.ts',
     'services/generationState.ts',
     'api/parse.js',
