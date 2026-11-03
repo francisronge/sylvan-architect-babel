@@ -28,6 +28,10 @@ const CROSSING_CENTRE = 'Accepted (camera, fixes A+B): entering a new stage, an 
 
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
+const HEAD_FIRST = 'Accepted trade-off (head movement before phrasal movement, 3 Nov): when one stage moves a head and a phrase, the head moves '
+  + 'first, so the stage lays out the head\u2019s new host before the phrase lands and this changes where the tree stands at that moment.';
+const HEAD_FIRST_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-11-03', note: 'Head movement before phrasal movement in one stage, 3 Nov 2026 in the lead session, shown the click-through page against main (German embedded, Hebrew relative, German participle, the 13% wider finished tree) and told it also brings plaques 12\u201320% farther from their words in four trees and a tree that starts 25 px off screen when stepping back: \u201cI approve of 1. and 2.\u201d', accepts: at });
+
 export const EXCEPTIONS = [
   x(MOVED_OFF_CANVAS, 'movement/clause-context.json#/cases/2', 'first-paint-continuity', 'off-canvas:moved', 'stage 2',
     { mobile: { '43>44': 68.72 } }),
@@ -130,4 +134,6 @@ export const EXCEPTIONS = [
     { mobile: { '30>31': 7.78 } },
     { by: 'Francis Ronge', on: '2026-10-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
       accepts: { mobile: { '36>37': 7.78 } } }),
+  x(HEAD_FIRST, 'performance/portuguese-coordination.json#', 'first-paint-continuity', 'off-canvas:moved', 'stage 3',
+    { desktop: { '80>79': 24.74 } }, HEAD_FIRST_APPROVAL({ desktop: { '80>79': 24.74 } })),
 ];

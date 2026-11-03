@@ -19,6 +19,10 @@ const LANDING_ROOM_NOTE = 'Asked \u201cShould #333 ship, accepting two small fla
 const LANDING_ROOM_APPROVAL = (note, at) => ({ by: 'Francis Ronge', on: '2026-10-31', note, accepts: at });
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
+const HEAD_FIRST = 'Accepted trade-off (head movement before phrasal movement, 3 Nov): when one stage moves a head and a phrase, the head moves '
+  + 'first, so the stage lays out the head\u2019s new host before the phrase lands and this changes where the tree stands at that moment.';
+const HEAD_FIRST_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-11-03', note: 'Head movement before phrasal movement in one stage, 3 Nov 2026 in the lead session, shown the click-through page against main (German embedded, Hebrew relative, German participle, the 13% wider finished tree) and told it also brings plaques 12\u201320% farther from their words in four trees and a tree that starts 25 px off screen when stepping back: \u201cI approve of 1. and 2.\u201d', accepts: at });
+
 export const EXCEPTIONS = [
   // The long-sentence preparation cases, as on their saved night4 analyses.
   x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
@@ -86,8 +90,10 @@ export const EXCEPTIONS = [
     LANDING_ROOM_APPROVAL(LANDING_ROOM_NOTE, { desktop: { '32-46': 1.22 }, 'desktop-large': { '32-46': 1.22 } })),
   x(PLAQUE_CROWDED, 'replay-regressions/sol-spanish-qr.json#/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:0 theta Agent/Theme)@v', { desktop: { '31-33': 1.19 }, 'desktop-large': { '31-33': 1.19 } }),
+  // Head movement first (3 Nov) keeps this plaque far for one more frame.
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-distance', 'plaque',
-    'plaque(0:1 participialForm: default neuter singular, not ag)@helpV', { desktop: { '18-30': 1.37 }, 'desktop-large': { '18-30': 1.37 } }),
+    'plaque(0:1 participialForm: default neuter singular, not ag)@helpV', { desktop: { '18-30': 1.37, '31': 1.12 }, 'desktop-large': { '18-30': 1.37, '31': 1.12 } },
+    HEAD_FIRST_APPROVAL({ desktop: { '18-30': 1.37, '31': 1.12 }, 'desktop-large': { '18-30': 1.37, '31': 1.12 } })),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-distance', 'plaque',
     'plaque(3:2 finiteFeatures: present, third-person singular)@matrixI', { desktop: { '34-35': 1.33 }, 'desktop-large': { '34-35': 1.33 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/1', 'mark-distance', 'plaque',
@@ -118,4 +124,15 @@ export const EXCEPTIONS = [
   // analysis this fixture case copies (night3 33-grc-article.r2); only its frame numbers moved.
   x(PLAQUE_CROWDED, 'replay-regressions/compound-movement-roles.json#/cases/1', 'mark-distance', 'plaque',
     'plaque(1:0 theta Theme)@V0', { desktop: { '21-33': 1.13 }, 'desktop-large': { '21-33': 1.13 } }),
+  // Head movement first (3 Nov): these plaques stand farther from their words.
+  x(HEAD_FIRST, 'replay-regressions/astra-spanish-qr.json#/analyses/0', 'mark-distance', 'plaque',
+    'plaque(0:0 theta Agent/Theme)@aV0', { desktop: { '17-19': 1.16 }, 'desktop-large': { '17-19': 1.16 } }, HEAD_FIRST_APPROVAL({ desktop: { '17-19': 1.16 }, 'desktop-large': { '17-19': 1.16 } })),
+  x(HEAD_FIRST, 'replay-regressions/astra-spanish-qr.json#/analyses/0', 'mark-distance', 'plaque',
+    'plaque(0:0 theta Agent/Theme)@aVT', { desktop: { '20': 1.16 }, 'desktop-large': { '20': 1.16 } }, HEAD_FIRST_APPROVAL({ desktop: { '20': 1.16 }, 'desktop-large': { '20': 1.16 } })),
+  x(HEAD_FIRST, 'replay-regressions/astra-spanish-qr.json#/analyses/1', 'mark-distance', 'plaque',
+    'plaque(0:0 theta Agent/Theme)@bV0', { desktop: { '17-19': 1.16 }, 'desktop-large': { '17-19': 1.16 } }, HEAD_FIRST_APPROVAL({ desktop: { '17-19': 1.16 }, 'desktop-large': { '17-19': 1.16 } })),
+  x(HEAD_FIRST, 'replay-regressions/astra-spanish-qr.json#/analyses/1', 'mark-distance', 'plaque',
+    'plaque(0:0 theta Agent/Theme)@bVT', { desktop: { '20': 1.16 }, 'desktop-large': { '20': 1.16 } }, HEAD_FIRST_APPROVAL({ desktop: { '20': 1.16 }, 'desktop-large': { '20': 1.16 } })),
+  x(HEAD_FIRST, 'replay-regressions/inserted-adjunction-segment.json#', 'mark-distance', 'plaque',
+    'plaque(0:3 agreement: first-person singular; tense: past)@ri', { desktop: { '20-43': 1.2 }, 'desktop-large': { '20-43': 1.2 } }, HEAD_FIRST_APPROVAL({ desktop: { '20-43': 1.2 }, 'desktop-large': { '20-43': 1.2 } })),
 ];

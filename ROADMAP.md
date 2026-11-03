@@ -12,8 +12,8 @@ syntactic rules. Desktop remains the primary experience.
 
 ## Current work order
 
-What is left before launch, in order: the renderer decisions in item 2;
-then the product work (public Babel in Program 3A, 3B and 3D: Replay as the only
+What is left before launch, in order (the renderer decisions in item 2 are
+all made): the product work (public Babel in Program 3A, 3B and 3D: Replay as the only
 view with the sentence bar redesigned (#343), hidden model controls, the
 waiting screen and the failure screen); the server work (a GPT-6.1 Sol route,
 visitor and spend limits, and requests that outlive Vercel's 300 s cap); the
@@ -24,22 +24,8 @@ below are not launch work.
    the Max plan's monthly API credits can be claimed. On 2026-10-24 the claim
    option had not yet appeared in Billing. Spend only those credits.
 2. Renderer work left before launch (Francis, 2 Nov 2026, on calling it
-   optional: "Wtf are you saying? NO"). Each open item waits on one decision
-   from Francis, with a recording in `~/Projects/babel-review-archive/`.
-   - **Head movement before phrasal movement in one stage** (approved
-     2026-10-23): when one stage moves both a head and a phrase, Replay shows
-     the head movement first. Branch `feat/head-before-phrasal-order`
-     (7b324c8, no PR). Measured 3 Nov: real-analysis motion faults go from
-     382 to 375; it fixes the Icelandic raising sentence ("Þessum börnum
-     virðist hafa verið hjálpað"), whose verb-trace role had no anchor, a far
-     plaque in Opus n4-13 and one phone off-canvas case. It also brings new
-     faults that only Francis can accept: in the Hebrew relative V′ moves 241
-     units at the verb movement (main moves `mi` 1,051 there); in the German
-     embedded clause main's jump comes two steps later and about 18% larger
-     (embedded IP 639 → 752); a German participle tree gains an 80-unit slide;
-     plaques sit 1.12–1.2 times their reach in four trees; and the Portuguese
-     coordination first paints 25 px off the desktop canvas when stepping
-     back. Recordings: `head-before-phrasal/` (german, hebrew, participle).
+   optional: "Wtf are you saying? NO"). Francis decided every open item on
+   3 Nov 2026; what stays below is known and has no fix within the rules.
    - **Movements drawn without an arrow** (measured 3 Nov over 3,692 saved
      analyses): on the current and the previous prompt, one across-the-board
      movement into a complex head lacked its arrows; #374 draws them. What
@@ -48,14 +34,27 @@ below are not launch work.
      movement". The other kinds (one claim naming two movements, wording that
      draws only a coindex) appear only on earlier prompts. Claims whose role
      names offer two landings stay neutral by design (18 saved runs).
-   - **Motion faults in real analyses**: 382 in the committed corpus on main;
-     #373 removes 5. By cause on main (measured 3 Nov): 75 are a parent inserted above
+   - **Motion faults in real analyses**: 368 in the committed corpus after
+     #373 and the head-first order (382 before them). By cause on main before
+     both (measured 3 Nov): 75 are a parent inserted above
      a host beside a waiting sister (the accepted trade-off below); 128 a
      movement source whose lower occurrence stands at another x; 71 an
      existing node gaining a daughter at a movement; 64 a landing's new parent
      standing at another x; 44 leaves laid out again at a stage crossing.
      Every further fix measured so far moves finished trees (up to 26 of them)
      or widens earlier frames, which Francis declined on 27 Oct.
+   - Settled: when one stage moves both a head and a phrase, Replay shows the
+     head movement first (approved 2026-10-23; shipped in the head-first PR).
+     It fixes the Icelandic raising sentence, a far plaque in Opus n4-13 and
+     one phone off-canvas case, and real-analysis motion faults go from 377 to
+     368. Francis accepted its new faults on 3 Nov 2026 after the
+     click-through pages ("I approve of 1. and 2."; on three more slides:
+     "i'm fine with those. yes."): in the Hebrew relative V′ slides 241 units
+     where main slid `mi` 1,051; in the German embedded clause the jump comes
+     two steps later and grows from 639 to 752, with two more slides (136 and
+     164); a German participle tree gains slides of 80 and 63; plaques sit
+     1.12–1.2 times their reach in four trees; and the Portuguese coordination
+     first paints 25 px off the desktop canvas when stepping back.
    - Settled: a waiting phrase that slides when its new parent is drawn above
      it. A parent stands centred over its daughters, so the phrase or the tree
      above it must move; Francis accepted this on 27 Oct ("alright. then it's
@@ -102,9 +101,9 @@ Programs run in numeric order, except for small provider-free maintenance that
 keeps later work buildable. Launch is public Babel only, as defined in
 [CONTEXT.md](CONTEXT.md): it needs public generation from Program 1, public
 Babel from Program 3 (3A, 3B, 3D), Program 5 and the Generation Archive (6A).
-It also needs the Replay layout follow-ups still open in the current work
-order, item 2 (Francis, 2026-11-02, on calling them optional: "Wtf are you
-saying? NO").
+It also needed the Replay layout follow-ups in the current work order, item 2
+(Francis, 2026-11-02, on calling them optional: "Wtf are you saying? NO");
+he decided the last of them on 3 Nov 2026.
 The research workbench (3C), the Reviewed Derivational Corpus (6B) and the
 benchmark in Programs 7 and 8 come after launch.
 
