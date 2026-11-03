@@ -1418,12 +1418,15 @@ function sceneLabelRuns({ steps, completedCanvas, treeLabelRuns }: Pick<StageLay
   return labels;
 }
 
+/** The nodes a stage tree shows: none under a triangle or the workspace root, and
+ * only those `ids` names when given. */
+const visibleNodes = (tree: d3.HierarchyPointNode<SyntaxNode>, ids: ReadonlySet<string> | null = null) => tree.descendants().filter(node =>
+  !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
+  && (!ids || ids.has(getNodeId(node))));
+
 /** Shared reservation for placement and verification, including unrevealed stage trajectories. */
 export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: StageGeometry) {
   const { scenes, completedTree, closing, held } = stageLayouts(input, geometry);
-  const visibleNodes = (tree: typeof completedTree, ids: Set<string> | null = null) => tree.descendants().filter(node =>
-    !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
-    && (!ids || ids.has(getNodeId(node))));
   // The completed authored tree is smaller than Replay's reserved future layout.
   // Only use it when no Replay exists, never as the coordinate system for Replay plaques.
   const reference = scenes.find(scene => scene.isRecord) ?? [...scenes].sort((a, b) =>
@@ -1677,9 +1680,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
     const placements = includePlaques && schedule ? selectReplayPlaqueLayout(schedule, stageIndex, stepIndices[0]) : fallbackPlacements;
     // Future syntax reserves layout coordinates, not camera space. Union the
     // actually revealed syntax across the stage to keep its microsteps stable.
-    const fitNodes = currentTree.descendants().filter(node =>
-      !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
-      && (!visibleIds || visibleIds.has(getNodeId(node))));
+    const fitNodes = visibleNodes(currentTree, visibleIds);
     const byId = indexHierarchyNodesByIdAndAliases(fitNodes);
     // A hidden anchor's provisional coordinates are not a plaque position.
     // Later scenes reserve its real placement in the same stage-wide fit.
