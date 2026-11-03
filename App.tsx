@@ -6,6 +6,7 @@ import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
 import { deriveAnalysisDisplay } from './services/analysisDisplay';
 import { useTreeBank } from './hooks/useTreeBank';
 import { useModelSelection } from './hooks/useModelSelection';
+import { useFullscreen } from './hooks/useFullscreen';
 import { useDevPreview, type DevAnalysisOptions, type SavedPreview } from './hooks/useDevPreview';
 import type { TreeBankEntrySummary } from './services/treeBankStore';
 import { TreeBankView, TreeBankDeleteDialog } from './components/TreeBankView';
@@ -110,8 +111,7 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
     copyAttemptRef.current += 1;
     showCopyStatus('idle');
   }, [showCopyStatus]);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [fullscreenError, setFullscreenError] = useState<string | null>(null);
+  const { isFullscreen, fullscreenError, toggleFullscreen } = useFullscreen();
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('arboretum');
   const treeBank = useTreeBank();
@@ -214,26 +214,6 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
   useEffect(() => { preloadTreeVisualizer().catch(() => {}); }, []);
 
   useEffect(() => {
-    const syncFullscreenState = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-      window.requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        window.dispatchEvent(new Event('resize'));
-      });
-      window.setTimeout(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        window.dispatchEvent(new Event('resize'));
-      }, 80);
-    };
-
-    syncFullscreenState();
-    document.addEventListener('fullscreenchange', syncFullscreenState);
-    return () => {
-      document.removeEventListener('fullscreenchange', syncFullscreenState);
-    };
-  }, []);
-
-  useEffect(() => {
     return () => {
       if (copyStatusTimeoutRef.current !== null) {
         window.clearTimeout(copyStatusTimeoutRef.current);
@@ -312,20 +292,6 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
     const attempt = ++copyAttemptRef.current;
     const copied = await copyTextToClipboard(text);
     if (attempt === copyAttemptRef.current) showCopyStatus(copied ? 'copied' : 'failed');
-  };
-
-  const toggleFullscreen = async () => {
-    setFullscreenError(null);
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
-        await document.documentElement.requestFullscreen();
-      }
-    } catch (err) {
-      setFullscreenError('The browser blocked fullscreen. Select this tab and try again, or use the browser\'s fullscreen command.');
-      console.error('Fullscreen toggle failed', err);
-    }
   };
 
   return (
