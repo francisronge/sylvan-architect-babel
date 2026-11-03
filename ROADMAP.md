@@ -12,48 +12,66 @@ syntactic rules. Desktop remains the primary experience.
 
 ## Current work order
 
+What is left before launch, in order: the renderer decisions in item 2;
+then the product work (public Babel in Program 3A, 3B and 3D: Replay as the only
+view with the sentence bar redesigned (#343), hidden model controls, the
+waiting screen and the failure screen); the server work (a GPT-6.1 Sol route,
+visitor and spend limits, and requests that outlive Vercel's 300 s cap); the
+hosting checklist in Program 5; and the Generation Archive (6A). Items 3 and 4
+below are not launch work.
+
 1. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed. On 2026-10-24 the claim
    option had not yet appeared in Billing. Spend only those credits.
-2. Renderer follow-ups left after the October renderer pass. Each has saved
-   evidence.
-   - A movement does not wait for a contextual anchor, so the Icelandic
-     raising chain's verb-trace role ("Þessum börnum virðist hafa verið
-     hjálpað") lacks its anchor at its moment: the model lists the raising
-     before the V-to-I movement that makes the trace. Head movement before
-     phrasal movement in one stage would resolve it; that order is parked (see
-     Explicitly Not Active).
-   - Movements still drawn as copies without an arrow, all in saved runs on the
-     earlier prompt: across-the-board and right-node-raising movement, where
-     one landing has several lower copies, a claim that names two
-     displacements at once (T and the auxiliary in negative inversion, a German
-     V2 auxiliary), and Japanese topicalization, Dutch stripping focus and
-     English past-affix lowering, whose wording draws only an identity coindex
-     or badge. Claims
-     whose role names offer more than one candidate landing or source (four
-     saved runs) stay neutral by design: structure ignores role names, so it
-     cannot tell redundant naming from a contradictory claim, which must not
-     draw.
-   - Phones: in 9 fixtures a moved constituent first paints past the
-     canvas edge at its movement, then the camera zooms out to it within
-     about a third of a second (`MOVED_OFF_CANVAS` in
-     `tests/helpers/cameraExceptions.mjs`). Avoiding it would mean fitting
-     earlier stages smaller on phones, or jumping the unmoved syntax. The
-     desktop minimum zoom no longer clips: the Canopy has no minimum, and
-     Replay containment shrinks below it.
-   - Camera jumps where unmoved syntax shifts 27–66 px when a stage begins
-     or inside a stage (`STAGE_RELAYOUT`, `RELAYOUT_WITHIN_STAGE` in
-     `tests/helpers/cameraExceptions.mjs`); they come from the same shared
-     stage layout as the parked step order (Explicitly Not Active). Its first
-     prototype
-     (`refactor/stage-layout-from-finished-tree`) did not meet the
-     zero-regression bar. The crossings where a movement closes its room now
-     hold the rest of the syntax still (the stage plan's held carry). The
-     within-stage jumps are parents inserted above a host together with a new
-     sister: a centred parent then moves either the host sideways (camera
-     jump, attachment motion) or the spine above it (shape motion); letting the
-     host's leaves keep one contour slot across its row change moved the fault
-     from the camera to the motion gate (measured 31 Oct).
+2. Renderer work left before launch (Francis, 2 Nov 2026, on calling it
+   optional: "Wtf are you saying? NO"). Each open item waits on one decision
+   from Francis, with a recording in `~/Projects/babel-review-archive/`.
+   - **Head movement before phrasal movement in one stage** (approved
+     2026-10-23): when one stage moves both a head and a phrase, Replay shows
+     the head movement first. Branch `feat/head-before-phrasal-order`
+     (7b324c8, no PR). Measured 3 Nov: real-analysis motion faults go from
+     382 to 375; it fixes the Icelandic raising sentence ("Þessum börnum
+     virðist hafa verið hjálpað"), whose verb-trace role had no anchor, a far
+     plaque in Opus n4-13 and one phone off-canvas case. It also brings new
+     faults that only Francis can accept: in the Hebrew relative V′ moves 241
+     units at the verb movement (main moves `mi` 1,051 there); in the German
+     embedded clause main's jump comes two steps later and about 18% larger
+     (embedded IP 639 → 752); a German participle tree gains an 80-unit slide;
+     plaques sit 1.12–1.2 times their reach in four trees; and the Portuguese
+     coordination first paints 25 px off the desktop canvas when stepping
+     back. Recordings: `head-before-phrasal/` (german, hebrew, participle).
+   - **Camera jumps when a stage starts** (measured 3 Nov, no fix within the
+     rules): the Chinese tree with 我 and 昨天 jumps 60 px when stepping back
+     into stage 2. It is the mirror of the forward jump Francis approved on
+     21 Oct: the same 494.5 tree units, and no carry brings it under the
+     24 px limit (best 30 px). In compact-current-root a new landing pushes the
+     T head 57 px past the phone canvas's left edge as stage 3 begins; only a
+     first pose that zooms out (by 16%) would clear it, which changes the
+     shared camera rule.
+   - **Movements drawn without an arrow** (measured 3 Nov over 3,692 saved
+     analyses): on the current and the previous prompt, one across-the-board
+     movement into a complex head lacked its arrows; #374 draws them. What
+     remains there is one run each: labels written as sets (`{C}`), and a
+     Swahili claim whose wording reads phrasal against its name "head
+     movement". The other kinds (one claim naming two movements, wording that
+     draws only a coindex) appear only on earlier prompts. Claims whose role
+     names offer two landings stay neutral by design (18 saved runs).
+   - **Motion faults in real analyses**: 382 in the committed corpus on main;
+     #373 removes 5. By cause on main (measured 3 Nov): 75 are a parent inserted above
+     a host beside a waiting sister (the accepted trade-off below); 128 a
+     movement source whose lower occurrence stands at another x; 71 an
+     existing node gaining a daughter at a movement; 64 a landing's new parent
+     standing at another x; 44 leaves laid out again at a stage crossing.
+     Every further fix measured so far moves finished trees (up to 26 of them)
+     or widens earlier frames, which Francis declined on 27 Oct.
+   - Settled: a waiting phrase that slides when its new parent is drawn above
+     it. A parent stands centred over its daughters, so the phrase or the tree
+     above it must move; Francis accepted this on 27 Oct ("alright. then it's
+     whatever.").
+   - Settled: on phones a moved phrase first paints past the canvas edge, then
+     the camera zooms out to it within about a third of a second (8 test trees,
+     `MOVED_OFF_CANVAS` in `tests/helpers/cameraExceptions.mjs`). Francis, 3 Nov
+     2026, after watching the recordings: "the phone recording is fine."
 3. Recognition:
    - Neutral relations can earn a shared-lineage coindex or a single-host
      plaque from structure alone; the adjunction fork stays off because
@@ -86,9 +104,7 @@ keeps later work buildable. Launch is public Babel only, as defined in
 Babel from Program 3 (3A, 3B, 3D), Program 5 and the Generation Archive (6A).
 It also needs the Replay layout follow-ups still open in the current work
 order, item 2 (Francis, 2026-11-02, on calling them optional: "Wtf are you
-saying? NO"). The rise rule landed in #365; the stage layout planned from
-derivation states and the step order it would unblock were parked on
-2026-11-03 (Explicitly Not Active).
+saying? NO").
 The research workbench (3C), the Reviewed Derivational Corpus (6B) and the
 benchmark in Programs 7 and 8 come after launch.
 
@@ -154,17 +170,28 @@ growing the current monolith and do not build two Babel implementations.
 1. Make the first screen the usable product: sentence input, Minimalism or
    X-bar, and Generate, following the existing product unless iteration reveals
    a real reason to change it. Do not add a marketing landing page before it.
-2. Keep Canopy, Derivation Replay, Tree Bank, ambiguity selection, save, and
+2. Replay is the only view (Francis, 31 Oct 2026: "we should remove Canopy
+   ... and Babel will just be Replay"): no Canopy tab, no Notes, and no labeled
+   bracketing in the public app. Keep Tree Bank, ambiguity selection, save and
    export. Preserve the established visual design unless a concrete product
-   defect requires change.
-3. Hide provider, model, and reasoning controls. Babel uses one empirically
-   selected model and a bounded server-selected generation policy while
+   defect requires change. #343 removes the views and is held until the
+   sentence bar no longer takes the tree's room: while a parse is shown the bar
+   is out of the way, and a small control ("Try another sentence") returns to
+   the default area, where the bar shows again (Francis, 31 Oct). That design
+   waits for the frontend and product design ("I want to do this later when we
+   do frontend and product design").
+3. Hide provider, model, and reasoning controls; the server chooses them and
+   ignores the browser's choice. The public model is GPT-6.1 Sol at high effort
+   (Francis, 3 Nov 2026: "Then we'll go with high."), through the OpenAI API key
+   already saved for Babel (Francis, 3 Nov: "yes we already have one saved").
+   No server route calls GPT-6.1 Sol yet: it runs only through the local Codex
+   runner. Babel uses one empirically selected model and a bounded server-selected generation policy while
    recording its complete provenance. Do not place AI or provider
    branding at the front of the experience, but disclose model generation and
    backend retention honestly through appropriate About and Privacy surfaces.
    Raw responses, hashes, provider settings, token use, latency, and other
    research details never appear in the ordinary public workspace.
-4. Retire Notes as a top-level view. `stageRecord` remains part of every stage
+4. Retire Notes as a top-level view (done in #343). `stageRecord` remains part of every stage
    and stays visible with its corresponding Replay frame. Decide separately,
    after auditing actual use, whether labeled bracketing and Miles Shang output
    remain as exports or are retired.
@@ -199,7 +226,10 @@ growing the current monolith and do not build two Babel implementations.
    2.4 min on GPT-6.1 Sol and 1.5 min on Claude Opus 5.5 (90th percentile 3.5
    and 2.5 min), about 60% of it model reasoning before any output. Design the
    progress experience for waits of minutes, not seconds, as part of building
-   the product UI. Neither model is in `GENERATION_MODEL_IDS` yet.
+   the product UI. Neither model is in `GENERATION_MODEL_IDS` yet. Vercel
+   ends a function at 300 s, and GPT-6.1 Sol at high passed 285 s on 2 of 100
+   held-out parses (31 Oct): start the request and let the browser check back
+   for the result, so no parse is cut off or lost when a phone sleeps.
 2. Make desktop and mobile layouts explicit. Verify all key flows with
    screenshots and interaction tests, not only component snapshots.
 3. Preserve local-first operation. Hosted accounts or synchronization remain a
@@ -249,10 +279,13 @@ the next tranche or a hosted account.
 2. Choose hosting, storage, and operations vendors after measuring the public
    model's cost, expected traffic, archive volume, privacy requirements, and
    recovery needs. Do not lock Babel to a vendor before those facts exist.
+   The Vercel production deployment is paused on purpose until Babel is
+   ready to ship (Francis, 3 Nov 2026).
 3. Keep secrets server-side, preserve provider request shapes, and add abuse
    controls appropriate to the selected host.
 4. The public launch direction is anonymous generation without an account and
-   without a user charge. Set explicit request, rate, and spend limits after
+   without a user charge. The hosted function has no rate or spend limit yet;
+   Francis and the agent set the per-visitor and daily limits together (3 Nov). Set explicit request, rate, and spend limits after
    selecting and costing the public model.
 5. The official hosted `/research` route must not expose experimental provider
    spending to unrestricted anonymous traffic. Choose its access method after
@@ -387,7 +420,6 @@ review authority, and correction path.
 - The detailed syntactician-workspace workflows and interaction model.
 - Whether the syntactician workspace lives inside Personal Tree Bank or beside
   it as a separate surface.
-- The single model and bounded generation policy used by public Babel.
 - The exact public anonymous-use limits after the selected model's cost and
   reliability are measured.
 - Every model admitted to the configured `/research` catalog and how each
@@ -430,17 +462,14 @@ review authority, and correction path.
   2026-10-23; "if there's no way to solve it easily, then it's probably fine"
   on 2026-10-24).
 
-- Head movement before phrasal movement in one stage (approved 2026-10-23),
-  and finished trees tighter than their stage's widest step. Every frame of a
+- Finished trees tighter than their stage's widest step. Every frame of a
   stage shares one set of leaf positions (`reserveContours` in
   `buildStageLocalCoordinates`), so a finished tree keeps the spacing its most
   crowded step needed: 46 of 234 fixtures paint a finished tree wider than the
-  same last frame laid out alone, by up to about 40% (measured 3 Nov). Gap
-  closing already takes all the room its rules allow; the rest needs a visible
-  tidy-up step at the end of a stage, or a Canopy that differs from the last
-  frame, and the step order hits the same coupling (on main after #367 it
-  reshapes about 20 finished trees). Francis on 2026-11-03: "I don't want 1 or
-  2, they sound ugly. so I guess we're keeping 3."
+  same last frame laid out alone, by up to about 40% (measured 3 Nov). Closing
+  more would need a visible tidy-up step at the end of a stage, or a finished
+  tree that differs from the last frame. Francis on 2026-11-03: "I don't want 1
+  or 2, they sound ugly. so I guess we're keeping 3."
 
 - Bending movement arrows or connector lines around words and labels they
   cross. Their shape stays as designed (Francis: "I'm fine with movement
