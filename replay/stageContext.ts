@@ -292,10 +292,15 @@ export const prepareReplayStage = (
   const frameTrajectoryKind = frameRelocatesPriorLanding
     ? (frameReplaySnapshot.relationLinks?.some((link) => normalizeTrajectoryKind(link?.trajectoryKind) === 'head') ? 'head' : 'phrasal')
     : '';
+  // Steps are compared across checkouts by their serialized form
+  // (scripts/replayCorpusSnapshot.mjs), so fields later stages assign keep
+  // their place here even while undefined.
   const frameSemanticStep: PlaybackStep = {
     operation: 'Other',
     sourceKind: 'derivation-effect',
     trajectoryKind: frameTrajectoryKind || undefined,
+    movementSerializationStatus: undefined,
+    movementDiagnostics: undefined,
     sourceFrameIndex: index,
     visualFrameIndex: index,
     targetNodeId: frameRelocatesPriorLanding
@@ -304,6 +309,7 @@ export const prepareReplayStage = (
     targetLabel: frameRelocatesPriorLanding
       ? ''
       : (rootLabels.length === 1 ? primaryRootLabel : 'Workspace'),
+    sourceNodeIds: undefined,
     sourceLabels: frameRelocatesPriorLanding ? [] : rootLabels,
     recipe: structuralFallbackRecipe,
     workspaceAfter: rootLabels,
