@@ -17,7 +17,7 @@ import { proximityPlaqueRequests, type PlaquePlacement } from './relations/plaqu
 import { trajectoryPlaqueObstacles, treeLabelBoxes } from './relations/trajectoryObstacles.ts';
 import { resolveDisplayedTrajectoryAttachments, type RelationRenderPlan } from './relations/renderPlan.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
-import { lessMotion, retainMovementSourceSlots } from './movementSourceContinuity.ts';
+import { lessMotion, offersOutwardSources, retainMovementSourceSlots } from './movementSourceContinuity.ts';
 import { siblingContoursOrdered } from './siblingContours.ts';
 import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
 import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
@@ -825,8 +825,9 @@ function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: numb
     }
     // Sources waiting in their lower occurrences' farther slots (retainMovementSourceSlots'
     // `outwardSources`) stand only where the closed plan then paints less motion,
-    // none of it new or larger, and no stage's completed tree grows wider.
-    const outward = planned(true, true);
+    // none of it new or larger, and no stage's completed tree grows wider. Without
+    // an offer that plan is the phrase plan, so it is not made.
+    const outward = offersOutwardSources(steps) ? planned(true, true) : phrases;
     if (differs(outward, phrases)) {
       const kept = close(outward), widths = closedCompletedWidths(steps, sizes, closed);
       if ([...closedCompletedWidths(steps, sizes, kept)].every(([key, width]) => !widths.has(key) || width <= widths.get(key)! + 1e-6)
