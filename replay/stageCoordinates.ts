@@ -6,7 +6,7 @@ import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayo
 import { compactCurrentRootForks } from './currentRootCompaction.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
 import { retainCurrentSiblingRanks, retainCurrentDaughterRanks } from './currentSiblingRanks.ts';
-import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { applyVizIds, getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import { retainedSubtreeMaterial } from './displayWordMaterial.ts';
 import { closeMovementGaps } from './movementGapClosing.ts';
 import { motionFrame, replayMotionFaults } from './motionRule.ts';
@@ -24,7 +24,7 @@ import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
 import { treeInkMetricKey } from './treeInkMetricKey.ts';
 import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
-import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { layoutSyntaxTree, paintedSyntaxById, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import { paintedTextCollisions } from './treeTextCollision.ts';
 import { clearTreeText, paintedTreeText } from './treeTextClearance.ts';
 import type { PlaybackStep } from './types.ts';
@@ -54,8 +54,7 @@ const textCollisionPlans = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateRes
  * the plan repaired for ordered sister contours, or neither ordered. */
 export const getContourPlanStatuses = (steps: readonly PlaybackStep[]) => [...(contourPlans.get(steps)?.values() ?? [])];
 
-const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => node.ancestors().slice(1).find(ancestor =>
-  !ancestor.data.replayLayoutOnly && ancestor.data.replayOrigin?.kind !== 'workspace');
+const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => node.ancestors().slice(1).find(isPaintedSyntax);
 
 function reserveScene(current: Scene, reference: Scene, retained: TreeCoordinateReservation): Scene {
   const relocated = new Set<string>();
@@ -276,8 +275,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     // measures keeps its cell width.
     const labels = measureTreeLabel && treeLabelRuns?.get(canvas);
     const uncleared = labels ? new Map(tree.descendants().map(node => [getNodeId(node), node.x])) : undefined;
-    if (labels) clearTreeText(tree, node => visible.has(getNodeId(node))
-      && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace', node => {
+    if (labels) clearTreeText(tree, node => visible.has(getNodeId(node)) && isPaintedSyntax(node), node => {
       const measured = new Set(measureCategoryText ? categoryTextLayout(node.data.label || '', measureCategoryText).lines : []);
       return paintedTreeText(labels.get(getNodeId(node)), measureTreeLabel!, line => measured.has(line) ? measureCategoryText!(line) : undefined);
     });
@@ -352,9 +350,7 @@ const stageSteps = (steps: readonly PlaybackStep[], stage: number) => steps
 function paintedSyntax(step: PlaybackStep, size: [number, number], coordinates: TreeCoordinateReservation) {
   const root = d3.hierarchy(step.replayCanvasData!); applyVizIds(root);
   const visible = new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
-  return new Map<string, d3.HierarchyPointNode<SyntaxNode>>(layoutSyntaxTree(root, size, 'ltr', coordinates, visible).descendants()
-    .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
-    .map(node => [getNodeId(node), node] as const));
+  return paintedSyntaxById(root, size, 'ltr', coordinates, visible);
 }
 
 /** Each stage lays out its own frame, centred on its own size. Those origins are
@@ -948,8 +944,8 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
       if (!coordinates || !stageSize || !labels || !measureTreeLabel) return [];
       const root = d3.hierarchy(step.replayCanvasData!); applyVizIds(root);
       const visible = new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
-      const nodes = layoutSyntaxTree(root, stageSize, 'ltr', coordinates, visible).descendants().filter(node => visible.has(getNodeId(node))
-        && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace');
+      const nodes = layoutSyntaxTree(root, stageSize, 'ltr', coordinates, visible).descendants()
+        .filter(node => visible.has(getNodeId(node)) && isPaintedSyntax(node));
       return [...paintedTextCollisions(nodes, labels, measureTreeLabel, measureCategoryText)].map(pair => `${index} ${pair}`);
     })));
     return result;

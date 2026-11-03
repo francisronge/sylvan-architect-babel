@@ -9,7 +9,7 @@ import type { PlaqueRect } from './relations/plaquePlacement.ts';
 import { siblingContoursOrdered } from './siblingContours.ts';
 import { prepareTreeInkSubtrees, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
-import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { paintedSyntaxById, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
 import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { workspaceContinuityReflows, PLANNING } from './workspaceShapeReflows.ts';
@@ -76,9 +76,7 @@ export function reserveMovementSlotClearance({ steps, sizes, coordinates, direct
     let painted = paintings.get(points);
     if (!painted) {
       const root = d3.hierarchy(canvas); applyVizIds(root);
-      const nodes = new Map<string, Node>(layoutSyntaxTree(root, size, direction, points, new Set(visible)).descendants()
-        .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
-        .map(node => [getNodeId(node), node] as const));
+      const nodes = paintedSyntaxById(root, size, direction, points, visible);
       paintings.set(points, painted = { nodes,
         ink: prepareTreeInkSubtrees(nodes, measureCategoryText, measureTreeInk, true, treeLabelRuns?.get(canvas), measureTreeLabel) });
     }

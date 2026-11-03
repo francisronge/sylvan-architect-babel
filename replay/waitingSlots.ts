@@ -4,7 +4,7 @@ import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
-import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { paintedSyntaxById, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
 import { inkBounds, inkOverlapArea, paintedNodeInk, type InkBounds } from './workspaceComponentLifetime.ts';
 
@@ -59,9 +59,7 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
   const layoutScene = (scene: typeof scenes[number], points: TreeCoordinateReservation) => {
     const root = d3.hierarchy(scene.canvas); applyVizIds(root);
     const visible = new Set<string>(scene.step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
-    return new Map<string, Node>(layoutSyntaxTree(root, scene.size, direction, points, visible).descendants()
-      .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
-      .map(node => [getNodeId(node), node] as const));
+    return paintedSyntaxById(root, scene.size, direction, points, visible);
   };
   const parentOf = (nodes: ReadonlyMap<string, Node>, id: string) => {
     const parent = nodes.get(id)?.parent;

@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
-import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { applyVizIds, getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import { prepareTreeInkSubtrees, treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
@@ -43,7 +43,7 @@ export function compactCurrentRootForks(steps: readonly PlaybackStep[], sizes: R
     // Plans are stored before reflection. RTL is applied by the shared painter
     // after these same coordinates reach drawing, allocation, and camera bounds.
     return layoutSyntaxTree(root, size, 'ltr', coordinates.get(canvas), visible).descendants()
-      .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace');
+      .filter(node => visible.has(getNodeId(node)) && isPaintedSyntax(node));
   };
   const sceneAt = (index: number) => {
     const cached = scenes.get(index);

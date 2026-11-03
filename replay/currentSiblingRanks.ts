@@ -1,6 +1,6 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import { getNodeId } from './displayIdentity.ts';
+import { getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import { visibleComponentNodes } from './visibleComponent.ts';
 import type { TreeCoordinateReservation } from './treeLayout.ts';
 
@@ -8,11 +8,9 @@ type Scene = {
   nodes: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>;
   visible: ReadonlySet<string>;
 };
-const isSyntax = (node: d3.HierarchyPointNode<SyntaxNode>) =>
-  !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace';
 const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => {
   let ancestor = node.parent;
-  while (ancestor && !isSyntax(ancestor)) ancestor = ancestor.parent;
+  while (ancestor && !isPaintedSyntax(ancestor)) ancestor = ancestor.parent;
   return ancestor ?? undefined;
 };
 /** Whether a future node's nearest syntax ancestors, below `parentId`, are all
@@ -22,7 +20,7 @@ const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => {
 const awaitsUnseenWrapper = (node: d3.HierarchyPointNode<SyntaxNode>, parentId: string, visible: ReadonlySet<string>) => {
   let between = 0;
   for (let ancestor = node.parent; ancestor; ancestor = ancestor.parent) {
-    if (!isSyntax(ancestor)) continue;
+    if (!isPaintedSyntax(ancestor)) continue;
     const id = getNodeId(ancestor);
     if (id === parentId) return between > 0;
     if (visible.has(id)) return false;
