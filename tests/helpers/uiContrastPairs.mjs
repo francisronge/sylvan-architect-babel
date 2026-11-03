@@ -92,7 +92,7 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Replay header title, invalid analysis', file: 'components/TreeVisualizer.tsx', snippet: "sentenceCheck ? 'text-amber-400' : 'text-emerald-500'", fg: 'amber-400', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Sentence check line labels', file: 'components/TreeVisualizer.tsx', snippet: 'tracking-[0.3em] text-emerald-100/80', fg: 'emerald-100/80', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Sentence check words', file: 'components/TreeVisualizer.tsx', snippet: 'serif italic text-[15px] text-emerald-50/80', fg: 'emerald-50/80', opacity: 0.75, bg: TREE, min: TEXT },
-  { where: 'Sentence check words out of order', file: 'components/TreeVisualizer.tsx', snippet: "word.outOfOrder ? 'text-amber-400'", fg: 'amber-400', opacity: 0.75, bg: TREE, min: TEXT },
+  { where: 'Sentence check words out of order', file: 'components/TreeVisualizer.tsx', snippet: "outOfOrderSpan ? 'text-amber-400'", fg: 'amber-400', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Replay header step line', file: 'components/TreeVisualizer.tsx', snippet: 'text-[9px] font-black text-emerald-500 uppercase', fg: 'emerald-500', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Replay layout message', file: 'components/TreeVisualizer.tsx', snippet: 'text-center text-emerald-100', fg: 'emerald-100', bg: [...TREE, 'rgba(3,19,14,0.9)'], min: TEXT },
 
