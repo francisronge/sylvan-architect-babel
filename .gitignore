@@ -28,13 +28,11 @@ dist-ssr
 .artifacts/helpers/*
 !.artifacts/helpers/loadPlaywright.cjs
 !.artifacts/helpers/surfaceTokens.cjs
-!.artifacts/helpers/currentContract.cjs
 !.artifacts/quarantine/
 .artifacts/quarantine/*
 !.artifacts/quarantine/legacy-harnesses/
 .artifacts/quarantine/legacy-harnesses/*
 !.artifacts/quarantine/legacy-harnesses/README.md
-!.artifacts/capture_flavor_mixed10.cjs
 test-results/
 skills/
 !.agents/skills/
