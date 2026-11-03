@@ -12,20 +12,30 @@ syntactic rules. Desktop remains the primary experience.
 
 ## Current work order
 
-What is left before launch, in order (the renderer decisions in item 2 are
-all made): the product work (public Babel in Program 3A, 3B and 3D: Replay as the only
-view with the sentence bar redesigned (#343), hidden model controls, the
-waiting screen and the failure screen); the server work (a GPT-6.1 Sol route,
-visitor and spend limits, and requests that outlive Vercel's 300 s cap); the
-hosting checklist in Program 5; and the Generation Archive (6A). Items 3 and 4
-below are not launch work.
+The focus now is designing public Babel (Francis, 3 Nov 2026): "Make the UI
+really good and simple, make the treebank much more interesting (make it into
+a syntaciticians workbench without being super opinionated, we'll start off
+simple and minimalistic)". Items 1 to 4 are launch work, in order; items 5 to 8
+are not.
 
-1. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
+1. **Public Babel's UI** (Program 3): a new public front end on the shared
+   engine, with a simple, good first screen; Replay as the only view; no
+   model controls; automatic saving; a small way back to the input screen;
+   the waiting screen; the failure screen. Today's app stays as the internal
+   one.
+2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
+   minimal version inside the Tree Bank, shipped with launch.
+3. **Server work**: a GPT-6.1 Sol route, visitor and spend limits, and
+   requests that outlive Vercel's 300 s cap (Programs 3 and 5).
+4. **Hosting and the Generation Archive**: the checklist in Program 5 and the
+   archive in Program 6A.
+5. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed. On 2026-10-24 the claim
    option had not yet appeared in Billing. Spend only those credits.
-2. Renderer work left before launch (Francis, 2 Nov 2026, on calling it
-   optional: "Wtf are you saying? NO"). Francis decided every open item on
-   3 Nov 2026; what stays below is known and has no fix within the rules.
+6. Renderer: done for launch. It was launch work (Francis, 2 Nov 2026, on
+   calling it optional: "Wtf are you saying? NO"), and Francis decided every
+   open item on 3 Nov 2026. What stays below is known and has no fix within
+   the rules.
    - **Movements drawn without an arrow** (measured 3 Nov over 3,692 saved
      analyses): on the current and the previous prompt, one across-the-board
      movement into a complex head lacked its arrows; #374 draws them. What
@@ -71,7 +81,7 @@ below are not launch work.
      past the phone canvas's left edge as stage 3 begins; only a first pose
      that zooms out (by 16%) would clear it, which changes the shared camera
      rule. Francis accepted it on 3 Nov 2026 ("3. Yes.").
-3. Recognition:
+7. Recognition:
    - Neutral relations can earn a shared-lineage coindex or a single-host
      plaque from structure alone; the adjunction fork stays off because
      structure cannot tell scope from modification (see the
@@ -91,7 +101,7 @@ below are not launch work.
      the analysis so Replay stays offline and repeatable.
    - Possibly, if it proves worth it: shared structure (multidominance) as an
      alternative to copies for movement and sharing.
-4. Merge duplicated layout checks without changing a pixel, proving identical
+8. Merge duplicated layout checks without changing a pixel, proving identical
    output with the fixture layout fingerprint (`npm run verify:visual-offline`)
    and `npm run verify:corpus`.
 
@@ -100,23 +110,28 @@ below are not launch work.
 Programs run in numeric order, except for small provider-free maintenance that
 keeps later work buildable. Launch is public Babel only, as defined in
 [CONTEXT.md](CONTEXT.md): it needs public generation from Program 1, public
-Babel from Program 3 (3A, 3B, 3D), Program 5 and the Generation Archive (6A).
-It also needed the Replay layout follow-ups in the current work order, item 2
-(Francis, 2026-11-02, on calling them optional: "Wtf are you saying? NO");
-he decided the last of them on 3 Nov 2026.
-The research workbench (3C), the Reviewed Derivational Corpus (6B) and the
-benchmark in Programs 7 and 8 come after launch.
+Babel from Program 3, the first minimal Tree Bank workbench from Program 4,
+Program 5 and the Generation Archive (6A). It also needed the Replay layout
+follow-ups in the current work order, item 6 (Francis, 2026-11-02, on calling
+them optional: "Wtf are you saying? NO"); he decided the last of them on
+3 Nov 2026.
+
+The research workbench is not part of the public app (see
+[Research workbench](#research-workbench-outside-the-public-app)). It, the
+later Tree Bank workbench tranches, the Reviewed Derivational Corpus (6B) and
+the benchmark in Programs 7 and 8 come after launch.
 
 ## Program 1: Contract Qualification
 
 Qualification tests the path from model instruction to authored record, parser,
 Replay and production renderer. Batches follow the
 [contract qualification rules](CONTEXT.md#contract-qualification-rules) and run
-through the commands in [AGENTS.md](AGENTS.md#qualification-runs).
+through the commands in [docs/qualification-runs.md](docs/qualification-runs.md).
 
-1. Technically qualify every offered research provider and the chosen public
-   route: authentication, native controls, request/response shape, exact
-   raw/version capture, typed failures and deployed limits.
+1. Technically qualify the chosen public route, and any provider before the
+   research workbench uses it: authentication, native controls,
+   request/response shape, exact raw/version capture, typed failures and
+   deployed limits.
 2. Prove a single owner for a pronunciation association when movement and a
    separate morphology claim name the same contributors. Until one owner is
    proved, the association becomes visible at the latest covering relation's
@@ -148,38 +163,53 @@ Done when a saved analysis round-trips through export and import, including
 recovery in a fresh browser, and every corrupt or colliding import is
 quarantined or reported honestly.
 
-## Program 3: New Babel Web Application
+## Program 3: Public Babel
 
-Goal: build one application around the completed engine, with a simple public
-syntax generator and a separately entered research workbench. Do not continue
-growing the current monolith and do not build two Babel implementations.
+Goal: make public Babel a simple, good syntax generator around the completed
+engine. The public app has no research surface: no model controls, no
+research link and no `/research` route.
 
-### 3A. Shared Product Foundation
+Public Babel is a new front end in this repo on the shared engine (Francis,
+3 Nov 2026, choosing it over a separate app or stripping down today's app:
+"Then we'll go with **New public front end on the shared engine**"). It uses
+the same `replay/` engine, renderer, parser and Tree Bank records as today's
+app, so an analysis saved in one opens in the other; only the front end is
+new, and only the public front end is deployed. Today's app becomes the
+internal one Francis runs locally, with its model and effort menus; it loses
+Canopy and Notes too (#343; Francis: "we don't want them anyway"). Do not
+copy the engine, and do not keep growing today's `App.tsx`.
+
+### 3A. Product Foundation
 
 1. Define stable application boundaries around provider execution, current
    analysis state, durable records, renderer inputs, exports, and view state.
-2. Prototype the complete shared flows before changing production: parse,
-   inspect, Replay, save, reopen, export, and recover from failure.
-3. Both surfaces must use the same parser, renderer, durable records, Tree Bank,
-   and current analysis state. A route changes the available controls, not the
-   meaning or storage of an analysis.
+2. Prototype the complete flows before changing production: parse, inspect,
+   Replay, save, reopen, export, and recover from failure.
+3. Anything built later outside the public app, such as the research
+   workbench, uses the same parser, renderer and durable records. It changes
+   the available controls, not the meaning or storage of an analysis.
 
 ### 3B. Public Babel At `/`
 
 1. Make the first screen the usable product: sentence input, Minimalism or
    X-bar, and Generate, following the existing product unless iteration reveals
    a real reason to change it. Do not add a marketing landing page before it.
+   The "Arboretum link" label and its glowing dot go, with nothing in their
+   place for now (Francis, 3 Nov: "we don't need it yet, let's keep
+   minimal"). Constituent glyphing goes from the public app (see Program 4).
 2. Replay is the only view (Francis, 31 Oct 2026: "we should remove Canopy
    ... and Babel will just be Replay"): no Canopy tab, no Notes, and no labeled
    bracketing in the public app. Keep Tree Bank, ambiguity selection, save and
    export. Preserve the established visual design unless a concrete product
-   defect requires change. #343 removes the views and is held until the
-   sentence bar no longer takes the tree's room: while a parse is shown the bar
-   is out of the way, and a small control ("Try another sentence") returns to
-   the default area, where the bar shows again (Francis, 31 Oct). That design
-   waits for the frontend and product design ("I want to do this later when we
-   do frontend and product design").
-3. Hide provider, model, and reasoning controls; the server chooses them and
+   defect requires change. While a tree is shown, nothing takes its room: a
+   small control, for example in a top corner, returns to the input screen to
+   parse another sentence (Francis, 3 Nov: "anything is fine as long as it
+   doesn't hog space from the tree"). Its exact form is part of the design.
+3. Every finished parse is saved to the Tree Bank automatically; the header
+   has one "Tree Bank" entry instead of "Tree Bank" and "Save to Tree Bank";
+   a star on the tree marks the analyses to keep, and unkept ones can be
+   cleared later (Francis, 3 Nov: "Yes, perfect.").
+4. Hide provider, model, and reasoning controls; the server chooses them and
    ignores the browser's choice. The public model is GPT-6.1 Sol at high effort
    (Francis, 3 Nov 2026: "Then we'll go with high."), through the OpenAI API key
    already saved for Babel (Francis, 3 Nov: "yes we already have one saved").
@@ -190,36 +220,18 @@ growing the current monolith and do not build two Babel implementations.
    backend retention honestly through appropriate About and Privacy surfaces.
    Raw responses, hashes, provider settings, token use, latency, and other
    research details never appear in the ordinary public workspace.
-4. Retire Notes as a top-level view (done in #343). `stageRecord` remains part of every stage
-   and stays visible with its corresponding Replay frame. Decide separately,
-   after auditing actual use, whether labeled bracketing and Miles Shang output
-   remain as exports or are retired.
-5. Keep a small Research link in the main menu or header. It opens `/research`
-   without discarding the current analysis or Tree Bank.
+5. Retire Notes as a top-level view (#343 does this). `stageRecord` remains
+   part of every stage and stays visible with its corresponding Replay frame.
+   Decide separately, after auditing actual use, whether labeled bracketing
+   and Miles Shang output remain as exports or are retired.
 
-### 3C. Research Workbench At `/research`
-
-1. Permit direct entry and bookmarking, and provide a clear Back to Babel link.
-2. Add provider, model, and native reasoning controls without changing the
-   shared parser contract or manufacturing cross-provider equivalence. Preserve
-   the already-working native reasoning behavior while expanding the model
-   catalog deliberately. Francis chooses every model in the configured catalog.
-   Arbitrary model identifiers are not a launch requirement.
-3. Show generation provenance, raw and normalized outputs, and typed failures
-   without leaking those details into public Babel. Add batch runs, experiments,
-   and advanced exports only after their workflows are designed. Cross-run
-   comparison remains a candidate rather than a settled launch requirement.
-4. Opening a public analysis reveals its recorded generation details here.
-   Opening a research analysis on the public surface hides advanced controls but
-   does not alter or discard its provenance.
-
-### 3D. Product Quality
+### 3C. Product Quality
 
 1. Preserve and characterize the existing loading experience, arbitrary-count
    parse selection, and the single provider request per parse (no automatic
    transport retry; a retry on the public site may come later). Each workspace
-   view and the page root have error boundaries; give each route its own with
-   the application split. Decide separately whether
+   view and the page root have error boundaries; give any new page its own.
+   Decide separately whether
    user-triggered parse cancellation or additional retry UI is useful.
    A parse takes minutes: in the 29 Oct held-out batch the median wait was
    2.4 min on GPT-6.1 Sol and 1.5 min on Claude Opus 5.5 (90th percentile 3.5
@@ -234,17 +246,48 @@ growing the current monolith and do not build two Babel implementations.
 3. Preserve local-first operation. Hosted accounts or synchronization remain a
    later explicit decision.
 
-Done when `/` provides the complete simple syntax-generator workflow,
-`/research` provides the advanced controls over the same records, Notes has
-been retired without losing stage explanations or exports, and the old
+Done when `/` provides the complete simple syntax-generator workflow, Notes
+has been retired without losing stage explanations or exports, and the old
 monolithic path can be removed without semantic or visual regression.
 
-## Program 4: Syntactician Workspace
+### Research workbench (outside the public app)
 
-Goal: turn durable records into useful personal research infrastructure in
-dependency order. All listed capabilities remain in scope, but their workflows,
-information architecture, and visual form must be discovered with Francis
-through product research and prototypes rather than assumed from this roadmap.
+The research workbench will not be part of the public app. Francis, 3 Nov
+2026: "for now, you can scratch the idea of the research Babel being available
+inside the public app, it won't. Either only I have access to it, and it
+becomes more of a test area for models and things, or we build it and I give
+access to a select few people or they can bring their own api keys, etc."
+
+It comes after launch. When it is built, it holds what the public app hides:
+provider, model and native reasoning controls (Francis chooses every model in
+its catalog), generation provenance, raw and normalized outputs, and typed
+failures. It keeps the shared parser contract and never manufactures
+cross-provider equivalence. Until then the local app's model menu and the
+qualification runners serve this purpose.
+
+## Program 4: The Tree Bank As A Syntactician's Workbench
+
+Goal: make the Personal Tree Bank much more interesting by turning it into a
+syntactician's workbench, without being opinionated about how syntacticians
+work. It starts simple and minimal, inside the Tree Bank: the first version
+ships with launch (Francis, 3 Nov 2026, quoted in the current work order).
+What that first version holds, and how it looks, is decided with Francis
+later (3 Nov: "tree bank workbench: we'll figure this out later").
+
+Triangles (constituent glyphing) come back here as something you do by hand,
+not as automatic pattern matching: you click a phrase to collapse it into a
+triangle or open it again, as in Miles Shang's tool, because no rule can say
+which phrases should be shortened. The textbook use is to abbreviate a phrase
+whose inner structure is not the point of the tree. Guard rails: only phrases,
+never a single head; never a phrase holding something the tree shows (a
+movement's start or end, a coindex, a plaque's word); and a view setting on
+the saved analysis that never changes the derivation. Whether triangles also
+apply during Replay is decided in the design, and the collapsed tree must
+still look right.
+
+The capabilities below are the longer list, in dependency order. Each later
+tranche comes after launch, and its workflow and visual form are found with
+Francis through prototypes rather than assumed from this roadmap.
 
 1. **Examples and Collections**: user-authored notes, judgments, citations,
    tags, and ordered collections reference immutable analysis records. These
@@ -286,17 +329,17 @@ the next tranche or a hosted account.
    without a user charge. The hosted function has no rate or spend limit yet;
    Francis and the agent set the per-visitor and daily limits together (3 Nov). Set explicit request, rate, and spend limits after
    selecting and costing the public model.
-5. The official hosted `/research` route must not expose experimental provider
-   spending to unrestricted anonymous traffic. Choose its access method after
-   the provider catalog and deployment design are known. Accounts, invitations,
-   and user-supplied credentials are possible mechanisms, not settled product
-   requirements.
+5. The public deployment has no research route. If the research workbench is
+   ever hosted, only Francis, or the few people he gives access to, can reach
+   it, and anonymous traffic never reaches experimental provider spending.
+   Invitations and people bringing their own API keys are the options Francis
+   named; choose when it is built.
 6. Keep public Babel, the research workbench, the Relation Orchard, benchmark
    reports, the Generation Archive, and reviewed corpus releases separate in
    deployment ownership. The Generation Archive has no ordinary navigation.
    Add corpus navigation only if Francis approves a publication.
 7. Maintain one pre-launch checklist covering at least the fresh-checkout gate,
-   contract qualification, public and research generation, complete renderer
+   contract qualification, public generation, complete renderer
    integration, Personal Tree Bank round trips, Generation Archive failure
    capture, reviewed-corpus promotion, mobile and desktop behavior,
    accessibility, security, privacy, abuse limits, cost limits, backups,
@@ -414,20 +457,19 @@ review authority, and correction path.
   publication, deployment, licensing, and hosted synchronization.
 - The import/export experience, including any legacy importer or export-only
   retirement, during application design.
-- The detailed public/research information architecture and visual direction
-  within the settled shared-application and route boundary.
-- The detailed syntactician-workspace workflows and interaction model.
-- Whether the syntactician workspace lives inside Personal Tree Bank or beside
-  it as a separate surface.
+- Public Babel's information architecture and visual direction.
+- What the first, minimal Tree Bank workbench holds, and the workflows and
+  interaction model of each later tranche.
 - The exact public anonymous-use limits after the selected model's cost and
   reliability are measured.
-- Every model admitted to the configured `/research` catalog and how each
-  proprietary or open-weight model is operated. Arbitrary model identifiers are
-  excluded from the launch boundary unless Francis later approves them.
-- The official hosted `/research` access method and credential policy.
-- Detailed public failure presentation and retry behavior within the agreed
-  public/research boundary. Babel must never silently switch providers.
-- Whether contract-review artifacts live primarily inside `/research`, as
+- Whether the research workbench is built, who besides Francis may use it,
+  and how they get access (for example by bringing their own API keys).
+- Every model admitted to the research workbench's catalog and how each
+  proprietary or open-weight model is operated. Arbitrary model identifiers
+  stay out unless Francis approves them.
+- Detailed public failure presentation and retry behavior. Babel must never
+  silently switch providers.
+- Whether contract-review artifacts live inside the research workbench, as
   generated click-through files, or both.
 - Whether labeled bracketing and Miles Shang output remain supported exports.
 - Every provider/model launch, cost ceiling, and model manifest.
@@ -483,6 +525,9 @@ review authority, and correction path.
   their rows (`replay/replayRows.ts`; Francis on 2026-11-02, replacing the
   2026-10-23 step-down: "yes try it", "It's better").
 
+- A research link, research route or model controls in the public app
+  (Francis, 3 Nov 2026; see
+  [Research workbench](#research-workbench-outside-the-public-app)).
 - More relation-card design without a reproducible defect.
 - Provider calls as part of default verification.
 - Reintroducing automatic JSON delimiter repair. Francis removed it on 22 Oct
