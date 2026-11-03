@@ -879,7 +879,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           <dl data-babel-sentence-check="true" className="mt-3 grid grid-cols-[auto,1fr] items-baseline gap-x-4 gap-y-0.5">
             {([['Sentence', sentenceOrder], ["Model's tree", sentenceCheck.words]] as const).map(([label, words]) => (
               <React.Fragment key={label}>
-                <dt className="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-100/50">{label}</dt>
+                <dt className="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-100/80">{label}</dt>
                 <dd className="serif italic text-[15px] text-emerald-50/80">
                   {words.map((word, index) => (
                     <span key={index} className={word.outOfOrder ? 'text-amber-400' : undefined}>{index ? ' ' : ''}{word.text}</span>
