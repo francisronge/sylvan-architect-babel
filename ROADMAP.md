@@ -84,10 +84,11 @@ Programs run in numeric order, except for small provider-free maintenance that
 keeps later work buildable. Launch is public Babel only, as defined in
 [CONTEXT.md](CONTEXT.md): it needs public generation from Program 1, public
 Babel from Program 3 (3A, 3B, 3D), Program 5 and the Generation Archive (6A).
-It also needs the Replay layout follow-ups of the current work order, item 2:
-the rise rule, the stage layout planned from derivation states and the
-step-order work it unblocks (Francis, 2026-11-02, on calling them optional:
-"Wtf are you saying? NO").
+It also needs the Replay layout follow-ups still open in the current work
+order, item 2 (Francis, 2026-11-02, on calling them optional: "Wtf are you
+saying? NO"). The rise rule landed in #365; the stage layout planned from
+derivation states and the step order it would unblock were parked on
+2026-11-03 (Explicitly Not Active).
 The research workbench (3C), the Reviewed Derivational Corpus (6B) and the
 benchmark in Programs 7 and 8 come after launch.
 
