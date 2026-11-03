@@ -256,8 +256,6 @@ export const stepRepresentsMovement = (step?: PlaybackStep | null): boolean => {
     return true;
   if (getActiveReplayRelationLinks(step).some(isResolvedMovementLink))
     return true;
-  if (String(step.chainId || ''))
-    return true;
   if (isTraceLike(step.targetLabel))
     return true;
   return (Array.isArray(step.sourceLabels) ? step.sourceLabels : []).some((label) => isTraceLike(label));

@@ -52,7 +52,6 @@ export interface PlaybackStep {
   workspaceAfter?: string[];
   detailBlocks?: ReplayDetailBlock[];
   stepId?: string;
-  chainId?: string;
   note?: string;
   stageRecord?: string;
   replayCanvasData?: SyntaxNode | null;
