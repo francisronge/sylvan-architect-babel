@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -35,11 +33,6 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), secureParseApiPlugin(mode), buildVersionPlugin({ root: __dirname }), notices.plugin],
     worker: {
       plugins: () => [notices.workerPlugin]
-    },
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.')
-      }
     }
   };
 });
