@@ -1,5 +1,4 @@
 import { attachGenerationFailureEvidence, classifyProviderRouteError } from './routeErrors.js';
-import { attachAggregateParseTokenCounts } from './provenance.js';
 import { buildGenerationRecord } from './generationRecord.js';
 import { buildSystemInstruction } from './systemInstruction.js';
 import { buildParseContentsPrompt } from './prompts.js';
@@ -36,22 +35,28 @@ export const createParseRoutes = ({
   generateKimi = generateKimiStructuredContent,
   generateGrok = generateGrokStructuredContent
 }) => {
-  const attachPrimaryParseProvenance = (analysis, generationMeta, extraProvenance = {}) => ({
-    ...analysis,
-    provenance: attachAggregateParseTokenCounts({
-      ...(analysis?.provenance || {}),
-      ...(generationMeta?.promptTokenCount
-        ? { primaryPromptTokenCount: generationMeta.promptTokenCount }
-        : {}),
-      ...(generationMeta?.outputTokenCount
-        ? { primaryOutputTokenCount: generationMeta.outputTokenCount }
-        : {}),
-      ...(generationMeta?.totalTokenCount
-        ? { primaryTotalTokenCount: generationMeta.totalTokenCount }
-        : {}),
-      ...extraProvenance
-    })
-  });
+  /**
+   * Records the token use of the one generation behind an analysis. The
+   * `primary*` and `parse*` counts are the same numbers under the two names
+   * saved records carry; `parse*` keeps only finite positive counts.
+   */
+  const attachPrimaryParseProvenance = (analysis, generationMeta, extraProvenance = {}) => {
+    const { promptTokenCount, outputTokenCount, totalTokenCount } = generationMeta || {};
+    const countable = (value) => Number.isFinite(value) && value > 0;
+    return {
+      ...analysis,
+      provenance: {
+        ...(analysis?.provenance || {}),
+        ...(promptTokenCount ? { primaryPromptTokenCount: promptTokenCount } : {}),
+        ...(outputTokenCount ? { primaryOutputTokenCount: outputTokenCount } : {}),
+        ...(totalTokenCount ? { primaryTotalTokenCount: totalTokenCount } : {}),
+        ...extraProvenance,
+        ...(countable(promptTokenCount) ? { parsePromptTokenCount: promptTokenCount } : {}),
+        ...(countable(outputTokenCount) ? { parseOutputTokenCount: outputTokenCount } : {}),
+        ...(countable(totalTokenCount) ? { parseTotalTokenCount: totalTokenCount } : {})
+      }
+    };
+  };
 
   const mapBundleAnalyses = (bundle, mapper) => ({
     ...bundle,
