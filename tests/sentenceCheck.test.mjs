@@ -87,3 +87,11 @@ test('a sentence written without spaces is read by the tree\'s own word boundari
   assert.equal(check.spaced, false);
   assert.deepEqual(check.words.map(word => [word.text, word.sentenceIndex, word.span]), [['来了', 1, [2, 4]], ['小李', 0, [0, 2]]]);
 });
+
+test('a terminal keeps the punctuation it writes, such as the apostrophe of a possessive', () => {
+  const bundle = normalizeParseBundle(clause(['book', 'book'], ['john', 'John'], ['poss', "'s"], ['fell', 'fell']), 'xbar', "John's book fell.", 'gpt', true, { spellout: true });
+  const [{ sentenceCheck: check }] = bundle.analyses;
+  assert.equal(check.treeReading, "book John 's fell.");
+  assert.deepEqual(check.inputTokens, ['book', 'John', "'s", 'fell']);
+  assert.deepEqual(check.words.map(word => word.text), ['book', 'John', "'s", 'fell']);
+});

@@ -772,8 +772,17 @@ const readWordOrder = (treeReading, sentenceText, meter) => {
   const onBest = order.map((_, i) => ending[i] + starting[i] - 1 === best);
   // A word is in every longest run when it alone holds its position in one.
   const fixed = order.map((_, i) => onBest[i] && !order.some((__, j) => j !== i && onBest[j] && ending[j] === ending[i]));
-  // Each word's surface: the sentence's own characters over its letters.
-  const spanOf = ({ start, end }) => [significantAt[start], significantAt[end - 1] + 1];
+  // Each word's surface: the sentence's own characters over its letters, with
+  // the punctuation the word itself writes at its edges where the sentence has
+  // it there (the apostrophe of 's).
+  const spanOf = ({ index, start, end }) => {
+    const { lead, trail } = edgePunctuation(items[index].text);
+    const mark = at => at >= 0 && at < sentence.chars.length && sentence.ignored[at] && !sentence.space[at];
+    let from = significantAt[start], to = significantAt[end - 1] + 1;
+    for (let count = 0; count < lead && mark(from - 1); count += 1) from -= 1;
+    for (let count = 0; count < trail && mark(to); count += 1) to += 1;
+    return [from, to];
+  };
   const surface = ([start, end]) => sentence.chars.slice(start, end).join('');
   const spaced = sentence.space.some(Boolean);
   // The tree's own reading: its words in tree order, with the tree's
