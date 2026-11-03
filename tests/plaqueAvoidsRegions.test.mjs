@@ -11,7 +11,7 @@ import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
  * (stage 4) left of who, where the sluicing remnant's enclosure (stage 6) later
  * covered its right edge from frame 30 on. */
 
-const record = JSON.parse(readFileSync(new URL('./helpers/regionOverlapRecord.json', import.meta.url), 'utf8'));
+const record = JSON.parse(readFileSync(new URL('./data/regionOverlapRecord.json', import.meta.url), 'utf8'));
 const subject = 'plaque(3:1 subjectCase: nominative)@who';
 
 test('a feature plaque keeps clear of the remnant enclosure its stage draws later, without moving when it appears', () => {

@@ -1,10 +1,9 @@
-import { inlineWorkerPlugin } from '../../scripts/inlineWorkerPlugin.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { build } from 'esbuild';
 import { chromium } from 'playwright';
 import { buildQualificationReviewRuntime } from '../../scripts/buildContractQualificationReviewRuntime.mjs';
 import { prepareReplay } from '../../replay/prepareReplay.ts';
+import { bundleTsxEntry } from '../helpers/browserBundle.mjs';
 
 // Run explicitly with Node's test runner; the offline gate needs no browser install.
 test('relation emphasis survives a redraw, and hovering quiet ink preserves its geometry', async () => {
@@ -19,19 +18,16 @@ test('relation emphasis survives a redraw, and hovering quiet ink preserves its 
   const moment = steps.findIndex(step => step.replayRelationIdentity?.relationIndex === 1);
   assert(moment >= 0);
   const runtime = await buildQualificationReviewRuntime();
-  const compiled = await build({
-    plugins: [inlineWorkerPlugin()], absWorkingDir: new URL('../../', import.meta.url).pathname,
-    stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
+  const script = await bundleTsxEntry(`import React from 'react'; import {createRoot} from 'react-dom/client';
       import TreeVisualizer from './components/TreeVisualizer';
       createRoot(document.getElementById('root')).render(<TreeVisualizer data={${JSON.stringify(tree)}}
-        derivationStages={${JSON.stringify(stages)}} sentence="read books" animated />);`, loader: 'tsx', resolveDir: new URL('../../', import.meta.url).pathname },
-    bundle: true, write: false, format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' } });
+        derivationStages={${JSON.stringify(stages)}} sentence="read books" animated />);`);
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
     const errors = [];
     page.on('pageerror', error => errors.push(String(error)));
-    await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${compiled.outputFiles[0].text}</script>`);
+    await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${script}</script>`);
     const svg = page.locator('svg[data-babel-rendered-step]');
     await svg.waitFor();
     if (await page.getByRole('button', { name: 'Pause', exact: true }).count()) await page.getByRole('button', { name: 'Pause', exact: true }).click();
@@ -75,18 +71,15 @@ test('an agreement restatement shares one plaque and keeps both Replay moments a
   ];
   const steps = prepareReplay({ sentence: 'Mia', derivationStages: stages, includePlayback: true }).playbackSteps;
   const runtime = await buildQualificationReviewRuntime();
-  const compiled = await build({
-    plugins: [inlineWorkerPlugin()], absWorkingDir: new URL('../../', import.meta.url).pathname,
-    stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
+  const script = await bundleTsxEntry(`import React from 'react'; import {createRoot} from 'react-dom/client';
       import TreeVisualizer from './components/TreeVisualizer';
       createRoot(document.getElementById('root')).render(<TreeVisualizer data={${JSON.stringify(tree)}}
-        derivationStages={${JSON.stringify(stages)}} sentence="Mia" animated />);`, loader: 'tsx', resolveDir: new URL('../../', import.meta.url).pathname },
-    bundle: true, write: false, format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' } });
+        derivationStages={${JSON.stringify(stages)}} sentence="Mia" animated />);`);
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
     const errors = []; page.on('pageerror', error => errors.push(String(error)));
-    await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${compiled.outputFiles[0].text}</script>`);
+    await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${script}</script>`);
     await page.locator('svg[data-babel-rendered-step]').waitFor();
     if (await page.getByRole('button', { name: 'Pause', exact: true }).count()) await page.getByRole('button', { name: 'Pause', exact: true }).click();
     for (const [si, ri] of [[0, 0], [1, 0], [1, 1]]) {

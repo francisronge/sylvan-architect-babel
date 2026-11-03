@@ -1,15 +1,14 @@
-import { inlineWorkerPlugin } from '../../scripts/inlineWorkerPlugin.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { build } from 'esbuild';
 import { chromium, webkit } from 'playwright';
 import { buildQualificationReviewRuntime } from '../../scripts/buildContractQualificationReviewRuntime.mjs';
 import { prepareReplay } from '../../replay/prepareReplay.ts';
 import { persistentCaseMovement } from '../helpers/persistentCaseMovement.mjs';
 import { waitForReplayPaint } from '../../scripts/captureReadiness.mjs';
 import { recordVideo } from '../helpers/browserVideo.mjs';
+import { bundleTsxEntry } from '../helpers/browserBundle.mjs';
 
 test('Case arrow and plaque persist through construction before head movement in both engines', { timeout: 180_000 }, async () => {
   const runtime = await buildQualificationReviewRuntime({ entrySource: `
@@ -101,16 +100,12 @@ test('standalone and Case-composed feature plaques keep row attachment through R
       const steps = prepareReplay({ sentence: 'with books', derivationStages: stages, includePlayback: true }).playbackSteps;
       const moment = steps.findIndex(step => step.replayRelationIdentity?.relationIndex === agreementIndex);
       const next = steps.findIndex(step => step.replayRelationIdentity?.relationIndex === agreementIndex + 1);
-      const compiled = await build({
-        plugins: [inlineWorkerPlugin()], absWorkingDir: new URL('../../', import.meta.url).pathname,
-        stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import TreeVisualizer from './components/TreeVisualizer';
-          createRoot(document.getElementById('root')).render(<TreeVisualizer data={${JSON.stringify(tree)}} derivationStages={${JSON.stringify(stages)}} sentence="with books" animated />);`,
-        loader: 'tsx', resolveDir: new URL('../../', import.meta.url).pathname },
-        bundle: true, write: false, format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' } });
+      const script = await bundleTsxEntry(`import React from 'react'; import {createRoot} from 'react-dom/client'; import TreeVisualizer from './components/TreeVisualizer';
+          createRoot(document.getElementById('root')).render(<TreeVisualizer data={${JSON.stringify(tree)}} derivationStages={${JSON.stringify(stages)}} sentence="with books" animated />);`);
       const page = await browser.newPage({ viewport: { width: 1200, height: 900 },
         ...(variant === 'bearer' ? recordVideo(evidence) : {}) });
       const errors = []; page.on('pageerror', error => errors.push(String(error)));
-      await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${compiled.outputFiles[0].text}</script>`);
+      await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${script}</script>`);
       await page.locator('svg[data-babel-rendered-step]').waitFor();
       if (await page.getByRole('button', { name: 'Pause', exact: true }).count()) await page.getByRole('button', { name: 'Pause', exact: true }).click();
       await page.evaluate(() => document.fonts.ready);

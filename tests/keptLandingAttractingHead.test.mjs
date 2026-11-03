@@ -11,7 +11,7 @@ import { checkMovementShownAsMovement } from './helpers/replayInvariants.mjs';
 // occurrence and `target` the head whose projection receives the landing. The
 // mover keeps its ID at the landing and the new trace holds its exact preceding
 // slot, so structure proves the pair; the target head is context.
-const fixture = JSON.parse(readFileSync(new URL('./helpers/keptLandingAttractingHeadRecord.json', import.meta.url), 'utf8'));
+const fixture = JSON.parse(readFileSync(new URL('./data/keptLandingAttractingHeadRecord.json', import.meta.url), 'utf8'));
 const record = { sentence: fixture.sentence, inputTokens: fixture.inputTokens, derivationStages: fixture.derivationStages };
 const MOVEMENTS = [
   { key: '5:2', trace: 'e_shetr', landing: 'e_she', head: 'e_t' },
