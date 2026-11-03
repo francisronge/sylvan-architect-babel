@@ -157,7 +157,12 @@ verified the merged tree. The required checks are the aggregating
 A pull request runs only the checks its files can affect
 (`scripts/ciChangeScope.mjs`, `tests/ciChangeScope.test.mjs`):
 
-- Only Markdown: every heavy job is skipped; the required checks pass at once.
+- Only Markdown that no check reads, with nothing deleted or renamed: every
+  heavy job is skipped and the required checks pass at once. Markdown a test
+  or script names (README.md's browser list, the Tier 2 dispatch spec's audit
+  table, the documents whose links the release check follows) runs the
+  checks, and so does a deleted or renamed Markdown file, which can break a
+  link.
 - Nothing the Replay checks read: typecheck, offline tests, the build and
   browser behavior run; static Replay geometry and camera, Replay motion and
   renderer performance are skipped. Those checks build their own page around

@@ -65,7 +65,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
             printf 'markdown-only=false\nreplay=true\n' >> "$GITHUB_OUTPUT"; exit 0
           fi
-          gh api --paginate "repos/$REPOSITORY/pulls/$NUMBER/files" --jq '.[].filename' > "$RUNNER_TEMP/files.txt"
+          gh api --paginate "repos/$REPOSITORY/pulls/$NUMBER/files" --jq '.[] | "\(.status)\t\(.filename)", (select(.previous_filename) | "\(.status)\t\(.previous_filename)")' > "$RUNNER_TEMP/files.txt"
           node scripts/ciChangeScope.mjs --files "$RUNNER_TEMP/files.txt" --github-output
 
   contract:

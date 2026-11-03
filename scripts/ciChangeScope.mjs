@@ -2,8 +2,12 @@
 // Decides which checks a change needs, so CI and agents skip work a change
 // cannot affect.
 //
-//   markdown-only: every changed file is Markdown. No check reads Markdown as
-//     an input, so every heavy job is skipped.
+//   markdown-only: every changed file is Markdown that no check reads, and
+//     none was deleted or renamed, so every heavy job is skipped. A check
+//     reads a Markdown file when a test or script names it (README.md's
+//     browser list, the Tier 2 dispatch spec's audit table, the documents
+//     whose links the release check follows); a deleted or renamed file
+//     can break a link one of those documents holds.
 //   replay: a changed file is something the Replay checks read: the static
 //     geometry and camera audit, Replay motion against the base, renderer
 //     performance and the painted browser-visual check. Each of them builds
@@ -20,7 +24,9 @@
 // and is not counted.
 //
 // Usage:
-//   node scripts/ciChangeScope.mjs --files <file with one path per line> [--github-output]
+//   node scripts/ciChangeScope.mjs --files <file> [--github-output]
+//     one changed file per line, as a path or as "status<TAB>path" with the
+//     GitHub files API status (added, modified, removed, renamed, ...)
 //   node scripts/ciChangeScope.mjs --base origin/main     (committed and uncommitted changes)
 
 import { execFileSync } from 'node:child_process';
@@ -114,24 +120,60 @@ export function replaySurface(root = repoRoot) {
   return new Set([...seen].map(file => path.relative(root, file).split(path.sep).join('/')));
 }
 
+const SOURCE_FILE = /\.(?:mjs|cjs|js|ts|tsx)$/;
+const MARKDOWN_NAME = /['"`]([\w./-]*\.md)['"`]/g;
+
+// Every Markdown name a test or script spells out, by path and by file name
+// (some scripts join a folder and a file name), so a match is conservative.
+export function markdownCheckInputs(root = repoRoot) {
+  const names = new Set();
+  for (const dir of ['tests', 'scripts']) {
+    for (const file of fs.readdirSync(path.join(root, dir), { recursive: true })) {
+      // These rules and their test name Markdown only as examples.
+      if (!SOURCE_FILE.test(file) || file.includes('node_modules') || /(^|\/)ciChangeScope\.(test\.)?mjs$/.test(file)) continue;
+      const source = fs.readFileSync(path.join(root, dir, file), 'utf8');
+      for (const match of source.matchAll(MARKDOWN_NAME)) {
+        const named = match[1];
+        names.add(path.basename(named));
+        if (named.startsWith('.')) names.add(path.relative(root, path.resolve(root, dir, path.dirname(file), named)).split(path.sep).join('/'));
+        else names.add(named);
+      }
+    }
+  }
+  return names;
+}
+
+const parseLine = (line) => {
+  const [status, file] = line.includes('\t') ? line.split('\t') : ['modified', line];
+  return { status: status.trim(), file: file.trim() };
+};
+
 export function changeScope(changedFiles, { root = repoRoot } = {}) {
-  const files = changedFiles.map(file => file.trim()).filter(Boolean);
+  const changes = changedFiles.map(line => line.trim() ? parseLine(line) : null).filter(Boolean);
+  const files = changes.map(change => change.file);
   // An empty or truncated list (the files API stops at 3,000) is not trusted.
   if (files.length === 0 || files.length >= 3000) return { markdownOnly: false, replay: true, replayFiles: ['(file list not trusted)'] };
-  const markdownOnly = files.every(file => file.endsWith('.md'));
+  const checkedMarkdown = markdownCheckInputs(root);
+  const markdownOnly = changes.every(({ status, file }) => file.endsWith('.md')
+    && !['removed', 'renamed'].includes(status)
+    && !checkedMarkdown.has(file) && !checkedMarkdown.has(path.basename(file)));
   const surface = replaySurface(root);
   const replayFiles = files.filter(file => surface.has(file)
     || REPLAY_FIXED_INPUTS.some(input => input.endsWith('/') ? file.startsWith(input) : file === input));
   return { markdownOnly, replay: replayFiles.length > 0, replayFiles };
 }
 
+const GIT_STATUS = { A: 'added', M: 'modified', D: 'removed', R: 'renamed', C: 'copied', T: 'changed' };
+
 function changedSince(base) {
-  const git = (...args) => execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' }).split('\n');
-  return [...new Set([
-    ...git('diff', '--name-only', `${base}...HEAD`),
-    ...git('diff', '--name-only', 'HEAD'),
-    ...git('ls-files', '--others', '--exclude-standard')
-  ])].filter(Boolean);
+  const git = (...args) => execFileSync('git', args, { cwd: repoRoot, encoding: 'utf8' }).split('\n').filter(Boolean);
+  // A rename lists both paths; each is reported as renamed.
+  const fromDiff = (...range) => git('diff', '--name-status', ...range).flatMap(line => {
+    const [code, ...paths] = line.split('\t');
+    return paths.map(file => `${GIT_STATUS[code[0]] ?? 'changed'}\t${file}`);
+  });
+  return [...new Set([...fromDiff(`${base}...HEAD`), ...fromDiff('HEAD'),
+    ...git('ls-files', '--others', '--exclude-standard').map(file => `added\t${file}`)])];
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -139,7 +181,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (!values.files === !values.base) throw Error('Pass exactly one of --files or --base.');
   const files = values.files ? fs.readFileSync(values.files, 'utf8').split('\n') : changedSince(values.base);
   const scope = changeScope(files);
-  const count = files.filter(Boolean).length;
+  const count = files.filter(line => line.trim()).length;
   console.log(`${count} changed file(s); Markdown only: ${scope.markdownOnly}; Replay checks needed: ${scope.replay}`);
   for (const file of scope.replayFiles.slice(0, 20)) console.log(`  Replay input: ${file}`);
   if (values['github-output']) {

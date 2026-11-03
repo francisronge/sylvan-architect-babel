@@ -43,6 +43,16 @@ describe('CI change scope', () => {
     }
   });
 
+  it('runs the checks for Markdown a check reads, deletes or renames', () => {
+    for (const file of ['README.md', 'docs/design/visual-relations-tier2-shape-dispatch-spec.md',
+      'THIRD_PARTY_NOTICES.md', 'docs/research/relation-orchard/index.md']) {
+      assert.equal(changeScope([file]).markdownOnly, false, file);
+    }
+    assert.equal(changeScope(['removed\tdocs/verification.md']).markdownOnly, false);
+    assert.equal(changeScope(['renamed\tdocs/new.md', 'renamed\tdocs/old.md']).markdownOnly, false);
+    assert.equal(changeScope(['modified\tROADMAP.md', 'added\tdocs/notes.md']).markdownOnly, true);
+  });
+
   it('runs everything when the file list cannot be trusted', () => {
     assert.deepEqual(changeScope([]).replay, true);
     assert.equal(changeScope(Array.from({ length: 3000 }, (_, index) => `docs/${index}.md`)).markdownOnly, false);
