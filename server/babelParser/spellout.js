@@ -750,7 +750,12 @@ const readWordOrder = (treeReading, sentenceText, meter) => {
     for (let end = at; end < letters.length && text.length < word[index].length; end += 1) {
       meter.charge();
       text += letters[end];
-      if (text === word[index]) return end + 1;
+      if (text === word[index]) {
+        // Characters that fold to nothing (a combining dot) belong to the word they follow.
+        let after = end + 1;
+        while (after < letters.length && letters[after] === '') after += 1;
+        return after;
+      }
     }
     return -1;
   };

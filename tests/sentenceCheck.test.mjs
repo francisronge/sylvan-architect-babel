@@ -121,3 +121,9 @@ test('a punctuation terminal the sentence does not have is not a word-order fail
     assert.equal(result.sentenceCheck, undefined, marks.join(' '));
   }
 });
+
+test('a character that folds to nothing stays with the word it follows', () => {
+  const bundle = normalizeParseBundle(clause(['guzel', 'güzel'], ['kedi', 'kedİ']), 'xbar', 'kedi\u0307 güzel.', 'gpt', true, { spellout: true });
+  const [{ sentenceCheck: check }] = bundle.analyses;
+  assert.deepEqual(check.words.map(word => [word.text, word.sentenceIndex]), [['güzel', 1], ['kedi\u0307', 0]]);
+});
