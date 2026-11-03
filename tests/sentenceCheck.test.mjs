@@ -113,3 +113,11 @@ test('the word-order search stays within the spelling check budget', () => {
   assert.equal(result.sentenceCheck, undefined);
   assert.ok(performance.now() - started < 1000);
 });
+
+test('a punctuation terminal the sentence does not have is not a word-order failure', () => {
+  for (const marks of [['!'], ['.', '.']]) {
+    const [result] = convertSpelloutPayload(clause(['john', 'John'], ['mary', 'Mary'], ['likes', 'likes'],
+      ...marks.map((mark, index) => [`p${index}`, mark])), 'Mary likes John.');
+    assert.equal(result.sentenceCheck, undefined, marks.join(' '));
+  }
+});

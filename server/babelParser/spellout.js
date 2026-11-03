@@ -724,6 +724,20 @@ const readWordOrder = (treeReading, sentenceText, meter) => {
   const pieces = treeReading.flatMap(item => item.text.split(SPACE).filter(Boolean).map(text => ({ text, nodeIds: item.nodeIds })));
   const items = pieces.filter(item => caselessSpelling(item.text));
   if (!items.length || !letters.length) return null;
+  // Punctuation terminals spell themselves, so each must be punctuation the
+  // sentence has, counted with repeats; only the word order may differ.
+  const marks = new Map();
+  sentence.chars.forEach((character, index) => {
+    if (sentence.ignored[index] && !sentence.space[index]) marks.set(character, (marks.get(character) ?? 0) + 1);
+  });
+  for (const piece of pieces) {
+    if (caselessSpelling(piece.text)) continue;
+    for (const character of codePoints(piece.text)) {
+      if (SPACE.test(character)) continue;
+      if (!marks.get(character)) return null;
+      marks.set(character, marks.get(character) - 1);
+    }
+  }
   const spelled = items.map(item => [...caselessSpelling(item.text)]);
   // Each folded character of a spelling may fold to more than one sentence
   // letter's worth; compare whole folded strings at each start.
