@@ -206,13 +206,11 @@ export const resolveDerivationMovementTransitions = (
 };
 
 /*
- * Exact folded-identity movement classification. The substring/regex fallback
- * that used to live here drew movement arrows for authored non-movement
- * relations (an authored `CliticCluster` or `FocusShift` matched the
- * pattern). Classification now consults the declared exact identity set and
- * nothing else. Unlisted names are not movement — they dispatch through the
- * exact registry and, when unregistered, take the neutral fallback
- * presentation.
+ * Exact folded-identity movement classification, never a text pattern: a
+ * pattern would draw movement arrows for non-movement relations such as an
+ * authored `CliticCluster` or `FocusShift`. Unlisted names are not movement;
+ * they dispatch through the exact registry and, when unregistered, take the
+ * neutral fallback presentation.
  */
 export const isMoveLikeOperation = (operation?: DerivationOperation | string): boolean => isMovementIdentity(String(operation || ''));
 
