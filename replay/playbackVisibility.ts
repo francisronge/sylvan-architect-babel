@@ -1,11 +1,9 @@
-import { collectReplayCanvasNodes } from './syntaxForest.ts';
 /** Normalize the compiled step sequence while preserving visible material and relation ownership. */
 import { type ResolvedRelationLink } from '../relationLinks.ts';
 import { authoredWord } from '../server/babelParser/nodePronunciation.js';
 import { type DerivationOperation, type SyntaxNode } from '../types.ts';
 import { isReplayDisplayChild, replayOwnerId } from './displayIdentity.ts';
 import {
-  isFrontingLikeOperationLabel,
   isMoveLikeOperation,
   isResolvedMovementLink,
   normalizeTrajectoryKind,
@@ -17,11 +15,13 @@ import {
   getReplayPlanStage,
   pickPreferredReplayText
 } from './playbackFormatting.ts';
+import { isFrontingMovementIdentity } from './relations/movementIdentities.ts';
 import { EXPLICIT_NULL_TERMINAL } from './replayCanvas.ts';
 import { mergeReplayDetailBlocks } from './replayPanelFormatting.ts';
 import { isNullLike, isStructuralCategorySurface, isTraceLike } from './replaySurfaceNotation.ts';
 import {
   collectExactNodesByIdInForest,
+  collectReplayCanvasNodes,
   collectReplayContinuitySubtreeSignatures,
   collectSubtreeNodeIds,
   findExactNodeByIdInForest,
@@ -201,7 +201,7 @@ export const insertPreMovementLandingMergeSteps = (steps: PlaybackStep[]): Playb
     const relationLinks = Array.isArray(step.replayRelationLinks) ? step.replayRelationLinks : [];
     const landingRelation = relationLinks.find((link) => {
       const operation = String(link?.operation || link?.relation || step.operation || '').trim();
-      if (!isMoveLikeOperation(operation) || isFrontingLikeOperationLabel(operation))
+      if (!isMoveLikeOperation(operation) || isFrontingMovementIdentity(operation))
         return false;
       const targetNodeId = String(link?.targetNodeId || '');
       if (!targetNodeId || !previous?.replayCanvasData)

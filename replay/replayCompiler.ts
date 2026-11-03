@@ -21,7 +21,6 @@ export const buildPlaybackStepsFromDerivationFrames = (input: ReplayCompilationI
     const stageSteps = construction.finalize
       ? finalizeStageReplay(compilation, stage, construction.steps)
       : construction.steps;
-    compilation.previousWorkspaceRootIds = stage.currentWorkspaceRootIds;
     compilation.previousVisibleNodeIds = stage.currentFrameVisibleNodeIds;
     return stageSteps;
   });

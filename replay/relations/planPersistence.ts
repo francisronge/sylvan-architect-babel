@@ -175,13 +175,12 @@ export function materializePlanFrames(
       supersededAt = earlierMoment(supersededAt, removal);
     }
     /*
-     * Each frame owns its own item instance. Persistence used to push ONE
-     * shared object into every licensed frame, so a later frame's
-     * coalescing pass — which records contributing authored references on
-     * the surviving item — leaked FUTURE references backward into earlier
-     * frames through the shared object. A frame-local shallow copy makes
-     * provenance frame-local: coalescing reassigns `coalescedRefs` on the
-     * frame's own copy, and nested authored payloads stay shared read-only.
+     * Each frame owns its own item instance. A later frame's coalescing
+     * pass records contributing authored references on the surviving item,
+     * so one object shared by every licensed frame would leak FUTURE
+     * references backward into earlier frames. A frame-local shallow copy
+     * keeps provenance frame-local: coalescing reassigns `coalescedRefs` on
+     * the frame's own copy, and nested authored payloads stay shared read-only.
      *
      * Declared subtree-derived geometry refreshes from the CURRENT frame's
      * exact anchored root: a persistent Phase arc describes the domain as

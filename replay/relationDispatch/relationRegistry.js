@@ -19,7 +19,7 @@ const ENTRY_FIELDS = Object.freeze([
   'marks'
 ]);
 
-const isRecord = (value) => (
+export const isRecord = (value) => (
   Boolean(value)
   && typeof value === 'object'
   && !Array.isArray(value)

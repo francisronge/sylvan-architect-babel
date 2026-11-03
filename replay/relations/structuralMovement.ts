@@ -348,7 +348,7 @@ export interface StructuralClaimReading {
 /** A claim names a displacement when it anchors its landing, and its lower
  * occurrence or the preceding source. Anchoring one end only is how Case,
  * agreement or binding claims mention a moved phrase. */
-export const readClaimEnds = (relation: DerivationStageRelation, displacements: readonly StructuralDisplacement[]): StructuralClaimReading => {
+const readClaimEnds = (relation: DerivationStageRelation, displacements: readonly StructuralDisplacement[]): StructuralClaimReading => {
   const currentIds = new Set(anchorIds(relation.anchors)), priorIds = new Set(anchorIds(relation.priorAnchors));
   const named: number[] = [], touched: number[] = [];
   displacements.forEach((displacement, index) => {
@@ -498,7 +498,7 @@ export const readDerivationStructuralMovement = (
  * the authored entries anchoring only those occurrences; every other field
  * keeps its authored meaning. A uniquely anchored strict descendant of the
  * lower occurrence, such as its trace terminal, is the witness. */
-export const structuralRecoveredMovement = (
+const structuralRecoveredMovement = (
   relation: DerivationStageRelation,
   displacement: StructuralDisplacement,
   currentForest: readonly SyntaxNode[],

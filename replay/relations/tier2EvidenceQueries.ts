@@ -103,7 +103,7 @@ export const valueLiterals = (evidence: Tier2FacetEvidence, valueName: string): 
 
 /** A claim whose relation name or authored values deny or withhold what it
  * states (`claimDeniesOrWithholds`); the readings added for structural misses leave it neutral. */
-export const deniedEvidence = (evidence: Partial<Pick<Tier2FacetEvidence, 'relationName' | 'authoredValues'>>): boolean =>
+const deniedEvidence = (evidence: Partial<Pick<Tier2FacetEvidence, 'relationName' | 'authoredValues'>>): boolean =>
   claimDeniesOrWithholds(evidence.relationName, (evidence.authoredValues ?? []).map(entry => entry.items));
 
 /** The one feature label in notation, such as `+wh`, when no feature rows or

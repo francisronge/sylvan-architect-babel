@@ -20,6 +20,7 @@
  */
 import type { SyntaxNode } from '../../types.ts';
 import type { RelationStage } from '../relationStages.ts';
+import { flattenAnchorIds } from './planSyntax.ts';
 
 export const LARGE_ANCHOR_ARRAY_THRESHOLD = 5;
 
@@ -61,11 +62,6 @@ export const railEntrySequence = (roles: LargeAnchorSet['roles']): string => JSO
       .map(anchor => [anchor.arrayIndex, anchor.nodeId])));
 
 const exactRelationName = (value: string): string => String(value ?? '').trim();
-
-const flattenAnchorIds = (value: string | string[] | undefined): string[] =>
-  (Array.isArray(value) ? value : [value])
-    .map((item) => String(item || ''))
-    .filter((id) => Boolean(id.trim()));
 
 const collectForestNodeIds = (forest: SyntaxNode[] | undefined): Set<string> => {
   const ids = new Set<string>();
