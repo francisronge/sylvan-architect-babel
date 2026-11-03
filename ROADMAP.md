@@ -12,46 +12,66 @@ syntactic rules. Desktop remains the primary experience.
 
 ## Current work order
 
+What is left before launch, in order: the renderer decisions in item 2;
+then the product work (public Babel in Program 3A, 3B and 3D: Replay as the only
+view with the sentence bar redesigned (#343), hidden model controls, the
+waiting screen and the failure screen); the server work (a GPT-6.1 Sol route,
+visitor and spend limits, and requests that outlive Vercel's 300 s cap); the
+hosting checklist in Program 5; and the Generation Archive (6A). Items 3 and 4
+below are not launch work.
+
 1. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed. On 2026-10-24 the claim
    option had not yet appeared in Billing. Spend only those credits.
 2. Renderer work left before launch (Francis, 2 Nov 2026, on calling it
-   optional: "Wtf are you saying? NO"):
+   optional: "Wtf are you saying? NO"). Each open item waits on one decision
+   from Francis, with a recording in `~/Projects/babel-review-archive/`.
    - **Head movement before phrasal movement in one stage** (approved
-     2026-10-23). When one stage moves both a head and a phrase, Replay shows
-     the head movement first. The patch (`feat/head-before-phrasal-order`)
-     works: on 2 Nov it lowered the real-analysis jumps from 382 to 371. Before
-     it can ship, about 20 finished trees change shape and 8 plaques sit
-     12–20% beyond their usual distance; Francis reviews those changes on a
-     before/after page. It also fixes the Icelandic raising sentence ("Þessum
-     börnum virðist hafa verið hjálpað"), whose verb-trace role has no anchor
-     at its moment because the raising plays before the verb movement that
-     makes the trace.
-   - **Phones: a moved phrase starts off screen.** In 8 test trees, only on a
-     phone-sized screen, part of a moved phrase first draws past the screen
-     edge at its movement, and the camera zooms out to it within about a
-     third of a second (`MOVED_OFF_CANVAS` in
-     `tests/helpers/cameraExceptions.mjs`; a ninth on desktop is approved).
-     The fixes are to zoom out before the movement, so the tree is drawn
-     smaller in the steps before it, or to shift the unmoved syntax, which
-     breaks the no-jump rule. Francis chooses from a recording.
-   - **Camera jumps when a stage starts.** Unmoved syntax shifts 57 px on a
-     phone in one tree (`compact-current-root`), and 66 px in the Chinese
-     tree with 我 and 昨天 when stepping back a stage; Francis approved that
-     jump stepping forward (21 Oct).
-   - **Movements drawn without an arrow.** Every known case comes from runs on
-     the earlier prompt: across-the-board and right-node-raising movement
-     (one landing, several lower copies), a claim naming two movements at once
-     (T and the auxiliary in negative inversion, a German V2 auxiliary), and
-     Japanese topicalization, Dutch stripping focus and English past-affix
-     lowering, whose wording draws only a coindex or badge. Check whether runs
-     on the current prompt still produce them. Claims whose role names offer
-     more than one candidate landing or source stay neutral by design:
-     structure cannot tell redundant naming from a contradiction.
-   - Settled, not open: a waiting phrase that slides when its new parent is
-     drawn above it. A parent stands centred over its daughters, so the phrase
-     or the tree above it must move; Francis accepted this on 27 Oct ("alright.
-     then it's whatever.").
+     2026-10-23): when one stage moves both a head and a phrase, Replay shows
+     the head movement first. Branch `feat/head-before-phrasal-order`
+     (7b324c8, no PR). Measured 3 Nov: real-analysis motion faults go from
+     382 to 375; it fixes the Icelandic raising sentence ("Þessum börnum
+     virðist hafa verið hjálpað"), whose verb-trace role had no anchor, a far
+     plaque in Opus n4-13 and one phone off-canvas case. It also brings new
+     faults that only Francis can accept: in the Hebrew relative V′ moves 241
+     units at the verb movement (main moves `mi` 1,051 there); in the German
+     embedded clause main's jump comes two steps later and about 18% larger
+     (embedded IP 639 → 752); a German participle tree gains an 80-unit slide;
+     plaques sit 1.12–1.2 times their reach in four trees; and the Portuguese
+     coordination first paints 25 px off the desktop canvas when stepping
+     back. Recordings: `head-before-phrasal/` (german, hebrew, participle).
+   - **Camera jumps when a stage starts** (measured 3 Nov, no fix within the
+     rules): the Chinese tree with 我 and 昨天 jumps 60 px when stepping back
+     into stage 2. It is the mirror of the forward jump Francis approved on
+     21 Oct: the same 494.5 tree units, and no carry brings it under the
+     24 px limit (best 30 px). In compact-current-root a new landing pushes the
+     T head 57 px past the phone canvas's left edge as stage 3 begins; only a
+     first pose that zooms out (by 16%) would clear it, which changes the
+     shared camera rule.
+   - **Movements drawn without an arrow** (measured 3 Nov over 3,692 saved
+     analyses): on the current and the previous prompt, one across-the-board
+     movement into a complex head lacked its arrows; #374 draws them. What
+     remains there is one run each: labels written as sets (`{C}`), and a
+     Swahili claim whose wording reads phrasal against its name "head
+     movement". The other kinds (one claim naming two movements, wording that
+     draws only a coindex) appear only on earlier prompts. Claims whose role
+     names offer two landings stay neutral by design (18 saved runs).
+   - **Motion faults in real analyses**: 382 in the committed corpus on main;
+     #373 removes 5. By cause on main (measured 3 Nov): 75 are a parent inserted above
+     a host beside a waiting sister (the accepted trade-off below); 128 a
+     movement source whose lower occurrence stands at another x; 71 an
+     existing node gaining a daughter at a movement; 64 a landing's new parent
+     standing at another x; 44 leaves laid out again at a stage crossing.
+     Every further fix measured so far moves finished trees (up to 26 of them)
+     or widens earlier frames, which Francis declined on 27 Oct.
+   - Settled: a waiting phrase that slides when its new parent is drawn above
+     it. A parent stands centred over its daughters, so the phrase or the tree
+     above it must move; Francis accepted this on 27 Oct ("alright. then it's
+     whatever.").
+   - Settled: on phones a moved phrase first paints past the canvas edge, then
+     the camera zooms out to it within about a third of a second (8 test trees,
+     `MOVED_OFF_CANVAS` in `tests/helpers/cameraExceptions.mjs`). Francis, 3 Nov
+     2026, after watching the recordings: "the phone recording is fine."
 3. Recognition:
    - Neutral relations can earn a shared-lineage coindex or a single-host
      plaque from structure alone; the adjunction fork stays off because
