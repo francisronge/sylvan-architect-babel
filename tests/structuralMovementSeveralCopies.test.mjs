@@ -99,3 +99,45 @@ test('a kept-id landing whose preceding slot and a removed sibling copy\'s slot 
   const replay = prepareReplay({ sentence: 'that John wrote and Mary reviewed', derivationStages: structuredClone(stages), includePlayback: true });
   assert.deepEqual([...invariants.checkMovementShownAsMovement(replay, { derivationStages: stages }), ...invariants.checkNoEarlyReveal(replay)], []);
 });
+
+// Across-the-board head movement (xbar-check-20261101 XM and XH x23, "What
+// did John buy and Mary sell?"): the auxiliary of both conjuncts raises into
+// C. The landing sits inside the complex head, so its own parent holds no
+// lower copy; the complex head's parent commands both.
+const auxiliary = (id, extra = {}) => leaf(id, 'I⁰[past]', extra.silent ? undefined : 'did', { lineageId: 'past', ...extra });
+const conjunctIP = (n, subject, verb, aux) => ({ id: `ip${n}`, label: 'IP', children: [leaf(`s${n}`, 'N⁰', subject),
+  { id: `ibar${n}`, label: 'I′', children: [aux, { id: `vp${n}`, label: 'VP', children: [leaf(`v${n}`, 'V⁰', verb)] }] }] });
+const question = (head, left, right) => [{ id: 'cp', label: 'CP', children: [{ id: 'cbar', label: 'C′', children: [head,
+  { id: 'coord', label: 'CoP', children: [conjunctIP(1, 'John', 'buy', left),
+    { id: 'cobar', label: 'Co′', children: [leaf('and', 'Co⁰', 'and'), conjunctIP(2, 'Mary', 'sell', right)] }] }] }] }];
+const atbHead = (raised, claim) => [stage(question(leaf('c', 'C⁰[+Q]', undefined, { silent: true }), auxiliary('i1'), auxiliary('i2'))),
+  stage(question(raised, auxiliary('i1', { silent: true }), auxiliary('i2', { silent: true })), [claim])];
+const claim = { relation: 'hebung', anchors: { ziel: 'raised', quellen: ['i1', 'i2'] } };
+
+test('a head raised into C from both conjuncts is one landing with several lower copies', () => {
+  const adjoined = { id: 'complex', label: 'C⁰', children: [auxiliary('raised'), leaf('c', 'C⁰[+Q]', undefined, { silent: true })] };
+  const substituted = { id: 'c', label: 'C⁰[+Q]', children: [auxiliary('raised')] };
+  for (const head of [adjoined, substituted]) {
+    const stages = atbHead(head, claim);
+    const { displacements, refusals } = readStageDisplacements(stages[0].workspaceForest, stages[1].workspaceForest);
+    assert.deepEqual(refusals, []);
+    assert.deepEqual(displacements.map(d => `${d.sourceNodeId}->${d.targetNodeId} ${d.trajectoryKind}`), ['i1->raised head', 'i2->raised head']);
+    assert.deepEqual(paths(atbHead(head, claim), 1, '0'), [], 'wording alone draws no arrow');
+    assert.deepEqual(paths(atbHead(head, claim), 1), ['0:i1->raised', '0:i2->raised']);
+    const replay = prepareReplay({ sentence: 'did John buy and Mary sell', derivationStages: structuredClone(stages), includePlayback: true });
+    assert.deepEqual([...invariants.checkMovementShownAsMovement(replay, { derivationStages: stages }), ...invariants.checkNoEarlyReveal(replay)], []);
+  }
+});
+
+test('a head complex that commands only one of two kept copies pairs with neither', () => {
+  // The raised auxiliary joins the first conjunct's subject head: that
+  // complex's parent holds the first copy alone, so the shared landing reads
+  // more than one way.
+  const stages = atbHead(leaf('c', 'C⁰[+Q]', undefined, { silent: true }), claim);
+  const firstIP = stages[1].workspaceForest[0].children[0].children[1].children[0];
+  firstIP.children[0] = { id: 'complex', label: 'N⁰', children: [auxiliary('raised'), firstIP.children[0]] };
+  const { displacements, refusals } = readStageDisplacements(stages[0].workspaceForest, stages[1].workspaceForest);
+  assert.deepEqual(displacements, []);
+  assert.deepEqual(refusals.map(refusal => refusal.reason), ['shared-landing']);
+  assert.deepEqual(paths(stages, 1), []);
+});
