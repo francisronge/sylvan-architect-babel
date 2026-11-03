@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
-import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { applyVizIds, getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import { authoredDisplayWord } from './displayWordMaterial.ts';
 import { rigidMovementHosts } from './movementHostContinuity.ts';
 import { plaqueBranchObstacles, type PlaqueRect } from './relations/plaquePlacement.ts';
@@ -115,7 +115,7 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
     const root = d3.hierarchy(step.replayCanvasData);
     applyVizIds(root);
     const visible = new Set(step.replayVisibleNodeIds);
-    const current = new Set<d3.HierarchyNode<SyntaxNode>>(root.descendants().filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace'));
+    const current = new Set<d3.HierarchyNode<SyntaxNode>>(root.descendants().filter(node => visible.has(getNodeId(node)) && isPaintedSyntax(node)));
     const hierarchy = new Map([...current].map(node => [getNodeId(node), node as Node]));
     const nodes = new Map<string, Incarnation>();
     const previousCanvas = index > 0 ? steps[index - 1].replayCanvasData : undefined;

@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { composeWorkspaceObstacleBuffer, workspaceObstacleBuffer } from '../replay/workspaceObstacleBuffer.ts';
-import { translateWorkspaceObstacles } from '../replay/workspaceObstacleTranslation.ts';
 import { plaqueBranchObstacles } from '../replay/relations/plaquePlacement.ts';
 import { createWorkspaceContourPairPreparer, prepareWorkspaceContourPair, workspaceContourPairCollision } from '../replay/workspaceContourPairs.ts';
 import { currentForkBranchCollision } from '../replay/workspaceForkClearance.ts';
+
+// Reference translation: every rectangle and curve point gains the offset.
+const point = (p, dx, dy) => ({ x: p.x + dx, y: p.y + dy });
+const translateWorkspaceObstacles = (rectangles, dx, dy) => rectangles.map(rect => ({ ...rect, x: rect.x + dx, y: rect.y + dy,
+  ...(rect.curve ? { curve: { source: point(rect.curve.source, dx, dy), control1: point(rect.curve.control1, dx, dy),
+    control2: point(rect.curve.control2, dx, dy), target: point(rect.curve.target, dx, dy) } } : {}) }));
 
 test('nested buffered contours preserve exact ordered translation, metadata, curves and signed zero', () => {
   const own = [{ x: -0, y: -0, width: 20, height: 12, terminalStemNodeId: 'word',

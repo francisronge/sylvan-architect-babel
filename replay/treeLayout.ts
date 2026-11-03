@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { applyVizIds, getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
@@ -73,4 +73,12 @@ export function layoutSyntaxTree(root: d3.HierarchyNode<SyntaxNode>, size: [numb
   });
   if (direction === 'rtl') tree.each(node => { node.x = size[0] - node.x; });
   return tree;
+}
+
+/** Lay out `root` and index, by renderer id, the visible syntax it paints. */
+export function paintedSyntaxById(root: d3.HierarchyNode<SyntaxNode>, size: [number, number], direction: TreeDirection,
+  reservation: ReadonlyMap<string, { x: number; y: number }> | undefined, visible: ReadonlySet<string>) {
+  return new Map<string, d3.HierarchyPointNode<SyntaxNode>>(layoutSyntaxTree(root, size, direction, reservation, visible).descendants()
+    .filter(node => visible.has(getNodeId(node)) && isPaintedSyntax(node))
+    .map(node => [getNodeId(node), node] as const));
 }

@@ -9,7 +9,8 @@ import type { PlaqueRect } from './relations/plaquePlacement.ts';
 import { siblingContoursOrdered } from './siblingContours.ts';
 import { prepareTreeInkSubtrees, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
-import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { paintedSyntaxById, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { stageStepOrder } from './stageStepOrder.ts';
 import type { PlaybackStep } from './types.ts';
 import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { workspaceContinuityReflows, PLANNING } from './workspaceShapeReflows.ts';
@@ -61,13 +62,12 @@ export function reserveMovementSlotClearance({ steps, sizes, coordinates, direct
 }): Reservations {
   const cached = cache.get(coordinates);
   if (cached) return cached;
-  const order = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
   const frames: Frame[] = steps.flatMap(step => {
     const canvas = step.replayCanvasData, size = sizes.get(step.replayFrameIndex!);
     if (!canvas || !size || !coordinates.has(canvas)) return [];
     const root = d3.hierarchy(canvas); applyVizIds(root);
     return [{ step, canvas, size, visible: new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(getNodeId)) }];
-  }).sort((a, b) => (a.step.replayFrameIndex! - b.step.replayFrameIndex!) || order(a.step) - order(b.step));
+  }).sort((a, b) => (a.step.replayFrameIndex! - b.step.replayFrameIndex!) || stageStepOrder(a.step) - stageStepOrder(b.step));
   let result: Reservations = coordinates;
   const paintings = new WeakMap<TreeCoordinateReservation, Painted>();
   const paint = (index: number, plan: Reservations = result) => paintPoints(index, plan.get(frames[index].canvas)!);
@@ -76,9 +76,7 @@ export function reserveMovementSlotClearance({ steps, sizes, coordinates, direct
     let painted = paintings.get(points);
     if (!painted) {
       const root = d3.hierarchy(canvas); applyVizIds(root);
-      const nodes = new Map<string, Node>(layoutSyntaxTree(root, size, direction, points, new Set(visible)).descendants()
-        .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
-        .map(node => [getNodeId(node), node] as const));
+      const nodes = paintedSyntaxById(root, size, direction, points, visible);
       paintings.set(points, painted = { nodes,
         ink: prepareTreeInkSubtrees(nodes, measureCategoryText, measureTreeInk, true, treeLabelRuns?.get(canvas), measureTreeLabel) });
     }

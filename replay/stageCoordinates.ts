@@ -6,7 +6,7 @@ import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayo
 import { compactCurrentRootForks } from './currentRootCompaction.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
 import { retainCurrentSiblingRanks, retainCurrentDaughterRanks } from './currentSiblingRanks.ts';
-import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { applyVizIds, getNodeId, isPaintedSyntax, paintedSyntaxParent } from './displayIdentity.ts';
 import { retainedSubtreeMaterial } from './displayWordMaterial.ts';
 import { closeMovementGaps } from './movementGapClosing.ts';
 import { motionFrame, replayMotionFaults } from './motionRule.ts';
@@ -24,9 +24,10 @@ import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
 import { treeInkMetricKey } from './treeInkMetricKey.ts';
 import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
-import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { layoutSyntaxTree, paintedSyntaxById, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import { paintedTextCollisions } from './treeTextCollision.ts';
 import { clearTreeText, paintedTreeText } from './treeTextClearance.ts';
+import { stageStepOrder } from './stageStepOrder.ts';
 import type { PlaybackStep } from './types.ts';
 import { separateWorkspaceContours } from './workspaceContourClearance.ts';
 import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
@@ -54,15 +55,12 @@ const textCollisionPlans = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateRes
  * the plan repaired for ordered sister contours, or neither ordered. */
 export const getContourPlanStatuses = (steps: readonly PlaybackStep[]) => [...(contourPlans.get(steps)?.values() ?? [])];
 
-const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => node.ancestors().slice(1).find(ancestor =>
-  !ancestor.data.replayLayoutOnly && ancestor.data.replayOrigin?.kind !== 'workspace');
-
 function reserveScene(current: Scene, reference: Scene, retained: TreeCoordinateReservation): Scene {
   const relocated = new Set<string>();
   current.nodes.forEach((node, id) => {
     const other = reference.nodes.get(id);
     if (node.data.replayLayoutOnly || !other || other.data.replayLayoutOnly) return;
-    const oldParent = syntaxParent(node);
+    const oldParent = paintedSyntaxParent(node);
     if (oldParent && !other.ancestors().some(ancestor => getNodeId(ancestor) === getNodeId(oldParent))) {
       node.each(descendant => relocated.add(getNodeId(descendant)));
     }
@@ -250,8 +248,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
   let stages = cache.get(steps);
   if (!stages) cache.set(steps, stages = new Map());
   const frames = steps.filter(step => step.replayFrameIndex === stageIndex && step.replayCanvasData)
-    .sort((a, b) => (a.replayStageStepIndex ?? (a.replayKind === 'macro' ? Infinity : 0))
-      - (b.replayStageStepIndex ?? (b.replayKind === 'macro' ? Infinity : 0)));
+    .sort((a, b) => stageStepOrder(a) - stageStepOrder(b));
   const previous = frames[0]?.replayKind === 'relation' && sizeForStage && steps.find(step => step.replayFrameIndex === stageIndex - 1 && step.replayKind === 'macro');
   const previousSize = previous && sizeForStage!(stageIndex - 1);
   const precedingCoordinates = previous?.replayCanvasData && previousSize
@@ -276,8 +273,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     // measures keeps its cell width.
     const labels = measureTreeLabel && treeLabelRuns?.get(canvas);
     const uncleared = labels ? new Map(tree.descendants().map(node => [getNodeId(node), node.x])) : undefined;
-    if (labels) clearTreeText(tree, node => visible.has(getNodeId(node))
-      && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace', node => {
+    if (labels) clearTreeText(tree, node => visible.has(getNodeId(node)) && isPaintedSyntax(node), node => {
       const measured = new Set(measureCategoryText ? categoryTextLayout(node.data.label || '', measureCategoryText).lines : []);
       return paintedTreeText(labels.get(getNodeId(node)), measureTreeLabel!, line => measured.has(line) ? measureCategoryText!(line) : undefined);
     });
@@ -345,16 +341,13 @@ const alignedChoices = new WeakMap<StageFrames, PlanChoice>();
 const shiftedReservations = new WeakMap<TreeCoordinateReservation, Map<string, TreeCoordinateReservation>>();
 // The slot pass per planned reservation, so a reused layout does not repeat it.
 const slotPlans = new WeakMap<StageFrames, Map<string, StageFrames>>();
-const stageStepOrder = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
 const stageSteps = (steps: readonly PlaybackStep[], stage: number) => steps
   .filter(step => step.replayFrameIndex === stage && step.replayCanvasData).sort((a, b) => stageStepOrder(a) - stageStepOrder(b));
 
 function paintedSyntax(step: PlaybackStep, size: [number, number], coordinates: TreeCoordinateReservation) {
   const root = d3.hierarchy(step.replayCanvasData!); applyVizIds(root);
   const visible = new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
-  return new Map<string, d3.HierarchyPointNode<SyntaxNode>>(layoutSyntaxTree(root, size, 'ltr', coordinates, visible).descendants()
-    .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
-    .map(node => [getNodeId(node), node] as const));
+  return paintedSyntaxById(root, size, 'ltr', coordinates, visible);
 }
 
 /** Each stage lays out its own frame, centred on its own size. Those origins are
@@ -638,9 +631,8 @@ const rowedPlans = new WeakMap<StageFrames, StageFrames>();
 function rowedReservations(steps: readonly PlaybackStep[], stageIndex: number, planned: StageFrames, last: boolean): StageFrames {
   const cached = rowedPlans.get(planned);
   if (cached) return cached;
-  const within = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
   const finalStep = last ? steps.filter(step => step.replayFrameIndex === stageIndex && step.replayCanvasData)
-    .sort((a, b) => within(a) - within(b)).at(-1) : undefined;
+    .sort((a, b) => stageStepOrder(a) - stageStepOrder(b)).at(-1) : undefined;
   const finalCoordinates = finalStep && planned.get(finalStep.replayCanvasData!);
   const rows = planReplayRows(steps, finalCoordinates ? new Map([...finalCoordinates].map(([id, point]) => [id, point.y])) : undefined);
   const result = new Map(planned);
@@ -948,8 +940,8 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
       if (!coordinates || !stageSize || !labels || !measureTreeLabel) return [];
       const root = d3.hierarchy(step.replayCanvasData!); applyVizIds(root);
       const visible = new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
-      const nodes = layoutSyntaxTree(root, stageSize, 'ltr', coordinates, visible).descendants().filter(node => visible.has(getNodeId(node))
-        && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace');
+      const nodes = layoutSyntaxTree(root, stageSize, 'ltr', coordinates, visible).descendants()
+        .filter(node => visible.has(getNodeId(node)) && isPaintedSyntax(node));
       return [...paintedTextCollisions(nodes, labels, measureTreeLabel, measureCategoryText)].map(pair => `${index} ${pair}`);
     })));
     return result;

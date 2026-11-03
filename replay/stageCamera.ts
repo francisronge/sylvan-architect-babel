@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
-import { applyVizIds } from './displayIdentity.ts';
+import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { paintedShift, type PaintedNodes } from './cameraCarry.ts';
 import { bindingEllipseBounds, sceneBindingDomainEllipse } from './relations/bindingDomainGeometry.ts';
 import { bindRelationPlanFrame } from './relations/geometryBinding.ts';
@@ -137,28 +137,27 @@ export function buildStageLayoutGroups(steps: PlaybackStep[], stages: { workspac
  * it becomes sends it from its one word. */
 function changedPlaqueAttachments(before: d3.HierarchyPointNode<SyntaxNode>[], after: d3.HierarchyPointNode<SyntaxNode>[],
   items: RelationRenderPlan['frames'][number]['items'], construction = false) {
-  const idOf = (node: d3.HierarchyPointNode<SyntaxNode>) => String((node as any).__vizId ?? node.data.id);
   const beforeNodes = new Set(before), afterNodes = new Set(after);
   const realParentId = (node: d3.HierarchyPointNode<SyntaxNode>, visibleNodes: Set<d3.HierarchyPointNode<SyntaxNode>>) => {
     // Future stage parents can be present in the canvas before their merge.
     // Only an available parent can change a plaque participant's attachment.
     const parent = node.ancestors().slice(1).find(ancestor => visibleNodes.has(ancestor)
       && !(ancestor.data as any).replayLayoutOnly && !isSyntheticWorkspaceRootNode(ancestor));
-    return parent && idOf(parent);
+    return parent && getNodeId(parent);
   };
   const prior = indexHierarchyNodesByIdAndAliases(before), current = indexHierarchyNodesByIdAndAliases(after);
   const changed = new Set<string>();
   if (!construction) after.forEach(node => {
-    const old = prior.get(idOf(node));
+    const old = prior.get(getNodeId(node));
     if (old && Math.hypot(node.x - old.x, node.y - old.y) > 1e-8
       && realParentId(old, beforeNodes) !== realParentId(node, afterNodes)) {
-      node.each(descendant => changed.add(idOf(descendant)));
+      node.each(descendant => changed.add(getNodeId(descendant)));
     }
   });
   for (const request of prepareStagePlaqueRequests(items, after)) {
     if (!request.caseAssignment) continue;
     const old = prior.get(request.ids[0]), next = current.get(request.ids[0]);
-    if (old && next && idOf(caseAssignmentSource(old)) !== idOf(caseAssignmentSource(next))) changed.add(request.ids[0]);
+    if (old && next && getNodeId(caseAssignmentSource(old)) !== getNodeId(caseAssignmentSource(next))) changed.add(request.ids[0]);
   }
   return changed;
 }
@@ -182,7 +181,6 @@ function stageLayouts(input: StageLayoutInput, geometry?: StageGeometry) {
   const seen = new Map<string, (typeof scenes)[number]>();
   let phase = 0;
   let preceding: { tree: d3.HierarchyPointNode<SyntaxNode>; visibleIds: Set<string> | null } | undefined;
-  const nodeId = (node: d3.HierarchyPointNode<SyntaxNode>) => String((node as any).__vizId ?? node.data.id);
   const ordered = steps.map((step, index) => ({ step, index }))
     .filter(({ step }) => step.replayFrameIndex === stageIndex && step.replayCanvasData)
     .sort((a, b) => (a.step.replayStageStepIndex ?? a.index) - (b.step.replayStageStepIndex ?? b.index));
@@ -207,8 +205,8 @@ function stageLayouts(input: StageLayoutInput, geometry?: StageGeometry) {
       stageSize ?? treeLayoutSize(root.descendants().length, root.height), direction,
       coordinates, visibleIds ?? undefined);
     const movedNodeIds = preceding
-      ? changedPlaqueAttachments(preceding.tree.descendants().filter(node => !preceding!.visibleIds || preceding!.visibleIds.has(nodeId(node))),
-        currentTree.descendants().filter(node => !visibleIds || visibleIds.has(nodeId(node))), plan?.frames[stageIndex]?.items ?? [],
+      ? changedPlaqueAttachments(preceding.tree.descendants().filter(node => !preceding!.visibleIds || preceding!.visibleIds.has(getNodeId(node))),
+        currentTree.descendants().filter(node => !visibleIds || visibleIds.has(getNodeId(node))), plan?.frames[stageIndex]?.items ?? [],
         step.replayKind !== 'relation')
       : new Set<string>();
     // Replacing an occurrence changes its plaque attachment even when the
@@ -302,7 +300,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   const caseSources: CaseSourceRects = source => {
     let rect = measuredSources.get(source);
     if (!rect) measuredSources.set(source, rect = measuredCaseSourceRect(source,
-      sceneLabels.get(source)?.get(String((source as any).__vizId ?? source.data.id)), input.measureTreeLabel, input.measureCategoryText));
+      sceneLabels.get(source)?.get(getNodeId(source)), input.measureTreeLabel, input.measureCategoryText));
     return rect;
   };
   const lifetimeSpaceOf = prepareLifetimePlaqueSpaces(caseSources);
@@ -328,7 +326,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     const atStep = (nodes: typeof previous.nodes, stepIndex: number) => {
       const ids = input.steps[stepIndex]?.replayVisibleNodeIds;
       const visible = ids && new Set(ids);
-      return visible ? nodes.filter(node => visible.has(String((node as any).__vizId ?? node.data.id))) : nodes;
+      return visible ? nodes.filter(node => visible.has(getNodeId(node))) : nodes;
     };
     changedPlaqueAttachments(atStep(previous.nodes, previous.scenes.at(-1)!.stepIndices.at(-1)!),
       atStep(phase.scenes[0].nodes, phase.scenes[0].stepIndices[0]), phase.items)
@@ -360,7 +358,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     const ids = new Set([...request.ids, ...(request.collectionRows ?? []).map(row => row.sourceNodeId)]);
     if (request.caseAssignment) phases[phaseIndex].scenes.forEach(scene => {
       const anchor = indexHierarchyNodesByIdAndAliases(scene.nodes).get(request.ids[0]);
-      if (anchor) { const source = caseAssignmentSource(anchor); ids.add(String((source as any).__vizId ?? source.data.id)); }
+      if (anchor) { const source = caseAssignmentSource(anchor); ids.add(getNodeId(source)); }
     });
     return ids;
   };
@@ -377,7 +375,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     });
     if (request.caseAssignment) {
       const old = caseAssignmentSource(oldAnchor), node = caseAssignmentSource(nextAnchor);
-      if (String((old as any).__vizId ?? old.data.id) !== String((node as any).__vizId ?? node.data.id)) return true;
+      if (getNodeId(old) !== getNodeId(node)) return true;
       pairs.push([old, node]);
     }
     return pairs.some(([old, node]) => Math.abs((old.x - oldAnchor.x) - (node.x - nextAnchor.x)) > 1e-8
@@ -400,7 +398,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       moved = id => {
         const node = byId.get(id), old = before.get(id);
         return Boolean(node && old && Math.hypot(node.x - old.x, node.y - old.y) > 1e-8
-          && node.ancestors().some(ancestor => landings.has(String((ancestor as any).__vizId ?? ancestor.data.id))));
+          && node.ancestors().some(ancestor => landings.has(getNodeId(ancestor))));
       };
       movedAnchors.set(phaseIndex, moved);
     }
@@ -462,7 +460,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
    * with the other pockets `othersAt` places in that phase and their connectors. */
   const pocketScenes = (key: string, anchor: d3.HierarchyPointNode<SyntaxNode>, phaseIndices: readonly number[],
     othersAt: (phaseIndex: number) => ReadonlyMap<number, PlaquePlacement>): LifetimeScene[] => {
-    const anchorId = String((anchor as any).__vizId ?? anchor.data.id);
+    const anchorId = getNodeId(anchor);
     // Where these phases end inside a stage, a mark the stage paints later is no obstacle
     // in them, unless the plaque may still hold this pocket then: the Replay step hold
     // (holdPockets) keeps it while the anchor stays still, so the pocket also stays clear
@@ -925,7 +923,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   const revealedAt = (phaseIndex: number, scene: Scene, stepIndex: number, playedNow: ReadonlySet<number>, active: number | null) => {
     const phase = phases[phaseIndex], byId = sceneNodes(scene), step = input.steps[stepIndex];
     const visibleIds = step.replayVisibleNodeIds && new Set(step.replayVisibleNodeIds);
-    const drawable = (id: string) => byId.get(id)?.descendants().some(node => !visibleIds || visibleIds.has(String((node as any).__vizId ?? node.data.id)));
+    const drawable = (id: string) => byId.get(id)?.descendants().some(node => !visibleIds || visibleIds.has(getNodeId(node)));
     return phase.items.flatMap((item, index) => isPlanItemRevealed(item, phase.stageIndex, playedNow, active)
       && planItemDependencyNodeIds(item).every(drawable) ? [index] : []);
   };
@@ -1009,9 +1007,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     let paintedNodes: PaintedNodes | undefined;
     const painted = () => paintedNodes ??= (() => {
       const visibleIds = step.replayVisibleNodeIds && new Set(step.replayVisibleNodeIds), nodes = new Map<string, { x: number; y: number; parentId: string | null }>();
-      const idOf = (node: d3.HierarchyPointNode<SyntaxNode>) => String((node as any).__vizId ?? node.data.id);
-      for (const node of scene.nodes) if (!visibleIds || visibleIds.has(idOf(node)))
-        nodes.set(idOf(node), { x: node.x, y: node.y, parentId: node.parent ? idOf(node.parent) : null });
+      for (const node of scene.nodes) if (!visibleIds || visibleIds.has(getNodeId(node)))
+        nodes.set(getNodeId(node), { x: node.x, y: node.y, parentId: node.parent ? getNodeId(node.parent) : null });
       return nodes;
     })();
     const layout = new Map(scheduled), held = new Set<number>(), left = new Set<number>();
@@ -1352,7 +1349,6 @@ export function releasablePhase(stageOf: readonly number[], allocated: number, r
   return Math.min(complete, ...remoteStarts.map(start => firstOfStage(start) - 1));
 }
 
-/** Completed-stage layouts for callers without an active Replay moment. */
 /** Right to left, plaques take the reflection of their left-to-right pockets:
  * the schedule is made on the left-to-right layout, which right-to-left Replay
  * reflects about one axis (stageCoordinates.ts, `rightToLeftAxis`), and every
@@ -1398,6 +1394,7 @@ function reflectOccupant(occupant: PocketOccupant, axis: number): PocketOccupant
     ...route ? { route: { ...route, far: point(route.far) } } : {} };
 }
 
+/** Completed-stage layouts for callers without an active Replay moment. */
 export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, PlaquePlacement>[] {
   return buildReplayPlaqueSchedule(input).stages;
 }
@@ -1421,12 +1418,15 @@ function sceneLabelRuns({ steps, completedCanvas, treeLabelRuns }: Pick<StageLay
   return labels;
 }
 
+/** The nodes a stage tree shows: none under a triangle or the workspace root, and
+ * only those `ids` names when given. */
+const visibleNodes = (tree: d3.HierarchyPointNode<SyntaxNode>, ids: ReadonlySet<string> | null = null) => tree.descendants().filter(node =>
+  !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
+  && (!ids || ids.has(getNodeId(node))));
+
 /** Shared reservation for placement and verification, including unrevealed stage trajectories. */
 export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: StageGeometry) {
   const { scenes, completedTree, closing, held } = stageLayouts(input, geometry);
-  const visibleNodes = (tree: typeof completedTree, ids: Set<string> | null = null) => tree.descendants().filter(node =>
-    !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
-    && (!ids || ids.has(String((node as any).__vizId ?? node.data.id ?? ''))));
   // The completed authored tree is smaller than Replay's reserved future layout.
   // Only use it when no Replay exists, never as the coordinate system for Replay plaques.
   const reference = scenes.find(scene => scene.isRecord) ?? [...scenes].sort((a, b) =>
@@ -1478,8 +1478,8 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
     const painted = new Map<string, { nodes: typeof currentNodes; obstacles: PlaqueRect[] }>();
     const paintedSpace = (visibleIds: readonly string[] | undefined, shown: readonly number[]) => {
       const visible = visibleIds && new Set(visibleIds);
-      const nodes = visible ? currentNodes.filter(node => visible.has(String((node as any).__vizId ?? node.data.id ?? ''))) : currentNodes;
-      const key = `${nodes.length === currentNodes.length ? '' : nodes.map(node => String((node as any).__vizId ?? node.data.id)).join(',')}|${shown.join(',')}`;
+      const nodes = visible ? currentNodes.filter(node => visible.has(getNodeId(node))) : currentNodes;
+      const key = `${nodes.length === currentNodes.length ? '' : nodes.map(node => getNodeId(node)).join(',')}|${shown.join(',')}`;
       let space = painted.get(key);
       if (!space) painted.set(key, space = { nodes, obstacles: obstaclesOf(shown.map(index => items[index]), nodes) });
       return space;
@@ -1525,7 +1525,7 @@ function regionPlaqueObstacles(plan: StageLayoutInput['plan'], stageIndex: numbe
     const domain = item.kind === 'binding-domain' && byId.get(item.domainNodeId);
     const ellipse = domain && sceneBindingDomainEllipse(item.domainNodeId, byId, nodes, [], new Map(), measureCategoryText);
     if (!domain || !ellipse) return [];
-    const members = new Set(domain.descendants().map(node => String((node as any).__vizId ?? node.data.id)));
+    const members = new Set(domain.descendants().map(node => getNodeId(node)));
     const enclosedPlaques = new Set(items.flatMap(other => other.kind === 'node-plaque' && other.anchorNodeIds.length
       && other.anchorNodeIds.every(id => members.has(id)) ? [plaqueIdentity(other), claimIdentity(other)] : []));
     return outline(ellipse).map(box => enclosedPlaques.size ? { ...box, enclosedPlaques } : box);
@@ -1546,7 +1546,7 @@ function regionPlaqueObstacles(plan: StageLayoutInput['plan'], stageIndex: numbe
 /** Layout reads no window size. Every canvas lays out at this reference canvas,
  * so an analysis draws the same tree in every window and on every device; only
  * the camera fits the actual canvas. */
-export const LAYOUT_REFERENCE_CANVAS = { width: 1600, height: 948 } as const;
+const LAYOUT_REFERENCE_CANVAS = { width: 1600, height: 948 } as const;
 
 export function treeLayoutSize(nodeCount: number, depth: number) {
   return [Math.max(LAYOUT_REFERENCE_CANVAS.width * 1.5, nodeCount * 180) - 600,
@@ -1680,9 +1680,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
     const placements = includePlaques && schedule ? selectReplayPlaqueLayout(schedule, stageIndex, stepIndices[0]) : fallbackPlacements;
     // Future syntax reserves layout coordinates, not camera space. Union the
     // actually revealed syntax across the stage to keep its microsteps stable.
-    const fitNodes = currentTree.descendants().filter(node =>
-      !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
-      && (!visibleIds || visibleIds.has(String((node as any).__vizId ?? node.data.id ?? ''))));
+    const fitNodes = visibleNodes(currentTree, visibleIds);
     const byId = indexHierarchyNodesByIdAndAliases(fitNodes);
     // A hidden anchor's provisional coordinates are not a plaque position.
     // Later scenes reserve its real placement in the same stage-wide fit.

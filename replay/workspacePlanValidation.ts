@@ -1,7 +1,7 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
-import { getNodeId } from './displayIdentity.ts';
+import { getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import { inkBoxesCollide } from './relations/rectGeometry.ts';
 import { prepareTreeInkSubtrees, treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
@@ -59,7 +59,7 @@ export function validateWorkspacePlacement({ scenes, baseline, direction, placem
   }
   for (const [index, scene] of scenes.entries()) {
     const nodes = new Map(render(scene, coordinates.get(scene.canvas)!)
-      .filter(node => !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
+      .filter(isPaintedSyntax)
       .map(node => [getNodeId(node), node]));
     const expected = placement.coordinates[index];
     const groups: Node[][] = [[...nodes.values()].filter(node => !node.parent || !nodes.has(getNodeId(node.parent)))];

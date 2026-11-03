@@ -1,6 +1,6 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import { getNodeId } from './displayIdentity.ts';
+import { getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import type { TreeCoordinateReservation } from './treeLayout.ts';
 
 type Scene = {
@@ -16,7 +16,7 @@ type Scene = {
  * branch and its spacing from sisters. */
 export function retainCurrentRootFork(current: Scene & { coordinates: TreeCoordinateReservation }, future: Scene): void {
   const visible = (scene: Scene, node: d3.HierarchyPointNode<SyntaxNode>) =>
-    scene.visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace';
+    scene.visible.has(getNodeId(node)) && isPaintedSyntax(node);
   for (const [id, node] of current.nodes) {
     if (!visible(current, node) || (node.parent && visible(current, node.parent))) continue;
     const children = (node.children ?? []).filter(child => visible(current, child));
