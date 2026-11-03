@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PenLine } from 'lucide-react';
 import { useGeneration } from '../hooks/useGeneration';
 import { useTreeBank } from '../hooks/useTreeBank';
@@ -6,7 +6,7 @@ import { useFullscreen } from '../hooks/useFullscreen';
 import { submittedGenerationRequest } from '../services/generationState';
 import { deriveAnalysisDisplay } from '../services/analysisDisplay';
 import type { TreeBankEntrySummary } from '../services/treeBankStore';
-import type { ParseBundle } from '../types';
+import type { ParseBundle, ParseResult } from '../types';
 import TreeVisualizer, { preloadTreeVisualizer } from '../components/LazyTreeVisualizer';
 import ViewErrorBoundary from '../components/ViewErrorBoundary';
 import FailurePanel, { dismissesFailure } from '../components/FailurePanel';
@@ -39,6 +39,14 @@ const PublicApp: React.FC = () => {
   const treeBank = useTreeBank();
 
   const activeParse = analysisBundle?.analyses[activeParseIndex] ?? null;
+  // Each analysis keeps the Replay step it was left on, so leaving for the
+  // Tree Bank or another parse and coming back resumes there.
+  const replayPositions = useRef(new WeakMap<ParseResult, number>());
+  const rememberReplayPosition = useCallback((step: number) => {
+    if (activeParse) replayPositions.current.set(activeParse, step);
+  }, [activeParse]);
+  const resumeStep = (analysis: ParseResult | null | undefined) =>
+    analysis ? replayPositions.current.get(analysis) ?? null : null;
   const activeDisplay = useMemo(() => analysisBundle && activeParse
     ? deriveAnalysisDisplay(analysisBundle, activeParse, parsedSentence) : null, [analysisBundle, activeParse, parsedSentence]);
   // A running parse covers whichever screen started it; the tree shows only
@@ -51,6 +59,7 @@ const PublicApp: React.FC = () => {
   useEffect(() => { preloadTreeVisualizer().catch(() => {}); }, []);
 
   const showAnalysis = (bundle: ParseBundle, sentence: string, parseIndex: number, replayStep: number | null) => {
+    if (replayStep !== null) replayPositions.current.set(bundle.analyses[parseIndex], replayStep);
     setAnalysisBundle(bundle);
     setParsedSentence(sentence);
     setActiveParseIndex(parseIndex);
@@ -90,7 +99,10 @@ const PublicApp: React.FC = () => {
               open={screen === 'treeBank'}
               count={treeBank.entries.length}
               closedLabel="Back"
-              onToggle={() => setScreen(current => current === 'treeBank' ? (activeParse ? 'tree' : 'input') : 'treeBank')}
+              onToggle={() => {
+                setInitialReplayStep(resumeStep(activeParse));
+                setScreen(current => current === 'treeBank' ? (activeParse ? 'tree' : 'input') : 'treeBank');
+              }}
             />
             <FullscreenButton fullscreen={isFullscreen} onToggle={toggleFullscreen} />
           </div>
@@ -119,7 +131,7 @@ const PublicApp: React.FC = () => {
               <ParseChoices
                 count={analysisBundle!.analyses.length}
                 active={activeParseIndex}
-                onChoose={(index) => { setInitialReplayStep(null); setActiveParseIndex(index); }}
+                onChoose={(index) => { setInitialReplayStep(resumeStep(analysisBundle?.analyses[index])); setActiveParseIndex(index); }}
               />
             )}
 
@@ -130,6 +142,7 @@ const PublicApp: React.FC = () => {
                   <TreeVisualizer
                     initialReplayStep={initialReplayStep ?? undefined}
                     autoPlay={initialReplayStep === null}
+                    onReplayStepChange={rememberReplayPosition}
                     data={activeDisplay.displayTree}
                     animated
                     derivationStages={activeParse.derivationStages}
