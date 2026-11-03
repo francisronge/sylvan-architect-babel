@@ -863,7 +863,10 @@ export const convertSpelloutPayload = (payload, sentence) => {
   });
   // An analysis whose words are the sentence's in another order is kept for
   // display, aligned to its own reading over its own word list: it still fails
-  // (`ok` false), and `sentenceCheck` says which words are out of order.
+  // (`ok` false), and `sentenceCheck` says which words are out of order. Every
+  // stage must align to that reading as authored: an earlier group whose text
+  // follows the sentence's order across the reordering would need its text
+  // rewritten, so such an analysis fails as before.
   const reordered = new Map();
   aligned.forEach((item) => {
     if (!item.treeReading || !item.diagnostics.every(diagnostic => diagnostic.rule === 'SPELLOUT_MISMATCH')) return;

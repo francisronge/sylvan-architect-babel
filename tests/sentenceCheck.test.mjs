@@ -127,3 +127,14 @@ test('a character that folds to nothing stays with the word it follows', () => {
   const [{ sentenceCheck: check }] = bundle.analyses;
   assert.deepEqual(check.words.map(word => [word.text, word.sentenceIndex]), [['güzel', 1], ['kedi\u0307', 0]]);
 });
+
+test('an earlier group that the reordering splits is not rewritten, so the analysis fails as before', () => {
+  const stage = (workspaceForest, realizations) => ({ statement: 'Stage.', stageRecord: 'Stage.', relations: [], workspaceForest, ...(realizations ? { realizations } : {}) });
+  const payload = { derivationStages: [
+    stage([node('vp', 'VP', leaf('m', 'Mary'), leaf('l', 'likes'))], [{ nodeIds: ['m', 'l'], text: 'Mary likes' }]),
+    stage([node('s', 'S', leaf('l', 'likes'), leaf('m', 'Mary'), leaf('j', 'John'))])
+  ] };
+  const [result] = convertSpelloutPayload(payload, 'Mary likes John.');
+  assert.equal(result.ok, false);
+  assert.equal(result.sentenceCheck, undefined);
+});
