@@ -154,17 +154,28 @@ growing the current monolith and do not build two Babel implementations.
 1. Make the first screen the usable product: sentence input, Minimalism or
    X-bar, and Generate, following the existing product unless iteration reveals
    a real reason to change it. Do not add a marketing landing page before it.
-2. Keep Canopy, Derivation Replay, Tree Bank, ambiguity selection, save, and
+2. Replay is the only view (Francis, 31 Oct 2026: "we should remove Canopy
+   ... and Babel will just be Replay"): no Canopy tab, no Notes, and no labeled
+   bracketing in the public app. Keep Tree Bank, ambiguity selection, save and
    export. Preserve the established visual design unless a concrete product
-   defect requires change.
-3. Hide provider, model, and reasoning controls. Babel uses one empirically
-   selected model and a bounded server-selected generation policy while
+   defect requires change. #343 removes the views and is held until the
+   sentence bar no longer takes the tree's room: while a parse is shown the bar
+   is out of the way, and a small control ("Try another sentence") returns to
+   the default area, where the bar shows again (Francis, 31 Oct). That design
+   waits for the frontend and product design ("I want to do this later when we
+   do frontend and product design").
+3. Hide provider, model, and reasoning controls; the server chooses them and
+   ignores the browser's choice. The public model is GPT-6.1 Sol at high effort
+   (Francis, 3 Nov 2026: "Then we'll go with high."), through the OpenAI API key
+   already saved for Babel (Francis, 3 Nov: "yes we already have one saved").
+   No server route calls GPT-6.1 Sol yet: it runs only through the local Codex
+   runner. Babel uses one empirically selected model and a bounded server-selected generation policy while
    recording its complete provenance. Do not place AI or provider
    branding at the front of the experience, but disclose model generation and
    backend retention honestly through appropriate About and Privacy surfaces.
    Raw responses, hashes, provider settings, token use, latency, and other
    research details never appear in the ordinary public workspace.
-4. Retire Notes as a top-level view. `stageRecord` remains part of every stage
+4. Retire Notes as a top-level view (done in #343). `stageRecord` remains part of every stage
    and stays visible with its corresponding Replay frame. Decide separately,
    after auditing actual use, whether labeled bracketing and Miles Shang output
    remain as exports or are retired.
@@ -199,7 +210,10 @@ growing the current monolith and do not build two Babel implementations.
    2.4 min on GPT-6.1 Sol and 1.5 min on Claude Opus 5.5 (90th percentile 3.5
    and 2.5 min), about 60% of it model reasoning before any output. Design the
    progress experience for waits of minutes, not seconds, as part of building
-   the product UI. Neither model is in `GENERATION_MODEL_IDS` yet.
+   the product UI. Neither model is in `GENERATION_MODEL_IDS` yet. Vercel
+   ends a function at 300 s, and GPT-6.1 Sol at high passed 285 s on 2 of 100
+   held-out parses (31 Oct): start the request and let the browser check back
+   for the result, so no parse is cut off or lost when a phone sleeps.
 2. Make desktop and mobile layouts explicit. Verify all key flows with
    screenshots and interaction tests, not only component snapshots.
 3. Preserve local-first operation. Hosted accounts or synchronization remain a
@@ -249,10 +263,13 @@ the next tranche or a hosted account.
 2. Choose hosting, storage, and operations vendors after measuring the public
    model's cost, expected traffic, archive volume, privacy requirements, and
    recovery needs. Do not lock Babel to a vendor before those facts exist.
+   The Vercel production deployment is paused on purpose until Babel is
+   ready to ship (Francis, 3 Nov 2026).
 3. Keep secrets server-side, preserve provider request shapes, and add abuse
    controls appropriate to the selected host.
 4. The public launch direction is anonymous generation without an account and
-   without a user charge. Set explicit request, rate, and spend limits after
+   without a user charge. The hosted function has no rate or spend limit yet;
+   Francis and the agent set the per-visitor and daily limits together (3 Nov). Set explicit request, rate, and spend limits after
    selecting and costing the public model.
 5. The official hosted `/research` route must not expose experimental provider
    spending to unrestricted anonymous traffic. Choose its access method after
@@ -387,7 +404,6 @@ review authority, and correction path.
 - The detailed syntactician-workspace workflows and interaction model.
 - Whether the syntactician workspace lives inside Personal Tree Bank or beside
   it as a separate surface.
-- The single model and bounded generation policy used by public Babel.
 - The exact public anonymous-use limits after the selected model's cost and
   reliability are measured.
 - Every model admitted to the configured `/research` catalog and how each
