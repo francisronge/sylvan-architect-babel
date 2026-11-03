@@ -8,8 +8,6 @@
  * grow also takes the owner's approval as its last argument
  * (scripts/checkExceptionGrowth.mjs). */
 
-const SPOKE_ATTACHED = 'Accepted since #76: keeping the gap would cut off the spoke\'s labelled end, so attachment wins '
-  + 'and the spoke meets the plaque\'s edge.';
 const PLAQUE_CROWDED = 'Accepted (catalog #3; ROADMAP Explicitly Not Active, Francis on 23 and 24 Oct): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
   + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 
@@ -22,8 +20,6 @@ const LANDING_ROOM_APPROVAL = (note, at) => ({ by: 'Francis Ronge', on: '2026-10
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
-  x(SPOKE_ATTACHED, 'performance/german-embedded.json#', 'line-clearance', 'connector-plaque',
-    'connector(0:4)reportNP→reportN plaque(0:1 directed-path case-assignment)@read', { desktop: { '45': 1.44 } }),
   // The long-sentence preparation cases, as on their saved night4 analyses.
   x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta theme)@read', { desktop: { '13-16': 1.15 }, 'desktop-large': { '13-16': 1.15 } }),
@@ -55,10 +51,6 @@ export const EXCEPTIONS = [
     'plaque(0:0 theta Agent/Theme)@v', { desktop: { '31-33': 1.19 }, 'desktop-large': { '31-33': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/head-movement-ordinary-wrapper.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta external participant in living)@i_v', { desktop: { '23-31': 1.22 }, 'desktop-large': { '23-31': 1.22 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/inserted-adjunction-segment.json#', 'mark-distance', 'plaque',
-    'plaque(1:7 agreement: third-person masculine singular; tens)@mi', { desktop: { '38-43': 1.54 }, 'desktop-large': { '38-43': 1.54 } },
-    { by: 'Francis Ronge', on: '2026-10-23', note: 'Move first, then adjoin: the movement now plays before the phrase it lands in is merged into a larger one. Francis reviewed the click-through side-by-side of all seven changed fixtures on 23 Oct in the lead session (\'Looked at the replay page, looks good.\'): the relative clause\'s movements play before the matrix builds, so stage 3 is laid out differently and this plaque sits at 1.55 of its reach instead of 1.29.',
-      accepts: { desktop: { '45-50': 1.55 }, 'desktop-large': { '45-50': 1.55 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/native-plaque-footprints.json#', 'mark-distance', 'plaque',
     'plaque(1:2 theta Agent)@v', { desktop: { '20-25': 1.19, '26-31': 1.29 }, 'desktop-large': { '20-25': 1.19, '26-31': 1.29 } },
     { by: 'Francis Ronge', on: '2026-10-27', note: 'Frames 24-29 are main\'s entry, unchanged and listed for the reason given; '
@@ -95,7 +87,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/sol-spanish-qr.json#/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:0 theta Agent/Theme)@v', { desktop: { '31-33': 1.19 }, 'desktop-large': { '31-33': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-distance', 'plaque',
-    'plaque(0:1 participialForm: default neuter singular, not ag)@helpV', { desktop: { '16-30': 1.37 }, 'desktop-large': { '16-30': 1.37 } }),
+    'plaque(0:1 participialForm: default neuter singular, not ag)@helpV', { desktop: { '18-30': 1.37 }, 'desktop-large': { '18-30': 1.37 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-distance', 'plaque',
     'plaque(3:2 finiteFeatures: present, third-person singular)@matrixI', { desktop: { '34-35': 1.33 }, 'desktop-large': { '34-35': 1.33 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/1', 'mark-distance', 'plaque',

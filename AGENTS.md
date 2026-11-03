@@ -164,8 +164,11 @@ focused tests and captures plus `npm run verify:all`.
   beside it again in new parents attaching it to existing structure.
   Recognizing movement never requires or infers silence; the model decides
   pronunciation separately.
-- Separate relations get separate moments in authored order, with one
-  exception: a relation needing syntax that a later relation of its stage
+- Separate relations get separate moments in authored order, with two
+  exceptions. A phrasal movement whose landing joins a parent above another
+  movement's head complex plays after that head movement (head movement before
+  phrasal movement in one stage, approved by Francis on 23 Oct 2026), unless
+  the head movement names the phrasal landing. And a relation needing syntax that a later relation of its stage
   introduces (one of its anchors, or the material its own landing or new parent
   attaches to) plays right after that relation's moment, or after the last such
   moment. For a movement these anchors are its source and landing, and it also

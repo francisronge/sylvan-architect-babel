@@ -41,8 +41,6 @@ export const EXCEPTIONS = [
     { mobile: { '48>49': 28.17 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/relative-clause-waiting-clearance.json#', 'first-paint-continuity', 'off-canvas:moved', 'stage 5',
     { mobile: { '53>54': 144.66 } }),
-  x(MOVED_OFF_CANVAS, 'replay-regressions/reviewed-construction.json#/cases/0', 'first-paint-continuity', 'off-canvas:moved', 'stage 12',
-    { mobile: { '43>44': 57.45 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/workspace-component-lifetime.json#/cases/2', 'first-paint-continuity', 'off-canvas:moved', 'stage 5',
     { mobile: { '53>54': 144.66 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/workspace-arabic-continuity.json#/cases/9', 'first-paint-continuity', 'jump:relayout', 'stage 2',
