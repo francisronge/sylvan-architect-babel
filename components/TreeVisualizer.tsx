@@ -192,11 +192,20 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     if (at < chars.length) spans.push([chars.slice(at).join(''), false]);
     return spans;
   }, [sentenceCheck]);
-  // The sentence's closing punctuation also ends the tree's reading line.
-  const sentenceClosing = useMemo(() => {
-    if (!sentenceCheck) return '';
-    const chars = [...sentenceCheck.sentence.normalize('NFC')];
-    return chars.slice(Math.max(...sentenceCheck.words.map(word => word.span[1]))).join('').trim();
+  // The tree's own reading as Babel checked it, its words found in tree order.
+  const treeReadingSpans = useMemo(() => {
+    if (!sentenceCheck) return [];
+    const reading = sentenceCheck.treeReading, spans: [string, boolean][] = [];
+    let at = 0;
+    for (const word of sentenceCheck.words) {
+      const start = reading.indexOf(word.text, at);
+      if (start < 0) continue;
+      if (start > at) spans.push([reading.slice(at, start), false]);
+      spans.push([word.text, word.outOfOrder]);
+      at = start + word.text.length;
+    }
+    if (at < reading.length) spans.push([reading.slice(at), false]);
+    return spans;
   }, [sentenceCheck]);
   const openingSelectionRef = useRef<{ steps: typeof playbackSteps; startedAt: number } | null>(null);
   const collectionRevealRef = useRef<{ steps: typeof playbackSteps; stepIndex: number; startedAt: number } | null>(null);
@@ -903,10 +912,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             </dd>
             <dt className="text-[8px] font-black uppercase tracking-[0.3em] text-emerald-100/80">Model&apos;s tree</dt>
             <dd className="serif italic text-[15px] text-emerald-50/80">
-              {sentenceCheck.words.map((word, index) => (
-                <span key={index} className={word.outOfOrder ? 'text-amber-400' : undefined}>{index && sentenceCheck.spaced ? ' ' : ''}{word.text}</span>
+              {treeReadingSpans.map(([text, outOfOrderSpan], index) => (
+                <span key={index} className={outOfOrderSpan ? 'text-amber-400' : undefined}>{text}</span>
               ))}
-              {sentenceClosing}
             </dd>
           </dl>
         )}
