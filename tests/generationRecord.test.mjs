@@ -15,7 +15,7 @@ import {
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 import {
   createTreeBankBundleSnapshot
-} from '../treeBankSnapshot.js';
+} from '../services/treeBankSnapshot.js';
 
 const HASH_RE = /^[0-9a-f]{64}$/;
 const SYSTEM_TEXT = 'System contract text that must never be embedded.';

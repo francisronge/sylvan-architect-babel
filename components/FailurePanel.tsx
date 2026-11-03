@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useEffect, useId, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Download, Eye, X } from 'lucide-react';
 import { GenerationRecord, ParseFailure, RawOutputArtifact } from '../types';
-import { createFileDownloads, failureRecordBlob, rawOutputBlob } from './fileDownload';
+import { createFileDownloads, failureRecordBlob, rawOutputBlob } from '../services/fileDownload';
 import ViewErrorBoundary from './ViewErrorBoundary';
 
 const FailedOutputInspection = lazy(() => import('./FailedOutputInspection'));

@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
-import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
+import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../services/treeBankSnapshot.js';
 import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/raw/what-did-mia-see.xbar.json', import.meta.url), 'utf8'));

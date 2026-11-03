@@ -1,3 +1,8 @@
+// Version-1 Tree Bank entries are read through loadTreeBankBundleSnapshot.
+// Current saves go through treeBankRecords.ts, which keeps the received bundle
+// whole; createTreeBankBundleSnapshot is the earlier field projection, which
+// the app no longer calls (only tests do), and it drops fields that current
+// saves keep, such as an analysis's sentenceCheck.
 const CURRENT_PROVENANCE_FIELDS = [
   'modelRoute',
   'framework',

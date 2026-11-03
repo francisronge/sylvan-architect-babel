@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
-import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
+import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../services/treeBankSnapshot.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { runQualificationAttempt } from '../contractQualification/run.js';
 

@@ -11,7 +11,7 @@ import type {
 } from "./treeBankRecords.ts";
 import type { ParseBundle } from "../types.ts";
 import { canonicalJson, copyJsonData } from "../derivationalDatabase/jsonData.js";
-import { loadTreeBankBundleSnapshot } from "../treeBankSnapshot.js";
+import { loadTreeBankBundleSnapshot } from "./treeBankSnapshot.js";
 import { assertBundleDisplayable } from "./analysisDisplay.ts";
 export type { TreeBankSaveInput } from "./treeBankRecords.ts";
 export interface TreeBankEntrySummary {

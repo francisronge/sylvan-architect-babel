@@ -9,7 +9,7 @@ import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 import { runQualificationAttempt } from '../contractQualification/run.js';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { buildQualificationAnalysisEvidence } from '../contractQualification/review.js';
-import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
+import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../services/treeBankSnapshot.js';
 import { parseSentence, ParseServiceError } from '../services/parseService.ts';
 import { MAX_RAW_OUTPUT_BODY_BYTES, MAX_RAW_OUTPUT_BYTES } from '../server/babelParser/validationErrors.js';
 import { createHash } from 'node:crypto';

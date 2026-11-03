@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
-import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
+import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../services/treeBankSnapshot.js';
 
 const stage = workspaceForest => ({ statement: 'Construct the expression.',
   stageRecord: 'The selected words combine in their authored order.', relations: [], workspaceForest });
