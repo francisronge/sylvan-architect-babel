@@ -48,7 +48,9 @@ export const EXCEPTIONS = [
     { by: 'Francis Ronge', on: '2026-10-27', note: 'plaque reach: the theta Speaker plaque moves from 1.15x its reach to beside its anchor, zooming the stage 1.7%; "I explicitly appove the arabic camera jump" (lead session)',
       accepts: { desktop: { '43>44,44>43': 38.19 } } }),
   x(STAGE_RELAYOUT, 'replay-regressions/compact-current-root.json#/cases/0', 'first-paint-continuity', 'off-canvas:unmoved', 'stage 3',
-    { mobile: { '16>17': 56.53 } }),
+    { mobile: { '16>17': 56.53 } },
+    { by: 'Francis Ronge', on: '2026-11-03', note: 'Phone only, 3 Nov 2026 in the lead session, asked: "Accept a phone-only jump? In one tree, a word starts 57 px off the left edge of a phone screen when a stage begins. The only fix is to zoom out on that frame, which breaks the no-jump rule." Answer: "3. Yes."',
+      accepts: { mobile: { '16>17': 56.53 } } }),
   // Binding each hop to its new trace removes the saved analysis's off-canvas
   // unmoved pose at stage 10 on 711ef7d; the final subject raising now first
   // paints part of its landing beyond the canvas.
