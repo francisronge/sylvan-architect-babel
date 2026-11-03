@@ -3,32 +3,43 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { OPENAI_BACKGROUND_POLL_INTERVAL_MS } from './routeConfig.js';
 
-// Debug payloads hold user sentences and raw model output, so only the owner may read them.
-const writePrivateDebugFile = (fileName, contents) => {
-  const dir = path.resolve(process.cwd(), '.artifacts', 'debug-model-payloads');
-  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const file = path.join(dir, fileName);
-  fs.writeFileSync(file, contents, { encoding: 'utf8', mode: 0o600 });
-  return file;
-};
+/** A file-name piece; `dots` keeps periods, as in model names and response ids. */
+const fileNamePart = (value, fallback, { dots = true } = {}) =>
+  String(value || fallback).replace(dots ? /[^a-z0-9._-]+/gi : /[^a-z0-9_-]+/gi, '-').toLowerCase();
 
-export const writeDebugModelPayload = ({ stage = 'unknown', model = 'unknown', sentence = '', rawText = '' }) => {
+/**
+ * Writes a timestamped debug file outside production and returns its path, or
+ * null. Debug payloads hold user sentences and raw model output, so only the
+ * owner may read them. A failed write never fails the parse.
+ */
+const writePrivateDebugFile = (nameParts, extension, contents) => {
   if (process.env.NODE_ENV === 'production') return null;
   try {
-    const safeStage = String(stage || 'unknown').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
-    const safeModel = String(model || 'unknown').replace(/[^a-z0-9._-]+/gi, '-').toLowerCase();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return writePrivateDebugFile(`${timestamp}-${safeStage}-${safeModel}.txt`, [
-      `sentence: ${sentence}`,
-      `model: ${model}`,
-      `stage: ${stage}`,
-      '',
-      String(rawText || '')
-    ].join('\n'));
+    const dir = path.resolve(process.cwd(), '.artifacts', 'debug-model-payloads');
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    const file = path.join(dir, `${[timestamp, ...nameParts].join('-')}.${extension}`);
+    fs.writeFileSync(file, contents, { encoding: 'utf8', mode: 0o600 });
+    return file;
   } catch {
     return null;
   }
 };
+
+export const writeDebugModelPayload = ({ stage = 'unknown', model = 'unknown', sentence = '', rawText = '' }) =>
+  writePrivateDebugFile([fileNamePart(stage, 'unknown', { dots: false }), fileNamePart(model, 'unknown')], 'txt', [
+    `sentence: ${sentence}`,
+    `model: ${model}`,
+    `stage: ${stage}`,
+    '',
+    String(rawText || '')
+  ].join('\n'));
+
+/** A provider's non-2xx answer, keeping its status and body for classification and failure records. */
+const providerHttpError = (message, response, payload, fields = {}) =>
+  Object.assign(new Error(message), { status: response.status, ...fields, responseBody: payload.text });
+
+const providerErrorMessage = (payload, fallback) => String(payload.json?.error?.message || payload.text || fallback);
 
 const OPENAI_RESPONSE_PENDING_STATUSES = new Set(['queued', 'in_progress']);
 
@@ -42,11 +53,8 @@ const fetchOpenAIResponseJson = async ({ apiKey, responseId, abortSignal }) => {
   });
   const payload = await readResponseText(response, abortSignal);
   if (!response.ok) {
-    const error = new Error(String(payload.json?.error?.message || payload.text || `OpenAI response polling failed (${response.status})`));
-    error.status = response.status;
-    error.code = payload.json?.error?.code;
-    error.responseBody = payload.text;
-    throw error;
+    throw providerHttpError(providerErrorMessage(payload, `OpenAI response polling failed (${response.status})`),
+      response, payload, { code: payload.json?.error?.code });
   }
   return payload;
 };
@@ -75,19 +83,9 @@ const cancelOpenAIBackgroundResponse = async ({ apiKey, responseId }) => {
   }
 };
 
-const writeOpenAIDebugResponseState = ({ model, responseId, stage, payload }) => {
-  if (process.env.NODE_ENV === 'production') return null;
-  try {
-    const safeModel = String(model || 'unknown').replace(/[^a-z0-9._-]+/gi, '-').toLowerCase();
-    const safeId = String(responseId || 'no-id').replace(/[^a-z0-9._-]+/gi, '-').toLowerCase();
-    const safeStage = String(stage || 'state').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return writePrivateDebugFile(`${timestamp}-openai-${safeStage}-${safeModel}-${safeId}.json`,
-      `${JSON.stringify(payload, null, 2)}\n`);
-  } catch {
-    return null;
-  }
-};
+const writeOpenAIDebugResponseState = ({ model, responseId, stage, payload }) => writePrivateDebugFile(
+  ['openai', fileNamePart(stage, 'state', { dots: false }), fileNamePart(model, 'unknown'), fileNamePart(responseId, 'no-id')],
+  'json', `${JSON.stringify(payload, null, 2)}\n`);
 
 const waitForOpenAIResponseCompletion = async ({
   apiKey,
@@ -166,11 +164,8 @@ export const generateOpenAIStructuredContent = async ({
 
   const payload = await readResponseText(response, abortSignal);
   if (!response.ok) {
-    const error = new Error(String(payload.json?.error?.message || payload.text || `OpenAI request failed (${response.status})`));
-    error.status = response.status;
-    error.code = payload.json?.error?.code;
-    error.responseBody = payload.text;
-    throw error;
+    throw providerHttpError(providerErrorMessage(payload, `OpenAI request failed (${response.status})`),
+      response, payload, { code: payload.json?.error?.code });
   }
 
   const backgroundResponseId = background ? String(payload.json?.id || '').trim() : '';
@@ -278,10 +273,7 @@ export const generateAnthropicStructuredContent = async ({
 
   const payload = await readResponseText(response, abortSignal);
   if (!response.ok) {
-    const error = new Error(String(payload.json?.error?.message || payload.text || `Anthropic request failed (${response.status})`));
-    error.status = response.status;
-    error.responseBody = payload.text;
-    throw error;
+    throw providerHttpError(providerErrorMessage(payload, `Anthropic request failed (${response.status})`), response, payload);
   }
 
   const outputText = Array.isArray(payload.json?.content)
@@ -338,12 +330,7 @@ const requestProviderJson = async (url, apiKey, body, abortSignal, provider) => 
     signal: abortSignal
   });
   const payload = await readResponseText(response, abortSignal);
-  if (!response.ok) {
-    const error = new Error(`${provider} request failed (${response.status}).`);
-    error.status = response.status;
-    error.responseBody = payload.text;
-    throw error;
-  }
+  if (!response.ok) throw providerHttpError(`${provider} request failed (${response.status}).`, response, payload);
   return payload;
 };
 

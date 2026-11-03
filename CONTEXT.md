@@ -7,11 +7,10 @@ the product and evaluation work that still remains.
 ## Language
 
 **Babel product**:
-The not-yet-shipped application comprising the public syntax generator and the
-research workbench over one shared contract, engine, renderer, Tree Bank, and
-derivational record system. Its roadmap is a minimum product boundary, not a
-frozen feature list.
-_Avoid_: Relation Orchard, research release
+The not-yet-shipped public application: the syntax generator, Replay and the
+Personal Tree Bank, over one contract, engine, renderer and derivational record
+system. Its roadmap is a minimum product boundary, not a frozen feature list.
+_Avoid_: Relation Orchard, research release, research workbench
 
 **Relation Orchard**:
 The already-published research artifact that presents Babel's curated relation
@@ -39,20 +38,23 @@ The single empirically selected model and settings that power the public syntax
 generator without exposing provider controls to ordinary users.
 _Avoid_: research model picker
 
-**Research model access**:
-Explicit provider, model, and native-control access for inspecting and comparing
-runs across proprietary and open-weight candidates. Francis chooses every model
-in the configured catalog. Every route must meet the same product-quality
-standard even though model analyses may differ.
-_Avoid_: public generation policy
+**Research workbench**:
+A tool outside the public app for inspecting and comparing runs across
+proprietary and open-weight models: explicit provider, model and native-control
+access, raw outputs and provenance. Francis chooses every model in its catalog.
+It is not part of the public app; either only Francis uses it, as a test area
+for models, or a select few people get access, possibly with their own API keys
+(Francis, 3 Nov 2026). Today the local app's model menu and the qualification
+runners play this role.
+_Avoid_: public generation policy, `/research` route
 
 **Babel product launch**:
 Public Babel at `/` working in production: qualified public generation,
-complete Replay, the Personal Tree Bank, bounded operations and the Generation
-Archive (every hosted parse kept for our own use, disclosed in the privacy
-note). The research workbench at `/research`, the Reviewed Derivational Corpus
-and the benchmark come after launch. Francis, 31 Oct 2026: "we're only
-shipping public babel".
+complete Replay, the Personal Tree Bank with its first, minimal workbench,
+bounded operations and the Generation Archive (every hosted parse kept for our
+own use, disclosed in the privacy note). The Reviewed Derivational Corpus and
+the benchmark come after launch, and the research workbench is not part of the
+public app. Francis, 31 Oct 2026: "we're only shipping public babel".
 _Avoid_: Relation Orchard publication, benchmark release
 
 **Benchmark**:
@@ -63,8 +65,9 @@ _Avoid_: contract qualification, product verification
 
 **Personal Tree Bank**:
 The user's browser-local library of explicitly saved Babel work, annotations,
-collections, and exports. Saving or deleting here does not control backend
-research retention by the official hosted service.
+collections, and exports. It grows into a syntactician's workbench, starting
+simple and minimal and not opinionated about method. Saving or deleting here
+does not control backend research retention by the official hosted service.
 _Avoid_: Generation Archive, Reviewed Derivational Corpus
 
 **Generation Archive**:

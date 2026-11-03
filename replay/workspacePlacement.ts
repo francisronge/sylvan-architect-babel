@@ -12,6 +12,7 @@ import { treeInkMetricKey } from './treeInkMetricKey.ts';
 import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { stageStepOrder } from './stageStepOrder.ts';
 import type { PlaybackStep } from './types.ts';
 import { extentOverlap, obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { visibleChildIds, visibleComponentNodes, visibleParentId } from './visibleComponent.ts';
@@ -95,8 +96,7 @@ export function reserveWorkspaceAttachments({
 
   const originals = new Map(stageSizes.map(([stage, size]) => [stage, coordinatesForStage(stage, size)]));
   const orderedSteps = [...steps].sort((a, b) => (a.replayFrameIndex! - b.replayFrameIndex!)
-    || ((a.replayStageStepIndex ?? (a.replayKind === 'macro' ? Infinity : 0))
-      - (b.replayStageStepIndex ?? (b.replayKind === 'macro' ? Infinity : 0))));
+    || (stageStepOrder(a) - stageStepOrder(b)));
   const stageRows = new Map(stageSizes.map(([stage]) => [stage,
     stageVerticalGeometry(orderedSteps.filter(step => step.replayFrameIndex === stage)).rowHeight]));
   // Released with the scenes when this placement returns.

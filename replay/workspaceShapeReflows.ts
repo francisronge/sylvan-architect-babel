@@ -1,6 +1,6 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import { getNodeId } from './displayIdentity.ts';
+import { getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import { authoredDisplayWord } from './displayWordMaterial.ts';
 import type { TreeCoordinateReservation } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
@@ -52,8 +52,7 @@ function detectWorkspaceReflows<S extends Scene>(
   const signatures = new Map<string, number>(), topologies = new Map<string, number>();
   const snapshots = scenes.map(scene => {
     const visible = new Set(scene.step.replayVisibleNodeIds);
-    const nodes = new Map([...scene.nodes].filter(([id, node]) => visible.has(id)
-      && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace'));
+    const nodes = new Map([...scene.nodes].filter(([id, node]) => visible.has(id) && isPaintedSyntax(node)));
     const parents = new Map<string, string>(), children = new Map<string, string[]>();
     for (const [id, node] of nodes) {
       const parentId = node.parent && getNodeId(node.parent);

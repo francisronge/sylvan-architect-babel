@@ -7,7 +7,7 @@ import { assignAnchorRailBands } from './anchorRailBands.ts';
 import { domainPlan } from './domainPlan.ts';
 import { fallbackDrawing } from './fallbackTopology.ts';
 import { featurePlan } from './featurePlan.ts';
-import { LARGE_ANCHOR_ARRAY_THRESHOLD, compileLargeAnchorSets, railEntrySequence } from './largeAnchorSets.ts';
+import { compileLargeAnchorSets, railEntrySequence } from './largeAnchorSets.ts';
 import { movementPlan } from './movementPlan.ts';
 import { pfPlan } from './pfPlan.ts';
 import { createPlanCoalescer } from './planCoalescence.ts';
@@ -845,6 +845,5 @@ export const compileDispatchedRelationRenderPlan = (
   };
 };
 
-export { LARGE_ANCHOR_ARRAY_THRESHOLD };
 
 const registeredPlanCompilers = { ...movementPlan, ...structuralPlan, ...featurePlan, ...domainPlan, ...pfPlan } satisfies RegisteredPlanCompilers;

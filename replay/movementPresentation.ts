@@ -96,7 +96,7 @@ const resolveMovementStepForLink = (
 
 const resolveVisibleMovementTargetNode = (nodeById: Map<string, HierNode>, link: ResolvedRelationLink): HierNode | undefined => nodeById.get(String(link?.targetNodeId || ''));
 
-export const buildDisplayRelationLinks = (resolvedRelationLinks: ResolvedRelationLink[] | undefined): ResolvedRelationLink[] => (resolvedRelationLinks || []).map((link) => ({
+const buildDisplayRelationLinks = (resolvedRelationLinks: ResolvedRelationLink[] | undefined): ResolvedRelationLink[] => (resolvedRelationLinks || []).map((link) => ({
   ...link,
   relationIndex: String(link?.relationIndex || '').trim(),
   relation: String(link?.relation || link?.operation || '').trim() || undefined,

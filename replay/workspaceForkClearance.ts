@@ -26,7 +26,7 @@ export function currentForkBranchesClear(parent: Point, children: readonly Child
 
 /** The widest fork the packer tries: every child's offset from the parent
  * times this factor. */
-export const FORK_WIDENING_LIMIT = 512;
+const FORK_WIDENING_LIMIT = 512;
 
 /** Whether no widening clears a fork's branches. Widening scales every child's
  * offset from the parent, so a branch passing over an inner sister crosses her

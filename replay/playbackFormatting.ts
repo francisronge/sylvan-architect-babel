@@ -91,6 +91,5 @@ export const stripSemanticPayloadFromMicrostep = (step: PlaybackStep): PlaybackS
   sourceKind: 'microstep',
   detailBlocks: undefined,
   note: undefined,
-  movementSerializationStatus: undefined,
   movementDiagnostics: undefined
 });

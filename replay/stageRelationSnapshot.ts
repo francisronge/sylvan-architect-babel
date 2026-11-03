@@ -17,7 +17,7 @@ import {
 import { buildRelationReplayBlocks } from './replayPanel.ts';
 import { mergeReplayDetailBlocks } from './replayPanelFormatting.ts';
 import type { ReplayStageContext } from './stageContext.ts';
-import type { RelationPlacement, StageRelationPlan } from './stageRelationPlan.ts';
+import { ownsTrajectoryPlacement, type RelationPlacement, type StageRelationPlan } from './stageRelationPlan.ts';
 import {
   collectSyntaxSubtreeNodeIds,
   findExactNodeByIdInForest,
@@ -54,7 +54,7 @@ export const createStageRelationSnapshots = (
     constructionPreviousWorkspaceRoots,
     workspaceRoots,
     frameRelationSteps,
-    authoredPreviousRelationRelationLinks,
+    earlierStageRelationLinks,
     fallbackTransitionOwnership,
     nonMovementTreeTransitionRelationIndexes,
     frameHasNonMovementTreeTransition,
@@ -87,7 +87,7 @@ export const createStageRelationSnapshots = (
     const inactiveTargetNodeIds = new Set<string>();
     const activeTargetNodeIds = new Set(relationPlacements
       .filter((placement) => activeRelationIndexes.has(placement.relationIndex))
-      .filter((placement) => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
+      .filter(ownsTrajectoryPlacement)
       .flatMap((placement) => placement.authoredTargetNodeIds)
       .filter(Boolean));
     const addInactiveTargetSubtree = (targetNodeId: string, preserveTargetShell = false) => {
@@ -125,7 +125,7 @@ export const createStageRelationSnapshots = (
         const placement = relationPlacements.find((candidate) => candidate.relationIndex === relationIndex);
         // A carried chain can still draw a trajectory without owning a
         // new tree transition. Its existing landing must stay visible.
-        if (!placement?.renderableTrajectory && !placement?.ownsPhrasalTreeTransition)
+        if (!placement || !ownsTrajectoryPlacement(placement))
           return;
         if (placement?.ownsPhrasalTreeTransition) {
           placement.authoredTargetNodeIds.filter(id => !activeTargetNodeIds.has(id)).forEach(id => addInactiveTargetSubtree(id));
@@ -153,7 +153,7 @@ export const createStageRelationSnapshots = (
       .filter((nodeId) => Boolean(nodeId) && !activeLandingHostNodeIds.has(nodeId)));
   };
   const buildActiveRelationLinks = (activeRelationIndexes: Set<number>): ResolvedRelationLink[] => {
-    const links: ResolvedRelationLink[] = [...authoredPreviousRelationRelationLinks];
+    const links: ResolvedRelationLink[] = [...earlierStageRelationLinks];
     const seen = new Set(links.map((link) => resolvedRelationLinkKey(link)));
     Array.from(activeRelationIndexes)
       .sort((left, right) => left - right)
@@ -181,7 +181,7 @@ export const createStageRelationSnapshots = (
         && !fallbackTransitionOwnership.has(relationIndex)));
     const activeTreeTransitionTargetNodeIds = new Set(relationPlacements
       .filter((placement) => activeRelationIndexes.has(placement.relationIndex))
-      .filter((placement) => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
+      .filter(ownsTrajectoryPlacement)
       .flatMap((placement) => placement.authoredTargetNodeIds)
       .filter(Boolean));
     const pendingMovementNodeIds = new Set(frameRelationSteps.flatMap((relation, relationIndex) => {
@@ -469,8 +469,7 @@ export const createStageRelationSnapshots = (
       ? placement.sourceNodeIds
       : placement.relationAnchorNodeIds.filter((nodeId) => nodeId !== resolvedTargetNodeId);
     const neutralOwnership = fallbackTransitionOwnership.get(placement.relationIndex);
-    const authoredRelationIndex = Number.isInteger(placement.relation.authoredRelationIndex)
-      ? placement.relation.authoredRelationIndex : placement.relationIndex;
+    const { authoredRelationIndex } = placement.relation;
     return {
       ...frameSemanticStep,
       ...(neutralOwnership ? {
@@ -486,12 +485,7 @@ export const createStageRelationSnapshots = (
       } : {}),
       operation: placement.relationLabel as DerivationOperation,
       replayKind: 'relation',
-      replayRelationIdentity: {
-        stageIndex: index,
-        relationIndex: Number.isInteger(placement.relation.authoredRelationIndex)
-          ? placement.relation.authoredRelationIndex
-          : placement.relationIndex
-      },
+      replayRelationIdentity: { stageIndex: index, relationIndex: authoredRelationIndex },
       targetNodeId: resolvedTargetNodeId || frameSemanticStep.targetNodeId,
       targetLabel: getReplayNodeOvertYieldFromCanvas(relationReplaySnapshot.canvasData, resolvedTargetNodeId)
         || getReplayNodeDisplayFromCanvas(relationReplaySnapshot.canvasData, resolvedTargetNodeId)

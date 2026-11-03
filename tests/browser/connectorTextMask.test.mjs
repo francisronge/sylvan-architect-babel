@@ -1,33 +1,28 @@
-import { inlineWorkerPlugin } from '../../scripts/inlineWorkerPlugin.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { build } from 'esbuild';
 import { chromium } from 'playwright';
 import { readFile } from 'node:fs/promises';
 import { buildQualificationReviewRuntime } from '../../scripts/buildContractQualificationReviewRuntime.mjs';
+import { bundleTsxEntry } from '../helpers/browserBundle.mjs';
 
 test('neutral connectors pass under visible tree text through zoom and Fit', async () => {
   // Frame 41 holds a counter-lane connector for Principle B below the relative clause.
   const fixture = JSON.parse(await readFile(new URL('../../fixtures/replay-regressions/workspace-arabic-continuity.json', import.meta.url), 'utf8'));
   const { sentence, inputTokens, derivationStages } = fixture.cases[9];
   const runtime = await buildQualificationReviewRuntime();
-  const compiled = await build({
-    plugins: [inlineWorkerPlugin()], absWorkingDir: new URL('../../', import.meta.url).pathname,
-    stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
+  const script = await bundleTsxEntry(`import React from 'react'; import {createRoot} from 'react-dom/client';
       import TreeVisualizer from './components/TreeVisualizer';
       import {buildDerivationCanvasData} from './replay/replayCanvas.ts';
       const stages = ${JSON.stringify(derivationStages)};
       createRoot(document.getElementById('root')).render(<TreeVisualizer data={buildDerivationCanvasData(stages.at(-1).workspaceForest)}
         derivationStages={stages} sentence={${JSON.stringify(sentence)}} inputTokens={${JSON.stringify(inputTokens)}}
-        animated autoPlay={false} initialReplayStep={40} />);`,
-    loader: 'tsx', resolveDir: new URL('../../', import.meta.url).pathname },
-    bundle: true, write: false, format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' } });
+        animated autoPlay={false} initialReplayStep={40} />);`);
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const errors = [];
     page.on('pageerror', error => errors.push(String(error)));
-    await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${compiled.outputFiles[0].text}</script>`);
+    await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${script}</script>`);
     await page.waitForFunction(() => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === '40'
       && document.querySelector('.vr-fallback-connector path[mask]'));
     const inspect = () => page.evaluate(() => {

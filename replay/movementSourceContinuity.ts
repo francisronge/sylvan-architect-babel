@@ -7,7 +7,8 @@ import { motionFrame, noticeableMotion, replayMotionFaults } from './motionRule.
 import { inkBoxesCollide } from './relations/rectGeometry.ts';
 import { prepareTreeInkSubtrees, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
-import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { paintedSyntaxById, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { stageStepOrder } from './stageStepOrder.ts';
 import type { PlaybackStep } from './types.ts';
 import { extentOverlap, obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { currentForkBranchesClear, relativeChildInk } from './workspaceForkClearance.ts';
@@ -53,17 +54,14 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
     const canvas = step.replayCanvasData, size = sizes.get(step.replayFrameIndex!);
     return canvas && size && reserved.has(canvas) ? [{ step, canvas, size, visible: new Set(step.replayVisibleNodeIds) }] : [];
   }).sort((a, b) => (a.step.replayFrameIndex! - b.step.replayFrameIndex!)
-    || ((a.step.replayStageStepIndex ?? (a.step.replayKind === 'macro' ? Infinity : 0))
-      - (b.step.replayStageStepIndex ?? (b.step.replayKind === 'macro' ? Infinity : 0))));
+    || (stageStepOrder(a.step) - stageStepOrder(b.step)));
   const compute = (allowed: ReadonlySet<string>, branched?: Set<string>): Reservations => {
   let result = reserved;
   const scenes = new Map<number, Map<string, Node>>();
   const positioned = (index: number, coordinates: Reservations): Map<string, Node> => {
     const { canvas, size, visible } = frames[index], root = d3.hierarchy(canvas);
     applyVizIds(root);
-    return new Map(layoutSyntaxTree(root, size, direction, coordinates.get(canvas), visible).descendants()
-      .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
-      .map(node => [getNodeId(node), node]));
+    return paintedSyntaxById(root, size, direction, coordinates.get(canvas), visible);
   };
   const sceneAt = (index: number) => {
     let nodes = scenes.get(index);
@@ -391,9 +389,7 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
     const faultsOf = (coordinates: Reservations) => new Map(replayMotionFaults({ frames: frames.map(({ step, canvas, size, visible }) => {
       const root = d3.hierarchy(canvas);
       applyVizIds(root);
-      return motionFrame(step, new Map(layoutSyntaxTree(root, size, direction, coordinates.get(canvas), visible).descendants()
-        .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
-        .map(node => [getNodeId(node), node])), getNodeId);
+      return motionFrame(step, paintedSyntaxById(root, size, direction, coordinates.get(canvas), visible), getNodeId);
     }) }, PLANNING).map(fault => [`${fault.step} ${fault.kind} ${fault.node}`, fault.distance] as const));
     let faults: Map<string, number> | undefined;
     for (const key of trials) {

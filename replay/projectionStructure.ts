@@ -61,7 +61,7 @@ export const writesProjectionLevels = (roots: readonly ProjectionNode[]): boolea
 
 /** Whether some label writes an intermediate projection level (X′ or "X
  * projection"), as X-bar notation does. */
-export const writesIntermediateLevels = (roots: readonly ProjectionNode[]): boolean => {
+const writesIntermediateLevels = (roots: readonly ProjectionNode[]): boolean => {
   const pending = [...roots];
   while (pending.length) {
     const node = pending.pop();

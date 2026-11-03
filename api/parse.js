@@ -19,7 +19,7 @@ const accessPolicy = readParseAccessPolicy(process.env, { requireOrigin: true, a
 // (2.8 s at most across 1,440 saved runs, measured locally), sending it, and
 // cold-start time. tests/hostedParseDeadline.test.mjs keeps the two in step.
 export const HOSTED_FUNCTION_MAX_DURATION_MS = 300_000;
-export const HOSTED_RESPONSE_HEADROOM_MS = 15_000;
+const HOSTED_RESPONSE_HEADROOM_MS = 15_000;
 export const HOSTED_PROVIDER_DEADLINE_MS = HOSTED_FUNCTION_MAX_DURATION_MS - HOSTED_RESPONSE_HEADROOM_MS;
 
 const send = (res, { status, body }) => res.status(status).json(body);

@@ -1,5 +1,6 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
+import { isPaintedSyntax } from './displayIdentity.ts';
 import type { TreeDirection } from './treeLayout.ts';
 
 type Point = { x: number; y: number };
@@ -17,7 +18,7 @@ type Point = { x: number; y: number };
 export function siblingContoursOrdered<N extends d3.HierarchyNode<SyntaxNode> & Partial<Point>>(
   current: Iterable<N>, direction: TreeDirection = 'ltr', point: (node: N) => Point = node => ({ x: node.x!, y: node.y! })
 ): boolean {
-  const syntax = new Set([...current].filter(node => !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace'));
+  const syntax = new Set([...current].filter(isPaintedSyntax));
   const sign = direction === 'rtl' ? -1 : 1;
   for (const root of syntax) {
     if (root.parent && syntax.has(root.parent as N)) continue;

@@ -466,7 +466,7 @@ export const relationValueConcepts = (index: Tier2SynonymIndex, key: string,
   return [...concepts];
 };
 
-export const isWholeClauseJudgmentRelation = (name: string): boolean =>
+const isWholeClauseJudgmentRelation = (name: string): boolean =>
   /\b(?:grammaticality|convergence)\b/u.test(normalizeTier2Synonym(name))
   || /\b(?:derivational|derivation|analysis|well formedness|completed clause)\b.*\b(?:judgment|assessment)\b/u
     .test(normalizeTier2Synonym(name));

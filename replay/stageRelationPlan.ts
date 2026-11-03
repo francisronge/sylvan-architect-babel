@@ -45,6 +45,12 @@ export interface RelationPlacement {
   ownsPhrasalTreeTransition: boolean;
 }
 
+/** A placement whose moment places a landing: a renderable trajectory, or a
+ * phrasal tree transition it owns. Only these own landing hosts, pied-piped
+ * phrases and the timing that follows from them. */
+export const ownsTrajectoryPlacement = (placement: RelationPlacement): boolean =>
+  placement.renderableTrajectory || placement.ownsPhrasalTreeTransition;
+
 export const planStageRelations = (compilation: ReplayCompilation, stage: ReplayStageContext) => {
   const { frames, replayPlan, resolveFrameRelations, identity } = compilation;
   const {
@@ -84,7 +90,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
       || (relationOwnsPhrasalTreeTransition(relation)
         && Boolean(rawAuthoredTargetNodeId)
         && rawSourceNodeIds.length > 0);
-    const ownsTrajectoryPlacement = isTrajectoryRelation || ownsPhrasalTreeTransition;
+    const placesTrajectory = isTrajectoryRelation || ownsPhrasalTreeTransition;
     const sourceNodeIds = rawSourceNodeIds
       .map((nodeId) => resolveRelationAnchorNodeId(workspaceRoots, nodeId))
       .filter(Boolean);
@@ -92,14 +98,14 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
       ? relation.recoveredMovements.filter(movement => movement.transition).map(movement => movement.targetNodeId)
       : [rawAuthoredTargetNodeId]).map(nodeId => resolveRelationAnchorNodeId(workspaceRoots, nodeId)).filter(Boolean))];
     const authoredTargetNodeId = authoredTargetNodeIds[0] || '';
-    const sourceNodeId = ownsTrajectoryPlacement
+    const sourceNodeId = placesTrajectory
       ? (sourceNodeIds.find((nodeId) => relationAnchorsExistInForest(workspaceRoots, authoredTargetNodeId, nodeId)) || sourceNodeIds[0] || '')
       : '';
-    if (ownsTrajectoryPlacement) {
+    if (placesTrajectory) {
       if (!relationAnchorsExistInForest(workspaceRoots, authoredTargetNodeId, sourceNodeId))
         return null;
     }
-    const relationAnchorNodeIds = ownsTrajectoryPlacement
+    const relationAnchorNodeIds = placesTrajectory
       ? Array.from(new Set([...authoredTargetNodeIds, ...sourceNodeIds].filter(Boolean)))
       : getRelationAllAnchorNodeIds(relation)
         .map((nodeId) => resolveRelationAnchorNodeId(workspaceRoots, nodeId))
@@ -133,7 +139,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     return landingHostPaths.get(key)!;
   };
   function buildLandingHostPath(placement: RelationPlacement, authoredTargetNodeId: string): string[] {
-    if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition)
+    if (!ownsTrajectoryPlacement(placement))
       return [];
     const trajectoryDisplayKind = (placement.relation.recoveredMovements?.find(movement => movement.targetNodeId === authoredTargetNodeId) ?? placement.relation.recoveredMovement)?.trajectoryKind || registeredTrajectoryDisplayKind(placement.relationLabel, placement.relation.resolvedAnchors);
     const ownsLandingConstruction = Boolean(placement.relation.recoveredMovement?.transition) || trajectoryDisplayKind === 'phrasal'
@@ -152,7 +158,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     const earlierRelationNeedsContext = (contextId: string): boolean => relationPlacements
       .filter(candidate => candidate.relationIndex < placement.relationIndex)
       .some(candidate => {
-        const landingContext = candidate.renderableTrajectory || candidate.ownsPhrasalTreeTransition
+        const landingContext = ownsTrajectoryPlacement(candidate)
           ? candidate.authoredTargetNodeIds.flatMap(id => findNodeByIdInForest(workspaceRoots, findParentNodeIdInForest(workspaceRoots, id))?.children || [])
             .filter(child => !candidate.authoredTargetNodeIds.includes(child.id)).map(child => child.id) : [];
         const prerequisites = [...candidate.relationAnchorNodeIds, ...landingContext];
@@ -190,7 +196,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
   const getMovementCreatedLandingHostNodeIds = (placement: RelationPlacement): string[] => [...new Set(getMovementCreatedLandingHostPaths(placement).flat())];
   // The phrase each phrasal landing pied-pipes (`piedPipedPhrase`) appears
   // with it at the movement moment.
-  const getMovementPiedPipedNodeIds = (placement: RelationPlacement): string[] => !placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition
+  const getMovementPiedPipedNodeIds = (placement: RelationPlacement): string[] => !ownsTrajectoryPlacement(placement)
     ? [] : [...new Set(placement.authoredTargetNodeIds.flatMap((targetNodeId) => {
       const movement = placement.relation.recoveredMovements?.find(item => item.targetNodeId === targetNodeId) ?? placement.relation.recoveredMovement;
       const trajectoryKind = movement?.trajectoryKind || registeredTrajectoryDisplayKind(placement.relationLabel, placement.relation.resolvedAnchors);
@@ -199,9 +205,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     }))];
   const singleRelationLinksByIndex = new Map<number, ResolvedRelationLink[]>();
   frameRelationSteps.forEach((relation, relationIndex) => {
-    const authoredRelationIndex = Number.isInteger(relation.authoredRelationIndex)
-      ? relation.authoredRelationIndex
-      : relationIndex;
+    const { authoredRelationIndex } = relation;
     const throughRelationLinks = buildAuthoredRelationLinksForFrames({
       frames,
       replayPlan,
@@ -226,7 +230,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
   // A head landing inside a complex head reveals that whole head with it.
   const heads = readStructuralHeads(workspaceRoots);
   relationPlacements.forEach((placement) => {
-    if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition) {
+    if (!ownsTrajectoryPlacement(placement)) {
       relationVisibleNodeIdsByIndex.set(placement.relationIndex, []);
       return;
     }

@@ -1,19 +1,12 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import { getNodeId } from './displayIdentity.ts';
+import { getNodeId, isPaintedSyntax, paintedSyntaxParent } from './displayIdentity.ts';
 import { visibleComponentNodes } from './visibleComponent.ts';
 import type { TreeCoordinateReservation } from './treeLayout.ts';
 
 type Scene = {
   nodes: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>;
   visible: ReadonlySet<string>;
-};
-const isSyntax = (node: d3.HierarchyPointNode<SyntaxNode>) =>
-  !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace';
-const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => {
-  let ancestor = node.parent;
-  while (ancestor && !isSyntax(ancestor)) ancestor = ancestor.parent;
-  return ancestor ?? undefined;
 };
 /** Whether a future node's nearest syntax ancestors, below `parentId`, are all
  * unseen and at least one exists: `parentId` is a strict, non-immediate syntax
@@ -22,7 +15,7 @@ const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => {
 const awaitsUnseenWrapper = (node: d3.HierarchyPointNode<SyntaxNode>, parentId: string, visible: ReadonlySet<string>) => {
   let between = 0;
   for (let ancestor = node.parent; ancestor; ancestor = ancestor.parent) {
-    if (!isSyntax(ancestor)) continue;
+    if (!isPaintedSyntax(ancestor)) continue;
     const id = getNodeId(ancestor);
     if (id === parentId) return between > 0;
     if (visible.has(id)) return false;
@@ -46,7 +39,7 @@ export function retainCurrentSiblingRanks(current: Scene & { coordinates: TreeCo
       !child.data.replayLayoutOnly && current.visible.has(getNodeId(child)));
     const sister = children.find(child => {
       const other = future.nodes.get(getNodeId(child));
-      return other && syntaxParent(other) && getNodeId(syntaxParent(other)!) === getNodeId(parent);
+      return other && paintedSyntaxParent(other) && getNodeId(paintedSyntaxParent(other)!) === getNodeId(parent);
     });
     if (!sister) return;
     const rank = (retained.get(getNodeId(sister)) ?? coordinates.get(getNodeId(sister)))!.y;
@@ -121,7 +114,7 @@ export function retainCurrentDaughterRanks(current: CurrentScene, future: Scene,
     if (lowerSmallerAbove && children.length > 1 && deltas.every(delta => Math.abs(delta - deltas[0]) < 1e-8 && delta < -1e-8)) {
       const below = new Set(children.flatMap(child => visibleComponentNodes(child, visibleNodes)));
       let top = parent;
-      for (let up = syntaxParent(top); up && current.visible.has(getNodeId(up)); up = syntaxParent(up)) top = up;
+      for (let up = paintedSyntaxParent(top); up && current.visible.has(getNodeId(up)); up = paintedSyntaxParent(up)) top = up;
       const above = visibleComponentNodes(top, visibleNodes).filter(node => !below.has(node));
       if (above.length < below.size) { shift(above, -deltas[0]); return; }
     }
@@ -142,7 +135,7 @@ export function retainCurrentDaughterRanks(current: CurrentScene, future: Scene,
 export function retainCurrentUnaryRows(current: CurrentScene, future: Scene): void {
   const { coordinates } = current;
   const visibleParent = (node: PointNode) => {
-    const parent = syntaxParent(node);
+    const parent = paintedSyntaxParent(node);
     return parent && current.visible.has(getNodeId(parent)) ? parent : undefined;
   };
   edgesAwaitingInsertion(current, future, true).reverse().forEach(({ parent, child }) => {

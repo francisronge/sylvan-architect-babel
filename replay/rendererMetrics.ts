@@ -236,11 +236,11 @@ export const clearTrajectoryBowSide = (from: RoutePoint, to: RoutePoint, bow: Tr
 export const PLAQUE_FIT_MARGIN = 24;
 
 /** Markers stay screen-sized as the tree zooms out, up to this multiple. */
-export const MAX_MARKER_SCALE = 3;
+const MAX_MARKER_SCALE = 3;
 export const markerScaleAtZoom = (zoom: number) => Math.min(1 / zoom, MAX_MARKER_SCALE);
 
 /** Viewports narrower than this use the compact camera and overlay placement. */
-export const COMPACT_VIEWPORT_WIDTH = 500;
+const COMPACT_VIEWPORT_WIDTH = 500;
 export const isCompactViewport = (width: number) => width < COMPACT_VIEWPORT_WIDTH;
 
 /**

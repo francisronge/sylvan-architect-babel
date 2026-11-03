@@ -54,6 +54,18 @@ export function replayOwnerId(canvas: SyntaxNode | null | undefined, id: string)
 
 export const getNodeId = (node: d3.HierarchyNode<SyntaxNode>): string => (node as any).__vizId as string;
 
+/** Whether a laid-out node is syntax the renderer paints: neither a layout-only
+ * reserve nor the synthetic root that holds a workspace forest. */
+export const isPaintedSyntax = (node: d3.HierarchyNode<SyntaxNode>): boolean =>
+  !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace';
+
+/** The nearest ancestor of `node` that is painted syntax, if any. */
+export const paintedSyntaxParent = <N extends d3.HierarchyNode<SyntaxNode>>(node: N): N | undefined => {
+  let ancestor = node.parent as N | null;
+  while (ancestor && !isPaintedSyntax(ancestor)) ancestor = ancestor.parent as N | null;
+  return ancestor ?? undefined;
+};
+
 export const applyVizIds = (root: d3.HierarchyNode<SyntaxNode>) => {
   const used = new Set<string>();
   const reserved = new Set<string>();

@@ -353,7 +353,7 @@ test('one-letter-per-label: a word that is an argument of two theta grids shows 
 test('control: label-index-owned reports an index that belongs to no chain, coindex or theta grid of its node', () => {
   // Opus h1-014 (29 October held-out batch) painted the operator-variable link
   // counter 32 on the words of the moved phrase: Which₃₂ cake₃₂.
-  const records = JSON.parse(readFileSync(new URL('./helpers/heldoutDefectRecords.json', import.meta.url), 'utf8'));
+  const records = JSON.parse(readFileSync(new URL('./data/heldoutDefectRecords.json', import.meta.url), 'utf8'));
   const { sentence, inputTokens, derivationStages } = records['opus-h1-014-a1'];
   const wh = prepare({ sentence, inputTokens, derivationStages });
   assert.deepEqual(checkLabelIndicesOwned(wh), []);

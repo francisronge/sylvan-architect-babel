@@ -1,8 +1,7 @@
 import * as d3 from 'd3';
-import type { SyntaxNode } from '../types.ts';
-import { applyVizIds, getNodeId } from './displayIdentity.ts';
-import { isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
+import { applyVizIds, getNodeId, isPaintedSyntax } from './displayIdentity.ts';
 import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
+import { stageStepOrder } from './stageStepOrder.ts';
 import type { PlaybackStep } from './types.ts';
 
 /** Each painted node's row height (tree units) in each step, by step and node id. */
@@ -30,12 +29,9 @@ export function planReplayRows(steps: readonly PlaybackStep[], finalRows?: Reado
   if (cached && (cached.seeded || !finalRows)) return cached.rows;
   // Stage order, then each stage's own step order (as the stage layout reads
   // it), so the plan never depends on how the step list is ordered.
-  const within = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
   const framed = steps.filter(step => step.replayCanvasData && step.replayFrameIndex !== undefined)
-    .sort((a, b) => a.replayFrameIndex! - b.replayFrameIndex! || within(a) - within(b));
+    .sort((a, b) => a.replayFrameIndex! - b.replayFrameIndex! || stageStepOrder(a) - stageStepOrder(b));
   const geometry = new Map<number, ReturnType<typeof stageVerticalGeometry>>();
-  const syntax = (node: d3.HierarchyNode<SyntaxNode>) => !node.data.replayLayoutOnly
-    && node.data.replayOrigin?.kind !== 'workspace' && !isSyntheticWorkspaceRootNode(node);
   const scenes = framed.map(step => {
     const stage = step.replayFrameIndex!;
     if (!geometry.has(stage)) geometry.set(stage, stageVerticalGeometry(steps.filter(other => other.replayFrameIndex === stage)));
@@ -46,12 +42,12 @@ export function planReplayRows(steps: readonly PlaybackStep[], finalRows?: Reado
     const depthRow = new Map<string, number>(), piece = new Map<string, string>(), ancestry = new Map<string, string[]>();
     root.each(node => {
       const id = getNodeId(node);
-      if (!syntax(node) || !visible.has(id)) return;
+      if (!isPaintedSyntax(node) || !visible.has(id)) return;
       depthRow.set(id, (node.depth - temporaryRootDepth(canvas)) * rowHeight);
-      ancestry.set(id, node.ancestors().slice(1).filter(ancestor => syntax(ancestor) && visible.has(getNodeId(ancestor))).map(getNodeId));
+      ancestry.set(id, node.ancestors().slice(1).filter(ancestor => isPaintedSyntax(ancestor) && visible.has(getNodeId(ancestor))).map(getNodeId));
       // A piece is the painted tree a node hangs in: walk up painted branches.
       let top = node;
-      while (top.parent && syntax(top.parent) && visible.has(getNodeId(top.parent))) top = top.parent;
+      while (top.parent && isPaintedSyntax(top.parent) && visible.has(getNodeId(top.parent))) top = top.parent;
       piece.set(id, getNodeId(top));
     });
     return { step, depthRow, piece, ancestry };

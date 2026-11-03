@@ -8,20 +8,8 @@ import type {
   Tier3RecoveredClaim
 } from './relationClaims.ts';
 import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import { canonicalize } from './planSyntax.ts';
 import { lookupTier2SynonymCandidates, normalizeTier2Synonym, type Tier2SynonymIndex } from './tier2Synonyms.ts';
-
-const canonicalize = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value && typeof value === 'object') {
-    return Object.keys(value as Record<string, unknown>)
-      .sort()
-      .reduce<Record<string, unknown>>((result, key) => {
-        result[key] = canonicalize((value as Record<string, unknown>)[key]);
-        return result;
-      }, {});
-  }
-  return value;
-};
 
 export const primaryClaimIdentity = (
   relation: DerivationStageRelation,

@@ -678,7 +678,7 @@ export const planItemDependencyNodeIds = (item: RelationPlanItem): string[] => {
   };
   if (item.kind === 'anchor-set') {
     /*
-     * A legacy anchor-set rail draws ONLY the roles flagged `large`; the stored
+     * An anchor-set rail draws ONLY the roles flagged `large`; the stored
      * non-large roles are provenance the drawing never uses, so their
      * anchors are not this mark's dependencies. A vanished scalar
      * annotation must not take a valid five-member rail with it. And
