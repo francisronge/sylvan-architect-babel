@@ -1,6 +1,6 @@
 # Babel Roadmap
 
-Status date: 2026-11-02
+Status date: 2026-11-03
 
 This is Babel's single list of remaining work, in order. Completed work and its
 evidence live in Git history. Durable rules and contracts live in the canonical
@@ -21,8 +21,8 @@ syntactic rules. Desktop remains the primary experience.
      raising chain's verb-trace role ("Þessum börnum virðist hafa verið
      hjálpað") lacks its anchor at its moment: the model lists the raising
      before the V-to-I movement that makes the trace. Head movement before
-     phrasal movement in one stage (approved by Francis on 2026-10-23) resolves
-     it; it waits with the step-order work below.
+     phrasal movement in one stage would resolve it; that order is parked (see
+     Explicitly Not Active).
    - Movements still drawn as copies without an arrow, all in saved runs on the
      earlier prompt: across-the-board and right-node-raising movement, where
      one landing has several lower copies, a claim that names two
@@ -41,30 +41,11 @@ syntactic rules. Desktop remains the primary experience.
      earlier stages smaller on phones, or jumping the unmoved syntax. The
      desktop minimum zoom no longer clips: the Canopy has no minimum, and
      Replay containment shrinks below it.
-   - Step-order work kept from the October rewrite
-     (`refactor/replay-step-order-kernel`). Just-in-time sisters have landed.
-     Head movement before phrasal movement in one stage (approved on
-     2026-10-23) still waits: C merging with IP before I-to-C, and a phrasal
-     movement waiting for a head movement below its landing, each add findings
-     because today's stage layout depends on frame history. Measured 2 Nov on
-     main after #367: the order alone changes 53 corpus analyses, about 20
-     finished trees change shape (up to 2,608 units) and 47 completed stages
-     grow wider, with 8 new plaque-distance findings at 1.12–1.2 and 5 new
-     or worse motion faults, while total motion faults fall from 382 to 371.
-     It waits for a stage layout that is planned from the derivation's states
-     rather than its frame order. The coupling is `reserveContours` in
-     `buildStageLocalCoordinates`: every frame of a stage shares one set of
-     leaf positions, each gap the widest any frame needs, so a crowded middle
-     frame pushes the finished tree's leaves apart (inserted-adjunction-segment:
-     2,850 units between the verb's trace and its neighbour against 375 in
-     main's order). On main's own order this already spreads the finished
-     leaves in 96 of 234 fixtures (up to 4,676 units in the stage-local layout;
-     how much reaches the painted tree is not measured). Laying finished
-     stages out from their own structure would change those trees and needs a
-     closing step owned by the movement that frees the room. The same work owns the
-     listed camera jumps where unmoved syntax shifts 27–66 px when a stage
-     begins or inside a stage (`STAGE_RELAYOUT`, `RELAYOUT_WITHIN_STAGE` in
-     `tests/helpers/cameraExceptions.mjs`). Its first prototype
+   - Camera jumps where unmoved syntax shifts 27–66 px when a stage begins
+     or inside a stage (`STAGE_RELAYOUT`, `RELAYOUT_WITHIN_STAGE` in
+     `tests/helpers/cameraExceptions.mjs`); they come from the same shared
+     stage layout as the parked step order (Explicitly Not Active). Its first
+     prototype
      (`refactor/stage-layout-from-finished-tree`) did not meet the
      zero-regression bar. The crossings where a movement closes its room now
      hold the rest of the syntax still (the stage plan's held carry). The
@@ -103,10 +84,11 @@ Programs run in numeric order, except for small provider-free maintenance that
 keeps later work buildable. Launch is public Babel only, as defined in
 [CONTEXT.md](CONTEXT.md): it needs public generation from Program 1, public
 Babel from Program 3 (3A, 3B, 3D), Program 5 and the Generation Archive (6A).
-It also needs the Replay layout follow-ups of the current work order, item 2:
-the rise rule, the stage layout planned from derivation states and the
-step-order work it unblocks (Francis, 2026-11-02, on calling them optional:
-"Wtf are you saying? NO").
+It also needs the Replay layout follow-ups still open in the current work
+order, item 2 (Francis, 2026-11-02, on calling them optional: "Wtf are you
+saying? NO"). The rise rule landed in #365; the stage layout planned from
+derivation states and the step order it would unblock were parked on
+2026-11-03 (Explicitly Not Active).
 The research workbench (3C), the Reviewed Derivational Corpus (6B) and the
 benchmark in Programs 7 and 8 come after launch.
 
@@ -447,6 +429,18 @@ review authority, and correction path.
   plaques or breaks the no-teleport rule (Francis: "Plaques: Ok." on
   2026-10-23; "if there's no way to solve it easily, then it's probably fine"
   on 2026-10-24).
+
+- Head movement before phrasal movement in one stage (approved 2026-10-23),
+  and finished trees tighter than their stage's widest step. Every frame of a
+  stage shares one set of leaf positions (`reserveContours` in
+  `buildStageLocalCoordinates`), so a finished tree keeps the spacing its most
+  crowded step needed: 46 of 234 fixtures paint a finished tree wider than the
+  same last frame laid out alone, by up to about 40% (measured 3 Nov). Gap
+  closing already takes all the room its rules allow; the rest needs a visible
+  tidy-up step at the end of a stage, or a Canopy that differs from the last
+  frame, and the step order hits the same coupling (on main after #367 it
+  reshapes about 20 finished trees). Francis on 2026-11-03: "I don't want 1 or
+  2, they sound ugly. so I guess we're keeping 3."
 
 - Bending movement arrows or connector lines around words and labels they
   cross. Their shape stays as designed (Francis: "I'm fine with movement
