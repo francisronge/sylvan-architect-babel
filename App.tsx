@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useGeneration } from './hooks/useGeneration';
 import { submittedGenerationRequest } from './services/generationState';
-import { useSporeDrift, type Spore } from './hooks/useSporeDrift';
 import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
 import { deriveAnalysisDisplay } from './services/analysisDisplay';
 import { useTreeBank } from './hooks/useTreeBank';
@@ -23,6 +22,7 @@ import LoadingMark from './components/LoadingMark';
 import FailurePanel, { dismissesFailure } from './components/FailurePanel';
 import { submitsSentence } from './components/sentenceSubmitKey';
 import ModelControls from './components/ModelControls';
+import ForestBackdrop from './components/ForestBackdrop';
 import { 
   RotateCcw, 
   Sparkles,
@@ -65,17 +65,6 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
     const value = new URLSearchParams(window.location.search).get('showcase');
     return ['1', 'true', 'yes'].includes(String(value || '').toLowerCase());
   }, []);
-  const spores = useMemo<Spore[]>(
-    () =>
-      Array.from({ length: 12 }, () => ({
-        left: Math.random() * 100,
-        delay: Math.random() * 24,
-        duration: 20 + Math.random() * 16,
-        drift: 40 + Math.random() * 120
-      })),
-    []
-  );
-  const sporeLayerRef = useRef<HTMLDivElement>(null);
   const sentenceInputRef = useRef<HTMLTextAreaElement>(null);
   const activeTabButtonRef = useRef<HTMLButtonElement>(null);
   const [input, setInput] = useState('The farmer eats the pig');
@@ -83,7 +72,6 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
   // user dismisses it, also while the model or effort for that next request is
   // being chosen.
   const { loading, error, needsKey, generate, clearFailure, dismissFailure, resetGeneration, reportError } = useGeneration();
-  useSporeDrift(sporeLayerRef, spores, loading);
   const [analysisBundle, setAnalysisBundle] = useState<ParseBundle | null>(null);
   const [activeParseIndex, setActiveParseIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<AppTab>('tree');
@@ -301,12 +289,7 @@ const App: React.FC<AppProps> = ({ modelIds }) => {
         isFullscreen ? 'is-fullscreen' : ''
       }`}
     >
-      <div className="god-rays"></div>
-      <div ref={sporeLayerRef} className="spore-layer" aria-hidden="true">
-        {spores.map((spore, idx) => (
-          <div key={idx} className="spore" style={{ left: `${spore.left}vw` }} />
-        ))}
-      </div>
+      <ForestBackdrop paused={loading} />
       <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-4 py-3 md:px-8 md:py-4 shrink-0 shadow-2xl">
         <div className="w-full flex flex-wrap min-[1600px]:flex-nowrap items-center gap-3 md:gap-6">
             <div className="flex items-center gap-3 md:gap-4 shrink-0">
