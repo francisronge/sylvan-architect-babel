@@ -183,7 +183,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
         && !(structuralParent!.children || []).some(child => child.id === branchNodeId)
         && (structuralParent!.children || []).length > 1
         && !(trajectoryDisplayKind === 'phrasal' && piedPipedPhrase(workspaceRoots, previousFrameWorkspaceRoots, authoredTargetNodeId, priorSourceIds).hostIds.includes(parentNodeId))
-        && (trajectoryDisplayKind === 'head' || earlierRelationNeedsContext(parentNodeId));
+        && earlierRelationNeedsContext(parentNodeId);
     });
   }
   const getMovementCreatedLandingHostPaths = (placement: RelationPlacement) => placement.authoredTargetNodeIds.map(id => landingHostPath(placement, id)).filter(path => path.length);

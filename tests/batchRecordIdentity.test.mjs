@@ -18,7 +18,7 @@ const run = promisify(execFile);
 const script = name => fileURLToPath(new URL(`../scripts/${name}`, import.meta.url));
 const ARCHIVES = ['codex-qualification', 'anthropic-qualification'];
 // One analysis with one Replay invariant finding, so the sweep reports its id.
-const WITH_FINDING = 'movement/holdout-transitions.json#/1';
+const WITH_FINDING = 'movement/shared-landing.json#/analyses/0';
 
 function sameNamedBatches(t) {
   const scratch = mkdtempSync(path.join(tmpdir(), 'babel-batch-identity-'));
