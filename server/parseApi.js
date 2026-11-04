@@ -72,6 +72,24 @@ export const parseRequestKind = (body) => {
   return 'parse';
 };
 
+/**
+ * A failure after the spell-out check carries the word list Babel derived
+ * from the model's own words; the response serializes it from
+ * `error.inputTokens`. The browser never segments the sentence itself, so an
+ * output that failed the check has no word list. Every request kind passes
+ * its failures through here.
+ */
+const withDerivedInputTokens = async (run) => {
+  try {
+    return await run();
+  } catch (error) {
+    if (error instanceof ParseApiError && Array.isArray(error.details?.inputTokens)) {
+      error.inputTokens = error.details.inputTokens;
+    }
+    throw error;
+  }
+};
+
 const DEFAULT_PROVIDERS = { research: parseSentenceWithResearchModel, start: startParseTicket, check: checkParseTicket };
 
 export const parseFromBodyWithProviders = async (
@@ -86,22 +104,14 @@ export const parseFromBodyWithProviders = async (
       throw invalidRequest('A check sends only its ticket.', 'REQUEST_TICKET_ONLY', '$', null);
     }
     // A finished check carries its sentence from the ticket.
-    return providers.check(body.ticket, { abortSignal });
+    return withDerivedInputTokens(() => providers.check(body.ticket, { abortSignal }));
   }
   const { start: _start, ...request } = body ?? {};
   const { sentence, framework, modelId, settings } = validateParseBody(kind === 'start' ? request : body);
-  try {
+  return withDerivedInputTokens(async () => {
     const bundle = await (kind === 'start' ? providers.start : providers.research)(sentence, framework, modelId, { settings, abortSignal, deadlineAt });
     return bundle.status === 'pending' ? bundle : { ...bundle, sentence };
-  } catch (error) {
-    // A failure after the spell-out check carries the word list Babel derived
-    // from the model's own words. The browser never segments the sentence
-    // itself, so an output that failed the check has no word list.
-    if (error instanceof ParseApiError && Array.isArray(error.details?.inputTokens)) {
-      error.inputTokens = error.details.inputTokens;
-    }
-    throw error;
-  }
+  });
 };
 
 export const parseFromBody = async (body, options) => parseFromBodyWithProviders(body, undefined, options);

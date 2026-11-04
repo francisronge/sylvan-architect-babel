@@ -99,3 +99,14 @@ test('a request that names no framework is analyzed under Minimalism', () => {
   assert.equal(validateParseBody(body).framework, 'minimalism');
   assert.equal(validateParseBody({ ...body, framework: 'xbar' }).framework, 'xbar');
 });
+
+test('a ticket check that fails after the spell-out check keeps the derived word list, as a long request does', async () => {
+  const { parseFromBodyWithProviders: parse, formatApiError: format } = await import('../server/parseApi.js');
+  const { ParseApiError: ApiError } = await import('../server/babelParser.js');
+  const failing = () => { throw new ApiError('PARSE_ENGINE_FAILED', 'Normalization failed.', 422, { inputTokens: ['Mia', 'laughed', '.'] }); };
+  const providers = { research: failing, start: failing, check: failing };
+  for (const body of [{ ticket: 'T' }, { sentence: 'Mia laughed.', framework: 'minimalism', modelId: 'openai:gpt-6.1-sol', settings: { 'reasoning.effort': 'high' } }]) {
+    const error = await parse(body, providers).then(() => assert.fail('must fail'), caught => caught);
+    assert.deepEqual(format(error).body.error.inputTokens, ['Mia', 'laughed', '.'], `${Object.keys(body)[0]} keeps the word list`);
+  }
+});
