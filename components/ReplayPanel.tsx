@@ -39,23 +39,18 @@ export interface ReplayPanelProps {
 
 const REPLAY_ICON_BUTTON = 'shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-white/75 enabled:hover:text-white enabled:hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70';
 
-// Playback state and viewport measurement stay with the tree; this component
-// keeps the same panel root so its ref measures the visible controls directly.
-const ReplayPanel: React.FC<ReplayPanelProps> = ({
-  panelRef, bottom, right, currentReplayKind, activeRelationMoment,
-  playedRelationIndicesAttribute, activeStep, playbackSteps, derivationStages,
-  sentence, inputTokens, activeStepIndex, canStepBackward, canStepForward,
-  isAutoPlaying, isScrubbing, handlePrevStep, handleNextStep, handleTogglePlayback,
-  onFit, onPause, onScrubbingChange, onStepChange
-}) => {
+type DetailBlocksByStep = ReturnType<typeof buildReplayDisplayDetailBlocks>;
+type StepDetails = ReturnType<typeof buildStepDetails>;
+
+/** Everything the panel's lower part shows for one step. */
+const buildStepDetails = (
+  activeStep: PlaybackStep | null, activeStepIndex: number, detailBlocksByStep: DetailBlocksByStep,
+  playbackSteps: PlaybackStep[], derivationStages: DerivationStage[] | undefined, sentence: string, inputTokens: readonly string[]
+) => {
   const activePanelContent = buildReplayPanelContent(activeStep, derivationStages);
   const activeReplaySupportLines = activePanelContent.supportLines;
-  const replayDisplayDetailBlocksByStepIndex = useMemo(
-    () => buildReplayDisplayDetailBlocks(playbackSteps),
-    [playbackSteps]
-  );
   const activeDisplayDetailBlocks = (
-    replayDisplayDetailBlocksByStepIndex.get(activeStepIndex) || []
+    detailBlocksByStep.get(activeStepIndex) || []
   ).filter((block) => !(
     activeReplaySupportLines.length > 0
     && String(block.title || '').trim().toLowerCase() === 'relations'
@@ -82,6 +77,108 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
     }
     return note;
   })();
+  // A construction step's one unlabelled line (D + N → DP) restates what its
+  // workspace bracketing shows, where the new object's brackets are marked.
+  const constructionLine = activeStep?.replayKind === 'micro' && activeReplaySupportLines.length === 1 && !activeReplaySupportLines[0].label;
+  const workspace = buildReplayWorkspace(activeStep, inputTokens);
+  // A stage's own step shows its statement as every smaller step does, as the
+  // stage's line above its Stage Record, not as a labelled detail.
+  const macroStatement = activeStep?.replayKind === 'macro'
+    ? activeReplaySupportLines.find(line => line.label === 'Statement')?.value ?? '' : '';
+  const listedSupportLines = macroStatement ? activeReplaySupportLines.filter(line => line.label !== 'Statement') : activeReplaySupportLines;
+  return { activeStep, activePanelContent, activeDisplayDetailBlocks, activeNoteDisplay, constructionLine, workspace, macroStatement, listedSupportLines };
+};
+
+/** The panel's lower part for one step. */
+// A Stage Record is the panel's longest prose: at 13px most records show whole
+// on a computer without taking room from the tree.
+const ReplayStepDetails: React.FC<{ details: StepDetails; playbackSteps: PlaybackStep[] }> = ({ details, playbackSteps }) => {
+  const { activeStep, activePanelContent, activeDisplayDetailBlocks, activeNoteDisplay, constructionLine, workspace, macroStatement, listedSupportLines } = details;
+  return (
+    <>
+          {/* A stage's own step leads with its statement; its position on the rail names it, so it needs no title line. */}
+          {activeStep?.replayKind !== 'macro' && (
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <div data-babel-replay-summary="true" className="serif text-[16px] sm:text-[18px] leading-tight text-white font-semibold">
+                {activePanelContent.heading}
+              </div>
+            </div>
+          )}
+          {!constructionLine && listedSupportLines.length > 0 && (
+            <div className="space-y-1">
+              {listedSupportLines.map((line) => (
+                <div key={line.key} className="flex flex-wrap items-baseline gap-x-2 leading-snug"
+                  aria-label={line.literal !== undefined ? `${line.label}: ${line.value}; value: ${line.literal}` : undefined}>
+                  {line.label && <span className="text-[11px] sm:text-[12px] text-emerald-300/90">{line.label}</span>}
+                  <span className="text-[14px] sm:text-[15px] text-white/90 whitespace-pre-wrap">
+                    {line.value}
+                    {line.literal !== undefined && line.literal !== line.value && (
+                      <> · {line.literal === '' ? '""' : line.literal}</>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          {macroStatement && (
+            <div data-babel-replay-stage-context="true">
+              <p className="serif italic text-[14px] sm:text-[15px] leading-snug text-emerald-300/90">{macroStatement}</p>
+            </div>
+          )}
+          {activeDisplayDetailBlocks.length > 0 && (
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-3">
+              {activeDisplayDetailBlocks.map((block, blockIndex) => (
+                <div key={`${block.title}-${blockIndex}`}>
+                  {!(activeStep?.replayKind === 'macro' && block.title === 'Stage Record') && (
+                    <div className="text-[11px] sm:text-[12px] text-emerald-300/90 mb-1">
+                      {formatReplayBlockTitle(block.title)}
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    {block.lines.map((line, lineIndex) => (
+                      <div key={`${block.title}-${lineIndex}`} className={`${activeStep?.replayKind === 'macro' ? 'text-[13px] leading-[1.5]' : 'text-[14px] sm:text-[15px] leading-relaxed'} text-white/85 whitespace-pre-line`}>
+                        {/* Run-in label: the record says what it is without a title line. */}
+                      {activeStep?.replayKind === 'macro' && block.title === 'Stage Record' && lineIndex === 0 && (
+                        <span className="font-semibold text-emerald-300 mr-1.5">Stage record</span>
+                      )}
+                      {formatReplayBlockLine(block.title, line, playbackSteps)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {activePanelContent.stageStatement && (
+            <div data-babel-replay-stage-context="true" className="pt-1.5 sm:pt-2.5 border-t border-white/[0.06] space-y-1.5 sm:space-y-2.5">
+              <p className="serif italic text-[14px] sm:text-[15px] leading-snug text-emerald-300/90">{activePanelContent.stageStatement}</p>
+              {workspace && <ReplayWorkspace workspace={workspace} />}
+            </div>
+          )}
+          {activeNoteDisplay && (
+            <div className="text-[11px] sm:text-[12px] text-white/88">
+              {activeNoteDisplay}
+            </div>
+          )}
+    </>
+  );
+};
+
+// Playback state and viewport measurement stay with the tree; this component
+// keeps the same panel root so its ref measures the visible controls directly.
+const ReplayPanel: React.FC<ReplayPanelProps> = ({
+  panelRef, bottom, right, currentReplayKind, activeRelationMoment,
+  playedRelationIndicesAttribute, activeStep, playbackSteps, derivationStages,
+  sentence, inputTokens, activeStepIndex, canStepBackward, canStepForward,
+  isAutoPlaying, isScrubbing, handlePrevStep, handleNextStep, handleTogglePlayback,
+  onFit, onPause, onScrubbingChange, onStepChange
+}) => {
+  const replayDisplayDetailBlocksByStepIndex = useMemo(
+    () => buildReplayDisplayDetailBlocks(playbackSteps),
+    [playbackSteps]
+  );
+  const activeDetails = buildStepDetails(activeStep, activeStepIndex, replayDisplayDetailBlocksByStepIndex, playbackSteps, derivationStages, sentence, inputTokens);
+
   const stageRuns = useMemo(() => buildReplayStageRuns(playbackSteps), [playbackSteps]);
   const activeRun = Math.max(0, stageRuns.findIndex(run => activeStepIndex >= run.start && activeStepIndex < run.start + run.count));
   // The rail is painted in the range input's own mapping, step i at
@@ -90,15 +187,6 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
   const lastStep = Math.max(playbackSteps.length - 1, 1);
   const knobPercent = (activeStepIndex / lastStep) * 100;
   const segmentEdge = (step: number) => Math.min(Math.max(((step - 0.5) / lastStep) * 100, 0), 100);
-  // A construction step's one unlabelled line (D + N → DP) sits beside its heading.
-  const inlineSupportLine = activeStep?.replayKind === 'micro' && activeReplaySupportLines.length === 1 && !activeReplaySupportLines[0].label
-    ? activeReplaySupportLines[0].value : '';
-  const workspace = buildReplayWorkspace(activeStep, inputTokens);
-  // A stage's own step shows its statement as every smaller step does, as the
-  // stage's line above its Stage Record, not as a labelled detail.
-  const macroStatement = activeStep?.replayKind === 'macro'
-    ? activeReplaySupportLines.find(line => line.label === 'Statement')?.value ?? '' : '';
-  const listedSupportLines = macroStatement ? activeReplaySupportLines.filter(line => line.label !== 'Statement') : activeReplaySupportLines;
   const playLabel = isAutoPlaying ? 'Pause' : (activeStepIndex >= playbackSteps.length - 1 ? 'Replay' : 'Play');
 
   return (
@@ -109,7 +197,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       data-babel-active-relation-stage-index={activeRelationMoment?.stageIndex}
       data-babel-active-relation-index={activeRelationMoment?.relationIndex}
       data-babel-played-relation-indices={playedRelationIndicesAttribute}
-      className="babel-replay-panel absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-[#17362d] bg-[#020806]/[0.96] p-4 shadow-2xl"
+      className="babel-replay-panel absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-[#17362d] bg-[#020806]/[0.96] p-3 sm:p-4 shadow-2xl"
       style={{ bottom, right }}
     >
       <div className="babel-replay-controls flex items-center gap-1">
@@ -120,7 +208,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
           <span className="sr-only">Prev</span>
         </button>
         <button type="button" onClick={handleTogglePlayback} title={playLabel}
-          className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center bg-emerald-200 text-[#052e1f] hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020806]">
+          className="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-emerald-200 text-[#052e1f] hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020806]">
           {isAutoPlaying ? (
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
               <rect x="6.5" y="5" width="4" height="14" rx="1.4" /><rect x="13.5" y="5" width="4" height="14" rx="1.4" />
@@ -149,7 +237,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       </div>
       {/* The stage rail: one segment per stage, as long as its steps. The
           range input over it keeps dragging, tapping and arrow keys. */}
-      <div data-babel-replay-timeline="true" className="relative h-11 shrink-0 mb-1">
+      <div data-babel-replay-timeline="true" className="relative h-11 shrink-0 sm:mb-1">
         <div className="absolute inset-0" aria-hidden="true">
           {stageRuns.map((run, index) => {
             const left = segmentEdge(run.start);
@@ -198,66 +286,9 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       </div>
       <div
         data-babel-replay-details="true"
-        className="mt-1 min-h-0 flex-1 overflow-y-auto pr-1 space-y-2.5"
+        className="sm:mt-1 min-h-0 flex-1 overflow-y-auto pr-1 space-y-1.5 sm:space-y-2.5"
       >
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <div data-babel-replay-summary="true" className="serif text-[18px] leading-tight text-white font-semibold">
-            {activePanelContent.heading}
-          </div>
-          {inlineSupportLine && <div className="text-[12px] text-emerald-300/90">{inlineSupportLine}</div>}
-        </div>
-        {!inlineSupportLine && listedSupportLines.length > 0 && (
-          <div className="space-y-1">
-            {listedSupportLines.map((line) => (
-              <div key={line.key} className="flex flex-wrap items-baseline gap-x-2 leading-snug"
-                aria-label={line.literal !== undefined ? `${line.label}: ${line.value}; value: ${line.literal}` : undefined}>
-                {line.label && <span className="text-[12px] text-emerald-300/90">{line.label}</span>}
-                <span className="text-[15px] text-white/90 whitespace-pre-wrap">
-                  {line.value}
-                  {line.literal !== undefined && line.literal !== line.value && (
-                    <> · {line.literal === '' ? '""' : line.literal}</>
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-        {macroStatement && (
-          <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06]">
-            <p className="serif italic text-[15px] leading-snug text-emerald-300/90">{macroStatement}</p>
-          </div>
-        )}
-        {activeDisplayDetailBlocks.length > 0 && (
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-3">
-            {activeDisplayDetailBlocks.map((block, blockIndex) => (
-              <div key={`${block.title}-${blockIndex}`}>
-                {!(activeStep?.replayKind === 'macro' && block.title === 'Stage Record') && (
-                  <div className="text-[12px] text-emerald-300/90 mb-1">
-                    {formatReplayBlockTitle(block.title)}
-                  </div>
-                )}
-                <div className="space-y-1">
-                  {block.lines.map((line, lineIndex) => (
-                    <div key={`${block.title}-${lineIndex}`} className="text-[15px] text-white/85 leading-relaxed whitespace-pre-line">
-                      {formatReplayBlockLine(block.title, line, playbackSteps)}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {activePanelContent.stageStatement && (
-          <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06] space-y-2.5">
-            <p className="serif italic text-[15px] leading-snug text-emerald-300/90">{activePanelContent.stageStatement}</p>
-            {workspace && <ReplayWorkspace workspace={workspace} />}
-          </div>
-        )}
-        {activeNoteDisplay && (
-          <div className="text-[12px] text-white/88">
-            {activeNoteDisplay}
-          </div>
-        )}
+        <ReplayStepDetails details={activeDetails} playbackSteps={playbackSteps} />
       </div>
     </div>
   );

@@ -115,11 +115,29 @@ test('the knob is painted where the range input puts that step, so pressing it k
   });
 });
 
-test('the header tree gains a level each quarter of the derivation', async () => {
+test('the header tree starts with its first branches and gains a level each third of the derivation', async () => {
   const { replayGrowthLevel } = await import('../replay/replayPanel.ts');
-  // 43 steps: quarters begin at steps 11, 21 and 32 (indices 10.5, 21, 31.5).
-  assert.deepEqual([0, 10, 11, 20, 21, 31, 32, 42].map(index => replayGrowthLevel(index, 43)), [1, 1, 2, 2, 3, 3, 4, 4]);
+  // 43 steps: thirds begin at indices 14 and 28.
+  assert.deepEqual([0, 13, 14, 27, 28, 42].map(index => replayGrowthLevel(index, 43)), [2, 2, 3, 3, 4, 4]);
   assert.equal(replayGrowthLevel(0, 1), 4, 'a one-step Replay is complete');
-  assert.equal(replayGrowthLevel(-3, 10), 1);
+  assert.equal(replayGrowthLevel(-3, 10), 2, 'never only a root');
   assert.equal(replayGrowthLevel(99, 10), 4);
 });
+
+test("a stage's own step leads with its statement and names its record with a run-in label", () => {
+  const html = render(properties(2));
+  assert.equal(steps[2].replayKind, 'macro');
+  assert.doesNotMatch(html, /data-babel-replay-summary/, 'no "Stage Record" title');
+  assert.match(html, /An authored statement\./);
+  assert.match(html, /text-\[13px\] leading-\[1\.5\][^"]*"><span[^>]*>Stage record<\/span>An authored explanation\./,
+    'the Stage Record at 13px, named by a run-in label');
+});
+
+test('workspace labels sit on the words baseline, not dropped as subscripts', () => {
+  const tree = { id: 'dp', label: 'DP', children: [{ id: 'd', label: 'D', word: 'the' }, { id: 'n2', label: 'N', word: 'cat' }] };
+  const micro = { ...steps[0], replayCanvasData: tree, replayVisibleNodeIds: ['dp', 'd', 'n2'], replayFrameIndex: 0, targetNodeId: 'dp' };
+  const html = render(properties(0, { activeStep: micro, playbackSteps: [micro, steps[1], steps[2]], inputTokens: ['the', 'cat'] }));
+  assert.match(html, /data-babel-replay-workspace/);
+  assert.doesNotMatch(html, /<sub/, 'a subscript drops the label below the words');
+});
+
