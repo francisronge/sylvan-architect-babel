@@ -12,7 +12,7 @@ import FailurePanel, { dismissesFailure } from '../components/FailurePanel';
 import ForestBackdrop from '../components/ForestBackdrop';
 import { TreeBankView, TreeBankDeleteDialog } from '../components/TreeBankView';
 import BabelTitle from '../components/workspace/BabelTitle';
-import { TreeBankToggle } from '../components/workspace/HeaderButtons';
+import TreeBankBranch from '../components/workspace/TreeBankBranch';
 import SentenceForm from '../components/workspace/SentenceForm';
 import { EmptyWorkspace, GenerationLoading, ParseChoices } from '../components/workspace/WorkspaceStates';
 import { PUBLIC_GENERATION } from './publicGeneration';
@@ -126,15 +126,14 @@ const PublicApp: React.FC = () => {
     <div className={`app-shell flex flex-col overflow-hidden selection:bg-emerald-500 selection:text-white ${isFullscreen ? 'is-fullscreen' : ''}`}>
       <ForestBackdrop paused={loading} />
       <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-4 py-3 md:px-8 md:py-4 shrink-0 shadow-2xl">
-        <div className="w-full flex flex-wrap items-center justify-between gap-3 md:gap-6">
-          <button type="button" onClick={goHome} title="Parse a new sentence" aria-label="Babel, parse a new sentence" className="text-left rounded-xl">
-            <BabelTitle />
-          </button>
-          <div className="flex flex-wrap items-center gap-2 md:gap-3">
-            <TreeBankToggle
+        <div className="w-full flex items-center">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+            <button type="button" onClick={goHome} title="Parse a new sentence" aria-label="Babel, parse a new sentence" className="text-left rounded-xl">
+              <BabelTitle away={screen === 'treeBank'} />
+            </button>
+            <TreeBankBranch
               open={screen === 'treeBank'}
               count={treeBank.entries.length}
-              closedLabel="Back"
               onToggle={() => {
                 setInitialReplayStep(resumeStep(activeParse));
                 setScreen(current => current === 'treeBank' ? (activeParse ? 'tree' : 'input') : 'treeBank');

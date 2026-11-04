@@ -205,8 +205,11 @@ copy the engine, and do not keep growing today's `App.tsx`.
    might be genius"), there is no footer, and F toggles fullscreen with a
    hint that fades after a few seconds on devices with a keyboard; phones
    get neither (Francis, 4 Nov 2026: "Let's just do F. No fullscreen. just
-   that on the screen for a bit"). Where the Tree Bank's entry goes is
-   still open. The browser names GPT-6.1 Sol at high effort, which the
+   that on the screen for a bit"). The Tree Bank's entry sits beside the
+   title: a small grove, one syntax tree per saved analysis up to five with
+   the newest in green, and the label "Tree Bank" with no printed count
+   (Francis, 4 Nov 2026: "Grove."). It opens the Tree Bank as its own
+   screen, which will be redesigned as the workbench. The browser names GPT-6.1 Sol at high effort, which the
    parse route sends through Babel's OpenAI API key.
    The "Arboretum link" label and its glowing dot go, with nothing in their
    place for now (Francis, 3 Nov: "we don't need it yet, let's keep

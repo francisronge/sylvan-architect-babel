@@ -27,9 +27,9 @@ test('public Babel asks for Minimalism and makes no model choice the user sees',
   assert.deepEqual({ ...PUBLIC_GENERATION.settings }, { 'reasoning.effort': 'high' });
 });
 
-test('the public first screen is the sentence box and Analyze, without the internal controls', async () => {
+const loadComponent = async (file) => {
   const compiled = await build({
-    entryPoints: [path.join(root, 'publicApp/PublicApp.tsx')],
+    entryPoints: [path.join(root, file)],
     bundle: true, write: false, platform: 'node', format: 'esm', jsx: 'automatic', loader: { '.css': 'empty' },
     plugins: [{ name: 'local-test-dependencies', setup(builder) {
       builder.onResolve({ filter: /^[^./]/ }, ({ path: specifier }) => ({
@@ -37,19 +37,34 @@ test('the public first screen is the sentence box and Analyze, without the inter
       }));
     } }]
   });
-  const { default: PublicApp } = await import(
-    `data:text/javascript;base64,${Buffer.from(compiled.outputFiles[0].text).toString('base64')}`
-  );
+  return (await import(`data:text/javascript;base64,${Buffer.from(compiled.outputFiles[0].text).toString('base64')}`)).default;
+};
+
+test('the public first screen is the sentence box and Analyze, without the internal controls', async () => {
+  const PublicApp = await loadComponent('publicApp/PublicApp.tsx');
   const html = renderToStaticMarkup(React.createElement(PublicApp));
   assert.match(html, /aria-label="Sentence to analyze"/);
   assert.match(html, /aria-label="Analyze sentence"/);
-  assert.match(html, /Tree Bank \(0\)/);
+  assert.match(html, /aria-label="Tree Bank, 0 saved"/);
   assert.match(html, /aria-label="Babel, parse a new sentence"/, 'the logo returns to the sentence box');
   for (const absent of ['Arboretum Link', 'Constituent Glyphing', 'Minimalist Program', 'X-Bar Theory',
     'Save to Tree Bank', 'Reasoning', 'Hide Control Panel', 'Canopy', 'Notes', 'API Key',
     'Fullscreen', 'neural synthesis', '<footer']) {
     assert.ok(!html.includes(absent), `the public first screen shows no "${absent}"`);
   }
+});
+
+test('the Tree Bank entry is a grove of up to five trees, with the count only in its spoken label', async () => {
+  const TreeBankBranch = await loadComponent('components/workspace/TreeBankBranch.tsx');
+  const render = (count, open = false) => renderToStaticMarkup(React.createElement(TreeBankBranch, { count, open, onToggle() {} }));
+  const trees = (html) => html.match(/<g /g)?.length ?? 0;
+  assert.equal(trees(render(0)), 1, 'an empty Tree Bank shows one tree');
+  assert.match(render(0), /rgba\(255,255,255,0\.18\)/, 'and that tree is faint');
+  assert.equal(trees(render(3)), 3);
+  assert.equal(trees(render(12)), 5, 'the grove stops at five trees');
+  assert.match(render(12), /aria-label="Tree Bank, 12 saved"/);
+  assert.match(render(12, true), /aria-label="Tree Bank, open"/);
+  for (const count of [0, 1, 12]) assert.ok(!/\btrees?\b/.test(render(count).replace(/<[^>]*>/g, ' ')), 'no count is printed');
 });
 
 test('Tailwind generates the classes only public Babel uses', () => {
