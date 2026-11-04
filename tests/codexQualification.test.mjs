@@ -71,7 +71,10 @@ test('omitting the subscription model selects GPT-6.1 Sol and retains exact Babe
   assert.deepEqual(implicit, explicit);
   assert.equal(implicit.selection.catalogId, 'openai:gpt-6.1-sol');
   assert.equal(implicit.body.model, 'gpt-6.1-sol');
-  assert.equal(GENERATION_MODEL_IDS.includes(implicit.selection.catalogId), false);
+  // Babel's generation route calls GPT-6.1 Sol with the API key; Codex keeps its own transport.
+  assert.deepEqual(implicit.selection.requestPolicy, { store: false, stream: true });
+  const ultra = request({ model: DEFAULT_CODEX_QUALIFICATION_MODEL, effort: 'ultra' });
+  assert.deepEqual(ultra.body, { ...explicit.body, reasoning: { effort: 'ultra' } });
 });
 
 test('login loading accepts only an unexpired subscription token and leaves the credential file unchanged', t => {

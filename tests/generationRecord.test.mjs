@@ -171,3 +171,9 @@ test('generation records name the spell-out version and the runtime Unicode data
   assert.deepEqual(describeInputTokenization({ unicode: '15.1', icu: '74.2' }),
     { version: SPELLOUT_CONTRACT_VERSION, unicode: '15.1', icu: '74.2', cldr: null });
 });
+
+test('generation records name the version of the generation routes that sent them', () => {
+  const record = buildGenerationRecord({ provider: 'gpt', framework: 'xbar', promptRoute: 'gpt', sentRequest: { model: 'm', input: [] },
+    requestStartedAt: Date.parse('2026-11-03T00:00:00Z'), durationMs: 1 });
+  assert.equal(record.routeConfigVersion, 'model-routes-v2');
+});

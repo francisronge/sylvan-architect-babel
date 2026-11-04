@@ -1,5 +1,5 @@
 import { ParseApiError, parseSentenceWithResearchModel } from './babelParser.js';
-import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './babelParser/researchModelCatalog.js';
+import { GENERATION_MODEL_IDS, resolveGenerationModelSelection } from './babelParser/researchModelCatalog.js';
 import {
   FAILURE_CLASSES,
   MAX_RAW_OUTPUT_BODY_BYTES,
@@ -51,7 +51,7 @@ export const validateParseBody = (body) => {
     throw new ParseApiError('INVALID_REQUEST', 'Use modelId and native settings, without modelRoute or reasoningEffort.', 400);
   }
   try {
-    const selection = resolveResearchModelSelection(body.modelId, body.settings);
+    const selection = resolveGenerationModelSelection(body.modelId, body.settings);
     return { sentence, framework, modelId: selection.catalogId, settings: selection.nativeSettings };
   } catch (error) {
     throw new ParseApiError('INVALID_REQUEST', error.message, 400);

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { SPELLOUT_CONTRACT_VERSION } from './spellout.js';
+import { MODEL_ROUTE_CONFIG_VERSION } from './researchModelCatalog.js';
 
 const PROMPT_TEMPLATE_PROBE_SENTENCE = 'Babel provenance probe.';
 
@@ -125,6 +126,7 @@ export const buildGenerationRecord = ({
       buildTemplate
     }),
     sentGenerationConfig: describeSentRequest(provider, sentRequest),
+    routeConfigVersion: MODEL_ROUTE_CONFIG_VERSION,
     inputTokenization: describeInputTokenization(),
     timing: {
       requestStartedAt: new Date(requestStartedAt).toISOString(),

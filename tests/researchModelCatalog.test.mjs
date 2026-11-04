@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 
 import {
   RESEARCH_MODEL_CATALOG,
   GENERATION_MODEL_IDS,
+  MODEL_ROUTE_CONFIG_VERSION,
+  getGenerationModel,
   getResearchModel,
+  resolveGenerationModelSelection,
   resolveResearchModelSelection
 } from '../server/babelParser/researchModelCatalog.js';
+import { validateParseBody } from '../server/parseApi.js';
 
 test('the research catalog contains the approved unqualified candidates', () => {
   assert.deepEqual(
@@ -93,16 +98,71 @@ test('GPT-6 Sol is selectable for qualification with its native effort settings'
   }
 });
 
-test('GPT-6.1 Sol subscription qualification preserves its identity without enabling an API route', () => {
+test('GPT-6.1 Sol keeps its Codex subscription transport for qualification', () => {
   const sol = resolveResearchModelSelection('openai:gpt-6.1-sol');
   assert.equal(sol.providerModel, 'gpt-6.1-sol');
   assert.equal(sol.label, 'GPT-6.1 Sol');
   assert.deepEqual(sol.nativeSettings, { 'reasoning.effort': 'high' });
+  assert.deepEqual(sol.requestPolicy, { store: false, stream: true });
   assert.equal(getResearchModel(sol.catalogId).api, 'codex-responses');
-  assert.equal(GENERATION_MODEL_IDS.includes(sol.catalogId), false);
+  assert.deepEqual(resolveResearchModelSelection(sol.catalogId, { 'reasoning.effort': 'ultra' }).nativeSettings,
+    { 'reasoning.effort': 'ultra' });
   assert.throws(() => resolveResearchModelSelection(sol.catalogId, {
     'reasoning.effort': 'none'
   }), /must be one of/);
+});
+
+test('public Babel\'s GPT-6.1 Sol request is a generation route through the OpenAI API', () => {
+  // The fixed request in publicApp/publicGeneration.ts.
+  const request = { framework: 'minimalism', modelId: 'openai:gpt-6.1-sol', settings: { 'reasoning.effort': 'high' } };
+  assert.deepEqual(validateParseBody({ sentence: 'What did Mia see?', ...request }),
+    { sentence: 'What did Mia see?', ...request });
+
+  const model = getGenerationModel(request.modelId);
+  assert.equal(model.api, 'responses');
+  assert.equal(model.generationRoute, undefined);
+  assert.equal(model.documentation.url, 'https://developers.openai.com/api/docs/models/gpt-6.1-sol');
+  const sol = resolveGenerationModelSelection(request.modelId, request.settings);
+  assert.equal(sol.provider, 'openai');
+  assert.equal(sol.providerModel, 'gpt-6.1-sol');
+  assert.deepEqual(sol.nativeSettings, { 'reasoning.effort': 'high' });
+  assert.deepEqual(sol.requestPolicy, { maxOutputTokens: 128000, background: true, store: true });
+  // The API offers low to max; `ultra` is Codex-only.
+  assert.deepEqual(model.controls[0].values, ['low', 'medium', 'high', 'xhigh', 'max']);
+  assert.throws(() => resolveGenerationModelSelection(request.modelId, { 'reasoning.effort': 'ultra' }),
+    /must be one of/);
+  assert.throws(() => validateParseBody({ sentence: 'x', ...request, settings: { 'reasoning.effort': 'ultra' } }),
+    /must be one of/);
+});
+
+test('every other generation route is its catalog entry unchanged', () => {
+  for (const id of GENERATION_MODEL_IDS.filter((id) => id !== 'openai:gpt-6.1-sol')) {
+    assert.equal(getGenerationModel(id), getResearchModel(id));
+    assert.deepEqual(resolveGenerationModelSelection(id), resolveResearchModelSelection(id));
+  }
+  for (const id of ['openai:gpt-5.6-sol', 'anthropic:claude-opus-5-5', 'zai:glm-5.3-flash']) {
+    assert.equal(getGenerationModel(id), null);
+    assert.throws(() => resolveGenerationModelSelection(id), /Not enabled for generation/);
+  }
+});
+
+// Each version of the generation routes and the fingerprint of what it sends. A change to
+// the routes fails here until it gets a new MODEL_ROUTE_CONFIG_VERSION and its own row.
+const ROUTE_CONFIG_FINGERPRINTS = {
+  'model-routes-v1': 'b955defd64d2bf8548839f2c5f504a52095bf9d7dd5fb5375acb8034205a0cbb',
+  'model-routes-v2': '9f61f5638d259a91c4d287a195b8e14a8d6a73cfd410927bf033738c3edf3c62'
+};
+
+test('the generation routes match their recorded version', () => {
+  const routes = GENERATION_MODEL_IDS.map((id) => {
+    const model = getGenerationModel(id);
+    return { id, provider: model.provider, providerRoute: model.providerRoute, providerModel: model.providerModel,
+      api: model.api, controls: model.controls, requestPolicy: model.requestPolicy };
+  });
+  const fingerprint = createHash('sha256').update(JSON.stringify(routes)).digest('hex');
+  assert.equal(ROUTE_CONFIG_FINGERPRINTS[MODEL_ROUTE_CONFIG_VERSION], fingerprint,
+    `The generation routes changed: give them a new MODEL_ROUTE_CONFIG_VERSION and fingerprint ${fingerprint}.`);
+  assert.equal(new Set(Object.values(ROUTE_CONFIG_FINGERPRINTS)).size, Object.keys(ROUTE_CONFIG_FINGERPRINTS).length);
 });
 
 test('candidate identities and pending-settings gates remain exact', () => {
