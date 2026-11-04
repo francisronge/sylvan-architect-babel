@@ -90,7 +90,8 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Replay Play and Pause icon', file: 'components/ReplayPanel.tsx', snippet: 'bg-emerald-200 text-[#052e1f]', fg: '#052e1f', bg: ['emerald-200'], min: ICON },
   { where: 'Replay detail labels', file: 'components/ReplayPanel.tsx', snippet: 'text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay detail text', file: 'components/ReplayPanel.tsx', snippet: 'text-white/88', fg: 'white/88', bg: REPLAY_PANEL, min: TEXT },
-  { where: 'Replay construction line beside the heading', file: 'components/ReplayPanel.tsx', snippet: 'text-[13px] text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
+  { where: 'Replay relation values and Stage Record', file: 'components/ReplayPanel.tsx', snippet: 'text-[15px] text-white/85', fg: 'white/85', bg: REPLAY_PANEL, min: TEXT },
+  { where: 'Replay construction line beside the heading', file: 'components/ReplayPanel.tsx', snippet: 'text-[12px] text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay stage statement on smaller steps', file: 'components/ReplayPanel.tsx', snippet: 'leading-snug text-white/60', fg: 'white/60', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay workspace names WS and LA', file: 'components/ReplayWorkspace.tsx', snippet: 'text-[15px] text-emerald-300', fg: 'emerald-300', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay workspace words', file: 'components/ReplayWorkspace.tsx', snippet: "'text-white/55' : 'text-emerald-50'", fg: 'emerald-50', bg: REPLAY_PANEL, min: TEXT },
@@ -101,7 +102,7 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Sentence check line labels', file: 'components/TreeVisualizer.tsx', snippet: 'tracking-[0.3em] text-emerald-100/80', fg: 'emerald-100/80', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Sentence check words', file: 'components/TreeVisualizer.tsx', snippet: 'serif italic text-[15px] text-emerald-50/80', fg: 'emerald-50/80', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Sentence check words out of order', file: 'components/TreeVisualizer.tsx', snippet: "outOfOrderSpan ? 'text-amber-400'", fg: 'amber-400', opacity: 0.75, bg: TREE, min: TEXT },
-  { where: 'Replay header step line', file: 'components/TreeVisualizer.tsx', snippet: 'text-[9px] font-black text-emerald-500 uppercase', fg: 'emerald-500', opacity: 0.75, bg: TREE, min: TEXT },
+  { where: 'Replay header step line', file: 'components/TreeVisualizer.tsx', snippet: 'font-black text-emerald-500 uppercase tracking-[0.35em]', fg: 'emerald-500', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Replay layout message', file: 'components/TreeVisualizer.tsx', snippet: 'text-center text-emerald-100', fg: 'emerald-100', bg: [...TREE, 'rgba(3,19,14,0.9)'], min: TEXT },
 
   // Tree Bank

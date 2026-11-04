@@ -899,7 +899,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
             : abstractionMode ? 'CONSTITUENT GLYPHING ACTIVE' : 'ARBORETUM CANOPY'}
         </div>}
         {animated && playbackSteps.length > 0 && (
-          <div className={`text-[9px] font-black text-emerald-500 uppercase tracking-[0.35em] ${replayCountOnly ? 'flex items-center gap-3' : 'mt-2'}`}>
+          <div className={`${replayCountOnly ? 'text-[10px] md:text-[11px] flex items-center gap-3' : 'text-[9px] mt-2'} font-black text-emerald-500 uppercase tracking-[0.35em]`}>
             {replayCountOnly && <ReplayGrowthMark level={replayGrowthLevel(activeStepIndex, playbackSteps.length)} complete={activeStepIndex >= playbackSteps.length - 1} />}
             Replay Frame {activeStepIndex + 1}/{playbackSteps.length}
             {activeStageDisplayLabel ? ` \u00b7 ${activeStageDisplayLabel}` : ''}

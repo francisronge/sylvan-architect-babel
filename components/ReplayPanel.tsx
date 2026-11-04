@@ -94,6 +94,11 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
   const inlineSupportLine = activeStep?.replayKind === 'micro' && activeReplaySupportLines.length === 1 && !activeReplaySupportLines[0].label
     ? activeReplaySupportLines[0].value : '';
   const workspace = buildReplayWorkspace(activeStep, inputTokens);
+  // A stage's own step shows its statement as every smaller step does, as the
+  // stage's line above its Stage Record, not as a labelled detail.
+  const macroStatement = activeStep?.replayKind === 'macro'
+    ? activeReplaySupportLines.find(line => line.label === 'Statement')?.value ?? '' : '';
+  const listedSupportLines = macroStatement ? activeReplaySupportLines.filter(line => line.label !== 'Statement') : activeReplaySupportLines;
   const playLabel = isAutoPlaying ? 'Pause' : (activeStepIndex >= playbackSteps.length - 1 ? 'Replay' : 'Play');
 
   return (
@@ -199,15 +204,15 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
           <div data-babel-replay-summary="true" className="serif text-[18px] leading-tight text-white font-semibold">
             {activePanelContent.heading}
           </div>
-          {inlineSupportLine && <div className="text-[13px] text-emerald-300/90">{inlineSupportLine}</div>}
+          {inlineSupportLine && <div className="text-[12px] text-emerald-300/90">{inlineSupportLine}</div>}
         </div>
-        {!inlineSupportLine && activeReplaySupportLines.length > 0 && (
-          <div className="space-y-1 text-[10px] tracking-[0.12em] text-emerald-300/90">
-            {activeReplaySupportLines.map((line) => (
-              <div key={line.key} className="leading-relaxed"
+        {!inlineSupportLine && listedSupportLines.length > 0 && (
+          <div className="space-y-1">
+            {listedSupportLines.map((line) => (
+              <div key={line.key} className="flex flex-wrap items-baseline gap-x-2 leading-snug"
                 aria-label={line.literal !== undefined ? `${line.label}: ${line.value}; value: ${line.literal}` : undefined}>
-                {line.label && <span>{line.label}:</span>}
-                <span className={`${line.label ? 'ml-2 ' : ''}text-[11px] tracking-normal text-white/92 whitespace-pre-wrap`}>
+                {line.label && <span className="text-[12px] text-emerald-300/90">{line.label}</span>}
+                <span className="text-[15px] text-white/90 whitespace-pre-wrap">
                   {line.value}
                   {line.literal !== undefined && line.literal !== line.value && (
                     <> · {line.literal === '' ? '""' : line.literal}</>
@@ -217,18 +222,23 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
             ))}
           </div>
         )}
+        {macroStatement && (
+          <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06]">
+            <p className="serif italic text-[15px] leading-snug text-white/60 max-w-[68ch]">{macroStatement}</p>
+          </div>
+        )}
         {activeDisplayDetailBlocks.length > 0 && (
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-3">
             {activeDisplayDetailBlocks.map((block, blockIndex) => (
               <div key={`${block.title}-${blockIndex}`}>
                 {!(activeStep?.replayKind === 'macro' && block.title === 'Stage Record') && (
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-300/90 mb-2">
+                  <div className="text-[12px] text-emerald-300/90 mb-1">
                     {formatReplayBlockTitle(block.title)}
                   </div>
                 )}
                 <div className="space-y-1">
                   {block.lines.map((line, lineIndex) => (
-                    <div key={`${block.title}-${lineIndex}`} className="text-[11px] text-white/90 leading-relaxed whitespace-pre-line">
+                    <div key={`${block.title}-${lineIndex}`} className="text-[15px] text-white/85 leading-relaxed whitespace-pre-line max-w-[68ch]">
                       {formatReplayBlockLine(block.title, line, playbackSteps)}
                     </div>
                   ))}
@@ -239,12 +249,12 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
         )}
         {activePanelContent.stageStatement && (
           <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06] space-y-2.5">
-            <p className="serif italic text-[14px] leading-snug text-white/60 max-w-[68ch]">{activePanelContent.stageStatement}</p>
+            <p className="serif italic text-[15px] leading-snug text-white/60 max-w-[68ch]">{activePanelContent.stageStatement}</p>
             {workspace && <ReplayWorkspace workspace={workspace} />}
           </div>
         )}
         {activeNoteDisplay && (
-          <div className="text-[11px] text-white/88">
+          <div className="text-[12px] text-white/88">
             {activeNoteDisplay}
           </div>
         )}

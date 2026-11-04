@@ -15,7 +15,7 @@ const ReplayGrowthMark: React.FC<{ level: number; complete: boolean }> = ({ leve
   );
   return (
     <svg viewBox="0 0 16 18" aria-hidden="true" data-babel-replay-growth={level}
-      className="w-4 h-[18px] shrink-0 overflow-visible [filter:drop-shadow(0_0_5px_rgba(16,185,129,0.7))]"
+      className="w-[18px] h-5 shrink-0 overflow-visible [filter:drop-shadow(0_0_5px_rgba(16,185,129,0.7))]"
       fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round">
       <circle cx="8" cy="2.5" r="1.7" fill={color} stroke="none" />
       {branch(2, 'M8 4 C 8 6.5, 4.5 6.5, 4.5 9 M8 4 C 8 6.5, 11.5 6.5, 11.5 9')}

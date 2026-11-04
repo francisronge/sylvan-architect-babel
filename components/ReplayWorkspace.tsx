@@ -74,7 +74,7 @@ const ReplayWorkspace: React.FC<{ workspace: Workspace }> = ({ workspace }) => {
         <span style={{ color: BARK }}>=</span>
         <span className="inline-flex flex-wrap items-baseline gap-x-4 gap-y-1 min-w-0">
           {objects.map((object, index) => (
-            <span key={String(object.id ?? index)} className={index === currentIndex ? 'text-[15px]' : 'text-[14px]'}>
+            <span key={String(object.id ?? index)} className={index === currentIndex ? '' : 'text-white/90'}>
               <Bracketing node={object} depth={index === currentIndex ? 1 : 0} />
               {index < objects.length - 1 && <span className="text-white/60">,</span>}
             </span>
