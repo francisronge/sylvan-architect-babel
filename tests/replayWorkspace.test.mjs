@@ -57,3 +57,12 @@ test('a saved analysis: the lexical array only shrinks as Replay builds, and the
   // The last construction step can precede a movement that pronounces a word (here T-to-C "did").
   assert.deepEqual(buildReplayWorkspace({ ...steps.at(-1), replayKind: 'micro' }, words).lexicalArray, []);
 });
+
+test('a terminal its realization group accounts for is not matched by text a second time', () => {
+  const sentenceCanvas = { id: 'r', label: 'X', children: [
+    { id: 'd', label: 'D', word: 'The' }, { id: 'n', label: 'N', word: 'cat' }, { id: 'v', label: 'V', word: 'chased' }
+  ] };
+  const workspace = buildReplayWorkspace(step(['n'], { replayCanvasData: sentenceCanvas }), ['The', 'cat', 'chased', 'the', 'cat'],
+    [{ nodeIds: ['n'], tokenIndices: [1] }]);
+  assert.deepEqual(workspace.lexicalArray, ['The', 'chased', 'the', 'cat'], 'only the realized cat is selected');
+});

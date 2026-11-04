@@ -28,9 +28,9 @@ const pruneToVisible = (node: SyntaxNode, visible: ReadonlySet<string>): SyntaxN
 const someNode = (node: SyntaxNode, test: (node: SyntaxNode) => boolean): boolean =>
   test(node) || (node.children ?? []).some(child => someNode(child, test));
 
-const eachNode = (node: SyntaxNode, visit: (node: SyntaxNode) => void) => {
-  visit(node);
-  (node.children ?? []).forEach(child => eachNode(child, visit));
+const eachNode = (node: SyntaxNode, visit: (node: SyntaxNode, parent?: SyntaxNode) => void, parent?: SyntaxNode) => {
+  visit(node, parent);
+  (node.children ?? []).forEach(child => eachNode(child, visit, node));
 };
 
 export const buildReplayWorkspace = (
@@ -53,16 +53,21 @@ export const buildReplayWorkspace = (
   // trees carry no positions, and a word is visible at its source before it
   // moves, so matching by text counts it from its first appearance.
   const selected = new Set<number>();
+  // A word realized by several terminals counts once any of them is visible,
+  // and its terminals are then accounted for: none is matched by text again.
+  const realized = new Set<string>();
+  realizations.forEach(group => {
+    if (!group.nodeIds.some(id => visible.has(String(id)))) return;
+    group.tokenIndices.forEach(index => selected.add(index));
+    group.nodeIds.forEach(id => realized.add(String(id)));
+  });
   const unpositioned: string[] = [];
-  objects.forEach(object => eachNode(object, node => {
+  objects.forEach(object => eachNode(object, (node, parent) => {
     if (node.silent || node.children?.length) return;
     if (Number.isInteger(node.tokenIndex)) selected.add(node.tokenIndex as number);
-    else if (node.word) unpositioned.push(String(node.word));
+    // A drawn word sits under its category node, which is the one a group names.
+    else if (node.word && !realized.has(String(node.id)) && !(parent && realized.has(String(parent.id)))) unpositioned.push(String(node.word));
   }));
-  // A word realized by several terminals counts once any of them is visible.
-  realizations.forEach(group => {
-    if (group.nodeIds.some(id => visible.has(String(id)))) group.tokenIndices.forEach(index => selected.add(index));
-  });
   const fold = (text: string) => text.normalize('NFC').toLocaleLowerCase();
   unpositioned.forEach(word => {
     const index = inputTokens.findIndex((token, at) => !selected.has(at) && fold(token) === fold(word));
