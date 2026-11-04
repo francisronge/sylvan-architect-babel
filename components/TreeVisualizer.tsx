@@ -885,7 +885,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         ref={replayHeaderRef}
         data-babel-replay-header="true"
         className="babel-replay-header absolute pointer-events-none z-10 opacity-75 select-none"
-        style={{ top: Math.max(24, uiBounds.top), right: uiBounds.right }}
+        // The camera fits the tree below the header's bottom edge. Showing only
+        // the step count, it keeps the 36.5px of the two lines it replaced, so
+        // the fitted area is unchanged.
+        style={{ top: Math.max(24, uiBounds.top), right: uiBounds.right, minHeight: replayCountOnly ? 36.5 : undefined }}
       >
         {/* While Replay plays a valid analysis, the step count is the header's only line. */}
         {!replayCountOnly && <div className={`text-[10px] font-black uppercase tracking-[0.6em] flex items-center gap-3 ${sentenceCheck ? 'text-amber-400' : 'text-emerald-500'}`}>
