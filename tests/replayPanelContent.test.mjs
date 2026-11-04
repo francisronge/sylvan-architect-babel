@@ -197,6 +197,8 @@ test('a smaller step shows its stage statement only when the stage is known and 
   assert.equal(buildReplayPanelContent(step({ replayFrameIndex: 5 }), stages).stageStatement, null);
   assert.equal(buildReplayPanelContent(step({ replayKind: 'macro', replayFrameIndex: 0 }), stages).stageStatement, null);
   assert.equal(buildReplayPanelContent(null, stages).stageStatement, null);
+  // A relation's own lines say what its step does (Francis, 4 Nov 2026: "I don't really see why it should").
+  assert.equal(buildReplayPanelContent(step({ replayKind: 'relation', replayFrameIndex: 0 }), stages).stageStatement, null);
 });
 
 test('macro statements require a real stage identity and never fall back to recipe text', () => {
@@ -358,11 +360,12 @@ for (const record of saved) {
       assert.equal(content.heading, expected);
       assert(!content.supportLines.some(line => line.label === 'Statement' || line.value === current.recipe));
     }
-    // Each smaller step shows its own stage's statement; the Stage Record stays with the stage's own step.
+    // Each construction step shows its own stage's statement; relation steps
+    // show their relation's lines, and the Stage Record stays with the stage's own step.
     const detailBlocks = buildReplayDisplayDetailBlocks(steps);
     steps.forEach((current, index) => {
       const { stageStatement } = buildReplayPanelContent(current, stages);
-      if (current.replayKind === 'macro') return assert.equal(stageStatement, null);
+      if (current.replayKind !== 'micro') return assert.equal(stageStatement, null);
       const owner = stages[current.replayRelationIdentity?.stageIndex ?? current.replayFrameIndex];
       assert.equal(stageStatement, owner.statement.trim() ? owner.statement : null);
       assert(!(detailBlocks.get(index) ?? []).some(block => block.title === 'Stage Record'), 'the Stage Record is not shown twice');
