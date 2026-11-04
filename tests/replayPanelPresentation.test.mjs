@@ -123,3 +123,19 @@ test('the header tree starts with its first branches and gains a level each thir
   assert.equal(replayGrowthLevel(-3, 10), 2, 'never only a root');
   assert.equal(replayGrowthLevel(99, 10), 4);
 });
+
+test("a stage's own step leads with its statement, without a title line", () => {
+  const html = render(properties(2));
+  assert.equal(steps[2].replayKind, 'macro');
+  assert.doesNotMatch(html, /data-babel-replay-summary/, 'no "Stage Record" title');
+  assert.match(html, /An authored statement\./);
+  assert.match(html, /text-\[13px\] leading-\[1\.5\][^"]*">An authored explanation\./, 'the Stage Record at 13px');
+});
+
+test('workspace labels sit on the words baseline, not dropped as subscripts', () => {
+  const tree = { id: 'dp', label: 'DP', children: [{ id: 'd', label: 'D', word: 'the' }, { id: 'n2', label: 'N', word: 'cat' }] };
+  const micro = { ...steps[0], replayCanvasData: tree, replayVisibleNodeIds: ['dp', 'd', 'n2'], replayFrameIndex: 0, targetNodeId: 'dp' };
+  const html = render(properties(0, { activeStep: micro, playbackSteps: [micro, steps[1], steps[2]], inputTokens: ['the', 'cat'] }));
+  assert.match(html, /data-babel-replay-workspace/);
+  assert.doesNotMatch(html, /<sub/, 'a subscript drops the label below the words');
+});
