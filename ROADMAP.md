@@ -207,7 +207,7 @@ copy the engine, and do not keep growing today's `App.tsx`.
    get neither (Francis, 4 Nov 2026: "Let's just do F. No fullscreen. just
    that on the screen for a bit"). Where the Tree Bank's entry goes is
    still open. The browser names GPT-6.1 Sol at high effort, which the
-   server refuses as not enabled until the GPT-6.1 Sol API-key route exists.
+   parse route sends through Babel's OpenAI API key.
    The "Arboretum link" label and its glowing dot go, with nothing in their
    place for now (Francis, 3 Nov: "we don't need it yet, let's keep
    minimal"). Constituent glyphing goes from the public app (see Program 4).
