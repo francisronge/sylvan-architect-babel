@@ -176,8 +176,13 @@ export const parseSentenceInBackground = async (
       if ((response.status === 429 || response.status >= 500) && RETRYABLE_CHECK_CODES.has(error.code)) continue;
       throw error;
     }
-    const checked = await response.json();
-    if (checked?.status === 'pending') continue;
+    let checked: unknown;
+    try {
+      checked = await response.json();
+    } catch {
+      continue; // The connection dropped mid-reply: the parse is intact, so check again.
+    }
+    if ((checked as { status?: string } | null)?.status === 'pending') continue;
     return finishedBundle(checked);
   }
 };

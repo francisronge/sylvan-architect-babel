@@ -68,3 +68,12 @@ test('a start the server finished at once returns its bundle without checking', 
   assert.deepEqual(await parseSentenceInBackground(...args, { wait: noWait }), bundle);
   assert.equal(sent.length, 1);
 });
+
+test('a check whose reply is cut off mid-body checks the same ticket again', async t => {
+  const interrupted = () => new Response(new ReadableStream({
+    start(controller) { controller.enqueue(new TextEncoder().encode('{"status":"pen')); controller.error(new TypeError('network connection was lost')); }
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  const sent = scriptFetch(t, [json(200, { status: 'pending', ticket: 'T' }), interrupted(), json(200, bundle)]);
+  assert.deepEqual(await parseSentenceInBackground(...args, { wait: noWait }), bundle);
+  assert.deepEqual(sent.slice(1), [{ ticket: 'T' }, { ticket: 'T' }]);
+});

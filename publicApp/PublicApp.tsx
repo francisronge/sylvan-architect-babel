@@ -40,17 +40,19 @@ type Screen = 'input' | 'tree' | 'treeBank';
 const KEYBOARD_HINT_MS = 4000;
 const offersKeyboardHint = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
   && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-// The running parse, kept until it finishes or fails.
+// The running parse, kept until it finishes or fails. Session storage belongs
+// to one tab and survives its reloads (and a phone restoring a discarded tab),
+// so two tabs never overwrite or clear each other's parse.
 const PENDING_PARSE_KEY = 'babel.pendingParse';
 const rememberPendingParse = (pending: PendingParse) => {
-  try { window.localStorage.setItem(PENDING_PARSE_KEY, JSON.stringify(pending)); } catch { /* storage full or blocked: no resume */ }
+  try { window.sessionStorage.setItem(PENDING_PARSE_KEY, JSON.stringify(pending)); } catch { /* storage full or blocked: no resume */ }
 };
 const forgetPendingParse = () => {
-  try { window.localStorage.removeItem(PENDING_PARSE_KEY); } catch { /* nothing to forget */ }
+  try { window.sessionStorage.removeItem(PENDING_PARSE_KEY); } catch { /* nothing to forget */ }
 };
 const readPendingParse = (): PendingParse | null => {
   try {
-    const value = JSON.parse(window.localStorage.getItem(PENDING_PARSE_KEY) || 'null');
+    const value = JSON.parse(window.sessionStorage.getItem(PENDING_PARSE_KEY) || 'null');
     if (value && typeof value.ticket === 'string' && typeof value.sentence === 'string' && value.sentence.trim()
       && Number.isFinite(value.startedAt) && Date.now() - value.startedAt < PARSE_CHECK_GIVE_UP_MS) return value;
   } catch { /* unreadable: start fresh */ }
