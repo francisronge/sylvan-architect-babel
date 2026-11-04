@@ -47,6 +47,8 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Fullscreen and Tree Bank error banners', file: 'App.tsx', snippet: 'bg-[#261114] px-4 py-3 text-rose-200', fg: 'rose-200', bg: ['#261114'], min: TEXT },
 
   // Workspace
+  { where: 'Public: Tree Bank label, closed', file: 'components/workspace/TreeBankBranch.tsx', snippet: "'text-emerald-50/85 group-hover:text-white'", fg: 'emerald-50/85', bg: HEADER, min: TEXT },
+  { where: 'Public: title while the Tree Bank is open', file: 'components/workspace/BabelTitle.tsx', snippet: "'text-white/50'", fg: 'white/50', bg: HEADER, min: TEXT },
   { where: 'Public: "Press F for fullscreen" hint', file: 'publicApp/PublicApp.tsx', snippet: 'tracking-wide text-emerald-100/70', fg: 'emerald-100/70', bg: TREE, min: TEXT },
   { where: 'Parse selector, unselected', file: 'components/workspace/WorkspaceStates.tsx', snippet: "'text-white/60 hover:text-emerald-300'", fg: 'white/60', bg: [...SHELL, 'black/50'], min: TEXT },
   { where: 'Parse selector / view tab, selected', file: 'components/workspace/WorkspaceStates.tsx', snippet: "'moss-gradient text-white border border-emerald-400/50'", fg: 'white', bg: ['#065f46'], min: TEXT },
