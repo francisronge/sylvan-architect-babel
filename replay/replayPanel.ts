@@ -471,9 +471,10 @@ export const buildReplayPanelContent = (step: PlaybackStep | null | undefined, d
   if (typeof statement === 'string' && statement.length > 0) {
     supportLines.unshift({ label: 'Statement', value: statement });
   }
-  // Every smaller step of a stage shows that stage's statement as its goal;
-  // the stage's own step shows it with the whole Stage Record.
-  const contextIndex = step && step.replayKind !== 'macro'
+  // Every construction step of a stage shows that stage's statement as its
+  // goal, beside its workspace; a relation step's own lines say what it does,
+  // and the stage's own step shows the statement with the whole Stage Record.
+  const contextIndex = step && step.replayKind === 'micro'
     ? identity?.stageIndex ?? step.replayFrameIndex ?? step.sourceFrameIndex : undefined;
   const contextStage = typeof contextIndex === 'number' && Number.isInteger(contextIndex) && contextIndex >= 0
     ? derivationStages?.[contextIndex] : undefined;
