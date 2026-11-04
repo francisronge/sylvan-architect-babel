@@ -510,3 +510,16 @@ export const buildReplayStageRuns = (steps: readonly PlaybackStep[]): ReplayStag
   });
   return runs.map(({ start, count }) => ({ start, count }));
 };
+
+/** The Replay header's tree has four levels; it gains one per quarter of the derivation. */
+export const REPLAY_GROWTH_LEVELS = 4;
+
+/**
+ * How many of the header tree's levels show at a step: the root alone in the
+ * first quarter of the derivation, every level in the last.
+ */
+export const replayGrowthLevel = (activeStepIndex: number, stepCount: number): number => {
+  if (stepCount <= 1) return REPLAY_GROWTH_LEVELS;
+  const progress = Math.min(Math.max(activeStepIndex / (stepCount - 1), 0), 1);
+  return Math.min(REPLAY_GROWTH_LEVELS, 1 + Math.floor(progress * REPLAY_GROWTH_LEVELS));
+};

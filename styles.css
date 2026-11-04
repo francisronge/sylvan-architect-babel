@@ -239,3 +239,8 @@ body,
   .group:hover .analyze-glyph:not(.is-drawing) .analyze-glyph-words,
   .analyze-glyph.is-drawing .analyze-glyph-branch { animation: none; }
 }
+
+/* A level of the Replay header's tree draws itself in when it appears. */
+@keyframes replay-growth-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.replay-growth-branch { stroke-dasharray: 1; animation: replay-growth-draw 420ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .replay-growth-branch { animation: none; } }

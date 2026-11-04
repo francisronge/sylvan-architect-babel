@@ -33,6 +33,8 @@ import { updateSyntaxReveal } from './renderer/syntaxReveal.ts';
 import { canopyPlacesInReplayFrame, selectCanopyReplayFrame } from './renderer/frameTreeLayout.ts';
 import { drawTreeFrame } from './renderer/treeFrame.ts';
 import ReplayPanel from './ReplayPanel';
+import ReplayGrowthMark from './ReplayGrowthMark';
+import { replayGrowthLevel } from '../replay/replayPanel.ts';
 import { createTreeInkTextMeasure } from './treeInkTextMeasure';
 import { createTreeLabelMeasure } from './treeLabelMeasure.ts';
 import { createViewportSettler } from './treeViewport.ts';
@@ -898,7 +900,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         </div>}
         {animated && playbackSteps.length > 0 && (
           <div className={`text-[9px] font-black text-emerald-500 uppercase tracking-[0.35em] ${replayCountOnly ? 'flex items-center gap-3' : 'mt-2'}`}>
-            {replayCountOnly && <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_15px_#10b981] shrink-0" />}
+            {replayCountOnly && <ReplayGrowthMark level={replayGrowthLevel(activeStepIndex, playbackSteps.length)} complete={activeStepIndex >= playbackSteps.length - 1} />}
             Replay Frame {activeStepIndex + 1}/{playbackSteps.length}
             {activeStageDisplayLabel ? ` \u00b7 ${activeStageDisplayLabel}` : ''}
           </div>
