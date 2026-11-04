@@ -44,7 +44,12 @@ export const createParseRoutes = ({
   generateGrok = generateGrokStructuredContent,
   startOpenAI = startOpenAIBackgroundResponse,
   readOpenAI = readOpenAIBackgroundResponse,
-  cancelOpenAI = cancelOpenAIBackgroundResponse
+  cancelOpenAI = cancelOpenAIBackgroundResponse,
+  // The provider calls behind a ticket are quick (creating a response, then
+  // one look at it), so each is bounded: a provider that goes silent never
+  // holds a request open. A look that times out is retried by the browser.
+  backgroundStartTimeoutMs = 60_000,
+  backgroundCheckTimeoutMs = 20_000
 }) => {
   /** Each catalog provider's server key, display label, runtime and request body. */
   const providers = {
@@ -536,7 +541,13 @@ export const createParseRoutes = ({
       // The attempt runner gives a failed start the same record a long request's failure has.
       const receipt = await runProviderAttempt({
         abortSignal: options.abortSignal,
-        run: ({ runId: id }) => { runId = id; return startOpenAI({ apiKey: prepared.apiKey, ...prepared.generationOptions, abortSignal: options.abortSignal }); }
+        run: ({ runId: id }) => {
+          runId = id;
+          return withTimeout(
+            (signal) => startOpenAI({ apiKey: prepared.apiKey, ...prepared.generationOptions, abortSignal: signal }),
+            backgroundStartTimeoutMs, `Background generation start (${prepared.selectedModel})`, options.abortSignal
+          );
+        }
       });
       started = receipt.value;
       runId = receipt.runId;
@@ -588,7 +599,10 @@ export const createParseRoutes = ({
     }
     let state;
     try {
-      state = await readOpenAI({ apiKey: prepared.apiKey, responseId: fields.responseId, model: prepared.selectedModel, abortSignal: options.abortSignal });
+      state = await withTimeout(
+        (signal) => readOpenAI({ apiKey: prepared.apiKey, responseId: fields.responseId, model: prepared.selectedModel, abortSignal: signal }),
+        backgroundCheckTimeoutMs, `Background generation check (${prepared.selectedModel})`, options.abortSignal
+      );
     } catch (error) {
       if (error?.completedStopState) {
         // A failed or cancelled response: the generation ended badly.

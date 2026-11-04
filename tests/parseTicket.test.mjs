@@ -179,3 +179,34 @@ test('a late or outdated ticket cancels its response and fails plainly, never re
     if (previousKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = previousKey;
   }
 });
+
+test('a silent provider never hangs a check or a start: a check answers "check again", a start times out', async () => {
+  const { createParseRoutes } = await import('../server/babelParser/parseRoutes.js');
+  const { ParseApiError } = await import('../server/babelParser/error.js');
+  const { normalizeParseBundle } = await import('../server/babelParser/parseNormalization.js');
+  const { parseModelJsonDetailed } = await import('../server/babelParser/modelJson.js');
+  const previousKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = 'unit-test-key';
+  const never = () => new Promise(() => {});
+  const settle = (promise, ms = 1000) => Promise.race([
+    promise.then(value => ({ value }), error => ({ error })),
+    new Promise(resolve => setTimeout(() => resolve({ hung: true }), ms))
+  ]);
+  try {
+    const shared = { ParseApiError, normalizeParseBundle, parseModelJsonDetailed, cancelOpenAI: async () => true,
+      backgroundCheckTimeoutMs: 50, backgroundStartTimeoutMs: 50 };
+    const answering = createParseRoutes({ ...shared, startOpenAI: async () => ({ responseId: 'resp_quiet', pending: true }), readOpenAI: never });
+    const { ticket } = await answering.startParseTicket(fixture.sentence, fixture.framework, request.modelId, { settings: request.settings });
+    const checked = await settle(answering.checkParseTicket(ticket));
+    assert.equal(checked.hung, undefined, 'the check ends');
+    assert.equal(checked.error?.code, 'CHECK_UNAVAILABLE');
+    assert.equal(checked.error?.status, 503);
+
+    const silent = createParseRoutes({ ...shared, startOpenAI: never, readOpenAI: never });
+    const started = await settle(silent.startParseTicket(fixture.sentence, fixture.framework, request.modelId, { settings: request.settings }));
+    assert.equal(started.hung, undefined, 'the start ends');
+    assert.equal(started.error?.code, 'PROVIDER_TIMEOUT');
+  } finally {
+    if (previousKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = previousKey;
+  }
+});
