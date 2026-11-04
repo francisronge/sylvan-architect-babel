@@ -104,3 +104,8 @@ test('text matching compares words as the parser does, ignoring edge punctuation
   const punctuated = { id: 'r', label: 'X', children: [{ id: 'n', label: 'N', word: 'cat.' }] };
   assert.deepEqual(buildReplayWorkspace(step(['n'], { replayCanvasData: punctuated }), ['the', 'cat']).lexicalArray, ['the']);
 });
+
+test('a symbol word stays in the lexical array until selected; punctuation never appears', () => {
+  const symbolCanvas = { id: 'r', label: 'X', children: [{ id: 'v', label: 'V', word: 'go' }] };
+  assert.deepEqual(buildReplayWorkspace(step(['v'], { replayCanvasData: symbolCanvas }), ['go', '🙂', '!']).lexicalArray, ['🙂']);
+});

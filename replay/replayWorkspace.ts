@@ -17,8 +17,6 @@ export interface ReplayWorkspace {
   lexicalArray: string[];
 }
 
-const WORDLIKE = /[\p{L}\p{N}]/u;
-
 /**
  * A visible node keeps its visible descendants; a hidden one passes them up.
  * Silence is inherited, as in pronunciation (a silent phrase silences
@@ -92,6 +90,7 @@ export const buildReplayWorkspace = (
     const index = inputTokens.findIndex((token, at) => !selected.has(at) && normalizeSurfaceToken(token) === normalizeSurfaceToken(word));
     if (index !== -1) selected.add(index);
   });
-  const lexicalArray = inputTokens.filter((token, index) => WORDLIKE.test(token) && !selected.has(index));
+  // Punctuation is never a word to select; symbol words are, as the parser keeps them.
+  const lexicalArray = inputTokens.filter((token, index) => normalizeSurfaceToken(token) !== '' && !selected.has(index));
   return { objects, currentIndex, lexicalArray };
 };
