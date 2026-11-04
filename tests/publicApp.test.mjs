@@ -47,6 +47,8 @@ test('the public first screen is the sentence box and Analyze, without the inter
   assert.match(html, /aria-label="Analyze sentence"/);
   assert.match(html, /aria-label="Tree Bank, 0 saved"/);
   assert.match(html, /aria-label="Babel, parse a new sentence"/, 'the logo returns to the sentence box');
+  assert.match(html, /class="analyze-glyph /, 'Analyze shows the labelled tree');
+  assert.ok(!html.includes('lucide-sparkles'), 'and no sparkles');
   for (const absent of ['Arboretum Link', 'Constituent Glyphing', 'Minimalist Program', 'X-Bar Theory',
     'Save to Tree Bank', 'Reasoning', 'Hide Control Panel', 'Canopy', 'Notes', 'API Key',
     'Fullscreen', 'neural synthesis', '<footer']) {
