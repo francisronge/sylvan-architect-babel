@@ -1,4 +1,5 @@
 import type { SyntaxNode } from '../types.ts';
+import { normalizeSurfaceToken } from '../server/babelParser/surfaceTokens.js';
 import { replayEffectiveSilence } from './syntaxForest.ts';
 import type { PlaybackStep } from './types.ts';
 
@@ -86,9 +87,9 @@ export const buildReplayWorkspace = (
     children.forEach(child => walk(child, node, silent, covering));
   };
   walk(canvas, undefined, false, []);
-  const fold = (text: string) => text.normalize('NFC').toLocaleLowerCase();
+  // Words compare as the parser compares surface tokens: caseless, without edge punctuation.
   unpositioned.forEach(word => {
-    const index = inputTokens.findIndex((token, at) => !selected.has(at) && fold(token) === fold(word));
+    const index = inputTokens.findIndex((token, at) => !selected.has(at) && normalizeSurfaceToken(token) === normalizeSurfaceToken(word));
     if (index !== -1) selected.add(index);
   });
   const lexicalArray = inputTokens.filter((token, index) => WORDLIKE.test(token) && !selected.has(index));

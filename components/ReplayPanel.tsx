@@ -224,7 +224,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
         )}
         {macroStatement && (
           <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06]">
-            <p className="serif italic text-[15px] leading-snug text-emerald-300/90 max-w-[68ch]">{macroStatement}</p>
+            <p className="serif italic text-[15px] leading-snug text-emerald-300/90">{macroStatement}</p>
           </div>
         )}
         {activeDisplayDetailBlocks.length > 0 && (
@@ -238,7 +238,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
                 )}
                 <div className="space-y-1">
                   {block.lines.map((line, lineIndex) => (
-                    <div key={`${block.title}-${lineIndex}`} className="text-[15px] text-white/85 leading-relaxed whitespace-pre-line max-w-[68ch]">
+                    <div key={`${block.title}-${lineIndex}`} className="text-[15px] text-white/85 leading-relaxed whitespace-pre-line">
                       {formatReplayBlockLine(block.title, line, playbackSteps)}
                     </div>
                   ))}
@@ -249,7 +249,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
         )}
         {activePanelContent.stageStatement && (
           <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06] space-y-2.5">
-            <p className="serif italic text-[15px] leading-snug text-emerald-300/90 max-w-[68ch]">{activePanelContent.stageStatement}</p>
+            <p className="serif italic text-[15px] leading-snug text-emerald-300/90">{activePanelContent.stageStatement}</p>
             {workspace && <ReplayWorkspace workspace={workspace} />}
           </div>
         )}

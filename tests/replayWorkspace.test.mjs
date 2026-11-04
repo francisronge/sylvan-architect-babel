@@ -99,3 +99,8 @@ test('every word inside a phrase a realization group names is accounted for by t
   assert.deepEqual(buildReplayWorkspace(step(['n', 'n::word'], { replayCanvasData: phrase, replayRealizations: groups }), ['cats', 'saw', 'cat']).lexicalArray,
     ['saw', 'cat'], 'also while the named phrase itself is not yet drawn');
 });
+
+test('text matching compares words as the parser does, ignoring edge punctuation', () => {
+  const punctuated = { id: 'r', label: 'X', children: [{ id: 'n', label: 'N', word: 'cat.' }] };
+  assert.deepEqual(buildReplayWorkspace(step(['n'], { replayCanvasData: punctuated }), ['the', 'cat']).lexicalArray, ['the']);
+});
