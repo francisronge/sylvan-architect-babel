@@ -96,7 +96,7 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Replay workspace names WS and LA', file: 'components/ReplayWorkspace.tsx', snippet: 'text-[15px] text-emerald-300', fg: 'emerald-300', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay workspace words', file: 'components/ReplayWorkspace.tsx', snippet: "'text-white/55' : 'text-emerald-50'", fg: 'emerald-50', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay workspace silent words', file: 'components/ReplayWorkspace.tsx', snippet: "node.silent ? 'text-white/55'", fg: 'white/55', bg: REPLAY_PANEL, min: TEXT },
-  { where: 'Replay workspace category labels', file: 'components/ReplayWorkspace.tsx', snippet: 'text-[0.72em] text-white/85', fg: 'white/85', bg: REPLAY_PANEL, min: TEXT },
+  { where: 'Replay workspace category labels', file: 'components/ReplayWorkspace.tsx', snippet: "marked ? '' : 'text-white/85'", fg: 'white/85', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay header title', file: 'components/TreeVisualizer.tsx', snippet: "sentenceCheck ? 'text-amber-400' : 'text-emerald-500'", fg: 'emerald-500', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Replay header title, invalid analysis', file: 'components/TreeVisualizer.tsx', snippet: "sentenceCheck ? 'text-amber-400' : 'text-emerald-500'", fg: 'amber-400', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Sentence check line labels', file: 'components/TreeVisualizer.tsx', snippet: 'tracking-[0.3em] text-emerald-100/80', fg: 'emerald-100/80', opacity: 0.75, bg: TREE, min: TEXT },

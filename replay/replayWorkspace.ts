@@ -13,6 +13,8 @@ export interface ReplayWorkspace {
   objects: SyntaxNode[];
   /** The object holding the step's target, the one this step built or selected. */
   currentIndex: number;
+  /** The node this step built or selected, marked in the bracketing. */
+  targetId: string | null;
   /** Words still to be selected, in sentence order. */
   lexicalArray: string[];
 }
@@ -92,5 +94,5 @@ export const buildReplayWorkspace = (
   });
   // Punctuation is never a word to select; symbol words are, as the parser keeps them.
   const lexicalArray = inputTokens.filter((token, index) => normalizeSurfaceToken(token) !== '' && !selected.has(index));
-  return { objects, currentIndex, lexicalArray };
+  return { objects, currentIndex, targetId: target ?? null, lexicalArray };
 };

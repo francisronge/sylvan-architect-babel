@@ -140,12 +140,3 @@ test('workspace labels sit on the words baseline, not dropped as subscripts', ()
   assert.doesNotMatch(html, /<sub/, 'a subscript drops the label below the words');
 });
 
-test('the hidden copies a phone measures wrap as the visible details do', async () => {
-  const { readFileSync } = await import('node:fs');
-  const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
-  const rule = css.match(/([^{}]*\[data-babel-replay-details\][^{}]*)\{([^}]*)\}/);
-  assert(rule, 'the details wrapping rule exists');
-  assert.match(rule[1], /\[data-babel-replay-measure\]/, 'the same rule covers the measured copies');
-  assert.match(rule[2], /white-space:\s*pre-wrap/);
-  assert.match(rule[2], /overflow-wrap:\s*anywhere/);
-});

@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
 import { buildReplayPanelContent, buildReplayStageRuns } from '../replay/replayPanel.ts';
 import { buildReplayWorkspace } from '../replay/replayWorkspace.ts';
 import {
@@ -36,21 +36,6 @@ export interface ReplayPanelProps {
   onScrubbingChange: (scrubbing: boolean) => void;
   onStepChange: (index: number) => void;
 }
-
-// Below Tailwind's sm breakpoint the panel fits its height to the analysis.
-const PHONE_QUERY = '(max-width: 639px)';
-const usePhoneLayout = () => {
-  const [phone, setPhone] = useState(() => typeof window !== 'undefined' && window.matchMedia?.(PHONE_QUERY).matches === true);
-  useLayoutEffect(() => {
-    const query = window.matchMedia?.(PHONE_QUERY);
-    if (!query) return;
-    const update = () => setPhone(query.matches);
-    update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
-  }, []);
-  return phone;
-};
 
 const REPLAY_ICON_BUTTON = 'shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-white/75 enabled:hover:text-white enabled:hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70';
 
@@ -92,23 +77,23 @@ const buildStepDetails = (
     }
     return note;
   })();
-  // A construction step's one unlabelled line (D + N → DP) sits beside its heading.
-  const inlineSupportLine = activeStep?.replayKind === 'micro' && activeReplaySupportLines.length === 1 && !activeReplaySupportLines[0].label
-    ? activeReplaySupportLines[0].value : '';
+  // A construction step's one unlabelled line (D + N → DP) restates what its
+  // workspace bracketing shows, where the new object's brackets are marked.
+  const constructionLine = activeStep?.replayKind === 'micro' && activeReplaySupportLines.length === 1 && !activeReplaySupportLines[0].label;
   const workspace = buildReplayWorkspace(activeStep, inputTokens);
   // A stage's own step shows its statement as every smaller step does, as the
   // stage's line above its Stage Record, not as a labelled detail.
   const macroStatement = activeStep?.replayKind === 'macro'
     ? activeReplaySupportLines.find(line => line.label === 'Statement')?.value ?? '' : '';
   const listedSupportLines = macroStatement ? activeReplaySupportLines.filter(line => line.label !== 'Statement') : activeReplaySupportLines;
-  return { activeStep, activePanelContent, activeDisplayDetailBlocks, activeNoteDisplay, inlineSupportLine, workspace, macroStatement, listedSupportLines };
+  return { activeStep, activePanelContent, activeDisplayDetailBlocks, activeNoteDisplay, constructionLine, workspace, macroStatement, listedSupportLines };
 };
 
-/** The panel's lower part for one step: shown for the current step, and measured for each construction step on a phone. */
+/** The panel's lower part for one step. */
 // A Stage Record is the panel's longest prose: at 13px most records show whole
 // on a computer without taking room from the tree.
 const ReplayStepDetails: React.FC<{ details: StepDetails; playbackSteps: PlaybackStep[] }> = ({ details, playbackSteps }) => {
-  const { activeStep, activePanelContent, activeDisplayDetailBlocks, activeNoteDisplay, inlineSupportLine, workspace, macroStatement, listedSupportLines } = details;
+  const { activeStep, activePanelContent, activeDisplayDetailBlocks, activeNoteDisplay, constructionLine, workspace, macroStatement, listedSupportLines } = details;
   return (
     <>
           {/* A stage's own step leads with its statement; its position on the rail names it, so it needs no title line. */}
@@ -117,10 +102,9 @@ const ReplayStepDetails: React.FC<{ details: StepDetails; playbackSteps: Playbac
               <div data-babel-replay-summary="true" className="serif text-[16px] sm:text-[18px] leading-tight text-white font-semibold">
                 {activePanelContent.heading}
               </div>
-              {inlineSupportLine && <div className="text-[11px] sm:text-[12px] text-emerald-300/90">{inlineSupportLine}</div>}
             </div>
           )}
-          {!inlineSupportLine && listedSupportLines.length > 0 && (
+          {!constructionLine && listedSupportLines.length > 0 && (
             <div className="space-y-1">
               {listedSupportLines.map((line) => (
                 <div key={line.key} className="flex flex-wrap items-baseline gap-x-2 leading-snug"
@@ -191,46 +175,6 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
   );
   const activeDetails = buildStepDetails(activeStep, activeStepIndex, replayDisplayDetailBlocksByStepIndex, playbackSteps, derivationStages, sentence, inputTokens);
 
-  // On a phone the panel takes, once per analysis, the height of its tallest
-  // construction step (within the usual cap), so those steps fit without a
-  // gap or a scroll. It never changes during playback: the camera fits the
-  // tree above the panel, and a panel resizing per step would move the tree.
-  // Longer relation steps and Stage Records scroll inside the panel.
-  const phone = usePhoneLayout();
-  const panelElement = useRef<HTMLDivElement | null>(null);
-  const detailsElement = useRef<HTMLDivElement | null>(null);
-  const measureElement = useRef<HTMLDivElement | null>(null);
-  const setPanelElement = useCallback((element: HTMLDivElement | null) => {
-    panelElement.current = element;
-    if (typeof panelRef === 'function') panelRef(element);
-    else if (panelRef) (panelRef as React.MutableRefObject<HTMLDivElement | null>).current = element;
-  }, [panelRef]);
-  const constructionDetails = useMemo(() => phone
-    ? playbackSteps.flatMap((step, index) => step.replayKind === 'micro'
-      ? [buildStepDetails(step, index, replayDisplayDetailBlocksByStepIndex, playbackSteps, derivationStages, sentence, inputTokens)] : [])
-    : [], [phone, playbackSteps, replayDisplayDetailBlocksByStepIndex, derivationStages, sentence, inputTokens]);
-  const [fittedHeight, setFittedHeight] = useState<number | null>(null);
-  const [panelWidth, setPanelWidth] = useState(0);
-  useLayoutEffect(() => {
-    const panel = panelElement.current;
-    if (!panel || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(([entry]) => setPanelWidth(Math.round(entry.contentRect.width)));
-    observer.observe(panel);
-    return () => observer.disconnect();
-  }, []);
-  useLayoutEffect(() => {
-    const panel = panelElement.current, details = detailsElement.current, measure = measureElement.current;
-    if (!phone || !panel || !details || !measure || !constructionDetails.length) { setFittedHeight(null); return; }
-    const tallest = Math.max(...Array.from(measure.children, child => (child as HTMLElement).offsetHeight));
-    // The usual height, without this override, is the cap.
-    const previous = panel.style.height;
-    panel.style.height = '';
-    const cap = panel.offsetHeight;
-    const chrome = cap - details.offsetHeight;
-    panel.style.height = previous;
-    const fitted = Math.ceil(chrome + tallest);
-    setFittedHeight(fitted < cap ? fitted : null);
-  }, [phone, constructionDetails, panelWidth]);
   const stageRuns = useMemo(() => buildReplayStageRuns(playbackSteps), [playbackSteps]);
   const activeRun = Math.max(0, stageRuns.findIndex(run => activeStepIndex >= run.start && activeStepIndex < run.start + run.count));
   // The rail is painted in the range input's own mapping, step i at
@@ -243,14 +187,14 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
 
   return (
     <div
-      ref={setPanelElement}
+      ref={panelRef}
       data-babel-replay-panel="true"
       data-babel-replay-kind={currentReplayKind || undefined}
       data-babel-active-relation-stage-index={activeRelationMoment?.stageIndex}
       data-babel-active-relation-index={activeRelationMoment?.relationIndex}
       data-babel-played-relation-indices={playedRelationIndicesAttribute}
       className="babel-replay-panel absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-[#17362d] bg-[#020806]/[0.96] p-3 sm:p-4 shadow-2xl"
-      style={{ bottom, right, ...(fittedHeight ? { height: fittedHeight } : {}) }}
+      style={{ bottom, right }}
     >
       <div className="babel-replay-controls flex items-center gap-1">
         <button type="button" onClick={handlePrevStep} disabled={!canStepBackward} title="Previous step" className={REPLAY_ICON_BUTTON}>
@@ -336,16 +280,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
           className="derivation-slider absolute inset-0 w-full h-full z-10"
         />
       </div>
-      {constructionDetails.length > 0 && (
-        <div ref={measureElement} aria-hidden="true" data-babel-replay-measure="true"
-          className="absolute left-3 right-3 top-0 invisible pointer-events-none">
-          {constructionDetails.map((details, index) => (
-            <div key={index} className="pr-1 space-y-1.5 sm:space-y-2.5"><ReplayStepDetails details={details} playbackSteps={playbackSteps} /></div>
-          ))}
-        </div>
-      )}
       <div
-        ref={detailsElement}
         data-babel-replay-details="true"
         className="sm:mt-1 min-h-0 flex-1 overflow-y-auto pr-1 space-y-1.5 sm:space-y-2.5"
       >

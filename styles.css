@@ -123,9 +123,7 @@ body,
   max-height: calc(100% - 100px);
 }
 
-/* The hidden copies a phone measures wrap exactly as the visible details do. */
-.babel-replay-panel [data-babel-replay-details],
-.babel-replay-panel [data-babel-replay-measure] {
+.babel-replay-panel [data-babel-replay-details] {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
