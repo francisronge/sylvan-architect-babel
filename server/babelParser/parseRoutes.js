@@ -1,5 +1,5 @@
 import { attachGenerationFailureEvidence, classifyProviderRouteError } from './routeErrors.js';
-import { buildGenerationRecord } from './generationRecord.js';
+import { buildGenerationRecord, sha256Hex } from './generationRecord.js';
 import { buildSystemInstruction } from './systemInstruction.js';
 import { buildParseContentsPrompt } from './prompts.js';
 import { GENERATION_MODEL_IDS, resolveGenerationModelSelection } from './researchModelCatalog.js';
@@ -17,8 +17,12 @@ import {
   generateOpenAIStructuredContent,
   generateKimiStructuredContent,
   generateGrokStructuredContent,
+  startOpenAIBackgroundResponse,
+  readOpenAIBackgroundResponse,
+  cancelOpenAIBackgroundResponse,
   writeDebugModelPayload
 } from './modelRuntime.js';
+import { PARSE_TICKET_LIFETIME_MS, readParseTicket, signParseTicket } from './parseTicket.js';
 import { runProviderAttempt, withTimeout } from './providerTransport.js';
 import { assertGenerationComplete, buildGenerationOutcome, summarizeGeneration } from './generationOutcome.js';
 import {
@@ -37,7 +41,10 @@ export const createParseRoutes = ({
   generateOpenAI = generateOpenAIStructuredContent,
   generateClaude = generateAnthropicStructuredContent,
   generateKimi = generateKimiStructuredContent,
-  generateGrok = generateGrokStructuredContent
+  generateGrok = generateGrokStructuredContent,
+  startOpenAI = startOpenAIBackgroundResponse,
+  readOpenAI = readOpenAIBackgroundResponse,
+  cancelOpenAI = cancelOpenAIBackgroundResponse
 }) => {
   /** Each catalog provider's server key, display label, runtime and request body. */
   const providers = {
@@ -296,33 +303,22 @@ export const createParseRoutes = ({
     return normalized;
   };
 
-  const parseSentenceWithExternalProvider = async ({
-    sentence,
-    framework,
-    modelRoute,
-    apiKey,
-    selectedModel,
-    provider,
-    selection,
-    abortSignal,
-    deadlineAt = Number.POSITIVE_INFINITY
-  }) => {
-    const { label: providerLabel, generate, buildRequest } = provider;
-    if (!apiKey) {
-      throw new ParseApiError('API_KEY_MISSING', `${providerLabel} API key is not configured on the server.`, 500);
+  /**
+   * Everything a generation sends and records, built from the request alone,
+   * so a ticket check rebuilds exactly what its start sent.
+   */
+  const prepareGeneration = (sentence, framework, modelId, settings) => {
+    if (!GENERATION_MODEL_IDS.includes(modelId)) {
+      throw new ParseApiError('INVALID_REQUEST', 'This model is not enabled for generation.', 400);
     }
-
-    const systemInstruction = buildSystemInstruction(framework);
-    const fullContents = buildParseContentsPrompt(sentence);
+    const selection = resolveGenerationModelSelection(modelId, settings);
+    const provider = providers[selection.provider];
     const routeMaxOutputTokens = selection.requestPolicy.maxOutputTokens ?? selection.requestPolicy.maxCompletionTokens;
-    const requestStartedAt = Date.now();
-    // `deadlineAt` is a host's hard stop (api/parse.js); it only ever shortens the request budget.
-    const remainingBudget = () => Math.min(getRemainingRequestBudgetMs(requestStartedAt), deadlineAt - Date.now());
     const reasoningEffort = Object.values(selection.nativeSettings)[0];
     const generationOptions = {
-      model: selectedModel,
-      contents: fullContents,
-      systemInstruction,
+      model: selection.providerModel,
+      contents: buildParseContentsPrompt(sentence),
+      systemInstruction: buildSystemInstruction(framework),
       maxOutputTokens: routeMaxOutputTokens,
       reasoningEffort,
       effort: reasoningEffort,
@@ -331,52 +327,72 @@ export const createParseRoutes = ({
         thinking: selection.requestPolicy.thinking?.value ?? null
       } : {})
     };
-    // The body the provider runtime sends, recorded and hashed in the generation record.
-    const sentRequest = buildRequest(generationOptions);
-    const budgetExhausted = () => new ParseApiError(
-      'PROVIDER_UNAVAILABLE',
-      `${providerLabel} is unavailable; please try again in a moment.`,
-      503
-    );
+    return {
+      sentence,
+      framework,
+      selection,
+      provider,
+      modelRoute: selection.providerRoute,
+      selectedModel: selection.providerModel,
+      apiKey: String(process.env[provider.key] || '').trim(),
+      routeMaxOutputTokens,
+      reasoningEffort,
+      generationOptions,
+      // The body the provider runtime sends, recorded and hashed in the generation record.
+      sentRequest: provider.buildRequest(generationOptions)
+    };
+  };
 
-    let generationFailureEvidence = null;
-    let generationStartedAt = null;
+  const requireApiKey = (prepared) => {
+    if (!prepared.apiKey) {
+      throw new ParseApiError('API_KEY_MISSING', `${prepared.provider.label} API key is not configured on the server.`, 500);
+    }
+  };
+
+  /** A failure with whatever generation evidence exists, classified for the browser. */
+  const generationFailure = ({ prepared, error, generationStartedAt, evidence = null }) => {
+    const failureEvidence = createTerminalFailureEvidence({
+      existingEvidence: evidence,
+      error,
+      provider: prepared.modelRoute,
+      framework: prepared.framework,
+      promptRoute: prepared.modelRoute,
+      sentRequest: prepared.sentRequest,
+      generationStartedAt,
+      sentMaxOutputTokens: prepared.routeMaxOutputTokens
+    });
+    if (failureEvidence) failureEvidence.generationRecord.modelSelection = prepared.selection;
+    const classified = classifyProviderRouteError({
+      error,
+      ParseApiError,
+      providerLabel: prepared.provider.label,
+      model: prepared.selectedModel
+    });
+    return attachGenerationFailureEvidence({
+      error: classified,
+      ParseApiError,
+      generationRecord: failureEvidence?.generationRecord,
+      rawText: failureEvidence?.rawText,
+      providerErrorBody: failureEvidence?.providerErrorBody
+    });
+  };
+
+  /** Records, checks and normalizes a received generation into the parse bundle. */
+  const finishGeneration = ({ prepared, generation, runId, attempts, generationStartedAt, timing = {} }) => {
+    const { framework, sentence, modelRoute, selectedModel, selection, routeMaxOutputTokens } = prepared;
+    let evidence = null;
     try {
-      const remainingBudgetMs = remainingBudget();
-      if (remainingBudgetMs <= MIN_PROVIDER_BUDGET_MS) throw budgetExhausted();
-
-      generationStartedAt = Date.now();
-      const generationReceipt = await runProviderAttempt({
-        abortSignal,
-        deadlineAt: generationStartedAt + remainingBudgetMs - MIN_PROVIDER_BUDGET_MS,
-        run: async () => {
-          const attemptRemainingBudgetMs = remainingBudget();
-          if (attemptRemainingBudgetMs <= MIN_PROVIDER_BUDGET_MS) throw budgetExhausted();
-          return withTimeout(
-            (attemptSignal) => generate({
-              apiKey,
-              ...generationOptions,
-              abortSignal: attemptSignal
-            }),
-            resolveRequestTimeoutMs({
-              baseTimeoutMs: resolveModelTimeoutMs(),
-              remainingBudgetMs: attemptRemainingBudgetMs
-            }),
-            `Model generation (${selectedModel})`,
-            abortSignal
-          );
-        }
-      });
-      const generation = generationReceipt.value;
       const generationMeta = summarizeGeneration(generation);
+      const baseRecord = createGenerationRecord({
+        provider: modelRoute,
+        framework,
+        promptRoute: modelRoute,
+        sentRequest: prepared.sentRequest,
+        generationStartedAt
+      });
       const generationRecord = {
-        ...createGenerationRecord({
-          provider: modelRoute,
-          framework,
-          promptRoute: modelRoute,
-          sentRequest,
-          generationStartedAt
-        }),
+        ...baseRecord,
+        timing: { ...baseRecord.timing, ...timing },
         modelSelection: selection,
         ...(generation.returnedModel ? { returnedModel: generation.returnedModel } : {}),
         ...(typeof generation.rawProviderResponse === 'string' ? {
@@ -385,21 +401,18 @@ export const createParseRoutes = ({
         outcome: buildGenerationOutcome({
           generationMeta,
           sentMaxOutputTokens: routeMaxOutputTokens,
-          runId: generationReceipt.runId,
-          attempts: generationReceipt.attempts
+          runId,
+          attempts
         })
       };
-      generationFailureEvidence = {
-        generationRecord,
-        rawText: generationMeta.rawText
-      };
+      evidence = { generationRecord, rawText: generationMeta.rawText };
       assertGenerationComplete({
         generation,
         provider: modelRoute,
         model: selectedModel,
         sentMaxOutputTokens: routeMaxOutputTokens,
-        runId: generationReceipt.runId,
-        attempts: generationReceipt.attempts
+        runId,
+        attempts
       });
       const primaryDebugPayloadPath = maybeWritePrimaryDebugPayload({
         modelRoute,
@@ -416,64 +429,188 @@ export const createParseRoutes = ({
         model: selectedModel,
         primaryDebugPayloadPath
       });
-
       return {
         ...normalized,
         requestedModelRoute: modelRoute,
         requestedModelId: selection.catalogId,
-        requestedReasoningEffort: reasoningEffort,
+        requestedReasoningEffort: prepared.reasoningEffort,
         modelUsed: generation.returnedModel || selectedModel,
         rawModelOutput: createRawOutputArtifact(generationMeta.rawText),
         generationRecord
       };
     } catch (error) {
-      generationFailureEvidence = createTerminalFailureEvidence({
-        existingEvidence: generationFailureEvidence,
-        error,
-        provider: modelRoute,
-        framework,
-        promptRoute: modelRoute,
-        sentRequest,
-        generationStartedAt,
-        sentMaxOutputTokens: routeMaxOutputTokens
-      });
-      if (generationFailureEvidence) {
-        generationFailureEvidence.generationRecord.modelSelection = selection;
-      }
-      const classified = classifyProviderRouteError({
-        error,
-        ParseApiError,
-        providerLabel,
-        model: selectedModel
-      });
-      throw attachGenerationFailureEvidence({
-        error: classified,
-        ParseApiError,
-        generationRecord: generationFailureEvidence?.generationRecord,
-        rawText: generationFailureEvidence?.rawText,
-        providerErrorBody: generationFailureEvidence?.providerErrorBody
-      });
+      throw generationFailure({ prepared, error, generationStartedAt, evidence });
     }
   };
 
-  const parseSentenceWithResearchModel = async (sentence, framework, modelId, options = {}) => {
-    if (!GENERATION_MODEL_IDS.includes(modelId)) {
-      throw new ParseApiError('INVALID_REQUEST', 'This model is not enabled for generation.', 400);
+  const parseSentenceWithExternalProvider = async ({ prepared, abortSignal, deadlineAt = Number.POSITIVE_INFINITY }) => {
+    const { provider, selectedModel, apiKey, generationOptions } = prepared;
+    requireApiKey(prepared);
+    const requestStartedAt = Date.now();
+    // `deadlineAt` is a host's hard stop (api/parse.js); it only ever shortens the request budget.
+    const remainingBudget = () => Math.min(getRemainingRequestBudgetMs(requestStartedAt), deadlineAt - Date.now());
+    const budgetExhausted = () => new ParseApiError(
+      'PROVIDER_UNAVAILABLE',
+      `${provider.label} is unavailable; please try again in a moment.`,
+      503
+    );
+
+    let generationStartedAt = null;
+    let generationReceipt;
+    try {
+      const remainingBudgetMs = remainingBudget();
+      if (remainingBudgetMs <= MIN_PROVIDER_BUDGET_MS) throw budgetExhausted();
+
+      generationStartedAt = Date.now();
+      generationReceipt = await runProviderAttempt({
+        abortSignal,
+        deadlineAt: generationStartedAt + remainingBudgetMs - MIN_PROVIDER_BUDGET_MS,
+        run: async () => {
+          const attemptRemainingBudgetMs = remainingBudget();
+          if (attemptRemainingBudgetMs <= MIN_PROVIDER_BUDGET_MS) throw budgetExhausted();
+          return withTimeout(
+            (attemptSignal) => provider.generate({
+              apiKey,
+              ...generationOptions,
+              abortSignal: attemptSignal
+            }),
+            resolveRequestTimeoutMs({
+              baseTimeoutMs: resolveModelTimeoutMs(),
+              remainingBudgetMs: attemptRemainingBudgetMs
+            }),
+            `Model generation (${selectedModel})`,
+            abortSignal
+          );
+        }
+      });
+    } catch (error) {
+      throw generationFailure({ prepared, error, generationStartedAt });
     }
-    const selection = resolveGenerationModelSelection(modelId, options.settings);
-    const provider = providers[selection.provider];
-    return parseSentenceWithExternalProvider({
-      sentence,
-      framework,
-      modelRoute: selection.providerRoute,
-      apiKey: String(process.env[provider.key] || '').trim(),
-      selectedModel: selection.providerModel,
-      provider,
-      abortSignal: options.abortSignal,
-      deadlineAt: options.deadlineAt,
-      selection
+    return finishGeneration({
+      prepared,
+      generation: generationReceipt.value,
+      runId: generationReceipt.runId,
+      attempts: generationReceipt.attempts,
+      generationStartedAt
     });
   };
 
-  return { parseSentenceWithResearchModel };
+  const parseSentenceWithResearchModel = async (sentence, framework, modelId, options = {}) =>
+    parseSentenceWithExternalProvider({
+      prepared: prepareGeneration(sentence, framework, modelId, options.settings),
+      abortSignal: options.abortSignal,
+      deadlineAt: options.deadlineAt
+    });
+
+  const pendingTicket = (ticket) => ({ status: 'pending', ticket });
+  // The one attempt behind a ticket, recorded as one long request records it.
+  const ticketAttempt = (ticket, generation, outcome) => ({
+    attemptNumber: 1,
+    startedAt: new Date(ticket.startedAt).toISOString(),
+    completedAt: new Date().toISOString(),
+    outcome,
+    ...(generation ? {
+      finishReason: summarizeGeneration(generation).finishReason,
+      finishStatus: summarizeGeneration(generation).status
+    } : {})
+  });
+  // A ticket's generation record notes that its duration ends when a check
+  // saw the finished response, so it can run up to one check interval long.
+  const TICKET_TIMING = { completionObservedBy: 'parse-ticket-check' };
+
+  /**
+   * Starts a background generation and returns a ticket for checking back,
+   * or the finished parse when the provider answered at once. Only a route
+   * that generates in the background (OpenAI's) can start one.
+   */
+  const startParseTicket = async (sentence, framework, modelId, options = {}) => {
+    const prepared = prepareGeneration(sentence, framework, modelId, options.settings);
+    if (prepared.selection.provider !== 'openai' || !prepared.generationOptions.background) {
+      throw new ParseApiError('INVALID_REQUEST', 'This model cannot generate in the background; send one parse request instead.', 400);
+    }
+    requireApiKey(prepared);
+    const generationStartedAt = Date.now();
+    let started;
+    let runId;
+    try {
+      // The attempt runner gives a failed start the same record a long request's failure has.
+      const receipt = await runProviderAttempt({
+        abortSignal: options.abortSignal,
+        run: ({ runId: id }) => { runId = id; return startOpenAI({ apiKey: prepared.apiKey, ...prepared.generationOptions, abortSignal: options.abortSignal }); }
+      });
+      started = receipt.value;
+      runId = receipt.runId;
+    } catch (error) {
+      throw generationFailure({ prepared, error, generationStartedAt });
+    }
+    const ticket = {
+      responseId: started.responseId,
+      sentence,
+      framework,
+      modelId: prepared.selection.catalogId,
+      settings: { ...options.settings },
+      runId,
+      startedAt: generationStartedAt,
+      sentRequestSha256: sha256Hex(JSON.stringify(prepared.sentRequest))
+    };
+    if (started.pending) return pendingTicket(signParseTicket(prepared.apiKey, ticket));
+    return finishGeneration({
+      prepared, generation: started.generation, runId,
+      attempts: [ticketAttempt(ticket, started.generation, 'completed')], generationStartedAt, timing: TICKET_TIMING
+    });
+  };
+
+  /**
+   * One check on a ticket: still pending, or the finished parse, built and
+   * recorded exactly as one long request would have built it.
+   */
+  const checkParseTicket = async (signedTicket, options = {}) => {
+    const invalid = () => new ParseApiError('INVALID_TICKET', 'This parse ticket is not valid. Analyze the sentence again.', 400);
+    // Only OpenAI's background route starts tickets, so its key signs and verifies them.
+    const fields = readParseTicket(String(process.env[providers.openai.key] || '').trim(), signedTicket);
+    if (!fields) throw invalid();
+    const prepared = prepareGeneration(fields.sentence, fields.framework, fields.modelId, fields.settings);
+    const cancel = () => { void cancelOpenAI({ apiKey: prepared.apiKey, responseId: fields.responseId }); };
+    if (sha256Hex(JSON.stringify(prepared.sentRequest)) !== fields.sentRequestSha256) {
+      // The record must name what was sent, and this server would now send something else.
+      cancel();
+      throw new ParseApiError('BABEL_UPDATED', 'Babel was updated while this analysis was being written. Analyze the sentence again.', 409);
+    }
+    if (Date.now() - fields.startedAt > PARSE_TICKET_LIFETIME_MS) {
+      cancel();
+      // Classified as a provider timeout, as a long request reaching its deadline is.
+      const timeout = Object.assign(new Error('The background generation timed out before its parse ticket expired.'), {
+        code: 'PROVIDER_TIMEOUT',
+        providerRunId: fields.runId,
+        providerAttempts: [{ ...ticketAttempt(fields, null, 'terminal_failure'), retryReason: 'deadline_exhausted' }]
+      });
+      throw generationFailure({ prepared, error: timeout, generationStartedAt: fields.startedAt });
+    }
+    let state;
+    try {
+      state = await readOpenAI({ apiKey: prepared.apiKey, responseId: fields.responseId, model: prepared.selectedModel, abortSignal: options.abortSignal });
+    } catch (error) {
+      if (error?.completedStopState) {
+        // A failed or cancelled response: the generation ended badly.
+        error.providerRunId = fields.runId;
+        error.providerAttempts = [{ ...ticketAttempt(fields, null, 'terminal_failure'), finishReason: error.finishReason }];
+        throw generationFailure({ prepared, error, generationStartedAt: fields.startedAt });
+      }
+      if (error?.status === 404) throw invalid();
+      // Looking failed, not the generation: the browser checks again.
+      throw new ParseApiError('CHECK_UNAVAILABLE', 'Babel could not check on this analysis just now; it will check again.', 503);
+    }
+    if (state.pending) return pendingTicket(signedTicket);
+    const bundle = finishGeneration({
+      prepared,
+      generation: state.generation,
+      runId: fields.runId,
+      attempts: [ticketAttempt(fields, state.generation, 'completed')],
+      generationStartedAt: fields.startedAt,
+      timing: TICKET_TIMING
+    });
+    return { ...bundle, sentence: fields.sentence };
+  };
+
+  return { parseSentenceWithResearchModel, startParseTicket, checkParseTicket };
 };

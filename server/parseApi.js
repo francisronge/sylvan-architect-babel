@@ -1,4 +1,4 @@
-import { ParseApiError, parseSentenceWithResearchModel } from './babelParser.js';
+import { ParseApiError, checkParseTicket, parseSentenceWithResearchModel, startParseTicket } from './babelParser.js';
 import { GENERATION_MODEL_IDS, resolveGenerationModelSelection } from './babelParser/researchModelCatalog.js';
 import {
   FAILURE_CLASSES,
@@ -58,16 +58,41 @@ export const validateParseBody = (body) => {
   }
 };
 
+/**
+ * What a parse request body asks for. `start: true` starts a background
+ * generation and answers with a ticket; `{ ticket }` checks one; any other
+ * body is one request held open until the parse is finished. Hosts count only
+ * the first two kinds against their parse allowances: a check starts nothing.
+ */
+export const parseRequestKind = (body) => {
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    if (Object.hasOwn(body, 'ticket')) return 'check';
+    if (body.start === true) return 'start';
+  }
+  return 'parse';
+};
+
+const DEFAULT_PROVIDERS = { research: parseSentenceWithResearchModel, start: startParseTicket, check: checkParseTicket };
+
 export const parseFromBodyWithProviders = async (
   body,
-  providers = { research: parseSentenceWithResearchModel },
+  providers = DEFAULT_PROVIDERS,
   { abortSignal, deadlineAt } = {}
 ) => {
   abortSignal?.throwIfAborted();
-  const { sentence, framework, modelId, settings } = validateParseBody(body);
+  const kind = parseRequestKind(body);
+  if (kind === 'check') {
+    if (typeof body.ticket !== 'string' || Object.keys(body).length !== 1) {
+      throw invalidRequest('A check sends only its ticket.', 'REQUEST_TICKET_ONLY', '$', null);
+    }
+    // A finished check carries its sentence from the ticket.
+    return providers.check(body.ticket, { abortSignal });
+  }
+  const { start: _start, ...request } = body ?? {};
+  const { sentence, framework, modelId, settings } = validateParseBody(kind === 'start' ? request : body);
   try {
-    const bundle = await providers.research(sentence, framework, modelId, { settings, abortSignal, deadlineAt });
-    return { ...bundle, sentence };
+    const bundle = await (kind === 'start' ? providers.start : providers.research)(sentence, framework, modelId, { settings, abortSignal, deadlineAt });
+    return bundle.status === 'pending' ? bundle : { ...bundle, sentence };
   } catch (error) {
     // A failure after the spell-out check carries the word list Babel derived
     // from the model's own words. The browser never segments the sentence

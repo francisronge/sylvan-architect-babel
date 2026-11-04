@@ -78,3 +78,39 @@ test('public Babel saves every finished parse, and the star keeps it across a re
     });
   } finally { await server.close(); }
 });
+
+test('a reload while the tree grows picks the same parse back up, with no second start', { timeout: 120_000 }, async () => {
+  const server = await startBrowserTestServer({ root });
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage(), errors = [], sent = [];
+    page.on('pageerror', error => errors.push(String(error)));
+    let checks = 0;
+    await context.route('**/api/parse', route => {
+      const body = route.request().postDataJSON();
+      sent.push(body);
+      if (body.start) return route.fulfill({ status: 200, json: { status: 'pending', ticket: 'ticket-1' } });
+      assert.deepEqual(body, { ticket: 'ticket-1' });
+      checks++;
+      // The first two checks find the model still writing.
+      return route.fulfill({ status: 200, json: checks <= 2 ? { status: 'pending', ticket: 'ticket-1' } : bundle });
+    });
+    await page.goto(server.url);
+    await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill('Mia laughed.');
+    await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+    await page.locator('[data-babel-waiting-tree]').waitFor();
+    await page.waitForFunction(() => window.localStorage.getItem('babel.pendingParse')?.includes('ticket-1'));
+    while (checks < 1) await page.waitForTimeout(100);
+
+    await page.reload();
+    await page.locator('[data-babel-waiting-tree]').waitFor();
+    assert.match(await page.locator('[data-babel-waiting-tree]').textContent(), /Mia laughed\./, 'the waiting screen names the resumed sentence');
+    await replayShown(page);
+    await page.getByRole('button', { name: 'Tree Bank, 1 saved', exact: true }).waitFor();
+    assert.equal(sent.filter(body => body.start).length, 1, 'one start across the reload');
+    assert.equal(await page.evaluate(() => window.localStorage.getItem('babel.pendingParse')), null, 'a finished parse is forgotten');
+    assert.deepEqual(errors, []);
+    await context.close();
+  } finally { await browser.close(); await server.close(); }
+});

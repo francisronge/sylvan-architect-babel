@@ -99,6 +99,8 @@ export interface GenerationRecord {
   timing: {
     requestStartedAt: string;
     durationMs: number;
+    /** Set when a parse-ticket check saw the finished response, so the duration can run up to one check interval long. */
+    completionObservedBy?: 'parse-ticket-check';
   };
   processing?: {
     json: { durationMs: number; repairDiagnostics: PayloadRepairDiagnostic[]; diagnostic?: JsonDiagnostic };

@@ -190,6 +190,11 @@ export const generateOpenAIStructuredContent = async ({
     }
   }
 
+  return openAITerminalGeneration(payload);
+};
+
+/** A finished response's generation; a failed or cancelled response is a completed stop failure. */
+const openAITerminalGeneration = (payload) => {
   if (payload.json?.status === 'failed' || payload.json?.status === 'cancelled') {
     const errorMessage = String(payload.json?.error?.message || `OpenAI response ${payload.json.status}.`);
     const error = new Error(errorMessage);
@@ -200,9 +205,57 @@ export const generateOpenAIStructuredContent = async ({
     error.finishReason = String(payload.json.status).toUpperCase();
     throw error;
   }
-
   return responsesGeneration(payload);
 };
+
+const openAIBackgroundState = (payload) => (
+  OPENAI_RESPONSE_PENDING_STATUSES.has(String(payload.json?.status || '').toLowerCase())
+    ? { pending: true }
+    : { pending: false, generation: openAITerminalGeneration(payload) }
+);
+
+/**
+ * Creates the same background response generateOpenAIStructuredContent
+ * creates, and returns without waiting for it: its id, and its generation if
+ * it is already finished. A parse ticket carries the id between requests.
+ */
+export const startOpenAIBackgroundResponse = async ({
+  apiKey, model, contents, systemInstruction, maxOutputTokens, reasoningEffort, abortSignal
+}) => {
+  const response = await fetchProvider('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(buildOpenAIRequestBody({
+      model, contents, systemInstruction, maxOutputTokens, reasoningEffort, background: true
+    })),
+    signal: abortSignal
+  });
+  const payload = await readResponseText(response, abortSignal);
+  if (!response.ok) {
+    throw providerHttpError(providerErrorMessage(payload, `OpenAI request failed (${response.status})`),
+      response, payload, { code: payload.json?.error?.code });
+  }
+  const responseId = String(payload.json?.id || '').trim();
+  if (!responseId) {
+    throw Object.assign(new Error('OpenAI returned a background response without an id.'), {
+      status: 502, responseBody: payload.text
+    });
+  }
+  writeOpenAIDebugResponseState({ model, responseId, stage: 'created', payload: payload.json });
+  return { responseId, ...openAIBackgroundState(payload) };
+};
+
+/** One look at a background response: still pending, or its finished generation. */
+export const readOpenAIBackgroundResponse = async ({ apiKey, responseId, model, abortSignal }) => {
+  const payload = await fetchOpenAIResponseJson({ apiKey, responseId, abortSignal });
+  writeOpenAIDebugResponseState({ model, responseId, stage: 'polled', payload: payload.json });
+  return openAIBackgroundState(payload);
+};
+
+export { cancelOpenAIBackgroundResponse };
 
 const responsesGeneration = (payload) => {
   const outputText = extractOpenAIOutputText(payload.json);

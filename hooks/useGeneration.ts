@@ -1,5 +1,6 @@
 import { useCallback, useReducer } from 'react';
 import type { ParseBundle } from '../types.ts';
+import type { parseSentence } from '../services/parseService.ts';
 import {
   generationReducer,
   initialGenerationState,
@@ -10,8 +11,9 @@ import {
 
 export const useGeneration = () => {
   const [state, dispatch] = useReducer(generationReducer, initialGenerationState);
-  const generate = useCallback((request: GenerationRequest, accept: (bundle: ParseBundle) => void) =>
-    runGeneration(request, dispatch, accept), []);
+  // `parse` replaces the one-request parse, as public Babel's background parse does.
+  const generate = useCallback((request: GenerationRequest, accept: (bundle: ParseBundle) => void, parse?: typeof parseSentence) =>
+    runGeneration(request, dispatch, accept, parse), []);
   const clearFailure = useCallback(() => dispatch({ type: 'clear-failure' }), []);
   const dismissFailure = useCallback(() => dispatch({ type: 'dismiss-failure' }), []);
   const resetGeneration = useCallback(() => dispatch({ type: 'reset' }), []);

@@ -26,8 +26,9 @@ are not.
    one.
 2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
    minimal version inside the Tree Bank, shipped with launch.
-3. **Server work**: visitor and spend limits, and requests that outlive
-   Vercel's 300 s cap (Programs 3 and 5).
+3. **Server work**: visitor and spend limits (Programs 3 and 5). Requests
+   that outlive Vercel's 300 s cap are done: public Babel starts a background
+   parse and checks back (parse tickets, below).
 4. **Hosting and the Generation Archive**: the checklist in Program 5 and the
    archive in Program 6A.
 5. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
@@ -262,8 +263,14 @@ copy the engine, and do not keep growing today's `App.tsx`.
    progress experience for waits of minutes, not seconds, as part of building
    the product UI. GPT-6.1 Sol is in `GENERATION_MODEL_IDS`; Opus 5.5 is not. Vercel
    ends a function at 300 s, and GPT-6.1 Sol at high passed 285 s on 2 of 100
-   held-out parses (31 Oct): start the request and let the browser check back
-   for the result, so no parse is cut off or lost when a phone sleeps.
+   held-out parses (31 Oct). Built: public Babel starts the parse in the
+   background (`{ start: true }` to `/api/parse`), receives a signed ticket,
+   and checks back every 4 s (`{ ticket }`), so no request outlives a check,
+   and a phone that sleeps or a page that reloads resumes the same parse from
+   the ticket kept in local storage. A ticket lives 20 minutes; checks use no
+   parse allowance. The internal app keeps the one long request. The waiting
+   screen grows a syntax tree on the measured wait (Francis, 4 Nov 2026,
+   option A).
 2. Make desktop and mobile layouts explicit. Verify all key flows with
    screenshots and interaction tests, not only component snapshots.
 3. Preserve local-first operation. Hosted accounts or synchronization remain a
