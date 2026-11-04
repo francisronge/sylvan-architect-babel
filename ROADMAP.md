@@ -26,8 +26,8 @@ are not.
    one.
 2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
    minimal version inside the Tree Bank, shipped with launch.
-3. **Server work**: a GPT-6.1 Sol route, visitor and spend limits, and
-   requests that outlive Vercel's 300 s cap (Programs 3 and 5).
+3. **Server work**: visitor and spend limits, and requests that outlive
+   Vercel's 300 s cap (Programs 3 and 5).
 4. **Hosting and the Generation Archive**: the checklist in Program 5 and the
    archive in Program 6A.
 5. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
@@ -207,7 +207,7 @@ copy the engine, and do not keep growing today's `App.tsx`.
    get neither (Francis, 4 Nov 2026: "Let's just do F. No fullscreen. just
    that on the screen for a bit"). Where the Tree Bank's entry goes is
    still open. The browser names GPT-6.1 Sol at high effort, which the
-   server refuses as not enabled until the GPT-6.1 Sol API-key route exists.
+   parse route sends through Babel's OpenAI API key.
    The "Arboretum link" label and its glowing dot go, with nothing in their
    place for now (Francis, 3 Nov: "we don't need it yet, let's keep
    minimal"). Constituent glyphing goes from the public app (see Program 4).
@@ -227,8 +227,9 @@ copy the engine, and do not keep growing today's `App.tsx`.
    ignores the browser's choice. The public model is GPT-6.1 Sol at high effort
    (Francis, 3 Nov 2026: "Then we'll go with high."), through the OpenAI API key
    already saved for Babel (Francis, 3 Nov: "yes we already have one saved").
-   No server route calls GPT-6.1 Sol yet: it runs only through the local Codex
-   runner. Babel uses one empirically selected model and a bounded server-selected generation policy while
+   The generation route calls GPT-6.1 Sol through that key at low to max
+   effort (`model-routes-v2`); the Codex runner keeps its own subscription
+   transport, which also offers ultra. Babel uses one empirically selected model and a bounded server-selected generation policy while
    recording its complete provenance. Do not place AI or provider
    branding at the front of the experience, but disclose model generation and
    backend retention honestly through appropriate About and Privacy surfaces.
@@ -251,7 +252,7 @@ copy the engine, and do not keep growing today's `App.tsx`.
    2.4 min on GPT-6.1 Sol and 1.5 min on Claude Opus 5.5 (90th percentile 3.5
    and 2.5 min), about 60% of it model reasoning before any output. Design the
    progress experience for waits of minutes, not seconds, as part of building
-   the product UI. Neither model is in `GENERATION_MODEL_IDS` yet. Vercel
+   the product UI. GPT-6.1 Sol is in `GENERATION_MODEL_IDS`; Opus 5.5 is not. Vercel
    ends a function at 300 s, and GPT-6.1 Sol at high passed 285 s on 2 of 100
    held-out parses (31 Oct): start the request and let the browser check back
    for the result, so no parse is cut off or lost when a phone sleeps.

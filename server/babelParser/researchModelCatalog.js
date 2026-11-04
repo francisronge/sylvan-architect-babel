@@ -28,6 +28,28 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
     documentation: {
       retrievedOn: '2026-09-29',
       source: 'Codex host model catalog'
+    },
+    // Babel's generation routes call the OpenAI API with the server's key. The fields
+    // above stay the Codex OAuth qualification transport, whose efforts include `ultra`.
+    generationRoute: {
+      api: 'responses',
+      controls: [
+        {
+          id: 'reasoning.effort',
+          label: 'Reasoning effort',
+          values: ['low', 'medium', 'high', 'xhigh', 'max'],
+          qualificationDefault: 'high'
+        }
+      ],
+      requestPolicy: {
+        maxOutputTokens: 128000,
+        background: true,
+        store: true
+      },
+      documentation: {
+        retrievedOn: '2026-11-03',
+        url: 'https://developers.openai.com/api/docs/models/gpt-6.1-sol'
+      }
     }
   },
   {
@@ -313,17 +335,48 @@ const MODEL_BY_ID = new Map(RESEARCH_MODEL_CATALOG.map((entry) => [entry.id, ent
 export const GENERATION_MODEL_IDS = Object.freeze([
   'openai:gpt-6-astra',
   'openai:gpt-6-sol',
+  'openai:gpt-6.1-sol',
   'anthropic:claude-opus-5',
   'anthropic:claude-fable-5-1',
   'moonshot:kimi-k3',
   'xai:grok-4.6'
 ]);
 
+/**
+ * The version of Babel's generation routes: which models they accept and each one's
+ * provider, API, controls and request policy. Every generation record carries it.
+ * Change it with any change to those routes; tests/researchModelCatalog.test.mjs pins
+ * each version's fingerprint. Records without it predate versioning (the six routes
+ * of `model-routes-v1`); v2 adds GPT-6.1 Sol through the OpenAI API key.
+ */
+export const MODEL_ROUTE_CONFIG_VERSION = 'model-routes-v2';
+
+// An entry's `generationRoute`, when present, replaces its transport fields on the
+// generation routes; qualification runners keep reading the entry itself.
+const GENERATION_MODEL_BY_ID = new Map(GENERATION_MODEL_IDS.map((id) => {
+  const { generationRoute, ...entry } = MODEL_BY_ID.get(id);
+  return [id, generationRoute ? deepFreeze({ ...entry, ...generationRoute }) : MODEL_BY_ID.get(id)];
+}));
+
 export const getResearchModel = (modelId) => MODEL_BY_ID.get(String(modelId || '').trim()) || null;
+
+/** The model as Babel's generation routes call it, or null when they do not offer it. */
+export const getGenerationModel = (modelId) =>
+  GENERATION_MODEL_BY_ID.get(String(modelId || '').trim()) || null;
 
 export const resolveResearchModelSelection = (modelId, requestedSettings = {}) => {
   const model = getResearchModel(modelId);
   if (!model) throw new TypeError(`Unknown research model: ${String(modelId || '')}`);
+  return resolveSelection(model, requestedSettings);
+};
+
+export const resolveGenerationModelSelection = (modelId, requestedSettings = {}) => {
+  const model = getGenerationModel(modelId);
+  if (!model) throw new TypeError(`Not enabled for generation: ${String(modelId || '')}`);
+  return resolveSelection(model, requestedSettings);
+};
+
+const resolveSelection = (model, requestedSettings) => {
   if (model.qualificationConfiguration !== 'configured') {
     throw new TypeError(
       `Qualification settings have not been finalized for ${model.id}.`

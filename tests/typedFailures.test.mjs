@@ -8,7 +8,7 @@ import { ParseApiError } from '../server/babelParser/error.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { attachGenerationFailureEvidence } from '../server/babelParser/routeErrors.js';
 import { assertGenerationComplete, buildGenerationOutcome, summarizeGeneration } from '../server/babelParser/generationOutcome.js';
-import { GENERATION_MODEL_IDS, getResearchModel } from '../server/babelParser/researchModelCatalog.js';
+import { GENERATION_MODEL_IDS, getGenerationModel } from '../server/babelParser/researchModelCatalog.js';
 import {
   formatApiError,
   projectPublicGenerationRecord,
@@ -611,7 +611,7 @@ test('provider allowances are catalog policy, never sentence-derived', async () 
       generateOpenAI: generate, generateClaude: generate, generateKimi: generate, generateGrok: generate
     });
     for (const modelId of GENERATION_MODEL_IDS) {
-      const { requestPolicy } = getResearchModel(modelId);
+      const { requestPolicy } = getGenerationModel(modelId);
       const expected = requestPolicy.maxOutputTokens ?? requestPolicy.maxCompletionTokens;
       assert.equal(Number.isInteger(expected), true, modelId);
       for (const sentence of ['x', 'x '.repeat(5000)]) {

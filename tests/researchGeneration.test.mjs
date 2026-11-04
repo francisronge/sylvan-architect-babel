@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { parseFromBody, validateParseBody, formatApiError } from '../server/parseApi.js';
-import { GENERATION_MODEL_IDS, getResearchModel } from '../server/babelParser/researchModelCatalog.js';
+import { GENERATION_MODEL_IDS, getGenerationModel } from '../server/babelParser/researchModelCatalog.js';
 import { sha256Hex } from '../server/babelParser/generationRecord.js';
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
@@ -97,7 +97,7 @@ test('interrupted provider bodies retain exact bounded bytes without becoming mo
 for (const modelId of GENERATION_MODEL_IDS) {
   test(`${modelId}: API dispatch, native settings, normalization, Replay, and saved evidence`, async (t) => {
     isolate(t);
-    const model = getResearchModel(modelId);
+    const model = getGenerationModel(modelId);
     let calls = 0;
     let sentBody;
     const responseText = JSON.stringify(envelopeFor(model));
@@ -182,7 +182,7 @@ test('all active model routes preserve realization groups and exact input throug
     }], workspaceForest: [tree], realizations: authoredGroups }] };
   const text = JSON.stringify(payload);
   for (const modelId of GENERATION_MODEL_IDS) {
-    const model = getResearchModel(modelId);
+    const model = getGenerationModel(modelId);
     t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify(envelopeFor(model, text)), { status: 200 }));
     for (const framework of ['xbar', 'minimalism']) {
       const bundle = await parseFromBody({ sentence: 'walked', framework, modelId });
@@ -219,7 +219,7 @@ test('invalid model selections and settings are rejected before any provider cal
 
 test('unbalanced brackets fail on the new generation path with the original bytes', async (t) => {
   isolate(t);
-  const model = getResearchModel('moonshot:kimi-k3');
+  const model = getGenerationModel('moonshot:kimi-k3');
   const damagedOutput = rawOutput.slice(0, -1);
   const responseText = JSON.stringify(envelopeFor(model, damagedOutput));
   const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(responseText));
@@ -243,7 +243,7 @@ test('a large malformed answer keeps the whole failure body within its bound on 
   // Unclosed JSON whose envelope alone nearly fills the body budget.
   const raw = `{"derivationStages": [{"statement": "${'λ'.repeat(700 * 1024)}"`;
   for (const modelId of GENERATION_MODEL_IDS) {
-    const response = JSON.stringify(envelopeFor(getResearchModel(modelId), raw));
+    const response = JSON.stringify(envelopeFor(getGenerationModel(modelId), raw));
     const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(response));
     await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId }), error => {
       const { body } = formatApiError(error);
@@ -280,7 +280,7 @@ test('all active routes reject an authored token address and retain the original
     ] }] }] };
   const raw = JSON.stringify(payload);
   for (const modelId of GENERATION_MODEL_IDS) {
-    const model = getResearchModel(modelId), response = JSON.stringify(envelopeFor(model, raw));
+    const model = getGenerationModel(modelId), response = JSON.stringify(envelopeFor(model, raw));
     const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(response));
     await assert.rejects(() => parseFromBody({ sentence: 'Mia smiled.', modelId }), error => {
       const failure = formatApiError(error).body.error;
@@ -303,7 +303,7 @@ test('all active routes keep a malformed relation neutral without replacing the 
   payload.derivationStages[3].relations[1].values = ['literal content'];
   const raw = JSON.stringify(payload);
   for (const modelId of GENERATION_MODEL_IDS) {
-    const model = getResearchModel(modelId);
+    const model = getGenerationModel(modelId);
     const responseText = JSON.stringify(envelopeFor(model, raw));
     const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(responseText));
     const result = await parseFromBody({ sentence: fixture.sentence, modelId });
@@ -355,7 +355,7 @@ test('all active routes stop on rate limits and uncertain timeouts and retain th
 
 test('the provider returned identity remains distinct from the requested model', async (t) => {
   isolate(t);
-  const model = getResearchModel('moonshot:kimi-k3');
+  const model = getGenerationModel('moonshot:kimi-k3');
   const response = { ...envelopeFor(model), model: 'kimi-k3-provider-snapshot' };
   t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify(response)));
   const bundle = await parseFromBody({ sentence: fixture.sentence, modelId: model.id });
@@ -369,7 +369,7 @@ test('all active routes read an answer inside one json code block and record the
   isolate(t);
   const fenced = `\u0060\u0060\u0060json\n${rawOutput}\n\u0060\u0060\u0060`;
   for (const modelId of GENERATION_MODEL_IDS) {
-    const model = getResearchModel(modelId);
+    const model = getGenerationModel(modelId);
     const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify(envelopeFor(model, fenced))));
     const bundle = await parseFromBody({ sentence: fixture.sentence, modelId });
     assert.deepEqual(bundle.generationRecord.processing.json.corrections, [{ kind: 'outer-markdown-code-fence', label: 'json' }]);
@@ -382,7 +382,7 @@ test('all active routes preserve output with text beside its code block and its 
   isolate(t);
   const fenced = `\u0060\u0060\u0060json\n${rawOutput}\n\u0060\u0060\u0060\nThe JSON above is incomplete.`;
   for (const modelId of GENERATION_MODEL_IDS) {
-    const model = getResearchModel(modelId);
+    const model = getGenerationModel(modelId);
     const responseText = JSON.stringify(envelopeFor(model, fenced));
     const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(responseText));
     await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId }), error => {
@@ -454,7 +454,7 @@ test('the browser service sends native selection and retains failure diagnostics
 test('provider errors, malformed output, and incomplete replies retain evidence without fallback', async (t) => {
   isolate(t);
   for (const modelId of GENERATION_MODEL_IDS) {
-    const model = getResearchModel(modelId);
+    const model = getGenerationModel(modelId);
     const incomplete = envelopeFor(model);
     const missingFinish = envelopeFor(model);
     if (model.provider === 'anthropic') incomplete.stop_reason = 'max_tokens';

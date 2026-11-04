@@ -91,6 +91,8 @@ export interface GenerationRecord {
   providerResponseComplete?: boolean;
   promptContract: GenerationPromptContract;
   sentGenerationConfig: SentGenerationConfig;
+  /** The generation routes' version (`MODEL_ROUTE_CONFIG_VERSION`); absent before v2. */
+  routeConfigVersion?: string;
   /** How the input tokens were derived (the spell-out version, or the tokenizer
    * for older records) and the runtime Unicode data involved. */
   inputTokenization?: { version: string; unicode: string | null; icu: string | null; cldr: string | null };

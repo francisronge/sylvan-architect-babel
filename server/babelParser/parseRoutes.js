@@ -2,7 +2,7 @@ import { attachGenerationFailureEvidence, classifyProviderRouteError } from './r
 import { buildGenerationRecord } from './generationRecord.js';
 import { buildSystemInstruction } from './systemInstruction.js';
 import { buildParseContentsPrompt } from './prompts.js';
-import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './researchModelCatalog.js';
+import { GENERATION_MODEL_IDS, resolveGenerationModelSelection } from './researchModelCatalog.js';
 import {
   getRemainingRequestBudgetMs,
   resolveModelTimeoutMs,
@@ -460,7 +460,7 @@ export const createParseRoutes = ({
     if (!GENERATION_MODEL_IDS.includes(modelId)) {
       throw new ParseApiError('INVALID_REQUEST', 'This model is not enabled for generation.', 400);
     }
-    const selection = resolveResearchModelSelection(modelId, options.settings);
+    const selection = resolveGenerationModelSelection(modelId, options.settings);
     const provider = providers[selection.provider];
     return parseSentenceWithExternalProvider({
       sentence,
