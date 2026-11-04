@@ -27,7 +27,7 @@ test('public Babel asks for Minimalism and makes no model choice the user sees',
   assert.deepEqual({ ...PUBLIC_GENERATION.settings }, { 'reasoning.effort': 'high' });
 });
 
-const loadComponent = async (file) => {
+const loadModule = async (file) => {
   const compiled = await build({
     entryPoints: [path.join(root, file)],
     bundle: true, write: false, platform: 'node', format: 'esm', jsx: 'automatic', loader: { '.css': 'empty' },
@@ -37,8 +37,9 @@ const loadComponent = async (file) => {
       }));
     } }]
   });
-  return (await import(`data:text/javascript;base64,${Buffer.from(compiled.outputFiles[0].text).toString('base64')}`)).default;
+  return import(`data:text/javascript;base64,${Buffer.from(compiled.outputFiles[0].text).toString('base64')}`);
 };
+const loadComponent = async (file) => (await loadModule(file)).default;
 
 test('the public first screen is the sentence box and Analyze, without the internal controls', async () => {
   const PublicApp = await loadComponent('publicApp/PublicApp.tsx');
@@ -74,4 +75,35 @@ test('the Tree Bank entry is a grove of up to five trees, with the count only in
 test('Tailwind generates the classes only public Babel uses', () => {
   const { content } = require('../tailwind.config.cjs');
   assert.ok(content.includes('./publicApp/**/*.{ts,tsx}'), 'tailwind.config.cjs scans publicApp/');
+});
+
+test('the waiting tree grows on the measured wait, bottom-up, and never completes before the analysis', async () => {
+  const { waitingTreeProgress, branchDrawn, WAITING_TREE_BRANCHES } = await loadModule('components/workspace/WaitingTree.tsx');
+  assert.equal(WAITING_TREE_BRANCHES.length, 14);
+  assert.equal(waitingTreeProgress(0), 0);
+  assert.equal(waitingTreeProgress(-500), 0, 'a clock behind the start shows no growth');
+  // Median 2.4 min and 90th percentile 3.5 min (29 Oct 2026 batch).
+  assert.ok(Math.abs(waitingTreeProgress(144_000) - 0.84) < 0.01);
+  assert.ok(waitingTreeProgress(210_000) > 0.9);
+  assert.ok(waitingTreeProgress(3_600_000) < 1, 'an hour on, the tree is still short of complete');
+  const lastBranch = WAITING_TREE_BRANCHES.length - 1;
+  assert.ok(branchDrawn(waitingTreeProgress(3_600_000), lastBranch) > 0.99);
+  assert.ok(branchDrawn(waitingTreeProgress(144_000), lastBranch) === 0, 'at the median wait the root is not yet joined');
+  // Merge builds upward: each branch starts at its daughter, and a mother joins only after her daughters' phrases.
+  const order = WAITING_TREE_BRANCHES.map(branch => branch.mother);
+  assert.equal(order.at(-1), 'r', 'the root is merged last');
+  for (const branch of WAITING_TREE_BRANCHES) {
+    const motherOfDaughter = WAITING_TREE_BRANCHES.findIndex(other => other.mother === branch.daughter);
+    if (motherOfDaughter !== -1) assert.ok(motherOfDaughter < WAITING_TREE_BRANCHES.indexOf(branch), `${branch.daughter} is built before it joins ${branch.mother}`);
+  }
+});
+
+test('the waiting screen shows the sentence, the tree and one line, with no timer', async () => {
+  const WaitingTree = await loadComponent('components/workspace/WaitingTree.tsx');
+  const html = renderToStaticMarkup(React.createElement(WaitingTree, { sentence: 'Mia <laughed>.', startedAt: Date.now() }));
+  assert.match(html, /“Mia &lt;laughed&gt;\.”/);
+  assert.equal((html.match(/<path /g) ?? []).length, 14);
+  assert.match(html, /role="status"[^>]*>Usually about two minutes\. Switch tabs or get a coffee; your tree will be in your Tree Bank\.</);
+  assert.ok(!/\d:\d\d/.test(html.replace(/<[^>]*>/g, ' ')), 'no timer');
+  assert.ok(!html.includes('Synthesizing'), 'the old loading line is gone');
 });
