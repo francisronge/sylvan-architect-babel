@@ -84,6 +84,11 @@ export interface ReplayPanelContent {
   supportLines: Array<ReplaySupportLine & { key: string }>;
   /** The original record, selected by identity rather than reconstructed from drawing links. */
   authoredRelation: DerivationStageRelation | null;
+  /**
+   * The authored text of the stage a micro-step or relation moment belongs
+   * to, shown apart from the step's own lines; null on a stage's own step.
+   */
+  stageContext: { statement: string; stageRecord: string } | null;
 }
 
 

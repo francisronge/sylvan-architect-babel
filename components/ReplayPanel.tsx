@@ -217,6 +217,16 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
             ))}
           </div>
         )}
+        {activePanelContent.stageContext && (
+          <div data-babel-replay-stage-context="true" className="pt-3 border-t border-white/[0.06] max-w-[68ch]">
+            {activePanelContent.stageContext.statement && (
+              <p className="serif italic text-[15px] leading-snug text-emerald-50/90">{activePanelContent.stageContext.statement}</p>
+            )}
+            {activePanelContent.stageContext.stageRecord && (
+              <p className="mt-1.5 text-[12px] leading-relaxed text-white/55">{activePanelContent.stageContext.stageRecord}</p>
+            )}
+          </div>
+        )}
         {activeNoteDisplay && (
           <div className="text-[11px] text-white/88">
             {activeNoteDisplay}

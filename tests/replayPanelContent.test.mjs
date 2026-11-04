@@ -6,6 +6,7 @@ import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
 import { buildRelationReplayBlocks, buildReplayPanelContent, buildReplaySupportLines } from '../replay/replayPanel.ts';
 import {
+  buildReplayDisplayDetailBlocks,
   formatOperationLabel,
   formatPlaybackOperationTitle,
   formatReplayBlockLine,
@@ -188,6 +189,18 @@ test('macro panels preserve the exact original statement without promoting gener
   }
 });
 
+test('a smaller step shows its stage text only when the stage is known and the text is not blank', () => {
+  const stages = freeze([stage([]), { ...stage([]), statement: '  ', stageRecord: 'Only a record' }]);
+  assert.deepEqual(buildReplayPanelContent(step({ replayFrameIndex: 0 }), stages).stageContext,
+    { statement: 'Authored statement', stageRecord: 'Authored record' });
+  assert.deepEqual(buildReplayPanelContent(step({ sourceFrameIndex: 1 }), stages).stageContext,
+    { statement: '', stageRecord: 'Only a record' });
+  assert.equal(buildReplayPanelContent(step(), stages).stageContext, null, 'no stage identity, no text');
+  assert.equal(buildReplayPanelContent(step({ replayFrameIndex: 5 }), stages).stageContext, null);
+  assert.equal(buildReplayPanelContent(step({ replayKind: 'macro', replayFrameIndex: 0 }), stages).stageContext, null);
+  assert.equal(buildReplayPanelContent(null, stages).stageContext, null);
+});
+
 test('macro statements require a real stage identity and never fall back to recipe text', () => {
   const current = step({ operation: 'StageRecord', replayKind: 'macro', recipe: 'Not proof of an authored statement' });
   const stages = [stage([])];
@@ -347,6 +360,15 @@ for (const record of saved) {
       assert.equal(content.heading, expected);
       assert(!content.supportLines.some(line => line.label === 'Statement' || line.value === current.recipe));
     }
+    // Each smaller step shows its own stage's text once, set apart from its lines.
+    const detailBlocks = buildReplayDisplayDetailBlocks(steps);
+    steps.forEach((current, index) => {
+      const { stageContext } = buildReplayPanelContent(current, stages);
+      if (current.replayKind === 'macro') return assert.equal(stageContext, null);
+      const owner = stages[current.replayRelationIdentity?.stageIndex ?? current.replayFrameIndex];
+      assert.deepEqual(stageContext, { statement: owner.statement, stageRecord: owner.stageRecord });
+      assert(!(detailBlocks.get(index) ?? []).some(block => block.title === 'Stage Record'), 'the Stage Record is not shown twice');
+    });
     assert.equal(JSON.stringify(steps), before);
   });
 }

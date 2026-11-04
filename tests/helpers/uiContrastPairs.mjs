@@ -91,6 +91,8 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Replay step counter', file: 'components/ReplayPanel.tsx', snippet: 'text-emerald-400/80', fg: 'emerald-400/80', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay detail labels', file: 'components/ReplayPanel.tsx', snippet: 'text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay detail text', file: 'components/ReplayPanel.tsx', snippet: 'text-white/88', fg: 'white/88', bg: REPLAY_PANEL, min: TEXT },
+  { where: 'Replay stage statement on smaller steps', file: 'components/ReplayPanel.tsx', snippet: 'leading-snug text-emerald-50/90', fg: 'emerald-50/90', bg: REPLAY_PANEL, min: TEXT },
+  { where: 'Replay Stage Record on smaller steps', file: 'components/ReplayPanel.tsx', snippet: 'leading-relaxed text-white/55', fg: 'white/55', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay header title', file: 'components/TreeVisualizer.tsx', snippet: "sentenceCheck ? 'text-amber-400' : 'text-emerald-500'", fg: 'emerald-500', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Replay header title, invalid analysis', file: 'components/TreeVisualizer.tsx', snippet: "sentenceCheck ? 'text-amber-400' : 'text-emerald-500'", fg: 'amber-400', opacity: 0.75, bg: TREE, min: TEXT },
   { where: 'Sentence check line labels', file: 'components/TreeVisualizer.tsx', snippet: 'tracking-[0.3em] text-emerald-100/80', fg: 'emerald-100/80', opacity: 0.75, bg: TREE, min: TEXT },
