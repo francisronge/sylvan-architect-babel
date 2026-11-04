@@ -219,3 +219,25 @@ body,
 @media (prefers-reduced-motion: reduce) {
   .keyboard-hint { animation: none; }
 }
+
+/* The Analyze button's tree draws its branches on hover, and keeps drawing
+   while a request runs. */
+@keyframes analyze-glyph-draw {
+  0% { stroke-dashoffset: 1; opacity: 0; }
+  8% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes analyze-glyph-words {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+.analyze-glyph-branch { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.analyze-glyph-words { transform-box: fill-box; transform-origin: center; }
+.group:hover .analyze-glyph:not(.is-drawing) .analyze-glyph-branch { animation: analyze-glyph-draw 420ms ease-out both; }
+.group:hover .analyze-glyph:not(.is-drawing) .analyze-glyph-words { animation: analyze-glyph-words 300ms 320ms ease-out both; }
+.analyze-glyph.is-drawing .analyze-glyph-branch { animation: analyze-glyph-draw 900ms ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .group:hover .analyze-glyph:not(.is-drawing) .analyze-glyph-branch,
+  .group:hover .analyze-glyph:not(.is-drawing) .analyze-glyph-words,
+  .analyze-glyph.is-drawing .analyze-glyph-branch { animation: none; }
+}

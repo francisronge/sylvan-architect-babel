@@ -1,6 +1,6 @@
 import React from 'react';
-import { RotateCcw, Sparkles } from 'lucide-react';
 import { submitsSentence } from '../sentenceSubmitKey';
+import AnalyzeGlyph from './AnalyzeGlyph';
 
 interface SentenceFormProps {
   inputRef?: React.Ref<HTMLTextAreaElement>;
@@ -35,13 +35,9 @@ const SentenceForm: React.FC<SentenceFormProps> = ({ inputRef, value, onChange, 
       type="submit"
       aria-label={loading ? 'Analyzing sentence' : 'Analyze sentence'}
       disabled={loading}
-      className="moss-gradient hover:brightness-110 disabled:opacity-40 text-white font-black w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.4)] active:scale-90 transition-all group shrink-0"
+      className="moss-gradient hover:brightness-110 disabled:opacity-60 text-white font-black w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.4)] active:scale-90 transition-all group shrink-0"
     >
-      {loading ? (
-        <RotateCcw className="animate-spin" size={20} />
-      ) : (
-        <Sparkles size={20} className="group-hover:rotate-12 group-hover:scale-110 transition-transform md:w-6 md:h-6" />
-      )}
+      <AnalyzeGlyph drawing={loading} />
     </button>
   </form>
 );
