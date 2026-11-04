@@ -12,12 +12,15 @@ const MINT = '#a7f3d0';
 const AnalyzeGlyph: React.FC<{ drawing?: boolean }> = ({ drawing = false }) => (
   <svg viewBox="0 0 48 48" fill="none" strokeLinecap="round" aria-hidden="true"
     className={`analyze-glyph w-11 h-11 md:w-14 md:h-14 overflow-visible ${drawing ? 'is-drawing' : ''}`}>
-    <path d="M22 13 L13 26" pathLength={1} stroke={BARK} strokeWidth={1.6} className="analyze-glyph-branch" />
-    <path d="M26 13 L35 26" pathLength={1} stroke={BARK} strokeWidth={1.6} className="analyze-glyph-branch" />
-    <text x="24" y="11" textAnchor="middle" className="serif" fontWeight="700" fontSize="12" fill="#fff">S</text>
-    <text x="12" y="35" textAnchor="middle" className="serif" fontWeight="700" fontSize="11" fill="#fff">NP</text>
-    <text x="36" y="35" textAnchor="middle" className="serif" fontWeight="700" fontSize="11" fill="#fff">VP</text>
-    <path d="M6 42 H18 M30 42 H42" stroke={MINT} strokeWidth="2" className="analyze-glyph-words" />
+    {/* Lowered so the ink, not the letters' boxes, sits at the button's centre. */}
+    <g transform="translate(0 0.65)">
+      <path d="M22 13 L13 26" pathLength={1} stroke={BARK} strokeWidth={1.6} className="analyze-glyph-branch" />
+      <path d="M26 13 L35 26" pathLength={1} stroke={BARK} strokeWidth={1.6} className="analyze-glyph-branch" />
+      <text x="24" y="11" textAnchor="middle" className="serif" fontWeight="700" fontSize="12" fill="#fff">S</text>
+      <text x="12" y="35" textAnchor="middle" className="serif" fontWeight="700" fontSize="11" fill="#fff">NP</text>
+      <text x="36" y="35" textAnchor="middle" className="serif" fontWeight="700" fontSize="11" fill="#fff">VP</text>
+      <path d="M6 42 H18 M30 42 H42" stroke={MINT} strokeWidth="2" className="analyze-glyph-words" />
+    </g>
   </svg>
 );
 

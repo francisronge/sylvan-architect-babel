@@ -49,6 +49,8 @@ test('the public first screen is the sentence box and Analyze, without the inter
   assert.match(html, /aria-label="Babel, parse a new sentence"/, 'the logo returns to the sentence box');
   assert.match(html, /class="analyze-glyph /, 'Analyze shows the labelled tree');
   assert.ok(!html.includes('lucide-sparkles'), 'and no sparkles');
+  // An inline textarea leaves room below it for letter tails, which lowered the button beside it by 6px.
+  assert.match(html, /<textarea[^>]*class="block /, 'the sentence box is a block, so Analyze lines up with it');
   for (const absent of ['Arboretum Link', 'Constituent Glyphing', 'Minimalist Program', 'X-Bar Theory',
     'Save to Tree Bank', 'Reasoning', 'Hide Control Panel', 'Canopy', 'Notes', 'API Key',
     'Fullscreen', 'neural synthesis', '<footer']) {

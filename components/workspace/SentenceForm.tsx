@@ -18,7 +18,7 @@ const SentenceForm: React.FC<SentenceFormProps> = ({ inputRef, value, onChange, 
       <textarea
         ref={inputRef}
         aria-label="Sentence to analyze"
-        className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 md:p-4 text-emerald-50 serif italic placeholder:text-emerald-500/75 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all resize-none h-16 md:h-20 text-base md:text-lg shadow-inner leading-relaxed"
+        className="block w-full bg-black/40 border border-white/10 rounded-2xl p-3 md:p-4 text-emerald-50 serif italic placeholder:text-emerald-500/75 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all resize-none h-16 md:h-20 text-base md:text-lg shadow-inner leading-relaxed"
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
