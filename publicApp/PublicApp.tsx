@@ -14,7 +14,8 @@ import { TreeBankView, TreeBankDeleteDialog } from '../components/TreeBankView';
 import BabelTitle from '../components/workspace/BabelTitle';
 import TreeBankBranch from '../components/workspace/TreeBankBranch';
 import SentenceForm from '../components/workspace/SentenceForm';
-import { EmptyWorkspace, GenerationLoading, ParseChoices } from '../components/workspace/WorkspaceStates';
+import { EmptyWorkspace, ParseChoices } from '../components/workspace/WorkspaceStates';
+import WaitingTree from '../components/workspace/WaitingTree';
 import { PUBLIC_GENERATION } from './publicGeneration';
 
 /**
@@ -54,6 +55,8 @@ const PublicApp: React.FC = () => {
   const treeBank = useTreeBank();
   // The Tree Bank entry the shown bundle is saved as: null while its save
   // runs or after it failed.
+  // The running parse's sentence and start, which the waiting tree grows from.
+  const [waiting, setWaiting] = useState<{ sentence: string; startedAt: number } | null>(null);
   const [savedAs, setSavedAs] = useState<{ bundle: ParseBundle; id: string | null } | null>(null);
 
   const activeParse = analysisBundle?.analyses[activeParseIndex] ?? null;
@@ -118,6 +121,7 @@ const PublicApp: React.FC = () => {
     if (loading) return;
     const request = submittedGenerationRequest(input, PUBLIC_GENERATION);
     if (!request) return;
+    setWaiting({ sentence: request.sentence, startedAt: Date.now() });
     await generate(request, bundle => {
       showAnalysis(bundle, request.sentence, 0, null);
       void saveBundle(bundle, request.sentence, false);
@@ -199,7 +203,7 @@ const PublicApp: React.FC = () => {
 
             <div className="absolute inset-0 z-0">
               <ViewErrorBoundary resetKey={viewResetKey}>
-                {loading && <GenerationLoading structures="Minimalist" />}
+                {loading && waiting && <WaitingTree sentence={waiting.sentence} startedAt={waiting.startedAt} />}
                 {!loading && showsTree && activeParse && activeDisplay ? (
                   <TreeVisualizer
                     initialReplayStep={initialReplayStep ?? undefined}

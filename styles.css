@@ -249,3 +249,8 @@ body,
 @keyframes replay-star-pop { 0% { transform: scale(1); } 45% { transform: scale(1.28); } 100% { transform: scale(1); } }
 .replay-star-pop { animation: replay-star-pop 260ms ease-out; transform-origin: center; }
 @media (prefers-reduced-motion: reduce) { .replay-star-pop { animation: none; } }
+
+/* The waiting tree's growing branch breathes; its length is the progress. */
+@keyframes waiting-tree-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.waiting-tree-growing { animation: waiting-tree-breathe 1.8s ease-in-out infinite; transition: stroke-dashoffset 200ms linear; }
+@media (prefers-reduced-motion: reduce) { .waiting-tree-growing { animation: none; transition: none; } }
