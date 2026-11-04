@@ -85,10 +85,11 @@ export interface ReplayPanelContent {
   /** The original record, selected by identity rather than reconstructed from drawing links. */
   authoredRelation: DerivationStageRelation | null;
   /**
-   * The authored text of the stage a micro-step or relation moment belongs
-   * to, shown apart from the step's own lines; null on a stage's own step.
+   * The statement of the stage a micro-step or relation moment belongs to,
+   * its goal while the stage builds; null on a stage's own step, which shows
+   * the statement with the whole Stage Record.
    */
-  stageContext: { statement: string; stageRecord: string } | null;
+  stageStatement: string | null;
 }
 
 

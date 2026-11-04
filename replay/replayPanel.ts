@@ -471,15 +471,13 @@ export const buildReplayPanelContent = (step: PlaybackStep | null | undefined, d
   if (typeof statement === 'string' && statement.length > 0) {
     supportLines.unshift({ label: 'Statement', value: statement });
   }
-  // Every smaller step of a stage shows that stage's text; the stage's own
-  // step already shows it as its Statement and Stage Record.
+  // Every smaller step of a stage shows that stage's statement as its goal;
+  // the stage's own step shows it with the whole Stage Record.
   const contextIndex = step && step.replayKind !== 'macro'
     ? identity?.stageIndex ?? step.replayFrameIndex ?? step.sourceFrameIndex : undefined;
   const contextStage = typeof contextIndex === 'number' && Number.isInteger(contextIndex) && contextIndex >= 0
     ? derivationStages?.[contextIndex] : undefined;
-  const contextText = (value: unknown) => typeof value === 'string' && value.trim() ? value : '';
-  const stageContext = contextStage && (contextText(contextStage.statement) || contextText(contextStage.stageRecord))
-    ? { statement: contextText(contextStage.statement), stageRecord: contextText(contextStage.stageRecord) } : null;
+  const stageStatement = typeof contextStage?.statement === 'string' && contextStage.statement.trim() ? contextStage.statement : null;
   return {
     heading: authoredRelation ? spaceAuthoredName(authoredRelation.relation, { snakeCase: true }) : formatPlaybackOperationTitle(step),
     supportLines: supportLines.map((line, index) => ({
@@ -490,7 +488,7 @@ export const buildReplayPanelContent = (step: PlaybackStep | null | undefined, d
       key: `${prefix}:${index}`
     })),
     authoredRelation,
-    stageContext
+    stageStatement
   };
 };
 

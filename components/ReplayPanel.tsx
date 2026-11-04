@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { buildReplayPanelContent, buildReplayStageRuns } from '../replay/replayPanel.ts';
+import { buildReplayWorkspace } from '../replay/replayWorkspace.ts';
 import {
   buildReplayDisplayDetailBlocks,
   formatReplayBlockLine,
@@ -7,6 +8,7 @@ import {
 } from '../replay/replayPanelFormatting.ts';
 import { type PlaybackStep } from '../replay/types.ts';
 import type { DerivationStage } from '../types';
+import ReplayWorkspace from './ReplayWorkspace';
 
 export interface ReplayPanelProps {
   panelRef: React.Ref<HTMLDivElement>;
@@ -19,8 +21,9 @@ export interface ReplayPanelProps {
   playbackSteps: PlaybackStep[];
   derivationStages?: DerivationStage[];
   sentence: string;
+  /** The sentence's word list, which terminals' token positions index. */
+  inputTokens: readonly string[];
   activeStepIndex: number;
-  activeStageDisplayLabel: string;
   canStepBackward: boolean;
   canStepForward: boolean;
   isAutoPlaying: boolean;
@@ -41,7 +44,7 @@ const REPLAY_ICON_BUTTON = 'shrink-0 w-11 h-11 rounded-xl flex items-center just
 const ReplayPanel: React.FC<ReplayPanelProps> = ({
   panelRef, bottom, right, currentReplayKind, activeRelationMoment,
   playedRelationIndicesAttribute, activeStep, playbackSteps, derivationStages,
-  sentence, activeStepIndex, activeStageDisplayLabel, canStepBackward, canStepForward,
+  sentence, inputTokens, activeStepIndex, canStepBackward, canStepForward,
   isAutoPlaying, isScrubbing, handlePrevStep, handleNextStep, handleTogglePlayback,
   onFit, onPause, onScrubbingChange, onStepChange
 }) => {
@@ -87,6 +90,12 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
   const lastStep = Math.max(playbackSteps.length - 1, 1);
   const knobPercent = (activeStepIndex / lastStep) * 100;
   const segmentEdge = (step: number) => Math.min(Math.max(((step - 0.5) / lastStep) * 100, 0), 100);
+  // A construction step's one unlabelled line (D + N → DP) sits beside its heading.
+  const inlineSupportLine = activeStep?.replayKind === 'micro' && activeReplaySupportLines.length === 1 && !activeReplaySupportLines[0].label
+    ? activeReplaySupportLines[0].value : '';
+  const activeStageIndex = activeStep?.replayFrameIndex ?? activeStep?.sourceFrameIndex;
+  const workspace = buildReplayWorkspace(activeStep, inputTokens,
+    activeStageIndex === undefined ? [] : derivationStages?.[activeStageIndex]?.realizations ?? []);
   const playLabel = isAutoPlaying ? 'Pause' : (activeStepIndex >= playbackSteps.length - 1 ? 'Replay' : 'Play');
 
   return (
@@ -126,11 +135,8 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
           </svg>
           <span className="sr-only">Next</span>
         </button>
-        <div className="ml-auto min-w-0 flex-1 pl-2 text-right text-[10px] font-black tracking-[0.14em] text-emerald-400/80">
-          {/* On a phone the counter wraps between its parts, never inside one. */}
-          {[`Replay ${activeStepIndex + 1}/${playbackSteps.length}`, ...(activeStageDisplayLabel ? activeStageDisplayLabel.split(' \u00b7 ') : [])]
-            .map((part, index) => <React.Fragment key={index}>{index ? ' ' : ''}<span className="whitespace-nowrap">{index ? `\u00b7 ${part}` : part}</span></React.Fragment>)}
-        </div>
+        {/* The step count stands above the tree, in the Replay header. */}
+        <div className="flex-1" />
         <button type="button" title="Fit tree" aria-label="Fit tree" className={REPLAY_ICON_BUTTON} onClick={onFit}>
           <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
             <path d="M4 9 V5 H8 M16 5 H20 V9 M20 15 V19 H16 M8 19 H4 V15" />
@@ -189,19 +195,15 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       </div>
       <div
         data-babel-replay-details="true"
-        className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1 space-y-3"
+        className="mt-1 min-h-0 flex-1 overflow-y-auto pr-1 space-y-2.5"
       >
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          {activeStep?.replayKind && activeStep.replayKind !== 'macro' && (
-            <span className="text-[10px] uppercase tracking-[0.16em] text-emerald-300/90">
-              {activeStep.replayKind === 'micro' ? 'Construction' : 'Relation'}
-            </span>
-          )}
-          <div data-babel-replay-summary="true" className="text-[11px] text-white font-semibold">
+          <div data-babel-replay-summary="true" className="serif text-[18px] leading-tight text-white font-semibold">
             {activePanelContent.heading}
           </div>
+          {inlineSupportLine && <div className="text-[13px] text-emerald-300/90">{inlineSupportLine}</div>}
         </div>
-        {activeReplaySupportLines.length > 0 && (
+        {!inlineSupportLine && activeReplaySupportLines.length > 0 && (
           <div className="space-y-1 text-[10px] tracking-[0.12em] text-emerald-300/90">
             {activeReplaySupportLines.map((line) => (
               <div key={line.key} className="leading-relaxed"
@@ -237,14 +239,10 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
             ))}
           </div>
         )}
-        {activePanelContent.stageContext && (
-          <div data-babel-replay-stage-context="true" className="pt-3 border-t border-white/[0.06] max-w-[68ch]">
-            {activePanelContent.stageContext.statement && (
-              <p className="serif italic text-[15px] leading-snug text-emerald-50/90">{activePanelContent.stageContext.statement}</p>
-            )}
-            {activePanelContent.stageContext.stageRecord && (
-              <p className="mt-1.5 text-[12px] leading-relaxed text-white/55">{activePanelContent.stageContext.stageRecord}</p>
-            )}
+        {activePanelContent.stageStatement && (
+          <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06] space-y-2.5">
+            <p className="serif italic text-[14px] leading-snug text-white/60 max-w-[68ch]">{activePanelContent.stageStatement}</p>
+            {workspace && <ReplayWorkspace workspace={workspace} />}
           </div>
         )}
         {activeNoteDisplay && (

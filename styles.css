@@ -131,8 +131,8 @@ body,
 @media (max-width: 640px) {
   .babel-replay-header,
   .babel-replay-panel { left: 16px; }
-  .babel-replay-controls > div { letter-spacing: 0; }
-  .babel-replay-header > div { letter-spacing: 0; }
+  /* Narrower tracking keeps the header's look on a phone and fits one line. */
+  .babel-replay-header > div { letter-spacing: 0.2em; }
 }
 
 .loading-overlay {
