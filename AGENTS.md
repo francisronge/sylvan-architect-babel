@@ -42,7 +42,8 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
 
 ## Commands
 
-- `npm run dev`: Vite development runtime.
+- `npm run dev`: Vite development runtime (the internal app).
+  `npm run dev:public` and `npm run build:public` serve and build public Babel.
 - `npm start`: Express runtime and provider routes. Outside
   `NODE_ENV=production` it refuses a `dist/` not built from this checkout; run
   `npm run build` first.
@@ -53,7 +54,12 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
 
 ## Code ownership
 
-- `App.tsx` owns the current analysis and view selection.
+- `App.tsx` is the internal app, with model and effort menus; it owns the
+  current analysis and view selection. `publicApp/PublicApp.tsx` is public
+  Babel on the same engine, renderer and Tree Bank: Minimalism only, Replay
+  only, and a fixed request in `publicApp/publicGeneration.ts`;
+  `tests/publicApp.test.mjs` keeps the research controls out of its imports.
+  Both apps draw their shared screen parts from `components/workspace/`.
   `hooks/useGeneration.ts` and `services/generationState.ts` own request
   progress; `services/parseService.ts` owns the browser HTTP call;
   `hooks/useTreeBank.ts` owns save/open.

@@ -9,7 +9,9 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:public": "BABEL_APP=public vite",
     "build": "vite build",
+    "build:public": "BABEL_APP=public vite build",
     "test": "NODE_COMPILE_CACHE=\"$PWD/node_modules/.cache/node-compile\" node --test --test-concurrency=6 tests/*.test.mjs",
     "test:bench": "node --test --test-concurrency=2 tests/bench/*.test.mjs",
     "typecheck": "tsc --noEmit --pretty false",

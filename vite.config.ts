@@ -17,6 +17,21 @@ const secureParseApiPlugin = (mode: string): Plugin => {
   };
 };
 
+// BABEL_APP=public builds and serves public Babel (publicApp/main.tsx) from
+// the same index.html; anything else is the internal app (index.tsx).
+const publicAppEntryPlugin = (): Plugin => ({
+  name: 'babel-public-app-entry',
+  // Before Vite reads the page's scripts, so the build starts from the public entry.
+  transformIndexHtml: {
+    order: 'pre',
+    handler(html) {
+      const entry = '<script type="module" src="/index.tsx"></script>';
+      if (!html.includes(entry)) throw new Error('index.html no longer loads /index.tsx; update publicAppEntryPlugin.');
+      return html.replace(entry, '<script type="module" src="/publicApp/main.tsx"></script>');
+    }
+  }
+});
+
 export default defineConfig(({ mode }) => {
   const notices = thirdPartyNoticesPlugins({ root: __dirname });
   return {
@@ -30,7 +45,8 @@ export default defineConfig(({ mode }) => {
         return hosts.length > 0 ? hosts : undefined;
       })()
     },
-    plugins: [react(), secureParseApiPlugin(mode), buildVersionPlugin({ root: __dirname }), notices.plugin],
+    plugins: [react(), secureParseApiPlugin(mode), buildVersionPlugin({ root: __dirname }), notices.plugin,
+      ...(process.env.BABEL_APP === 'public' ? [publicAppEntryPlugin()] : [])],
     worker: {
       plugins: () => [notices.workerPlugin]
     }

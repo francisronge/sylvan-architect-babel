@@ -198,7 +198,11 @@ copy the engine, and do not keep growing today's `App.tsx`.
    landing page before it. Public Babel is Minimalism only, with no framework
    switch, and the public route ignores any framework the browser sends
    (Francis, 3 Nov: "Of course it's just going to be Minimalism???"). X-bar
-   stays in the internal app and the qualification runners.
+   stays in the internal app and the qualification runners. Built in
+   `publicApp/` (`npm run dev:public`), not yet deployed: the start screen,
+   Replay as the only view, and a small top-right control back to the
+   sentence box. The browser names GPT-6.1 Sol at high effort, which the
+   server refuses as not enabled until the GPT-6.1 Sol API-key route exists.
    The "Arboretum link" label and its glowing dot go, with nothing in their
    place for now (Francis, 3 Nov: "we don't need it yet, let's keep
    minimal"). Constituent glyphing goes from the public app (see Program 4).

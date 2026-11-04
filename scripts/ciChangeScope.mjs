@@ -16,8 +16,7 @@
 //     tests, the build and browser behavior.
 //
 // "Something the Replay checks read" is the import graph of their entry
-// points, followed through static, dynamic, worker, `new URL` and CSS
-// imports, plus the inputs no import names (fixtures, dependency locks,
+// points (scripts/importGraph.mjs), plus the inputs no import names (fixtures, dependency locks,
 // build configuration and these rules themselves). Tailwind scans
 // components for class names, so a screen change can alter the generated
 // stylesheet the renderer page also loads; that changes no Replay geometry
@@ -34,6 +33,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { importClosure } from './importGraph.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -61,64 +61,11 @@ export const REPLAY_FIXED_INPUTS = [
   'tailwind.config.cjs',
   'postcss.config.cjs',
   '.github/workflows/',
-  'scripts/ciChangeScope.mjs'
+  'scripts/ciChangeScope.mjs',
+  'scripts/importGraph.mjs'
 ];
 
-const EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.jsx', '.json', '.css'];
-const SPECIFIER_PATTERNS = [
-  /\b(?:import|export)\b[^'"`;]*?\bfrom\s*['"]([^'"]+)['"]/g,
-  /\bimport\s*['"]([^'"]+)['"]/g,
-  /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
-  /\brequire\(\s*['"]([^'"]+)['"]\s*\)/g,
-  /\bnew URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url/g,
-  /@import\s+(?:url\()?['"]([^'"]+)['"]/g
-];
-
-// Scripts also load modules by root-relative name, for example the list of
-// entry modules scripts/replayCorpusSnapshot.mjs imports from each checkout.
-const ROOT_RELATIVE = /['"`]((?:replay|components|server|services|hooks|scripts|tests|fixtures)\/[\w./-]+\.(?:ts|tsx|js|mjs|cjs|json|css))['"`]/g;
-
-const isFile = (file) => fs.existsSync(file) && fs.statSync(file).isFile();
-
-function resolveFrom(dir, specifier) {
-  const base = path.resolve(dir, specifier.replace(/[?#].*$/, ''));
-  for (const candidate of [base, ...EXTENSIONS.map(ext => base + ext), ...EXTENSIONS.map(ext => path.join(base, 'index' + ext))]) {
-    if (isFile(candidate)) return candidate;
-  }
-  return null;
-}
-
-// Scripts build virtual entries whose imports are relative to the repository
-// root (esbuild `resolveDir: root`), so an import a script cannot resolve
-// beside itself is tried from the root.
-// A specifier naming a folder (`new URL('../', import.meta.url)` is the
-// repository root) imports nothing.
-function resolveSpecifier(from, specifier, root) {
-  if (!specifier.startsWith('.') || /(^|\/)\.{0,2}\/?$/.test(specifier)) return null;
-  return resolveFrom(path.dirname(from), specifier) ?? resolveFrom(root, specifier);
-}
-
-export function replaySurface(root = repoRoot) {
-  const seen = new Set();
-  const queue = REPLAY_ENTRY_POINTS.map(file => path.join(root, file));
-  while (queue.length) {
-    const file = queue.pop();
-    if (seen.has(file)) continue;
-    seen.add(file);
-    const source = fs.readFileSync(file, 'utf8');
-    for (const pattern of SPECIFIER_PATTERNS) {
-      for (const match of source.matchAll(pattern)) {
-        const resolved = resolveSpecifier(file, match[1], root);
-        if (resolved && !resolved.includes(`${path.sep}node_modules${path.sep}`)) queue.push(resolved);
-      }
-    }
-    for (const match of source.matchAll(ROOT_RELATIVE)) {
-      const resolved = path.join(root, match[1]);
-      if (isFile(resolved)) queue.push(resolved);
-    }
-  }
-  return new Set([...seen].map(file => path.relative(root, file).split(path.sep).join('/')));
-}
+export const replaySurface = (root = repoRoot) => importClosure(REPLAY_ENTRY_POINTS, root);
 
 const SOURCE_FILE = /\.(?:mjs|cjs|js|ts|tsx)$/;
 const MARKDOWN_NAME = /['"`]([\w./-]*\.md)['"`]/g;
