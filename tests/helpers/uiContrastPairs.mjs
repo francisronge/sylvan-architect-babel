@@ -47,7 +47,7 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Fullscreen and Tree Bank error banners', file: 'App.tsx', snippet: 'bg-[#261114] px-4 py-3 text-rose-200', fg: 'rose-200', bg: ['#261114'], min: TEXT },
 
   // Workspace
-  { where: 'Public: back to the sentence box', file: 'publicApp/PublicApp.tsx', snippet: 'bg-black/50 backdrop-blur-lg text-emerald-400/80', fg: 'emerald-400/80', bg: [...TREE, 'black/50'], min: ICON },
+  { where: 'Public: "Press F for fullscreen" hint', file: 'publicApp/PublicApp.tsx', snippet: 'tracking-wide text-emerald-100/70', fg: 'emerald-100/70', bg: TREE, min: TEXT },
   { where: 'Parse selector, unselected', file: 'components/workspace/WorkspaceStates.tsx', snippet: "'text-white/60 hover:text-emerald-300'", fg: 'white/60', bg: [...SHELL, 'black/50'], min: TEXT },
   { where: 'Parse selector / view tab, selected', file: 'components/workspace/WorkspaceStates.tsx', snippet: "'moss-gradient text-white border border-emerald-400/50'", fg: 'white', bg: ['#065f46'], min: TEXT },
   { where: 'Loading: "Deep Parsing … Structures"', file: 'components/workspace/WorkspaceStates.tsx', snippet: 'text-emerald-500/75 font-black uppercase text-[9px]', fg: 'emerald-500/75', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
