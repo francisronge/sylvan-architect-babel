@@ -86,8 +86,8 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Failed output inspection warnings', file: 'components/FailedOutputInspection.tsx', snippet: 'text-xs text-amber-200', fg: 'amber-200', bg: ['#06130e'], min: TEXT },
 
   // Replay panel and header
-  { where: 'Replay Prev/Next buttons and icon', file: 'components/ReplayPanel.tsx', snippet: 'tracking-[0.2em] text-white/70', fg: 'white/70', bg: REPLAY_PANEL, min: TEXT },
-  { where: 'Replay Play button', file: 'components/ReplayPanel.tsx', snippet: 'bg-emerald-500/10 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300', fg: 'emerald-300', bg: [...REPLAY_PANEL, 'emerald-500/10'], min: TEXT },
+  { where: 'Replay Prev, Next and Fit icons', file: 'components/ReplayPanel.tsx', snippet: 'text-white/75 enabled:hover:text-white', fg: 'white/75', bg: REPLAY_PANEL, min: ICON },
+  { where: 'Replay Play and Pause icon', file: 'components/ReplayPanel.tsx', snippet: 'bg-emerald-200 text-[#052e1f]', fg: '#052e1f', bg: ['emerald-200'], min: ICON },
   { where: 'Replay step counter', file: 'components/ReplayPanel.tsx', snippet: 'text-emerald-400/80', fg: 'emerald-400/80', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay detail labels', file: 'components/ReplayPanel.tsx', snippet: 'text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay detail text', file: 'components/ReplayPanel.tsx', snippet: 'text-white/88', fg: 'white/88', bg: REPLAY_PANEL, min: TEXT },

@@ -493,3 +493,22 @@ export const buildReplayPanelContent = (step: PlaybackStep | null | undefined, d
     stageContext
   };
 };
+
+/** One stage's run of consecutive Replay steps, for the panel's stage rail. */
+export interface ReplayStageRun { start: number; count: number }
+
+/**
+ * Consecutive steps grouped by the stage they play (`replayFrameIndex`, the
+ * grouping behind each step's "Stage n/m · Step k/j" label). A step with no
+ * stage joins the run before it.
+ */
+export const buildReplayStageRuns = (steps: readonly PlaybackStep[]): ReplayStageRun[] => {
+  const runs: Array<ReplayStageRun & { stage?: number }> = [];
+  steps.forEach((step, index) => {
+    const last = runs[runs.length - 1];
+    const stage = step.replayFrameIndex;
+    if (last && (stage === undefined || stage === last.stage)) last.count += 1;
+    else runs.push({ stage, start: index, count: 1 });
+  });
+  return runs.map(({ start, count }) => ({ start, count }));
+};
