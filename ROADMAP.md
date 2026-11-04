@@ -225,7 +225,12 @@ copy the engine, and do not keep growing today's `App.tsx`.
 3. Every finished parse is saved to the Tree Bank automatically; the header
    has one "Tree Bank" entry instead of "Tree Bank" and "Save to Tree Bank";
    a star on the tree marks the analyses to keep, and unkept ones can be
-   cleared later (Francis, 3 Nov: "Yes, perfect.").
+   cleared later (Francis, 3 Nov: "Yes, perfect."). Built: public Babel saves each
+   finished parse as it arrives, and a star in the Replay controls, left of
+   Fit, keeps it. Clearing unstarred analyses, and how starred ones look in the
+   Tree Bank, belong to the Tree Bank redesign (Program 4): Francis, 4 Nov
+   2026, will replace its design entirely and keep only its behaviour, where
+   a saved parse opens and you leave it as easily.
 4. Hide provider, model, and reasoning controls; the server chooses them and
    ignores the browser's choice. The public model is GPT-6.1 Sol at high effort
    (Francis, 3 Nov 2026: "Then we'll go with high."), through the OpenAI API key

@@ -32,7 +32,7 @@ import { applyRelationEmphasis } from './renderer/relationInteraction.ts';
 import { updateSyntaxReveal } from './renderer/syntaxReveal.ts';
 import { canopyPlacesInReplayFrame, selectCanopyReplayFrame } from './renderer/frameTreeLayout.ts';
 import { drawTreeFrame } from './renderer/treeFrame.ts';
-import ReplayPanel from './ReplayPanel';
+import ReplayPanel, { type ReplayKeep } from './ReplayPanel';
 import ReplayGrowthMark from './ReplayGrowthMark';
 import { replayGrowthLevel } from '../replay/replayPanel.ts';
 import { createTreeInkTextMeasure } from './treeInkTextMeasure';
@@ -68,6 +68,8 @@ export interface TreeVisualizerProps {
   inputTokens?: string[];
   /** The tree does not spell the sentence: marked from the first step, detailed at the end. */
   sentenceCheck?: SentenceCheck;
+  /** Public Babel's star, shown in the Replay controls. */
+  keep?: ReplayKeep;
 }
 
 type RelationMoment = {
@@ -88,7 +90,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   inputTokens,
   sentenceCheck,
   preparedReplay,
-  manualCameraState
+  manualCameraState,
+  keep
 }) => {
   const reportViewError = useViewErrorHandler();
   const treeDirection = useTreeDirection(sentence);
@@ -947,6 +950,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           onPause={() => setIsAutoPlaying(false)}
           onScrubbingChange={setIsScrubbing}
           onStepChange={setActiveStepIndex}
+          keep={keep}
         />
       )}
       {!layoutReady && <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#03130e]/90">

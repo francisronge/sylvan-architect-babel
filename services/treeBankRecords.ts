@@ -24,6 +24,8 @@ export interface TreeBankWork {
   stageCounts: number[];
   /** How many of the analyses the sentence check kept as invalid; absent when none. */
   invalidAnalyses?: number;
+  /** Starred to keep; absent when not, so unstarred works keep their bytes and hash. */
+  kept?: true;
   createdAt: string;
   updatedAt: string;
   previewId?: string;
@@ -51,6 +53,7 @@ export interface TreeBankSaveInput {
   createdAt: string;
   updatedAt: string;
   treeSnapshotDataUrl?: string;
+  kept?: boolean;
 }
 
 const fail: (message: string) => never = (message) => { throw new TypeError(message); };
@@ -120,7 +123,8 @@ export async function validateTreeBankWork(value: unknown): Promise<TreeBankWork
     'schemaVersion', 'id', 'sentence', 'framework', 'analysisIds', 'contextId',
     'activeParseIndex', 'view', 'replayStep', 'abstractionMode', 'stageCounts',
     'createdAt', 'updatedAt', 'sha256', ...('previewId' in work ? ['previewId'] : []),
-    ...('invalidAnalyses' in work ? ['invalidAnalyses'] : [])
+    ...('invalidAnalyses' in work ? ['invalidAnalyses'] : []),
+    ...('kept' in work ? ['kept'] : [])
   ], 'work');
   if (work.schemaVersion !== 2 || !['xbar', 'minimalism'].includes(work.framework)) fail('Unsupported Tree Bank work.');
   requireNonemptyString(work.id, 'id'); requireNonemptyString(work.sentence, 'sentence');
@@ -139,7 +143,18 @@ export async function validateTreeBankWork(value: unknown): Promise<TreeBankWork
     integer(work.invalidAnalyses, 'invalidAnalyses');
     if (work.invalidAnalyses < 1 || work.invalidAnalyses > work.analysisIds.length) fail('Invalid analysis count.');
   }
+  if (work.kept !== undefined && work.kept !== true) fail('kept must be true when present.');
   await checkHash(work); return freezeJsonData(work);
+}
+/**
+ * The same saved work starred or unstarred: the work wrapper is the one
+ * mutable part of a save (its content records never change), so the star
+ * rewrites it with a new hash and leaves updatedAt, and so the order, alone.
+ */
+export async function setTreeBankWorkKept(value: unknown, kept: boolean): Promise<TreeBankWork> {
+  const { sha256: _sha256, kept: _kept, ...body } = await validateTreeBankWork(value);
+  const next = kept ? { ...body, kept: true as const } : body;
+  return validateTreeBankWork({ ...next, sha256: await digest(next) });
 }
 // SVG previews are image data URLs for img elements, never inline SVG markup.
 export async function validateTreeBankPreview(value: unknown): Promise<TreeBankPreview> {
@@ -153,6 +168,7 @@ export async function validateTreeBankPreview(value: unknown): Promise<TreeBankP
 export async function prepareTreeBankSave(input: TreeBankSaveInput): Promise<PreparedTreeBankSave> {
   if (input.view !== undefined && !['tree', 'derivation', 'notes'].includes(input.view)) fail('Invalid saved view.');
   if (input.abstractionMode !== undefined && typeof input.abstractionMode !== 'boolean') fail('Invalid abstraction mode.');
+  if (input.kept !== undefined && typeof input.kept !== 'boolean') fail('Invalid kept flag.');
   const bundle = copySnapshot(input.bundle) as ParseBundle;
   requirePlainRecord(bundle, 'bundle');
   if (!Array.isArray(bundle.analyses) || !bundle.analyses.length || typeof bundle.ambiguityDetected !== 'boolean') fail('Invalid parse bundle.');
@@ -186,6 +202,7 @@ export async function prepareTreeBankSave(input: TreeBankSaveInput): Promise<Pre
     abstractionMode: input.abstractionMode ?? false,
     stageCounts: analyses.map(item => item.derivationStages?.length ?? 0),
     ...(analyses.some(item => item.sentenceCheck) ? { invalidAnalyses: analyses.filter(item => item.sentenceCheck).length } : {}),
+    ...(input.kept === true ? { kept: true as const } : {}),
     createdAt: input.createdAt,
     updatedAt: input.updatedAt,
     ...(preview ? { previewId: preview.id } : {})

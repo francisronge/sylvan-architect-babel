@@ -244,3 +244,8 @@ body,
 @keyframes replay-growth-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 .replay-growth-branch { stroke-dasharray: 1; animation: replay-growth-draw 420ms ease-out both; }
 @media (prefers-reduced-motion: reduce) { .replay-growth-branch { animation: none; } }
+
+/* The Replay star answers a press: it swells once as it fills. */
+@keyframes replay-star-pop { 0% { transform: scale(1); } 45% { transform: scale(1.28); } 100% { transform: scale(1); } }
+.replay-star-pop { animation: replay-star-pop 260ms ease-out; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { .replay-star-pop { animation: none; } }

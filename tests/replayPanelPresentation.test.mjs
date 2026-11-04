@@ -152,3 +152,14 @@ test('relation lines are two columns: role names in lower case beside their valu
   assert.deepEqual(['Theta Role', 'EPP Feature', 'vP', 'PRO Controller', 'Goal (previous stage)', 'Ποιος'].map(relationLineLabel),
     ['theta role', 'EPP feature', 'vP', 'PRO controller', 'goal (previous stage)', 'Ποιος']);
 });
+
+test('the star appears only where analyses save automatically, pressed and bark-filled when kept', () => {
+  assert.equal(button(render(properties(0)), 'Star'), '', 'the internal app passes no star');
+  const unkept = button(render(properties(0, { keep: { kept: false, onToggle: noop } })), 'Star');
+  assert.match(unkept, /aria-pressed="false"/);
+  assert.match(unkept, /fill="none" stroke="currentColor"/);
+  const kept = button(render(properties(0, { keep: { kept: true, onToggle: noop } })), 'Star');
+  assert.match(kept, /aria-pressed="true"/);
+  assert.match(kept, /fill="#c9a46a" stroke="#c9a46a"/);
+  assert.doesNotMatch(kept, /replay-star-pop/, 'a starred analysis opens without the pop');
+});

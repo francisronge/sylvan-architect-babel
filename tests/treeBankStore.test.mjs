@@ -640,3 +640,47 @@ test("refreshing the library revalidates only changed wrappers and rereads no ve
     Object.assign(IDBObjectStore.prototype, { get, getAll, openCursor });
   }
 });
+
+test("the star rewrites only the work wrapper: order, content and an unstarred work's bytes stay", async () => {
+  const f = new IDBFactory();
+  const store = createTreeBankStore(f, "test");
+  const plain = await store.saveTreeBankEntry(input("plain"));
+  assert.equal(plain.kept, false);
+  const read = (name) => raw(f, (db) => new Promise((resolve) => {
+    const r = db.transaction(name).objectStore(name).getAll();
+    r.onsuccess = () => resolve(r.result);
+  }));
+  const [unstarredBytes] = (await read("savedWorks")).map((w) => JSON.stringify(w));
+  assert.equal(JSON.parse(unstarredBytes).kept, undefined, "an unstarred work has no kept field");
+  const records = JSON.stringify(await read("records"));
+
+  const starred = await store.setTreeBankEntryKept("plain", true);
+  assert.equal(starred.kept, true);
+  assert.equal(starred.updatedAt, plain.updatedAt, "starring keeps the order");
+  assert.equal((await store.listTreeBankEntries()).entries[0].kept, true);
+  assert.equal(JSON.stringify(await read("records")), records, "content records never change");
+  assert.deepEqual((await store.loadTreeBankEntry("plain")).bundle, input().bundle);
+
+  await store.setTreeBankEntryKept("plain", false);
+  assert.equal(JSON.stringify((await read("savedWorks"))[0]), unstarredBytes, "unstarring restores the exact bytes");
+
+  const born = await store.saveTreeBankEntry({ ...input("born"), kept: true });
+  assert.equal(born.kept, true);
+  await assert.rejects(store.setTreeBankEntryKept("missing", true), /not found/);
+});
+
+test("a star built from a stale read is refused, not written over a newer wrapper", async () => {
+  const f = new IDBFactory();
+  const store = createTreeBankStore(f, "test");
+  await store.saveTreeBankEntry(input("one"));
+  const other = createTreeBankStore(f, "test");
+  // Both tabs read the unstarred wrapper; the first write wins and the second is refused.
+  const [first, second] = await Promise.allSettled([
+    store.setTreeBankEntryKept("one", true),
+    other.setTreeBankEntryKept("one", true),
+  ]);
+  assert.equal(first.status, "fulfilled");
+  assert.equal(second.status, "rejected");
+  assert.match(String(second.reason), /changed in another tab/);
+  assert.equal((await store.listTreeBankEntries()).entries[0].kept, true);
+});

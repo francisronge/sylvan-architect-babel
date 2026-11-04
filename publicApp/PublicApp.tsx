@@ -26,6 +26,9 @@ import { PUBLIC_GENERATION } from './publicGeneration';
  * Nothing but the logo and the Tree Bank sits above the tree (Francis,
  * 3-4 Nov 2026): the logo returns to the sentence box, and F toggles
  * fullscreen, with a brief hint on devices that have a keyboard.
+ *
+ * Every finished parse is saved to the Tree Bank as it arrives, and the star
+ * in the Replay controls marks the analyses to keep (ROADMAP, Program 3B.3).
  */
 type Screen = 'input' | 'tree' | 'treeBank';
 
@@ -49,6 +52,9 @@ const PublicApp: React.FC = () => {
   const [screen, setScreen] = useState<Screen>('input');
   const { isFullscreen, fullscreenError, toggleFullscreen } = useFullscreen();
   const treeBank = useTreeBank();
+  // The Tree Bank entry the shown bundle is saved as: null while its save
+  // runs or after it failed.
+  const [savedAs, setSavedAs] = useState<{ bundle: ParseBundle; id: string | null } | null>(null);
 
   const activeParse = analysisBundle?.analyses[activeParseIndex] ?? null;
   // Each analysis keeps the Replay step it was left on, so leaving for the
@@ -101,18 +107,40 @@ const PublicApp: React.FC = () => {
     setScreen('tree');
   };
 
+  const saveBundle = async (bundle: ParseBundle, sentence: string, kept: boolean) => {
+    setSavedAs({ bundle, id: null });
+    const saved = await treeBank.save({ sentence, framework: 'minimalism', activeParseIndex: 0, bundle, kept });
+    // A bundle opened meanwhile owns the star now.
+    setSavedAs(current => current?.bundle === bundle ? { bundle, id: saved?.id ?? null } : current);
+  };
+
   const handleParse = async () => {
     if (loading) return;
     const request = submittedGenerationRequest(input, PUBLIC_GENERATION);
     if (!request) return;
-    await generate(request, bundle => showAnalysis(bundle, request.sentence, 0, null));
+    await generate(request, bundle => {
+      showAnalysis(bundle, request.sentence, 0, null);
+      void saveBundle(bundle, request.sentence, false);
+    });
   };
+
+  const savedEntry = savedAs?.bundle === analysisBundle && savedAs?.id
+    ? treeBank.entries.find(entry => entry.id === savedAs.id) : undefined;
+  const toggleKept = () => {
+    if (!analysisBundle || treeBank.saving) return;
+    if (savedEntry) { void treeBank.setKept(savedEntry.id, !savedEntry.kept); return; }
+    // Its save failed, or the entry was deleted: starring saves it again, kept.
+    void saveBundle(analysisBundle, parsedSentence, true);
+  };
+  // Version-1 entries predate the star; they open as they always have.
+  const keep = savedEntry?.legacy ? undefined : { kept: savedEntry?.kept ?? false, onToggle: toggleKept };
 
   const openTreeBankEntry = async (summary: TreeBankEntrySummary) => {
     if (loading) return;
     await treeBank.open(summary.id, ({ entry, bundle, replayStep }) => {
       setInput(entry.sentence);
       clearFailure();
+      setSavedAs({ bundle, id: entry.id });
       showAnalysis(bundle, entry.sentence, entry.activeParseIndex, replayStep);
     });
   };
@@ -183,6 +211,7 @@ const PublicApp: React.FC = () => {
                     sentence={activeParse.sentenceCheck?.treeReading ?? parsedSentence}
                     inputTokens={activeDisplay.inputTokens}
                     sentenceCheck={activeParse.sentenceCheck}
+                    keep={keep}
                   />
                 ) : !loading && <EmptyWorkspace />}
               </ViewErrorBoundary>

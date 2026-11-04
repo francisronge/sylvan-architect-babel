@@ -73,3 +73,16 @@ test('an analysis kept by the sentence check is saved with its check and counted
   source.bundle.analyses[1].sentenceCheck = { ...check, words: [{ text: 'sees' }] };
   await assert.rejects(prepareTreeBankSave(source), /Invalid sentence check/);
 });
+test('a kept flag is true or absent, and starring rehashes only the wrapper', async () => {
+  const { setTreeBankWorkKept } = await import('../services/treeBankRecords.ts');
+  const saved = await prepareTreeBankSave(input());
+  assert.equal('kept' in saved.work, false);
+  const kept = await setTreeBankWorkKept(saved.work, true);
+  assert.equal(kept.kept, true); assert.notEqual(kept.sha256, saved.work.sha256);
+  assert.deepEqual(await restoreTreeBankBundle(kept, saved.records), input().bundle);
+  assert.deepEqual(await setTreeBankWorkKept(kept, false), saved.work);
+  assert.equal((await prepareTreeBankSave({ ...input(), kept: true })).work.kept, true);
+  await assert.rejects(validateTreeBankWork({ ...saved.work, kept: false }), /kept must be true/);
+  await assert.rejects(validateTreeBankWork({ ...kept, kept: undefined }), /integrity|kept/);
+  await assert.rejects(prepareTreeBankSave({ ...input(), kept: 'yes' }), /kept/);
+});

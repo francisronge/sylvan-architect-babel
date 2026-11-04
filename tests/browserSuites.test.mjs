@@ -101,7 +101,7 @@ test('the receipt check reads the latest attempt of each shard and fails on a mi
     await put(`browser-receipt-${last}-2`, passingReceipt(last));
     const result = run();
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, new RegExp(`${BROWSER_CI_SHARD_COUNT} shards ran all 16 required browser specs, each exactly once`));
+    assert.match(result.stdout, new RegExp(`${BROWSER_CI_SHARD_COUNT} shards ran all ${BROWSER_SPECS.length} required browser specs, each exactly once`));
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

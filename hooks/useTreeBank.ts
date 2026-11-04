@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   listTreeBankEntries, saveTreeBankEntry, loadTreeBankEntry, removeTreeBankEntry,
-  subscribeTreeBankChanges, type TreeBankEntrySummary, type TreeBankSaveInput
+  setTreeBankEntryKept, subscribeTreeBankChanges, type TreeBankEntrySummary, type TreeBankSaveInput
 } from '../services/treeBankStore.ts';
 
 const compareTreeBankEntries = (a: TreeBankEntrySummary, b: TreeBankEntrySummary): number =>
@@ -66,8 +66,9 @@ export function useTreeBank() {
     if (treeBankSaveSuccessTimeoutRef.current !== null) window.clearTimeout(treeBankSaveSuccessTimeoutRef.current);
   }, []);
 
-  const save = async (input: CurrentTreeBankSave) => {
-    if (treeBankSaving) return;
+  /** Save a new entry; resolves to its summary, or null when it was not saved. */
+  const save = async (input: CurrentTreeBankSave): Promise<TreeBankEntrySummary | null> => {
+    if (treeBankSaving) return null;
     const now = new Date().toISOString();
     const entry = { ...input, id: createTreeBankId(), createdAt: now, updatedAt: now };
     setTreeBankSaveSuccess(false);
@@ -85,11 +86,27 @@ export function useTreeBank() {
         setTreeBankSaveSuccess(false);
         treeBankSaveSuccessTimeoutRef.current = null;
       }, 2200);
+      return saved;
     } catch (err) {
       console.error('Tree Bank save failed', err);
       setTreeBankError(treeBankFailureMessage(err, 'Unable to save this tree to Tree Bank.'));
+      return null;
     } finally {
       setTreeBankSaving(false);
+    }
+  };
+
+  /** Star or unstar a saved entry; resolves to whether the change was stored. */
+  const setKept = async (id: string, kept: boolean): Promise<boolean> => {
+    try {
+      const updated = await setTreeBankEntryKept(id, kept);
+      setTreeBankEntries(current => current.map(entry => entry.id === id ? updated : entry));
+      setTreeBankError(null);
+      return true;
+    } catch (err) {
+      console.error('Tree Bank star failed', err);
+      setTreeBankError(treeBankFailureMessage(err, kept ? 'Unable to star this tree.' : 'Unable to unstar this tree.'));
+      return false;
     }
   };
 
@@ -124,6 +141,6 @@ export function useTreeBank() {
     entries: treeBankEntries, loading: !treeBankLoaded, error: treeBankError,
     saveSuccess: treeBankSaveSuccess, saving: treeBankSaving, opening: treeBankOpening,
     pendingDelete: entryPendingDelete, setPendingDelete: setEntryPendingDelete,
-    save, open, deletePending
+    save, setKept, open, deletePending
   };
 }

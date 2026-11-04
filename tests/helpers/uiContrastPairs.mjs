@@ -87,6 +87,7 @@ export const UI_CONTRAST_PAIRS = [
 
   // Replay panel and header
   { where: 'Replay Prev, Next and Fit icons', file: 'components/ReplayPanel.tsx', snippet: 'text-white/75 enabled:hover:text-white', fg: 'white/75', bg: REPLAY_PANEL, min: ICON },
+  { where: 'Replay star, kept', file: 'components/ReplayPanel.tsx', snippet: "const KEPT = '#c9a46a'", fg: '#c9a46a', bg: REPLAY_PANEL, min: ICON },
   { where: 'Replay Play and Pause icon', file: 'components/ReplayPanel.tsx', snippet: 'bg-emerald-200 text-[#052e1f]', fg: '#052e1f', bg: ['emerald-200'], min: ICON },
   { where: 'Replay detail labels', file: 'components/ReplayPanel.tsx', snippet: 'text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay detail text', file: 'components/ReplayPanel.tsx', snippet: 'text-white/88', fg: 'white/88', bg: REPLAY_PANEL, min: TEXT },

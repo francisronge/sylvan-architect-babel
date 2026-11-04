@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { buildReplayPanelContent, buildReplayStageRuns, relationLineLabel } from '../replay/replayPanel.ts';
 import { buildReplayWorkspace } from '../replay/replayWorkspace.ts';
 import {
@@ -35,7 +35,17 @@ export interface ReplayPanelProps {
   onPause: () => void;
   onScrubbingChange: (scrubbing: boolean) => void;
   onStepChange: (index: number) => void;
+  /** The star that keeps this analysis in the Tree Bank; absent where nothing is saved automatically. */
+  keep?: ReplayKeep;
 }
+
+export interface ReplayKeep {
+  kept: boolean;
+  onToggle: () => void;
+}
+
+// A kept analysis's star is the bark of the saved trees in the Tree Bank grove.
+const KEPT = '#c9a46a';
 
 const REPLAY_ICON_BUTTON = 'shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-white/75 enabled:hover:text-white enabled:hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70';
 
@@ -179,8 +189,10 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
   playedRelationIndicesAttribute, activeStep, playbackSteps, derivationStages,
   sentence, inputTokens, activeStepIndex, canStepBackward, canStepForward,
   isAutoPlaying, isScrubbing, handlePrevStep, handleNextStep, handleTogglePlayback,
-  onFit, onPause, onScrubbingChange, onStepChange
+  onFit, onPause, onScrubbingChange, onStepChange, keep
 }) => {
+  // The star pops only when pressed, not when a starred analysis opens.
+  const [starPressed, setStarPressed] = useState(false);
   const replayDisplayDetailBlocksByStepIndex = useMemo(
     () => buildReplayDisplayDetailBlocks(playbackSteps),
     [playbackSteps]
@@ -236,6 +248,17 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
         </button>
         {/* The step count stands above the tree, in the Replay header. */}
         <div className="flex-1" />
+        {keep && (
+          <button type="button" aria-pressed={keep.kept} className={REPLAY_ICON_BUTTON}
+            title={keep.kept ? 'Starred: kept in your Tree Bank' : 'Star to keep in your Tree Bank'}
+            onClick={() => { setStarPressed(true); keep.onToggle(); }}>
+            <svg viewBox="0 0 24 24" className={`w-5 h-5 ${starPressed && keep.kept ? 'replay-star-pop' : ''}`} strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"
+              fill={keep.kept ? KEPT : 'none'} stroke={keep.kept ? KEPT : 'currentColor'}>
+              <path d="M12 3.6 L14.5 8.9 L20.2 9.6 L16 13.5 L17.1 19.2 L12 16.4 L6.9 19.2 L8 13.5 L3.8 9.6 L9.5 8.9 Z" />
+            </svg>
+            <span className="sr-only">Star</span>
+          </button>
+        )}
         <button type="button" title="Fit tree" aria-label="Fit tree" className={REPLAY_ICON_BUTTON} onClick={onFit}>
           <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
             <path d="M4 9 V5 H8 M16 5 H20 V9 M20 15 V19 H16 M8 19 H4 V15" />
