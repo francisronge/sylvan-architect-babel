@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGeneration } from '../hooks/useGeneration';
 import { useTreeBank } from '../hooks/useTreeBank';
 import { useFullscreen } from '../hooks/useFullscreen';
-import { submittedGenerationRequest } from '../services/generationState';
+import { submittedGenerationRequest, type GenerationRequest } from '../services/generationState';
+import { parseSentenceInBackground, PARSE_CHECK_GIVE_UP_MS, type PendingParse } from '../services/parseService';
 import { deriveAnalysisDisplay } from '../services/analysisDisplay';
 import type { TreeBankEntrySummary } from '../services/treeBankStore';
 import type { ParseBundle, ParseResult } from '../types';
@@ -39,6 +40,25 @@ type Screen = 'input' | 'tree' | 'treeBank';
 const KEYBOARD_HINT_MS = 4000;
 const offersKeyboardHint = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
   && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+// The running parse, kept until it finishes or fails. Session storage belongs
+// to one tab and survives its reloads (and a phone restoring a discarded tab),
+// so two tabs never overwrite or clear each other's parse.
+const PENDING_PARSE_KEY = 'babel.pendingParse';
+const rememberPendingParse = (pending: PendingParse) => {
+  try { window.sessionStorage.setItem(PENDING_PARSE_KEY, JSON.stringify(pending)); } catch { /* storage full or blocked: no resume */ }
+};
+const forgetPendingParse = () => {
+  try { window.sessionStorage.removeItem(PENDING_PARSE_KEY); } catch { /* nothing to forget */ }
+};
+const readPendingParse = (): PendingParse | null => {
+  try {
+    const value = JSON.parse(window.sessionStorage.getItem(PENDING_PARSE_KEY) || 'null');
+    if (value && typeof value.ticket === 'string' && typeof value.sentence === 'string' && value.sentence.trim()
+      && Number.isFinite(value.startedAt) && Date.now() - value.startedAt < PARSE_CHECK_GIVE_UP_MS) return value;
+  } catch { /* unreadable: start fresh */ }
+  forgetPendingParse();
+  return null;
+};
 const typingInto = (target: EventTarget | null) => target instanceof HTMLElement
   && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.isContentEditable);
 
@@ -117,16 +137,40 @@ const PublicApp: React.FC = () => {
     setSavedAs(current => current?.bundle === bundle ? { bundle, id: saved?.id ?? null } : current);
   };
 
+  // The model writes in the background and the browser checks back, so the
+  // running parse is remembered: a reload, or a phone that discarded the tab,
+  // picks it up again instead of losing it.
+  const runParse = async (request: GenerationRequest, resume?: PendingParse) => {
+    setWaiting({ sentence: request.sentence, startedAt: resume?.startedAt ?? Date.now() });
+    try {
+      await generate(request, bundle => {
+        showAnalysis(bundle, request.sentence, 0, null);
+        void saveBundle(bundle, request.sentence, false);
+      }, (sentence, framework, modelId, settings) => parseSentenceInBackground(sentence, framework, modelId, settings, {
+        resume, onTicket: rememberPendingParse
+      }));
+    } finally {
+      forgetPendingParse();
+    }
+  };
+
   const handleParse = async () => {
     if (loading) return;
     const request = submittedGenerationRequest(input, PUBLIC_GENERATION);
     if (!request) return;
-    setWaiting({ sentence: request.sentence, startedAt: Date.now() });
-    await generate(request, bundle => {
-      showAnalysis(bundle, request.sentence, 0, null);
-      void saveBundle(bundle, request.sentence, false);
-    });
+    await runParse(request);
   };
+
+  const resumed = useRef(false);
+  useEffect(() => {
+    if (resumed.current) return;
+    resumed.current = true;
+    const pending = readPendingParse();
+    if (!pending) return;
+    setInput(pending.sentence);
+    void runParse({ ...PUBLIC_GENERATION, sentence: pending.sentence }, pending);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- a remembered parse resumes once, on the first render.
+  }, []);
 
   const savedEntry = savedAs?.bundle === analysisBundle && savedAs?.id
     ? treeBank.entries.find(entry => entry.id === savedAs.id) : undefined;

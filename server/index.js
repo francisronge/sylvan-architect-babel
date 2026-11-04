@@ -8,7 +8,7 @@ import helmet from 'helmet';
 
 import { trackProviderCalls } from './babelParser/providerTransport.js';
 import { createDailyParseQuota } from './dailyParseQuota.js';
-import { formatApiError, parseFromRequest } from './parseApi.js';
+import { formatApiError, parseFromRequest, parseRequestKind } from './parseApi.js';
 import {
   MALFORMED_JSON,
   MAX_PARSE_BODY_BYTES,
@@ -118,8 +118,23 @@ app.all('/api/parse', (req, res, next) => {
   return next();
 });
 
-// Only an admitted request uses the daily allowance and an in-flight slot.
+// Only an admitted request uses the daily allowance and an in-flight slot. A
+// ticket check starts no generation, so it uses neither.
 app.post('/api/parse', parseLimiter, enforceParseRequestSecurity, async (req, res) => {
+  if (parseRequestKind(req.body) === 'check') {
+    try {
+      const result = await parseFromRequest(req, res);
+      if (!res.destroyed) res.status(200).json(result);
+    } catch (error) {
+      if (res.destroyed) return;
+      const formatted = formatApiError(error);
+      if (formatted.status >= 500 && formatted.body?.error?.code !== 'CHECK_UNAVAILABLE') {
+        console.error('[api/parse] server error', describeParseServerFailure(error, formatted));
+      }
+      res.status(formatted.status).json(formatted.body);
+    }
+    return;
+  }
   const ip = getClientIp(req);
   if (dailyQuota.exhausted(ip)) {
     return res.status(429).json({
