@@ -180,8 +180,8 @@ It draws the tree exactly where the last Replay frame leaves it, without the rel
 It includes:
 
 - Step-based reveal of structural construction
-- Playback controls (`Prev`, `Play/Replay`, `Next`)
-- Timeline scrubber with sprout slider
+- Playback controls (previous step, play or pause, next step, and Fit)
+- A stage rail: one segment per stage, sized by its steps, to drag or tap through
 - Operation labels per step
 - Workspace-forest state updates
 - Open `relations` rendered when Babel has a supported visual treatment

@@ -1,6 +1,5 @@
-import { Scan } from 'lucide-react';
 import React, { useMemo } from 'react';
-import { buildReplayPanelContent } from '../replay/replayPanel.ts';
+import { buildReplayPanelContent, buildReplayStageRuns } from '../replay/replayPanel.ts';
 import {
   buildReplayDisplayDetailBlocks,
   formatReplayBlockLine,
@@ -8,7 +7,6 @@ import {
 } from '../replay/replayPanelFormatting.ts';
 import { type PlaybackStep } from '../replay/types.ts';
 import type { DerivationStage } from '../types';
-import RootLogo from './RootLogo';
 
 export interface ReplayPanelProps {
   panelRef: React.Ref<HTMLDivElement>;
@@ -35,6 +33,8 @@ export interface ReplayPanelProps {
   onScrubbingChange: (scrubbing: boolean) => void;
   onStepChange: (index: number) => void;
 }
+
+const REPLAY_ICON_BUTTON = 'shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-white/75 enabled:hover:text-white enabled:hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70';
 
 // Playback state and viewport measurement stay with the tree; this component
 // keeps the same panel root so its ref measures the visible controls directly.
@@ -79,9 +79,15 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
     }
     return note;
   })();
-  const stepPercent = playbackSteps.length > 1
-    ? (activeStepIndex / (playbackSteps.length - 1)) * 100
-    : 0;
+  const stageRuns = useMemo(() => buildReplayStageRuns(playbackSteps), [playbackSteps]);
+  const activeRun = Math.max(0, stageRuns.findIndex(run => activeStepIndex >= run.start && activeStepIndex < run.start + run.count));
+  // The rail is painted in the range input's own mapping, step i at
+  // i / (N - 1) of its width, so pressing the knob selects the step it shows.
+  // A stage's segment reaches halfway to the neighbouring stages' steps.
+  const lastStep = Math.max(playbackSteps.length - 1, 1);
+  const knobPercent = (activeStepIndex / lastStep) * 100;
+  const segmentEdge = (step: number) => Math.min(Math.max(((step - 0.5) / lastStep) * 100, 0), 100);
+  const playLabel = isAutoPlaying ? 'Pause' : (activeStepIndex >= playbackSteps.length - 1 ? 'Replay' : 'Play');
 
   return (
     <div
@@ -94,48 +100,70 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       className="babel-replay-panel absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-[#17362d] bg-[#020806]/[0.96] p-4 shadow-2xl"
       style={{ bottom, right }}
     >
-      <div className="babel-replay-controls flex items-center gap-2 mb-3">
-        <button
-          type="button"
-          onClick={handlePrevStep}
-          disabled={!canStepBackward}
-          className="px-3 py-1.5 rounded-lg border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/70 enabled:hover:text-emerald-300 enabled:hover:border-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Prev
+      <div className="babel-replay-controls flex items-center gap-1">
+        <button type="button" onClick={handlePrevStep} disabled={!canStepBackward} title="Previous step" className={REPLAY_ICON_BUTTON}>
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M7 6 V18" /><path d="M17 6 L10 12 L17 18" />
+          </svg>
+          <span className="sr-only">Prev</span>
         </button>
-        <button
-          type="button"
-          onClick={handleTogglePlayback}
-          className="px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-300 hover:bg-emerald-500/20"
-        >
-          {isAutoPlaying ? 'Pause' : (activeStepIndex >= playbackSteps.length - 1 ? 'Replay' : 'Play')}
+        <button type="button" onClick={handleTogglePlayback} title={playLabel}
+          className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center bg-emerald-200 text-[#052e1f] hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020806]">
+          {isAutoPlaying ? (
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+              <rect x="6.5" y="5" width="4" height="14" rx="1.4" /><rect x="13.5" y="5" width="4" height="14" rx="1.4" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" className="w-5 h-5 translate-x-[1px]" fill="currentColor" aria-hidden="true">
+              <path d="M8 5.5 C8 4.7 8.9 4.2 9.6 4.7 L18.4 11.2 C19 11.6 19 12.4 18.4 12.8 L9.6 19.3 C8.9 19.8 8 19.3 8 18.5 Z" />
+            </svg>
+          )}
+          <span className="sr-only">{playLabel}</span>
         </button>
-        <button
-          type="button"
-          onClick={handleNextStep}
-          disabled={!canStepForward}
-          className="px-3 py-1.5 rounded-lg border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-white/70 enabled:hover:text-emerald-300 enabled:hover:border-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Next
+        <button type="button" onClick={handleNextStep} disabled={!canStepForward} title="Next step" className={REPLAY_ICON_BUTTON}>
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M17 6 V18" /><path d="M7 6 L14 12 L7 18" />
+          </svg>
+          <span className="sr-only">Next</span>
         </button>
-        <button type="button" title="Fit tree" aria-label="Fit tree"
-          className="shrink-0 rounded-lg border border-white/10 p-1.5 text-white/70 hover:text-emerald-300"
-          onClick={onFit}>
-          <Scan size={14} />
-        </button>
-        <div className="ml-auto text-right">
-          <div className="text-[10px] font-black tracking-[0.14em] text-emerald-400/80">
-            Replay {activeStepIndex + 1}/{playbackSteps.length}
-            {activeStageDisplayLabel ? ` \u00b7 ${activeStageDisplayLabel}` : ''}
-          </div>
+        <div className="ml-auto min-w-0 flex-1 pl-2 text-right text-[10px] font-black tracking-[0.14em] text-emerald-400/80">
+          {/* On a phone the counter wraps between its parts, never inside one. */}
+          {[`Replay ${activeStepIndex + 1}/${playbackSteps.length}`, ...(activeStageDisplayLabel ? activeStageDisplayLabel.split(' \u00b7 ') : [])]
+            .map((part, index) => <React.Fragment key={index}>{index ? ' ' : ''}<span className="whitespace-nowrap">{index ? `\u00b7 ${part}` : part}</span></React.Fragment>)}
         </div>
+        <button type="button" title="Fit tree" aria-label="Fit tree" className={REPLAY_ICON_BUTTON} onClick={onFit}>
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+            <path d="M4 9 V5 H8 M16 5 H20 V9 M20 15 V19 H16 M8 19 H4 V15" />
+            <path d="M12 9 L9 14 M12 9 L15 14" className="text-emerald-200" stroke="currentColor" />
+          </svg>
+        </button>
       </div>
-      <div data-babel-replay-timeline="true" className="relative h-8 shrink-0">
-        <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2 bg-black/50 rounded-full border border-white/5" />
-        <div
-          className={`absolute left-0 top-1/2 -translate-y-1/2 h-2 bg-[#064e3b] rounded-full ${isScrubbing ? '' : 'transition-all duration-150'}`}
-          style={{ width: `${stepPercent}%` }}
-        />
+      {/* The stage rail: one segment per stage, as long as its steps. The
+          range input over it keeps dragging, tapping and arrow keys. */}
+      <div data-babel-replay-timeline="true" className="relative h-11 shrink-0 mb-1">
+        <div className="absolute inset-0" aria-hidden="true">
+          {stageRuns.map((run, index) => {
+            const left = segmentEdge(run.start);
+            const right = index === stageRuns.length - 1 ? 100 : segmentEdge(run.start + run.count);
+            const filled = index < activeRun ? 1 : index > activeRun ? 0 : Math.min(Math.max((knobPercent - left) / Math.max(right - left, 1e-9), 0), 1);
+            // 3px gaps between stages; none at the rail's ends.
+            const inset = (edge: boolean) => (edge ? 0 : 1.5);
+            return (
+              <div key={run.start} data-babel-replay-stage-segment={index === activeRun ? 'active' : index < activeRun ? 'played' : 'ahead'}
+                className={`absolute top-1/2 -translate-y-1/2 h-2 rounded-full overflow-hidden ${index === activeRun ? 'bg-emerald-200/[0.16]' : 'bg-white/[0.08]'}`}
+                style={{
+                  left: `calc(${left}% + ${inset(index === 0)}px)`,
+                  width: `calc(${right - left}% - ${inset(index === 0) + inset(index === stageRuns.length - 1)}px)`
+                }}>
+                <div className={`absolute inset-y-0 left-0 rounded-full ${index === activeRun ? 'bg-emerald-200' : 'bg-emerald-600'} ${isScrubbing ? '' : 'transition-all duration-150'}`}
+                  style={{ width: `${filled * 100}%` }} />
+              </div>
+            );
+          })}
+        </div>
+        <div aria-hidden="true"
+          className={`absolute top-1/2 w-3.5 h-3.5 rounded-full bg-emerald-200 shadow-[0_0_0_4px_rgba(167,243,208,0.15)] pointer-events-none ${isScrubbing ? '' : 'transition-all duration-150'}`}
+          style={{ left: `${knobPercent}%`, transform: 'translate(-50%, -50%)' }} />
         <input
           type="range"
           aria-label="Replay frame"
@@ -158,14 +186,6 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
           }}
           className="derivation-slider absolute inset-0 w-full h-full z-10"
         />
-        <div
-          className={`absolute top-1/2 -translate-y-1/2 pointer-events-none ${isScrubbing ? '' : 'transition-all duration-150'}`}
-          style={{ left: `${stepPercent}%`, transform: 'translate(-50%, -50%)' }}
-        >
-          <div className="w-5 h-5 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shadow-[0_0_12px_rgba(167,243,208,0.75)]">
-            <RootLogo size={12} blend={false} zoom={1.12} />
-          </div>
-        </div>
       </div>
       <div
         data-babel-replay-details="true"

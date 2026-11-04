@@ -46,6 +46,8 @@ const properties = (index, overrides = {}) => ({
   ...overrides
 });
 const render = props => renderToStaticMarkup(React.createElement(ReplayPanel, props));
+// The playback buttons are icons; each keeps its name as hidden text.
+const button = (html, name) => html.match(new RegExp(`<button(?:(?!</button>).)*<span class="sr-only">${name}</span></button>`))?.[0] ?? '';
 
 test('Replay panel retains one measured root, ownership attributes and frame controls', () => {
   const html = render(properties(1, { isAutoPlaying: true }));
@@ -55,11 +57,11 @@ test('Replay panel retains one measured root, ownership attributes and frame con
   assert.match(html, /data-babel-active-relation-index="0"/);
   assert.match(html, /data-babel-played-relation-indices="0"/);
   assert.match(html, /style="bottom:24px;right:32px"/);
-  assert.match(html, />Pause<\/button>/);
+  assert.ok(button(html, 'Pause'));
   assert.match(html, /aria-label="Replay frame" min="0" max="2"/);
   assert.match(html, /value="1"/);
   assert.match(html, /<input type="range"[^>]*aria-valuetext="Replay 2\/3"/, 'the slider announces the visible Replay position');
-  assert.match(html, /width:50%/);
+  assert.match(html, /style="left:50%;transform/, 'the knob is halfway along');
   assert.match(html, /Replay 2\/3/);
   assert.match(html, /aria-label="Fit tree"/);
 });
@@ -67,13 +69,13 @@ test('Replay panel retains one measured root, ownership attributes and frame con
 test('Replay start and end keep their navigation limits and scrubbing presentation', () => {
   const first = render(properties(0));
   const last = render(properties(2, { isScrubbing: true }));
-  assert.match(first, /<button[^>]*disabled=""[^>]*>Prev<\/button>/);
-  assert.doesNotMatch(first, /<button[^>]*disabled=""[^>]*>Next<\/button>/);
-  assert.match(first, />Play<\/button>/);
+  assert.match(button(first, 'Prev'), /disabled=""/);
+  assert.doesNotMatch(button(first, 'Next'), /disabled=""/);
+  assert.ok(button(first, 'Play'));
   assert.match(first, /width:0%/);
-  assert.doesNotMatch(last, /<button[^>]*disabled=""[^>]*>Prev<\/button>/);
-  assert.match(last, /<button[^>]*disabled=""[^>]*>Next<\/button>/);
-  assert.match(last, />Replay<\/button>/);
+  assert.doesNotMatch(button(last, 'Prev'), /disabled=""/);
+  assert.match(button(last, 'Next'), /disabled=""/);
+  assert.ok(button(last, 'Replay'));
   assert.match(last, /width:100%/);
   assert.doesNotMatch(last, /transition-all duration-150/);
   assert.doesNotMatch(last, /data-babel-active-relation-index=/);
@@ -89,4 +91,26 @@ test('authored literals and stage explanations survive panel extraction unchange
   const macro = render(properties(2));
   assert.equal((macro.match(/An authored explanation\./g) || []).length, 1);
   assert.deepEqual({ steps, stages }, before);
+});
+
+test('the stage rail has one segment per stage, sized by its steps, filled up to the current step', async () => {
+  const { buildReplayStageRuns } = await import('../replay/replayPanel.ts');
+  const staged = [0, 0, 0, 1, undefined, 2, 2].map((replayFrameIndex, index) => ({ ...steps[0], replayFrameIndex, replayKind: 'micro', replayRelationIdentity: undefined, targetNodeId: `n${index}` }));
+  assert.deepEqual(buildReplayStageRuns(staged), [{ start: 0, count: 3 }, { start: 3, count: 2 }, { start: 5, count: 2 }],
+    'a step with no stage joins the run before it');
+  const html = render(properties(0, { playbackSteps: staged, activeStep: staged[4], activeStepIndex: 4, canStepForward: true }));
+  const segments = [...html.matchAll(/data-babel-replay-stage-segment="(\w+)"[^>]*style="left:calc\(([\d.]+)%[^"]*"><div[^>]*style="width:([\d.]+)%"/g)]
+    .map(([, state, left, width]) => [state, Math.round(Number(left)), Math.round(Number(width))]);
+  // Stage edges sit halfway between neighbouring stages' steps: (3 - 0.5) / 6 and (5 - 0.5) / 6.
+  assert.deepEqual(segments, [['played', 0, 100], ['active', 42, 75], ['ahead', 75, 0]]);
+  assert.match(html, /aria-valuetext="Replay 5\/7"/);
+});
+
+test('the knob is painted where the range input puts that step, so pressing it keeps the step', () => {
+  const staged = [0, 0, 1, 2, 2].map(replayFrameIndex => ({ ...steps[0], replayFrameIndex, replayKind: 'micro', replayRelationIdentity: undefined }));
+  staged.forEach((step, index) => {
+    const html = render(properties(0, { playbackSteps: staged, activeStep: step, activeStepIndex: index }));
+    const knob = html.match(/pointer-events-none[^"]*" style="left:([\d.]+)%/)?.[1];
+    assert.equal(Number(knob), (index / (staged.length - 1)) * 100, `step ${index + 1}`);
+  });
 });

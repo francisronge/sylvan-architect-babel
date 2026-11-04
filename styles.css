@@ -131,9 +131,7 @@ body,
 @media (max-width: 640px) {
   .babel-replay-header,
   .babel-replay-panel { left: 16px; }
-  .babel-replay-controls { flex-wrap: wrap; }
-  .babel-replay-controls > div { width: 100%; text-align: left; }
-  .babel-replay-controls > button { padding: 6px 8px; letter-spacing: 0; }
+  .babel-replay-controls > div { letter-spacing: 0; }
   .babel-replay-header > div { letter-spacing: 0; }
 }
 
