@@ -81,10 +81,12 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
   })();
   const stageRuns = useMemo(() => buildReplayStageRuns(playbackSteps), [playbackSteps]);
   const activeRun = Math.max(0, stageRuns.findIndex(run => activeStepIndex >= run.start && activeStepIndex < run.start + run.count));
-  // The knob sits where the fill ends: each step has an equal share of the
-  // rail once the 3px gaps between stages are taken out.
-  const gaps = Math.max(stageRuns.length - 1, 0) * 3;
-  const knobLeft = `calc(${(activeStepIndex + 1) / Math.max(playbackSteps.length, 1)} * (100% - ${gaps}px) + ${activeRun * 3}px)`;
+  // The rail is painted in the range input's own mapping, step i at
+  // i / (N - 1) of its width, so pressing the knob selects the step it shows.
+  // A stage's segment reaches halfway to the neighbouring stages' steps.
+  const lastStep = Math.max(playbackSteps.length - 1, 1);
+  const knobPercent = (activeStepIndex / lastStep) * 100;
+  const segmentEdge = (step: number) => Math.min(Math.max(((step - 0.5) / lastStep) * 100, 0), 100);
   const playLabel = isAutoPlaying ? 'Pause' : (activeStepIndex >= playbackSteps.length - 1 ? 'Replay' : 'Play');
 
   return (
@@ -139,13 +141,20 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       {/* The stage rail: one segment per stage, as long as its steps. The
           range input over it keeps dragging, tapping and arrow keys. */}
       <div data-babel-replay-timeline="true" className="relative h-11 shrink-0 mb-1">
-        <div className="absolute inset-0 flex items-center gap-[3px]" aria-hidden="true">
+        <div className="absolute inset-0" aria-hidden="true">
           {stageRuns.map((run, index) => {
-            const filled = index < activeRun ? 1 : index > activeRun ? 0 : (activeStepIndex - run.start + 1) / run.count;
+            const left = segmentEdge(run.start);
+            const right = index === stageRuns.length - 1 ? 100 : segmentEdge(run.start + run.count);
+            const filled = index < activeRun ? 1 : index > activeRun ? 0 : Math.min(Math.max((knobPercent - left) / Math.max(right - left, 1e-9), 0), 1);
+            // 3px gaps between stages; none at the rail's ends.
+            const inset = (edge: boolean) => (edge ? 0 : 1.5);
             return (
               <div key={run.start} data-babel-replay-stage-segment={index === activeRun ? 'active' : index < activeRun ? 'played' : 'ahead'}
-                className={`relative h-2 rounded-full overflow-hidden ${index === activeRun ? 'bg-emerald-200/[0.16]' : 'bg-white/[0.08]'}`}
-                style={{ flexGrow: run.count, flexBasis: 0 }}>
+                className={`absolute top-1/2 -translate-y-1/2 h-2 rounded-full overflow-hidden ${index === activeRun ? 'bg-emerald-200/[0.16]' : 'bg-white/[0.08]'}`}
+                style={{
+                  left: `calc(${left}% + ${inset(index === 0)}px)`,
+                  width: `calc(${right - left}% - ${inset(index === 0) + inset(index === stageRuns.length - 1)}px)`
+                }}>
                 <div className={`absolute inset-y-0 left-0 rounded-full ${index === activeRun ? 'bg-emerald-200' : 'bg-emerald-600'} ${isScrubbing ? '' : 'transition-all duration-150'}`}
                   style={{ width: `${filled * 100}%` }} />
               </div>
@@ -154,7 +163,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
         </div>
         <div aria-hidden="true"
           className={`absolute top-1/2 w-3.5 h-3.5 rounded-full bg-emerald-200 shadow-[0_0_0_4px_rgba(167,243,208,0.15)] pointer-events-none ${isScrubbing ? '' : 'transition-all duration-150'}`}
-          style={{ left: knobLeft, transform: 'translate(-50%, -50%)' }} />
+          style={{ left: `${knobPercent}%`, transform: 'translate(-50%, -50%)' }} />
         <input
           type="range"
           aria-label="Replay frame"

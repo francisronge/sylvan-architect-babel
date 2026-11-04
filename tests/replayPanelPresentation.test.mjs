@@ -61,7 +61,7 @@ test('Replay panel retains one measured root, ownership attributes and frame con
   assert.match(html, /aria-label="Replay frame" min="0" max="2"/);
   assert.match(html, /value="1"/);
   assert.match(html, /<input type="range"[^>]*aria-valuetext="Replay 2\/3"/, 'the slider announces the visible Replay position');
-  assert.match(html, /width:50%/);
+  assert.match(html, /style="left:50%;transform/, 'the knob is halfway along');
   assert.match(html, /Replay 2\/3/);
   assert.match(html, /aria-label="Fit tree"/);
 });
@@ -99,8 +99,18 @@ test('the stage rail has one segment per stage, sized by its steps, filled up to
   assert.deepEqual(buildReplayStageRuns(staged), [{ start: 0, count: 3 }, { start: 3, count: 2 }, { start: 5, count: 2 }],
     'a step with no stage joins the run before it');
   const html = render(properties(0, { playbackSteps: staged, activeStep: staged[4], activeStepIndex: 4, canStepForward: true }));
-  const segments = [...html.matchAll(/data-babel-replay-stage-segment="(\w+)"[^>]*style="flex-grow:(\d+)[^"]*"><div[^>]*style="width:([\d.]+)%"/g)]
-    .map(([, state, grow, width]) => [state, Number(grow), Number(width)]);
-  assert.deepEqual(segments, [['played', 3, 100], ['active', 2, 100], ['ahead', 2, 0]]);
+  const segments = [...html.matchAll(/data-babel-replay-stage-segment="(\w+)"[^>]*style="left:calc\(([\d.]+)%[^"]*"><div[^>]*style="width:([\d.]+)%"/g)]
+    .map(([, state, left, width]) => [state, Math.round(Number(left)), Math.round(Number(width))]);
+  // Stage edges sit halfway between neighbouring stages' steps: (3 - 0.5) / 6 and (5 - 0.5) / 6.
+  assert.deepEqual(segments, [['played', 0, 100], ['active', 42, 75], ['ahead', 75, 0]]);
   assert.match(html, /aria-valuetext="Replay 5\/7"/);
+});
+
+test('the knob is painted where the range input puts that step, so pressing it keeps the step', () => {
+  const staged = [0, 0, 1, 2, 2].map(replayFrameIndex => ({ ...steps[0], replayFrameIndex, replayKind: 'micro', replayRelationIdentity: undefined }));
+  staged.forEach((step, index) => {
+    const html = render(properties(0, { playbackSteps: staged, activeStep: step, activeStepIndex: index }));
+    const knob = html.match(/pointer-events-none[^"]*" style="left:([\d.]+)%/)?.[1];
+    assert.equal(Number(knob), (index / (staged.length - 1)) * 100, `step ${index + 1}`);
+  });
 });
