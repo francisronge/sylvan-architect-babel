@@ -1,4 +1,5 @@
 import type { SurfaceRealization, SyntaxNode } from '../types.ts';
+import { replayEffectiveSilence } from './syntaxForest.ts';
 import type { PlaybackStep } from './types.ts';
 
 /**
@@ -17,12 +18,19 @@ export interface ReplayWorkspace {
 
 const WORDLIKE = /[\p{L}\p{N}]/u;
 
-/** A visible node keeps its visible descendants; a hidden one passes them up. */
-const pruneToVisible = (node: SyntaxNode, visible: ReadonlySet<string>): SyntaxNode[] => {
-  const children = (node.children ?? []).flatMap(child => pruneToVisible(child, visible));
+/**
+ * A visible node keeps its visible descendants; a hidden one passes them up.
+ * Silence is inherited, as in pronunciation (a silent phrase silences
+ * everything beneath it, drawn or not), so each kept node records its
+ * effective silence.
+ */
+const pruneToVisible = (node: SyntaxNode, visible: ReadonlySet<string>, inheritedSilence = false): SyntaxNode[] => {
+  const silent = replayEffectiveSilence(node, inheritedSilence);
+  const children = (node.children ?? []).flatMap(child => pruneToVisible(child, visible, silent));
   if (!visible.has(String(node.id))) return children;
   const { children: _children, ...rest } = node;
-  return [children.length ? { ...rest, children } : rest];
+  const kept: SyntaxNode = silent ? { ...rest, silent: true } : rest;
+  return [children.length ? { ...kept, children } : kept];
 };
 
 const someNode = (node: SyntaxNode, test: (node: SyntaxNode) => boolean): boolean =>

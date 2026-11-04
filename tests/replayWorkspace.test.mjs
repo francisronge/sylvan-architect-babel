@@ -66,3 +66,15 @@ test('a terminal its realization group accounts for is not matched by text a sec
     [{ nodeIds: ['n'], tokenIndices: [1] }]);
   assert.deepEqual(workspace.lexicalArray, ['The', 'chased', 'the', 'cat'], 'only the realized cat is selected');
 });
+
+test('words beneath a silent phrase are silent: they select nothing and are drawn dimmed', () => {
+  const silentCanvas = { id: 'r', label: 'X', children: [
+    { id: 'gap', label: 'DP', silent: true, children: [{ id: 'gapN', label: 'N', word: 'cat' }] },
+    { id: 'n', label: 'N', word: 'cat' }
+  ] };
+  const workspace = buildReplayWorkspace(step(['gap', 'gapN', 'n'], { replayCanvasData: silentCanvas }), ['cat', 'chased', 'cat']);
+  assert.deepEqual(workspace.lexicalArray, ['chased', 'cat'], 'only the pronounced cat is selected');
+  assert.equal(workspace.objects[0].children[0].silent, true, 'the silent phrase marks its word silent for drawing');
+  const hiddenParent = buildReplayWorkspace(step(['gapN', 'n'], { replayCanvasData: silentCanvas }), ['cat', 'chased', 'cat']);
+  assert.deepEqual(hiddenParent.lexicalArray, ['chased', 'cat'], 'silence passes down through a phrase not yet drawn');
+});
