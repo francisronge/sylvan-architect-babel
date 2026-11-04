@@ -90,3 +90,12 @@ test("the step's own realization groups name its drawn nodes, after Replay renam
   const workspace = buildReplayWorkspace(step(['later'], { replayCanvasData: renamed, replayRealizations: [{ nodeIds: ['later'], tokenIndices: [1] }] }), ['They', 'went']);
   assert.deepEqual(workspace.lexicalArray, ['They'], 'went is realized by the renamed occurrence');
 });
+
+test('every word inside a phrase a realization group names is accounted for by the group', () => {
+  const phrase = { id: 'r', label: 'X', children: [{ id: 'np', label: 'NP', children: [{ id: 'n', label: 'N', children: [{ id: 'n::word', label: 'cat', word: 'cat' }] }] }] };
+  const groups = [{ nodeIds: ['np'], tokenIndices: [0] }];
+  assert.deepEqual(buildReplayWorkspace(step(['np', 'n', 'n::word'], { replayCanvasData: phrase, replayRealizations: groups }), ['cats', 'saw', 'cat']).lexicalArray,
+    ['saw', 'cat'], 'the group selects cats; the final cat stays');
+  assert.deepEqual(buildReplayWorkspace(step(['n', 'n::word'], { replayCanvasData: phrase, replayRealizations: groups }), ['cats', 'saw', 'cat']).lexicalArray,
+    ['saw', 'cat'], 'also while the named phrase itself is not yet drawn');
+});

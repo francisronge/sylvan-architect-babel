@@ -36,11 +36,6 @@ const pruneToVisible = (node: SyntaxNode, visible: ReadonlySet<string>, inherite
 const someNode = (node: SyntaxNode, test: (node: SyntaxNode) => boolean): boolean =>
   test(node) || (node.children ?? []).some(child => someNode(child, test));
 
-const eachNode = (node: SyntaxNode, visit: (node: SyntaxNode, parent?: SyntaxNode) => void, parent?: SyntaxNode) => {
-  visit(node, parent);
-  (node.children ?? []).forEach(child => eachNode(child, visit, node));
-};
-
 export const buildReplayWorkspace = (
   step: PlaybackStep | null | undefined,
   inputTokens: readonly string[]
@@ -59,27 +54,38 @@ export const buildReplayWorkspace = (
   // its word to the first unselected sentence word with the same text. Stage
   // trees carry no positions, and a word is visible at its source before it
   // moves, so matching by text counts it from its first appearance.
-  const selected = new Set<number>();
-  // A word realized by several terminals counts once any of them is visible,
-  // and its terminals are then accounted for: none is matched by text again.
-  // The step's own groups name its drawn nodes; Replay renames continued
-  // occurrences, so the authored stage's groups may not.
-  const realized = new Set<string>();
-  (step.replayRealizations ?? []).forEach(group => {
-    if (!group.nodeIds.some(id => visible.has(String(id)))) return;
-    group.tokenIndices.forEach(index => selected.add(index));
-    group.nodeIds.forEach(id => realized.add(String(id)));
-  });
-  const unpositioned: string[] = [];
-  objects.forEach(object => eachNode(object, (node, parent) => {
-    if (node.silent || node.children?.length) return;
-    // Replay draws a lexical head as its category over the word; the category keeps the position.
-    const position = Number.isInteger(node.tokenIndex) ? node.tokenIndex
-      : parent?.children?.length === 1 && Number.isInteger(parent.tokenIndex) ? parent.tokenIndex : undefined;
-    if (position !== undefined) selected.add(position as number);
-    // A drawn word sits under its category node, which is the one a group names.
-    else if (node.word && !realized.has(String(node.id)) && !(parent && realized.has(String(parent.id)))) unpositioned.push(String(node.word));
+  // One walk over the whole canvas decides what is selected, carrying two
+  // things down from every ancestor, drawn or not: silence (a silent phrase
+  // silences its words) and realization groups (a group naming a node covers
+  // every terminal beneath it, as in spell-out). A visible pronounced
+  // terminal selects its word by token position (its own, or its category's
+  // when Replay draws the word under it); a terminal a group covers selects
+  // the group's positions once visible; any other is matched by text to the
+  // first unselected sentence word with the same text. Stage trees carry no
+  // positions, and a word is visible at its source before it moves, so
+  // matching by text counts it from its first appearance. The step's own
+  // groups name its drawn nodes: Replay renames continued occurrences.
+  const groups = step.replayRealizations ?? [];
+  const groupsNaming = new Map<string, number[]>();
+  groups.forEach((group, index) => group.nodeIds.forEach(id => {
+    groupsNaming.set(String(id), [...(groupsNaming.get(String(id)) ?? []), index]);
   }));
+  const selected = new Set<number>();
+  const unpositioned: string[] = [];
+  const walk = (node: SyntaxNode, parent: SyntaxNode | undefined, inheritedSilence: boolean, inheritedGroups: number[]) => {
+    const silent = replayEffectiveSilence(node, inheritedSilence);
+    const covering = groupsNaming.has(String(node.id)) ? [...inheritedGroups, ...groupsNaming.get(String(node.id))!] : inheritedGroups;
+    const children = node.children ?? [];
+    if (!children.length && visible.has(String(node.id)) && !silent) {
+      const position = Number.isInteger(node.tokenIndex) ? node.tokenIndex
+        : parent?.children?.length === 1 && Number.isInteger(parent.tokenIndex) ? parent.tokenIndex : undefined;
+      if (position !== undefined) selected.add(position as number);
+      if (covering.length) covering.forEach(index => groups[index].tokenIndices.forEach(token => selected.add(token)));
+      else if (position === undefined && node.word) unpositioned.push(String(node.word));
+    }
+    children.forEach(child => walk(child, node, silent, covering));
+  };
+  walk(canvas, undefined, false, []);
   const fold = (text: string) => text.normalize('NFC').toLocaleLowerCase();
   unpositioned.forEach(word => {
     const index = inputTokens.findIndex((token, at) => !selected.has(at) && fold(token) === fold(word));
