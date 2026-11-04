@@ -115,11 +115,11 @@ test('the knob is painted where the range input puts that step, so pressing it k
   });
 });
 
-test('the header tree gains a level each quarter of the derivation', async () => {
+test('the header tree starts with its first branches and gains a level each third of the derivation', async () => {
   const { replayGrowthLevel } = await import('../replay/replayPanel.ts');
-  // 43 steps: quarters begin at steps 11, 21 and 32 (indices 10.5, 21, 31.5).
-  assert.deepEqual([0, 10, 11, 20, 21, 31, 32, 42].map(index => replayGrowthLevel(index, 43)), [1, 1, 2, 2, 3, 3, 4, 4]);
+  // 43 steps: thirds begin at indices 14 and 28.
+  assert.deepEqual([0, 13, 14, 27, 28, 42].map(index => replayGrowthLevel(index, 43)), [2, 2, 3, 3, 4, 4]);
   assert.equal(replayGrowthLevel(0, 1), 4, 'a one-step Replay is complete');
-  assert.equal(replayGrowthLevel(-3, 10), 1);
+  assert.equal(replayGrowthLevel(-3, 10), 2, 'never only a root');
   assert.equal(replayGrowthLevel(99, 10), 4);
 });

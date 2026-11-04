@@ -14,8 +14,9 @@ const Word: React.FC<{ node: SyntaxNode }> = ({ node }) => (
   <span className={`serif italic ${node.silent ? 'text-white/55' : 'text-emerald-50'}`}>{String(node.word || node.label)}</span>
 );
 const Open: React.FC<{ label: string }> = ({ label }) => (
-  // A raised subscript: the default drop sits the label below the words' line.
-  <><span style={{ color: BARK }}>[</span><sub className="serif font-bold not-italic text-[0.72em] text-white/85 mr-0.5 leading-none [vertical-align:-0.12em]">{label}</sub></>
+  // The label sits on the words' baseline, smaller and bold: a dropped
+  // subscript put labels and words on different lines.
+  <><span style={{ color: BARK }}>[</span><span className="serif font-bold not-italic text-[0.72em] text-white/85 mr-0.5">{label}</span></>
 );
 const Close = () => <span style={{ color: BARK }}>]</span>;
 // The triangle over an abbreviated phrase, drawn so its base sits on the
@@ -28,7 +29,7 @@ const Roof = () => (
 );
 
 /**
- * Labelled bracketing as syntacticians write it, labels as subscripts:
+ * Labelled bracketing, each label small and bold on the words' baseline:
  * [DP [D Which] [N book]]. Below `depth`, a phrase is abbreviated with a
  * triangle over its words, [CP △ to leave], as on a drawn tree.
  */

@@ -5,7 +5,7 @@ const MINT = '#a7f3d0';
 
 /**
  * The mark beside the Replay header's step count: a binary tree that gains a
- * level each quarter of the derivation (`replayGrowthLevel`) and turns mint,
+ * level each third of the derivation (`replayGrowthLevel`) and turns mint,
  * with its leaves, at the last step. A level that appears draws itself in.
  */
 const ReplayGrowthMark: React.FC<{ level: number; complete: boolean }> = ({ level, complete }) => {
