@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PenLine } from 'lucide-react';
 import { useGeneration } from '../hooks/useGeneration';
 import { useTreeBank } from '../hooks/useTreeBank';
 import { useFullscreen } from '../hooks/useFullscreen';
@@ -13,7 +12,7 @@ import FailurePanel, { dismissesFailure } from '../components/FailurePanel';
 import ForestBackdrop from '../components/ForestBackdrop';
 import { TreeBankView, TreeBankDeleteDialog } from '../components/TreeBankView';
 import BabelTitle from '../components/workspace/BabelTitle';
-import { FullscreenButton, TreeBankToggle } from '../components/workspace/HeaderButtons';
+import { TreeBankToggle } from '../components/workspace/HeaderButtons';
 import SentenceForm from '../components/workspace/SentenceForm';
 import { EmptyWorkspace, GenerationLoading, ParseChoices } from '../components/workspace/WorkspaceStates';
 import { PUBLIC_GENERATION } from './publicGeneration';
@@ -23,8 +22,21 @@ import { PUBLIC_GENERATION } from './publicGeneration';
  * effort controls, constituent glyphing or the input panel's label, and
  * Replay as the only view of an analysis. The internal app (App.tsx) keeps
  * those controls. Both share the engine, renderer and Tree Bank records.
+ *
+ * Nothing but the logo and the Tree Bank sits above the tree (Francis,
+ * 3-4 Nov 2026): the logo returns to the sentence box, and F toggles
+ * fullscreen, with a brief hint on devices that have a keyboard.
  */
 type Screen = 'input' | 'tree' | 'treeBank';
+
+// A device with a precise pointer that can hover is the best available sign
+// of a keyboard; phones and tablets get no hint, and their browsers are
+// already all tree.
+const KEYBOARD_HINT_MS = 4000;
+const offersKeyboardHint = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+const typingInto = (target: EventTarget | null) => target instanceof HTMLElement
+  && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.isContentEditable);
 
 const PublicApp: React.FC = () => {
   const sentenceInputRef = useRef<HTMLTextAreaElement>(null);
@@ -55,6 +67,28 @@ const PublicApp: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- each selection makes a new key, which resets the boundary.
   const viewResetKey = useMemo(() => ({}), [screen, activeParse]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'f' || event.metaKey || event.ctrlKey || event.altKey || event.repeat) return;
+      if (typingInto(event.target)) return;
+      event.preventDefault();
+      void toggleFullscreen();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [toggleFullscreen]);
+
+  // The hint shows the first time a tree appears, then fades.
+  const [hintState, setHintState] = useState<'pending' | 'showing' | 'done'>('pending');
+  useEffect(() => {
+    if (hintState === 'pending' && showsTree && !loading) setHintState(offersKeyboardHint() ? 'showing' : 'done');
+  }, [hintState, showsTree, loading]);
+  useEffect(() => {
+    if (hintState !== 'showing') return;
+    const timer = window.setTimeout(() => setHintState('done'), KEYBOARD_HINT_MS);
+    return () => window.clearTimeout(timer);
+  }, [hintState]);
+
   // The tree view is a separate chunk; fetch it once the first screen is up.
   useEffect(() => { preloadTreeVisualizer().catch(() => {}); }, []);
 
@@ -83,7 +117,7 @@ const PublicApp: React.FC = () => {
     });
   };
 
-  const backToInput = () => {
+  const goHome = () => {
     setScreen('input');
     window.requestAnimationFrame(() => sentenceInputRef.current?.focus());
   };
@@ -93,7 +127,9 @@ const PublicApp: React.FC = () => {
       <ForestBackdrop paused={loading} />
       <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-4 py-3 md:px-8 md:py-4 shrink-0 shadow-2xl">
         <div className="w-full flex flex-wrap items-center justify-between gap-3 md:gap-6">
-          <BabelTitle />
+          <button type="button" onClick={goHome} title="Parse a new sentence" aria-label="Babel, parse a new sentence" className="text-left rounded-xl">
+            <BabelTitle />
+          </button>
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
             <TreeBankToggle
               open={screen === 'treeBank'}
@@ -104,7 +140,6 @@ const PublicApp: React.FC = () => {
                 setScreen(current => current === 'treeBank' ? (activeParse ? 'tree' : 'input') : 'treeBank');
               }}
             />
-            <FullscreenButton fullscreen={isFullscreen} onToggle={toggleFullscreen} />
           </div>
         </div>
       </header>
@@ -154,18 +189,10 @@ const PublicApp: React.FC = () => {
               </ViewErrorBoundary>
             </div>
 
-            {/* While a tree is shown, this small corner control is the only
-                way back to the sentence box, so nothing takes the tree's room. */}
-            {showsTree && !loading && (
-              <button
-                type="button"
-                onClick={backToInput}
-                title="Parse another sentence"
-                aria-label="Parse another sentence"
-                className="absolute top-4 right-4 md:top-6 md:right-6 z-40 w-10 h-10 rounded-xl flex items-center justify-center border border-white/10 bg-black/50 backdrop-blur-lg text-emerald-400/80 hover:text-emerald-300 hover:border-emerald-500/40 transition-colors shadow-2xl"
-              >
-                <PenLine size={16} />
-              </button>
+            {showsTree && !loading && hintState === 'showing' && (
+              <div role="status" className="keyboard-hint absolute bottom-6 right-8 z-40 pointer-events-none text-[11px] font-semibold tracking-wide text-emerald-100/70">
+                Press <kbd className="mx-1 px-1.5 py-0.5 rounded border border-white/25 border-b-2 text-emerald-50/90 font-sans">F</kbd> for fullscreen
+              </div>
             )}
 
             {!showsTree && (
@@ -211,13 +238,6 @@ const PublicApp: React.FC = () => {
         )}
       </main>
 
-      {!isFullscreen && (
-        <footer className="bg-black/80 py-4 px-10 shrink-0 z-40">
-          <div className="max-w-[2000px] mx-auto flex items-center justify-end">
-            <div className="italic serif lowercase text-[10px] tracking-normal text-emerald-500/75">rooted in minimalist principles and neural synthesis</div>
-          </div>
-        </footer>
-      )}
     </div>
   );
 };

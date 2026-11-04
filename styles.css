@@ -207,3 +207,15 @@ body,
   height: 100vh;
   height: 100dvh;
 }
+
+/* Public Babel's "Press F for fullscreen" hint: in, hold, out over the
+   4 s it is mounted (KEYBOARD_HINT_MS in publicApp/PublicApp.tsx). */
+@keyframes keyboard-hint {
+  0% { opacity: 0; }
+  10%, 80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.keyboard-hint { animation: keyboard-hint 4s ease-in-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .keyboard-hint { animation: none; }
+}

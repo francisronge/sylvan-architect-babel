@@ -44,8 +44,10 @@ test('the public first screen is the sentence box and Analyze, without the inter
   assert.match(html, /aria-label="Sentence to analyze"/);
   assert.match(html, /aria-label="Analyze sentence"/);
   assert.match(html, /Tree Bank \(0\)/);
+  assert.match(html, /aria-label="Babel, parse a new sentence"/, 'the logo returns to the sentence box');
   for (const absent of ['Arboretum Link', 'Constituent Glyphing', 'Minimalist Program', 'X-Bar Theory',
-    'Save to Tree Bank', 'Reasoning', 'Hide Control Panel', 'Canopy', 'Notes', 'API Key']) {
+    'Save to Tree Bank', 'Reasoning', 'Hide Control Panel', 'Canopy', 'Notes', 'API Key',
+    'Fullscreen', 'neural synthesis', '<footer']) {
     assert.ok(!html.includes(absent), `the public first screen shows no "${absent}"`);
   }
 });
