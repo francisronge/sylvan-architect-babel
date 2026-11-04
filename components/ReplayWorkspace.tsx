@@ -14,9 +14,18 @@ const Word: React.FC<{ node: SyntaxNode }> = ({ node }) => (
   <span className={`serif italic ${node.silent ? 'text-white/55' : 'text-emerald-50'}`}>{String(node.word || node.label)}</span>
 );
 const Open: React.FC<{ label: string }> = ({ label }) => (
-  <><span style={{ color: BARK }}>[</span><sub className="serif font-bold not-italic text-[0.72em] text-white/85 mr-0.5">{label}</sub></>
+  // A raised subscript: the default drop sits the label below the words' line.
+  <><span style={{ color: BARK }}>[</span><sub className="serif font-bold not-italic text-[0.72em] text-white/85 mr-0.5 leading-none [vertical-align:-0.12em]">{label}</sub></>
 );
 const Close = () => <span style={{ color: BARK }}>]</span>;
+// The triangle over an abbreviated phrase, drawn so its base sits on the
+// words' baseline at their x-height (a text glyph comes from a fallback font
+// with its own size and baseline).
+const Roof = () => (
+  <svg viewBox="0 0 12 10" aria-label="abbreviated" role="img" className="inline-block h-[0.62em] w-[0.75em] mx-1 align-baseline overflow-visible">
+    <path d="M6 0.8 L11.2 9.4 H0.8 Z" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" className="text-white/45" />
+  </svg>
+);
 
 /**
  * Labelled bracketing as syntacticians write it, labels as subscripts:
@@ -35,7 +44,7 @@ const Bracketing: React.FC<{ node: SyntaxNode; depth: number }> = ({ node, depth
   if (depth <= 0) {
     return (
       <span>
-        <Open label={String(node.label)} /><span className="text-white/40 mr-1">△</span>
+        <Open label={String(node.label)} /><Roof />
         {wordsOf(node).map((word, index) => <React.Fragment key={index}>{index ? ' ' : ''}<Word node={word} /></React.Fragment>)}
         <Close />
       </span>
