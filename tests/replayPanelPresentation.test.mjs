@@ -37,8 +37,8 @@ const properties = (index, overrides = {}) => ({
   currentReplayKind: steps[index].replayKind,
   activeRelationMoment: index === 1 ? { stageIndex: 0, relationIndex: 0 } : null,
   playedRelationIndicesAttribute: index > 0 ? '0' : '',
-  activeStep: steps[index], playbackSteps: steps, derivationStages: stages, sentence: 'word',
-  activeStepIndex: index, activeStageDisplayLabel: `Stage 1/1 · Step ${index + 1}/3`,
+  activeStep: steps[index], playbackSteps: steps, derivationStages: stages, sentence: 'word', inputTokens: ['word'],
+  activeStepIndex: index,
   canStepBackward: index > 0, canStepForward: index < 2,
   isAutoPlaying: false, isScrubbing: false,
   handlePrevStep: noop, handleNextStep: noop, handleTogglePlayback: noop,
@@ -113,4 +113,13 @@ test('the knob is painted where the range input puts that step, so pressing it k
     const knob = html.match(/pointer-events-none[^"]*" style="left:([\d.]+)%/)?.[1];
     assert.equal(Number(knob), (index / (staged.length - 1)) * 100, `step ${index + 1}`);
   });
+});
+
+test('the header tree gains a level each quarter of the derivation', async () => {
+  const { replayGrowthLevel } = await import('../replay/replayPanel.ts');
+  // 43 steps: quarters begin at steps 11, 21 and 32 (indices 10.5, 21, 31.5).
+  assert.deepEqual([0, 10, 11, 20, 21, 31, 32, 42].map(index => replayGrowthLevel(index, 43)), [1, 1, 2, 2, 3, 3, 4, 4]);
+  assert.equal(replayGrowthLevel(0, 1), 4, 'a one-step Replay is complete');
+  assert.equal(replayGrowthLevel(-3, 10), 1);
+  assert.equal(replayGrowthLevel(99, 10), 4);
 });

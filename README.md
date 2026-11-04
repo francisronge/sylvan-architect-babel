@@ -182,7 +182,8 @@ It includes:
 - Step-based reveal of structural construction
 - Playback controls (previous step, play or pause, next step, and Fit)
 - A stage rail: one segment per stage, sized by its steps, to drag or tap through
-- Operation labels per step
+- Operation labels per step, with the stage's statement as its goal
+- On construction steps, the workspace and the lexical array in labelled bracketing (WS = [ … ], LA = { … })
 - Workspace-forest state updates
 - Open `relations` rendered when Babel has a supported visual treatment
 - Trace visibility for derivation inspection

@@ -33,6 +33,8 @@ import { updateSyntaxReveal } from './renderer/syntaxReveal.ts';
 import { canopyPlacesInReplayFrame, selectCanopyReplayFrame } from './renderer/frameTreeLayout.ts';
 import { drawTreeFrame } from './renderer/treeFrame.ts';
 import ReplayPanel from './ReplayPanel';
+import ReplayGrowthMark from './ReplayGrowthMark';
+import { replayGrowthLevel } from '../replay/replayPanel.ts';
 import { createTreeInkTextMeasure } from './treeInkTextMeasure';
 import { createTreeLabelMeasure } from './treeLabelMeasure.ts';
 import { createViewportSettler } from './treeViewport.ts';
@@ -268,10 +270,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     // its earlier identity, which is not proven neutral.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuild for each preparation.
   }, [data, committedDerivationVisualLinks, usesDerivationFrames]);
-  const firstSentenceReplayToken = useMemo(
-    () => String(resolveSavedInputTokens(sentence, inputTokens)[0] || '').trim(),
-    [sentence, inputTokens]
-  );
+  const replayInputTokens = useMemo(() => resolveSavedInputTokens(sentence, inputTokens), [sentence, inputTokens]);
+  const firstSentenceReplayToken = String(replayInputTokens[0] || '').trim();
   const firstSentenceReplayDisplayToken = useMemo(
     () => firstSentenceReplayToken
       ? caseSurfaceInitial(firstSentenceReplayToken, 'upper')
@@ -771,6 +771,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const canStepForward = animated && playbackSteps.length > 0 && activeStepIndex < playbackSteps.length - 1;
   const activeDerivationStepLabel = String(currentReplayStep?.stepId || '');
   const activeReplayProgressLabel = String(currentReplayStep?.replayProgressLabel || '').trim();
+  const replayCountOnly = Boolean(animated && !sentenceCheck && !abstractionMode && playbackSteps.length > 0);
   const activeStageDisplayLabel = activeReplayProgressLabel
     || (activeDerivationStepLabel ? `Derivation Step ${activeDerivationStepLabel}` : '');
 
@@ -886,15 +887,20 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         ref={replayHeaderRef}
         data-babel-replay-header="true"
         className="babel-replay-header absolute pointer-events-none z-10 opacity-75 select-none"
-        style={{ top: Math.max(24, uiBounds.top), right: uiBounds.right }}
+        // The camera fits the tree below the header's bottom edge. Showing only
+        // the step count, it keeps the 36.5px of the two lines it replaced, so
+        // the fitted area is unchanged.
+        style={{ top: Math.max(24, uiBounds.top), right: uiBounds.right, minHeight: replayCountOnly ? 36.5 : undefined }}
       >
-        <div className={`text-[10px] font-black uppercase tracking-[0.6em] flex items-center gap-3 ${sentenceCheck ? 'text-amber-400' : 'text-emerald-500'}`}>
+        {/* While Replay plays a valid analysis, the step count is the header's only line. */}
+        {!replayCountOnly && <div className={`text-[10px] font-black uppercase tracking-[0.6em] flex items-center gap-3 ${sentenceCheck ? 'text-amber-400' : 'text-emerald-500'}`}>
           <div className={`w-2 h-2 rounded-full ${abstractionMode || sentenceCheck ? 'bg-amber-500 shadow-[0_0_15px_#f59e0b]' : 'bg-emerald-500 shadow-[0_0_15px_#10b981]'}`}></div>
           {sentenceCheck ? `INVALID ANALYSIS \u00b7 ${outOfOrderCount} ${outOfOrderCount === 1 ? 'WORD' : 'WORDS'} OUT OF ORDER`
-            : abstractionMode ? 'CONSTITUENT GLYPHING ACTIVE' : (animated ? 'DERIVATION SEQUENCE ACTIVE' : 'ARBORETUM CANOPY')}
-        </div>
+            : abstractionMode ? 'CONSTITUENT GLYPHING ACTIVE' : 'ARBORETUM CANOPY'}
+        </div>}
         {animated && playbackSteps.length > 0 && (
-          <div className="mt-2 text-[9px] font-black text-emerald-500 uppercase tracking-[0.35em]">
+          <div className={`${replayCountOnly ? 'text-[10px] md:text-[11px] flex items-center gap-3' : 'text-[9px] mt-2'} font-black text-emerald-500 uppercase tracking-[0.35em]`}>
+            {replayCountOnly && <ReplayGrowthMark level={replayGrowthLevel(activeStepIndex, playbackSteps.length)} complete={activeStepIndex >= playbackSteps.length - 1} />}
             Replay Frame {activeStepIndex + 1}/{playbackSteps.length}
             {activeStageDisplayLabel ? ` \u00b7 ${activeStageDisplayLabel}` : ''}
           </div>
@@ -928,8 +934,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           playbackSteps={playbackSteps}
           derivationStages={derivationStages}
           sentence={sentence}
+          inputTokens={replayInputTokens}
           activeStepIndex={activeStepIndex}
-          activeStageDisplayLabel={activeStageDisplayLabel}
           canStepBackward={canStepBackward}
           canStepForward={canStepForward}
           isAutoPlaying={isAutoPlaying}
