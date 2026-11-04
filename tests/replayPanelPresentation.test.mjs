@@ -124,12 +124,13 @@ test('the header tree starts with its first branches and gains a level each thir
   assert.equal(replayGrowthLevel(99, 10), 4);
 });
 
-test("a stage's own step leads with its statement, without a title line", () => {
+test("a stage's own step leads with its statement and names its record with a run-in label", () => {
   const html = render(properties(2));
   assert.equal(steps[2].replayKind, 'macro');
   assert.doesNotMatch(html, /data-babel-replay-summary/, 'no "Stage Record" title');
   assert.match(html, /An authored statement\./);
-  assert.match(html, /text-\[13px\] leading-\[1\.5\][^"]*">An authored explanation\./, 'the Stage Record at 13px');
+  assert.match(html, /text-\[13px\] leading-\[1\.5\][^"]*"><span[^>]*>Stage record<\/span>An authored explanation\./,
+    'the Stage Record at 13px, named by a run-in label');
 });
 
 test('workspace labels sit on the words baseline, not dropped as subscripts', () => {

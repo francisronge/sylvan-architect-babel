@@ -137,7 +137,11 @@ const ReplayStepDetails: React.FC<{ details: StepDetails; playbackSteps: Playbac
                   <div className="space-y-1">
                     {block.lines.map((line, lineIndex) => (
                       <div key={`${block.title}-${lineIndex}`} className={`${activeStep?.replayKind === 'macro' ? 'text-[13px] leading-[1.5]' : 'text-[14px] sm:text-[15px] leading-relaxed'} text-white/85 whitespace-pre-line`}>
-                        {formatReplayBlockLine(block.title, line, playbackSteps)}
+                        {/* Run-in label: the record says what it is without a title line. */}
+                      {activeStep?.replayKind === 'macro' && block.title === 'Stage Record' && lineIndex === 0 && (
+                        <span className="font-semibold text-emerald-300 mr-1.5">Stage record</span>
+                      )}
+                      {formatReplayBlockLine(block.title, line, playbackSteps)}
                       </div>
                     ))}
                   </div>
