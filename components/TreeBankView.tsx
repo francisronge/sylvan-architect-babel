@@ -21,9 +21,12 @@ interface TreeBankViewProps {
   opening: boolean;
   onOpen: (entry: TreeBankEntrySummary) => Promise<void>;
   onDelete: (entry: TreeBankEntrySummary) => void;
+  /** What an empty Tree Bank tells the user to do. */
+  emptyHint?: string;
 }
 
-export function TreeBankView({ entries, loading, error, opening, onOpen, onDelete }: TreeBankViewProps) {
+export function TreeBankView({ entries, loading, error, opening, onOpen, onDelete,
+  emptyHint = 'Parse a sentence in the Arboretum, then use "Save to Tree Bank" in the header.' }: TreeBankViewProps) {
   const [visibleCount, setVisibleCount] = useState(TREE_BANK_PAGE_SIZE);
   const hiddenCount = Math.max(0, entries.length - visibleCount);
   return (
@@ -61,9 +64,11 @@ export function TreeBankView({ entries, loading, error, opening, onOpen, onDelet
             <Archive size={28} />
           </div>
           <p className="serif italic text-2xl text-white mb-2">No saved trees yet</p>
-          <p className="text-emerald-50/60 max-w-xl mx-auto">
-            Parse a sentence in the Arboretum, then use "Save to Tree Bank" in the header.
-          </p>
+          {emptyHint && (
+            <p className="text-emerald-50/60 max-w-xl mx-auto">
+              {emptyHint}
+            </p>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
