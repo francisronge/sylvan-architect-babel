@@ -5,7 +5,7 @@ import type { SyntaxNode } from '../types';
 // Light bark for the notation's brackets, braces and equals signs, as in the
 // Tree Bank's grove; the WS and LA names are Babel's emerald.
 const BARK = '#c9a46a';
-const NAME = 'serif italic text-[15px] text-emerald-300 no-underline cursor-help';
+const NAME = 'serif italic text-[14px] sm:text-[15px] text-emerald-300 no-underline cursor-help';
 
 const isWord = (node: SyntaxNode) => !node.children?.length;
 const wordsOf = (node: SyntaxNode): SyntaxNode[] => (isWord(node) ? [node] : (node.children ?? []).flatMap(wordsOf));
@@ -68,7 +68,7 @@ const Bracketing: React.FC<{ node: SyntaxNode; depth: number }> = ({ node, depth
 const ReplayWorkspace: React.FC<{ workspace: Workspace }> = ({ workspace }) => {
   const { objects, currentIndex, lexicalArray } = workspace;
   return (
-    <div data-babel-replay-workspace="true" className="space-y-1 text-[15px] leading-snug">
+    <div data-babel-replay-workspace="true" className="space-y-0.5 sm:space-y-1 text-[14px] sm:text-[15px] leading-snug">
       <div className="flex items-baseline gap-2">
         <abbr title="Workspace: the syntax objects built so far" className={NAME}>WS</abbr>
         <span style={{ color: BARK }}>=</span>

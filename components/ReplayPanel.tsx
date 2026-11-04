@@ -109,7 +109,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       data-babel-active-relation-stage-index={activeRelationMoment?.stageIndex}
       data-babel-active-relation-index={activeRelationMoment?.relationIndex}
       data-babel-played-relation-indices={playedRelationIndicesAttribute}
-      className="babel-replay-panel absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-[#17362d] bg-[#020806]/[0.96] p-4 shadow-2xl"
+      className="babel-replay-panel absolute z-40 flex flex-col overflow-hidden rounded-2xl border border-[#17362d] bg-[#020806]/[0.96] p-3 sm:p-4 shadow-2xl"
       style={{ bottom, right }}
     >
       <div className="babel-replay-controls flex items-center gap-1">
@@ -120,7 +120,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
           <span className="sr-only">Prev</span>
         </button>
         <button type="button" onClick={handleTogglePlayback} title={playLabel}
-          className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center bg-emerald-200 text-[#052e1f] hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020806]">
+          className="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-emerald-200 text-[#052e1f] hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020806]">
           {isAutoPlaying ? (
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
               <rect x="6.5" y="5" width="4" height="14" rx="1.4" /><rect x="13.5" y="5" width="4" height="14" rx="1.4" />
@@ -149,7 +149,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       </div>
       {/* The stage rail: one segment per stage, as long as its steps. The
           range input over it keeps dragging, tapping and arrow keys. */}
-      <div data-babel-replay-timeline="true" className="relative h-11 shrink-0 mb-1">
+      <div data-babel-replay-timeline="true" className="relative h-11 shrink-0 sm:mb-1">
         <div className="absolute inset-0" aria-hidden="true">
           {stageRuns.map((run, index) => {
             const left = segmentEdge(run.start);
@@ -198,21 +198,21 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
       </div>
       <div
         data-babel-replay-details="true"
-        className="mt-1 min-h-0 flex-1 overflow-y-auto pr-1 space-y-2.5"
+        className="sm:mt-1 min-h-0 flex-1 overflow-y-auto pr-1 space-y-1.5 sm:space-y-2.5"
       >
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <div data-babel-replay-summary="true" className="serif text-[18px] leading-tight text-white font-semibold">
+          <div data-babel-replay-summary="true" className="serif text-[16px] sm:text-[18px] leading-tight text-white font-semibold">
             {activePanelContent.heading}
           </div>
-          {inlineSupportLine && <div className="text-[12px] text-emerald-300/90">{inlineSupportLine}</div>}
+          {inlineSupportLine && <div className="text-[11px] sm:text-[12px] text-emerald-300/90">{inlineSupportLine}</div>}
         </div>
         {!inlineSupportLine && listedSupportLines.length > 0 && (
           <div className="space-y-1">
             {listedSupportLines.map((line) => (
               <div key={line.key} className="flex flex-wrap items-baseline gap-x-2 leading-snug"
                 aria-label={line.literal !== undefined ? `${line.label}: ${line.value}; value: ${line.literal}` : undefined}>
-                {line.label && <span className="text-[12px] text-emerald-300/90">{line.label}</span>}
-                <span className="text-[15px] text-white/90 whitespace-pre-wrap">
+                {line.label && <span className="text-[11px] sm:text-[12px] text-emerald-300/90">{line.label}</span>}
+                <span className="text-[14px] sm:text-[15px] text-white/90 whitespace-pre-wrap">
                   {line.value}
                   {line.literal !== undefined && line.literal !== line.value && (
                     <> · {line.literal === '' ? '""' : line.literal}</>
@@ -223,8 +223,8 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
           </div>
         )}
         {macroStatement && (
-          <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06]">
-            <p className="serif italic text-[15px] leading-snug text-emerald-300/90">{macroStatement}</p>
+          <div data-babel-replay-stage-context="true" className="pt-1.5 sm:pt-2.5 border-t border-white/[0.06]">
+            <p className="serif italic text-[14px] sm:text-[15px] leading-snug text-emerald-300/90">{macroStatement}</p>
           </div>
         )}
         {activeDisplayDetailBlocks.length > 0 && (
@@ -232,13 +232,13 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
             {activeDisplayDetailBlocks.map((block, blockIndex) => (
               <div key={`${block.title}-${blockIndex}`}>
                 {!(activeStep?.replayKind === 'macro' && block.title === 'Stage Record') && (
-                  <div className="text-[12px] text-emerald-300/90 mb-1">
+                  <div className="text-[11px] sm:text-[12px] text-emerald-300/90 mb-1">
                     {formatReplayBlockTitle(block.title)}
                   </div>
                 )}
                 <div className="space-y-1">
                   {block.lines.map((line, lineIndex) => (
-                    <div key={`${block.title}-${lineIndex}`} className="text-[15px] text-white/85 leading-relaxed whitespace-pre-line">
+                    <div key={`${block.title}-${lineIndex}`} className="text-[14px] sm:text-[15px] text-white/85 leading-relaxed whitespace-pre-line">
                       {formatReplayBlockLine(block.title, line, playbackSteps)}
                     </div>
                   ))}
@@ -248,13 +248,13 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
           </div>
         )}
         {activePanelContent.stageStatement && (
-          <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06] space-y-2.5">
-            <p className="serif italic text-[15px] leading-snug text-emerald-300/90">{activePanelContent.stageStatement}</p>
+          <div data-babel-replay-stage-context="true" className="pt-1.5 sm:pt-2.5 border-t border-white/[0.06] space-y-1.5 sm:space-y-2.5">
+            <p className="serif italic text-[14px] sm:text-[15px] leading-snug text-emerald-300/90">{activePanelContent.stageStatement}</p>
             {workspace && <ReplayWorkspace workspace={workspace} />}
           </div>
         )}
         {activeNoteDisplay && (
-          <div className="text-[12px] text-white/88">
+          <div className="text-[11px] sm:text-[12px] text-white/88">
             {activeNoteDisplay}
           </div>
         )}
