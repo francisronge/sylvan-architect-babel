@@ -456,3 +456,9 @@ test('position descriptions use matching X-bar projections, never child order al
     assert.equal(buildReplayPanelContent(current, stages).supportLines.find(line => line.label === 'Source')?.value, expected);
   }
 });
+
+test('a role reads the same beside the tree and in the panel: spaced, title-case words in lower case, notation as written', async () => {
+  const { displayRoleName } = await import('../replay/displayText.ts');
+  assert.deepEqual(['attractingHead', 'thematicOccurrence', 'earlierIntermediateOccurrences', 'controlled_subject', 'EPPFeature', 'vP', 'PROController', 'Agent', 'x_i', 'ποιος'].map(displayRoleName),
+    ['attracting head', 'thematic occurrence', 'earlier intermediate occurrences', 'controlled subject', 'EPP feature', 'vP', 'PRO controller', 'agent', 'x_i', 'ποιος']);
+});

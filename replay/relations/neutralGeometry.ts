@@ -1,4 +1,4 @@
-import { spaceAuthoredName } from '../displayText.ts';
+import { displayRoleName, spaceAuthoredName } from '../displayText.ts';
 import { ANCHOR_SET_BADGE_CLEARANCE, anchorSetBadgeOuterRadius } from '../rendererMetrics.ts';
 import type { BoundAnchorSetBadge, BoundFallbackMark } from './boundGeometry.ts';
 import { FALLBACK_ROLE_STYLE, fallbackLabelRect, placeFallbackMark, routeFallbackSegments } from './fallbackGeometry.ts';
@@ -71,7 +71,7 @@ export const neutralGeometry = {
       if (end >= 0 && brackets) {
         // Placed under the routed connector once it is routed (geometryBinding.ts).
         const category = brackets[end].category;
-        const text = `${category ? `${category} · ` : ''}${spaceAuthoredName(mark.role, { snakeCase: true })}`;
+        const text = `${category ? `${category} · ` : ''}${displayRoleName(mark.role)}`;
         const bound = connectorText(text, mark.witness, mark.role, 'end');
         Object.assign(bound, { frame: mark.frame, instance: mark.instance, backward: mark.backward, stackIndex: nextStackIndex(mark.witness) });
         ownedMarks.push(bound);
@@ -82,7 +82,8 @@ export const neutralGeometry = {
       // The neutral role belongs outside the existing label's edge outline.
       // Reserve that outline without moving the syntax or enlarging the box.
       const labelRect = outlinedLabels.has(mark.witness) ? fongEdgeOutlineRect(measuredLabel) : measuredLabel;
-      const text = spaceAuthoredName(mark.role, { snakeCase: true }) + (mark.position === null ? '' : `[${mark.position}]`);
+      // The nth item of a listed role reads "earlier occurrences 2".
+      const text = displayRoleName(mark.role) + (mark.position === null ? '' : ` ${mark.position}`);
       const measure = options.plaqueTextLayout?.measureText ?? fallbackPlaqueTextMeasure;
       const metrics = measure(text, FALLBACK_ROLE_STYLE);
       const textHeight = options.plaqueTextLayout?.measureText

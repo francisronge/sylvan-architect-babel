@@ -309,7 +309,8 @@ test('fan labels keep authored roles and repeated witnesses have exact connector
   const bound = bindRelationPlanFrame(plan, 0, id => ({ x: id === 'a' ? 0 : 400, y: 0 }));
   const marks = bound.primitives.filter(p => p.type === 'fallback-mark');
   assert.deepEqual(marks.map(m => [m.role, m.text]), [
-    ['exactHub', 'exact Hub'], ['exactItems', 'exact Items[1]'], ['exactItems', 'exact Items[2]'], ['exactItems', 'exact Items[3]']
+    // Each mark keeps its authored role; its text is that role as Babel prints roles.
+    ['exactHub', 'exact hub'], ['exactItems', 'exact items 1'], ['exactItems', 'exact items 2'], ['exactItems', 'exact items 3']
   ]);
   const fitted = fitFallbackGeometry(bound, { fittedMarkerScale: 2 });
   const fan = [...fitted.values()].filter(p => p.type === 'segment');
