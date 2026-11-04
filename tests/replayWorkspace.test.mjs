@@ -27,7 +27,7 @@ test('the workspace lists the visible syntax objects; hidden parents pass their 
 test('the lexical array is the sentence words no visible pronounced terminal accounts for, in sentence order', () => {
   assert.deepEqual(buildReplayWorkspace(step(['n']), tokens).lexicalArray, ['The', 'slept']);
   assert.deepEqual(buildReplayWorkspace(step(['pro', 'n']), tokens).lexicalArray, ['The', 'slept'], 'a silent terminal selects no word');
-  const realized = buildReplayWorkspace(step(['n']), tokens, [{ nodeIds: ['n'], tokenIndices: [0, 1] }]);
+  const realized = buildReplayWorkspace(step(['n'], { replayRealizations: [{ nodeIds: ['n'], tokenIndices: [0, 1] }] }), tokens);
   assert.deepEqual(realized.lexicalArray, ['slept'], 'a word realized by a group counts once the group shows');
 });
 
@@ -62,8 +62,8 @@ test('a terminal its realization group accounts for is not matched by text a sec
   const sentenceCanvas = { id: 'r', label: 'X', children: [
     { id: 'd', label: 'D', word: 'The' }, { id: 'n', label: 'N', word: 'cat' }, { id: 'v', label: 'V', word: 'chased' }
   ] };
-  const workspace = buildReplayWorkspace(step(['n'], { replayCanvasData: sentenceCanvas }), ['The', 'cat', 'chased', 'the', 'cat'],
-    [{ nodeIds: ['n'], tokenIndices: [1] }]);
+  const workspace = buildReplayWorkspace(step(['n'], { replayCanvasData: sentenceCanvas, replayRealizations: [{ nodeIds: ['n'], tokenIndices: [1] }] }),
+    ['The', 'cat', 'chased', 'the', 'cat']);
   assert.deepEqual(workspace.lexicalArray, ['The', 'chased', 'the', 'cat'], 'only the realized cat is selected');
 });
 
@@ -77,4 +77,16 @@ test('words beneath a silent phrase are silent: they select nothing and are draw
   assert.equal(workspace.objects[0].children[0].silent, true, 'the silent phrase marks its word silent for drawing');
   const hiddenParent = buildReplayWorkspace(step(['gapN', 'n'], { replayCanvasData: silentCanvas }), ['cat', 'chased', 'cat']);
   assert.deepEqual(hiddenParent.lexicalArray, ['chased', 'cat'], 'silence passes down through a phrase not yet drawn');
+});
+
+test("a word Replay draws under its category takes the category's token position", () => {
+  const drawn = { id: 'r', label: 'X', children: [{ id: 'd2', label: 'D', tokenIndex: 3, children: [{ id: 'd2::word', label: 'the', word: 'the' }] }] };
+  assert.deepEqual(buildReplayWorkspace(step(['d2', 'd2::word'], { replayCanvasData: drawn }), ['the', 'cat', 'chased', 'the', 'dog']).lexicalArray,
+    ['the', 'cat', 'chased', 'dog'], 'the second the is selected, not the first');
+});
+
+test("the step's own realization groups name its drawn nodes, after Replay renames occurrences", () => {
+  const renamed = { id: 'r', label: 'X', children: [{ id: 'later', label: 'V', word: 'go' }] };
+  const workspace = buildReplayWorkspace(step(['later'], { replayCanvasData: renamed, replayRealizations: [{ nodeIds: ['later'], tokenIndices: [1] }] }), ['They', 'went']);
+  assert.deepEqual(workspace.lexicalArray, ['They'], 'went is realized by the renamed occurrence');
 });

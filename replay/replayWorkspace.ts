@@ -1,4 +1,4 @@
-import type { SurfaceRealization, SyntaxNode } from '../types.ts';
+import type { SyntaxNode } from '../types.ts';
 import { replayEffectiveSilence } from './syntaxForest.ts';
 import type { PlaybackStep } from './types.ts';
 
@@ -43,8 +43,7 @@ const eachNode = (node: SyntaxNode, visit: (node: SyntaxNode, parent?: SyntaxNod
 
 export const buildReplayWorkspace = (
   step: PlaybackStep | null | undefined,
-  inputTokens: readonly string[],
-  realizations: readonly SurfaceRealization[] = []
+  inputTokens: readonly string[]
 ): ReplayWorkspace | null => {
   const canvas = step?.replayCanvasData;
   if (!step || step.replayKind !== 'micro' || !canvas) return null;
@@ -63,8 +62,10 @@ export const buildReplayWorkspace = (
   const selected = new Set<number>();
   // A word realized by several terminals counts once any of them is visible,
   // and its terminals are then accounted for: none is matched by text again.
+  // The step's own groups name its drawn nodes; Replay renames continued
+  // occurrences, so the authored stage's groups may not.
   const realized = new Set<string>();
-  realizations.forEach(group => {
+  (step.replayRealizations ?? []).forEach(group => {
     if (!group.nodeIds.some(id => visible.has(String(id)))) return;
     group.tokenIndices.forEach(index => selected.add(index));
     group.nodeIds.forEach(id => realized.add(String(id)));
@@ -72,7 +73,10 @@ export const buildReplayWorkspace = (
   const unpositioned: string[] = [];
   objects.forEach(object => eachNode(object, (node, parent) => {
     if (node.silent || node.children?.length) return;
-    if (Number.isInteger(node.tokenIndex)) selected.add(node.tokenIndex as number);
+    // Replay draws a lexical head as its category over the word; the category keeps the position.
+    const position = Number.isInteger(node.tokenIndex) ? node.tokenIndex
+      : parent?.children?.length === 1 && Number.isInteger(parent.tokenIndex) ? parent.tokenIndex : undefined;
+    if (position !== undefined) selected.add(position as number);
     // A drawn word sits under its category node, which is the one a group names.
     else if (node.word && !realized.has(String(node.id)) && !(parent && realized.has(String(parent.id)))) unpositioned.push(String(node.word));
   }));

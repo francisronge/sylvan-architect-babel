@@ -93,9 +93,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
   // A construction step's one unlabelled line (D + N → DP) sits beside its heading.
   const inlineSupportLine = activeStep?.replayKind === 'micro' && activeReplaySupportLines.length === 1 && !activeReplaySupportLines[0].label
     ? activeReplaySupportLines[0].value : '';
-  const activeStageIndex = activeStep?.replayFrameIndex ?? activeStep?.sourceFrameIndex;
-  const workspace = buildReplayWorkspace(activeStep, inputTokens,
-    activeStageIndex === undefined ? [] : derivationStages?.[activeStageIndex]?.realizations ?? []);
+  const workspace = buildReplayWorkspace(activeStep, inputTokens);
   const playLabel = isAutoPlaying ? 'Pause' : (activeStepIndex >= playbackSteps.length - 1 ? 'Replay' : 'Play');
 
   return (
