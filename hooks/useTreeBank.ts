@@ -66,9 +66,11 @@ export function useTreeBank() {
     if (treeBankSaveSuccessTimeoutRef.current !== null) window.clearTimeout(treeBankSaveSuccessTimeoutRef.current);
   }, []);
 
-  /** Save a new entry; resolves to its summary, or null when it was not saved. */
-  const save = async (input: CurrentTreeBankSave): Promise<TreeBankEntrySummary | null> => {
-    if (treeBankSaving) return null;
+  // Saves run one after another. A save is never dropped for one already
+  // running: public Babel saves through the function of the render that
+  // started a parse, whose saving state is minutes old when the parse ends.
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const saveNow = async (input: CurrentTreeBankSave): Promise<TreeBankEntrySummary | null> => {
     const now = new Date().toISOString();
     const entry = { ...input, id: createTreeBankId(), createdAt: now, updatedAt: now };
     setTreeBankSaveSuccess(false);
@@ -94,6 +96,12 @@ export function useTreeBank() {
     } finally {
       setTreeBankSaving(false);
     }
+  };
+  /** Save a new entry; resolves to its summary, or null when the save failed. */
+  const save = (input: CurrentTreeBankSave): Promise<TreeBankEntrySummary | null> => {
+    const run = saveQueue.current.then(() => saveNow(input));
+    saveQueue.current = run.catch(() => undefined);
+    return run;
   };
 
   /** Star or unstar a saved entry; resolves to whether the change was stored. */
