@@ -17,6 +17,7 @@ export const BROWSER_SPECS = [
   { file: 'appWorkflow.test.mjs', owner: 'application', ciSeconds: 141 },
   { file: 'rendererCloseout.test.mjs', owner: 'application', ciSeconds: 16 },
   { file: 'viewErrorBoundary.test.mjs', owner: 'application', ciSeconds: 1 },
+  { file: 'publicTreeBank.test.mjs', owner: 'application', ciSeconds: 20 },
   { file: 'reviewCompatibility.test.mjs', owner: 'compatibility', ciSeconds: 18 },
   { file: 'captureHarness.test.mjs', owner: 'capture', ciSeconds: 15 }
 ];

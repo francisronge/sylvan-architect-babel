@@ -19,10 +19,11 @@ const container = { nodeType: 1, nodeName: 'DIV', tagName: 'DIV', namespaceURI: 
   ownerDocument: { nodeType: 9, ...listeners }, ...listeners };
 
 const renders = [];
-let bank;
+let bank, saveFromSavingRender;
 function Probe() {
   bank = useTreeBank();
-  renders.push({ loading: bank.loading, ids: bank.entries.map(entry => entry.id) });
+  if (bank.saving) saveFromSavingRender = bank.save;
+  renders.push({ loading: bank.loading, saving: bank.saving, ids: bank.entries.map(entry => entry.id) });
   return null;
 }
 const until = async (predicate, label) => {
@@ -61,4 +62,30 @@ test('only the first listing shows the loading state; later refreshes keep the s
   assert.deepEqual(later.filter(state => state.loading), [], 'saves, focus and deletions refresh without the loading state');
   assert.ok(later.every(state => state.ids.length > 0), 'the library never empties while it refreshes');
   assert.equal(renders[0].loading, true, 'the library starts loading before its first listing');
+});
+
+test('a save made through a function captured while another save ran is still stored', async t => {
+  renders.length = 0; // wait for this root's listing, not the last test's
+  const root = createRoot(container);
+  t.after(() => root.unmount());
+  root.render(React.createElement(Probe));
+  await until(state => state && !state.loading, 'the first listing');
+  const before = renders.at(-1).ids.length;
+  // Hold the first save in its hashing step so a render sees it running.
+  const subtle = globalThis.crypto.subtle, digest = subtle.digest;
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  subtle.digest = async (...args) => { await gate; return digest.apply(subtle, args); };
+  t.after(() => { subtle.digest = digest; });
+  saveFromSavingRender = undefined;
+  const first = bank.save(entry('Ola ran.'));
+  await until(state => state.saving, 'the first save to run');
+  // Public Babel's parse callback keeps the save function of the render that
+  // started the parse, and that render may have been mid-save.
+  const captured = saveFromSavingRender;
+  release();
+  await first;
+  subtle.digest = digest;
+  assert.ok(await captured(entry('Pia sang.')), 'the later save is stored, not dropped');
+  await until(state => state.ids.length === before + 2, 'both saves');
 });

@@ -90,13 +90,21 @@ before reopening a saved analysis. Invalid bytes remain in storage and produce
 an explicit error; other entries remain accessible. Reopening also derives each
 analysis's display values with `services/analysisDisplay.ts`, the code App runs
 while rendering, so an analysis that cannot be displayed fails its open request
-rather than the workspace. Listing reads thin wrappers and, because wrappers are
-only added or deleted, revalidates only wrapper bytes it has not already checked;
+rather than the workspace. Listing reads thin wrappers and revalidates only
+wrapper bytes it has not already checked;
 a version-1 entry is read once per page load. Tree Bank renders its cards one
 page at a time, and previews load separately as cards enter view. Version-1
 entries remain in their original store and retain the existing read/delete path
 without migration; one whose analyses or derivation stages are not objects is
 listed as unreadable.
+
+A wrapper may carry `kept: true`, the public app's star; an unstarred wrapper
+has no `kept` field, so wrappers saved before the star keep their bytes and
+hashes. Starring or unstarring rewrites only the wrapper, with a new hash and
+the same `updatedAt`, and never touches content records. The new wrapper is
+built from a first read and written only if the stored bytes still match it, so
+a star from a stale tab fails instead of overwriting a newer wrapper. Public
+Babel saves every finished parse as it arrives.
 
 An explicit delete removes the selected saved-work wrapper and any content or
 preview that no remaining wrapper references. When malformed references prevent

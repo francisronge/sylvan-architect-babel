@@ -1,5 +1,6 @@
 import {
   prepareTreeBankSave,
+  setTreeBankWorkKept,
   validateTreeBankWork,
   validateTreeBankPreview,
   restoreTreeBankBundle,
@@ -25,6 +26,8 @@ export interface TreeBankEntrySummary {
   stageCount: number;
   /** Analyses kept by the sentence check as invalid. */
   invalidAnalyses: number;
+  /** Starred to keep. */
+  kept: boolean;
   previewId?: string;
   legacy: boolean;
 }
@@ -44,6 +47,7 @@ const summary = (w: TreeBankWork): TreeBankEntrySummary => ({
   analysisCount: w.analysisIds.length,
   stageCount: w.stageCounts[w.activeParseIndex] ?? 0,
   invalidAnalyses: w.invalidAnalyses ?? 0,
+  kept: w.kept === true,
   previewId: w.previewId,
   legacy: false,
 });
@@ -95,6 +99,7 @@ function legacySummary(v: any): TreeBankEntrySummary {
     analysisCount: v.bundle.analyses.length,
     stageCount: stages?.length ?? 0,
     invalidAnalyses: 0,
+    kept: false,
     previewId: v.treeSnapshotDataUrl ? v.id : undefined,
     legacy: true,
   };
@@ -262,10 +267,10 @@ export function createTreeBankStore(
       const r = tx.objectStore(name).get(id);
       r.onsuccess = () => set(r.result);
     });
-  // Listing reruns on every focus and change notification. Wrappers are only
-  // ever added or deleted, and version-1 entries only deleted, so a refresh
-  // validates only wrapper bytes it has not already checked and reads only
-  // version-1 entries it has not already summarized.
+  // Listing reruns on every focus and change notification. Wrappers are
+  // added, deleted or rewritten by the star, and version-1 entries only
+  // deleted, so a refresh validates only wrapper bytes it has not already
+  // checked and reads only version-1 entries it has not already summarized.
   let listedWorks = new Map<string, ListedEntry>();
   let listedLegacy = new Map<IDBValidKey, ListedEntry>();
   const listWork = async (w: any): Promise<ListedEntry> => {
@@ -491,6 +496,29 @@ export function createTreeBankStore(
     );
     changed();
   };
+  // Validation is asynchronous and an IndexedDB transaction commits once it
+  // waits on anything else, so the new wrapper is built from a first read and
+  // written only if the stored bytes are still the ones it was built from.
+  const setTreeBankEntryKept = async (id: string, kept: boolean) => {
+    const stored = await get("savedWorks", id);
+    if (!stored) throw new Error("Saved Tree Bank entry was not found.");
+    const next = await setTreeBankWorkKept(stored, kept);
+    const bytes = jsonBytes(stored);
+    await transaction<void>(["savedWorks"], "readwrite", (tx, set, fail) => {
+      const works = tx.objectStore("savedWorks");
+      const current = works.get(id);
+      current.onsuccess = () => {
+        if (bytes === undefined || jsonBytes(current.result) !== bytes) {
+          fail(new Error("This saved entry changed in another tab. Try again."));
+          return;
+        }
+        works.put(next);
+      };
+      set(undefined);
+    });
+    changed();
+    return summary(next);
+  };
   const readTreeBankPreview = async (id: string) => {
     const p = await get("previews", id);
     if (p) {
@@ -533,6 +561,7 @@ export function createTreeBankStore(
     saveTreeBankEntry,
     loadTreeBankEntry,
     removeTreeBankEntry,
+    setTreeBankEntryKept,
     readTreeBankPreview,
     subscribeTreeBankChanges,
   };
@@ -543,6 +572,7 @@ export const {
   saveTreeBankEntry,
   loadTreeBankEntry,
   removeTreeBankEntry,
+  setTreeBankEntryKept,
   readTreeBankPreview,
   subscribeTreeBankChanges,
 } = store;
