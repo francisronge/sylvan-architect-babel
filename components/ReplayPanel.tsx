@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { buildReplayPanelContent, buildReplayStageRuns } from '../replay/replayPanel.ts';
+import { buildReplayPanelContent, buildReplayStageRuns, relationLineLabel } from '../replay/replayPanel.ts';
 import { buildReplayWorkspace } from '../replay/replayWorkspace.ts';
 import {
   buildReplayDisplayDetailBlocks,
@@ -38,6 +38,9 @@ export interface ReplayPanelProps {
 }
 
 const REPLAY_ICON_BUTTON = 'shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-white/75 enabled:hover:text-white enabled:hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70';
+
+// The relation lines' column rule: the workspace notation's bark, faint.
+const RULE = 'rgba(201,164,106,0.3)';
 
 type DetailBlocksByStep = ReturnType<typeof buildReplayDisplayDetailBlocks>;
 type StepDetails = ReturnType<typeof buildStepDetails>;
@@ -104,13 +107,18 @@ const ReplayStepDetails: React.FC<{ details: StepDetails; playbackSteps: Playbac
               </div>
             </div>
           )}
+          {/* A relation's participants as a glossed list: role names right-aligned
+              in a column, each value after one unbroken bark rule, all in the
+              serif. Cells stretch to their row and rows pad instead of leaving
+              a gap, so the rule never breaks; one line height for both columns
+              keeps their first lines level without baseline alignment. */}
           {!constructionLine && listedSupportLines.length > 0 && (
-            <div className="space-y-1">
+            <div data-babel-replay-relation-lines="true" className="grid grid-cols-[fit-content(40%)_minmax(0,1fr)] gap-x-3 sm:gap-x-4 leading-5">
               {listedSupportLines.map((line) => (
-                <div key={line.key} className="flex flex-wrap items-baseline gap-x-2 leading-snug"
+                <div key={line.key} className="grid grid-cols-subgrid col-span-2"
                   aria-label={line.literal !== undefined ? `${line.label}: ${line.value}; value: ${line.literal}` : undefined}>
-                  {line.label && <span className="text-[11px] sm:text-[12px] text-emerald-300/90">{line.label}</span>}
-                  <span className="text-[14px] sm:text-[15px] text-white/90 whitespace-pre-wrap">
+                  <span className="serif italic text-[13px] sm:text-[14px] text-emerald-300/90 text-right py-px">{relationLineLabel(line.label)}</span>
+                  <span className="serif text-[14px] sm:text-[15px] text-emerald-50 whitespace-pre-wrap border-l pl-3 sm:pl-4 py-px" style={{ borderColor: RULE }}>
                     {line.value}
                     {line.literal !== undefined && line.literal !== line.value && (
                       <> · {line.literal === '' ? '""' : line.literal}</>

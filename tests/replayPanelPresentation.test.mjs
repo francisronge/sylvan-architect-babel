@@ -141,3 +141,14 @@ test('workspace labels sit on the words baseline, not dropped as subscripts', ()
   assert.doesNotMatch(html, /<sub/, 'a subscript drops the label below the words');
 });
 
+
+test('relation lines are two columns: role names in lower case beside their values, in the serif', async () => {
+  const { relationLineLabel } = await import('../replay/replayPanel.ts');
+  const html = render(properties(1));
+  assert.match(html, /data-babel-replay-relation-lines="true"[^>]*class="grid grid-cols-\[fit-content\(40%\)_minmax\(0,1fr\)\]/);
+  assert.match(html, /class="grid grid-cols-subgrid col-span-2"/, 'each line is one row of the shared columns');
+  assert.match(html, /<span class="serif italic[^"]*text-right[^"]*">bearer<\/span><span class="serif [^"]*text-emerald-50[^"]*border-l/,
+    'the role name right-aligned in lower case, its value after the rule');
+  assert.deepEqual(['Theta Role', 'EPP Feature', 'vP', 'PRO Controller', 'Goal (previous stage)', 'Ποιος'].map(relationLineLabel),
+    ['theta role', 'EPP feature', 'vP', 'PRO controller', 'goal (previous stage)', 'Ποιος']);
+});

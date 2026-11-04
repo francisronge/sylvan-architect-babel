@@ -91,6 +91,7 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Replay detail labels', file: 'components/ReplayPanel.tsx', snippet: 'text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay detail text', file: 'components/ReplayPanel.tsx', snippet: 'text-white/88', fg: 'white/88', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay relation values and Stage Record', file: 'components/ReplayPanel.tsx', snippet: 'text-white/85 whitespace-pre-line', fg: 'white/85', bg: REPLAY_PANEL, min: TEXT },
+  { where: 'Replay relation values', file: 'components/ReplayPanel.tsx', snippet: 'text-emerald-50 whitespace-pre-wrap border-l', fg: 'emerald-50', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay construction line beside the heading', file: 'components/ReplayPanel.tsx', snippet: 'text-[12px] text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay stage statement', file: 'components/ReplayPanel.tsx', snippet: 'leading-snug text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay workspace names WS and LA', file: 'components/ReplayWorkspace.tsx', snippet: 'text-[15px] text-emerald-300', fg: 'emerald-300', bg: REPLAY_PANEL, min: TEXT },

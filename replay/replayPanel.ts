@@ -492,6 +492,14 @@ export const buildReplayPanelContent = (step: PlaybackStep | null | undefined, d
   };
 };
 
+/**
+ * A relation line's label as the panel's role column writes it: title-case
+ * words in lower case, as roles are named in prose (theta role, goal), and
+ * notation (EPP, vP, PRO) as written.
+ */
+export const relationLineLabel = (label: string): string =>
+  label.split(' ').map(word => (/^[A-Z][a-z]+$/.test(word) ? word.toLowerCase() : word)).join(' ');
+
 /** One stage's run of consecutive Replay steps, for the panel's stage rail. */
 export interface ReplayStageRun { start: number; count: number }
 
