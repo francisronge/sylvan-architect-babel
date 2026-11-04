@@ -224,7 +224,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
         )}
         {macroStatement && (
           <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06]">
-            <p className="serif italic text-[15px] leading-snug text-white/60 max-w-[68ch]">{macroStatement}</p>
+            <p className="serif italic text-[15px] leading-snug text-emerald-300/90 max-w-[68ch]">{macroStatement}</p>
           </div>
         )}
         {activeDisplayDetailBlocks.length > 0 && (
@@ -249,7 +249,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
         )}
         {activePanelContent.stageStatement && (
           <div data-babel-replay-stage-context="true" className="pt-2.5 border-t border-white/[0.06] space-y-2.5">
-            <p className="serif italic text-[15px] leading-snug text-white/60 max-w-[68ch]">{activePanelContent.stageStatement}</p>
+            <p className="serif italic text-[15px] leading-snug text-emerald-300/90 max-w-[68ch]">{activePanelContent.stageStatement}</p>
             {workspace && <ReplayWorkspace workspace={workspace} />}
           </div>
         )}

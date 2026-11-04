@@ -92,7 +92,7 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Replay detail text', file: 'components/ReplayPanel.tsx', snippet: 'text-white/88', fg: 'white/88', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay relation values and Stage Record', file: 'components/ReplayPanel.tsx', snippet: 'text-[15px] text-white/85', fg: 'white/85', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay construction line beside the heading', file: 'components/ReplayPanel.tsx', snippet: 'text-[12px] text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
-  { where: 'Replay stage statement on smaller steps', file: 'components/ReplayPanel.tsx', snippet: 'leading-snug text-white/60', fg: 'white/60', bg: REPLAY_PANEL, min: TEXT },
+  { where: 'Replay stage statement', file: 'components/ReplayPanel.tsx', snippet: 'leading-snug text-emerald-300/90', fg: 'emerald-300/90', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay workspace names WS and LA', file: 'components/ReplayWorkspace.tsx', snippet: 'text-[15px] text-emerald-300', fg: 'emerald-300', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay workspace words', file: 'components/ReplayWorkspace.tsx', snippet: "'text-white/55' : 'text-emerald-50'", fg: 'emerald-50', bg: REPLAY_PANEL, min: TEXT },
   { where: 'Replay workspace silent words', file: 'components/ReplayWorkspace.tsx', snippet: "node.silent ? 'text-white/55'", fg: 'white/55', bg: REPLAY_PANEL, min: TEXT },
