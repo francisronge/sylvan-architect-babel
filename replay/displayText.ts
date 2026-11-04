@@ -11,3 +11,17 @@ export const spaceAuthoredName = (name: string, { snakeCase = false } = {}): str
   // Single-letter parts may be category notation, such as vP, CP or x_i.
   return words.some(word => word.length === 1) ? name : words.join(' ');
 };
+
+/**
+ * Title-case words in lower case, as roles are named in prose (theta role,
+ * goal), with notation (EPP, vP, PRO) and every other word as written.
+ */
+export const lowerTitleCaseWords = (label: string): string =>
+  label.split(' ').map(word => (/^[A-Z][a-z]+$/.test(word) ? word.toLowerCase() : word)).join(' ');
+
+/**
+ * A relation role's name wherever Babel prints it, beside the tree or in the
+ * Replay panel: `attractingHead` reads "attracting head". The model's own
+ * values, such as a theta grid's role text, are never passed through here.
+ */
+export const displayRoleName = (role: string): string => lowerTitleCaseWords(spaceAuthoredName(role, { snakeCase: true }));
