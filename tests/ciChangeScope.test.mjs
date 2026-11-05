@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { describe, it } from 'node:test';
-import { changeScope, replaySurface, REPLAY_ENTRY_POINTS } from '../scripts/ciChangeScope.mjs';
+import { changeScope, replaySurface, replayCommandInputs, REPLAY_ENTRY_POINTS } from '../scripts/ciChangeScope.mjs';
 
 describe('CI change scope', () => {
   const surface = replaySurface();
@@ -12,6 +12,35 @@ describe('CI change scope', () => {
       'server/babelParser/spellout.js', 'tests/helpers/motionExceptions.mjs', 'replay/stageCamera.ts']) {
       assert.ok(surface.has(file), `${file} is read by a Replay check`);
     }
+  });
+
+  it('counts only the test helpers the Replay checks import or name on their command lines', () => {
+    // Imported by the audits, named by verify:replay-offline, or the comparison's exception list.
+    for (const file of ['tests/helpers/visualRules.mjs', 'tests/helpers/cameraInvariants.mjs', 'tests/helpers/layoutSnapshot.mjs',
+      'tests/helpers/findings.mjs', 'tests/helpers/visualFrames.mjs', 'tests/helpers/cameraTrace.mjs', 'tests/helpers/replayInvariantCorpus.mjs',
+      'tests/helpers/visualExceptions.mjs', 'tests/helpers/cameraExceptions.mjs', 'tests/helpers/motionExceptions.mjs',
+      'tests/helpers/browserVisualExceptions.mjs', 'scripts/visualAudit/geometry.mjs']) {
+      assert.equal(changeScope([file]).replay, true, `${file} is read by a Replay check`);
+    }
+    assert.ok(replayCommandInputs().has('tests/helpers/visualExceptions.mjs'), 'verify:replay-offline names its exception list');
+    assert.ok(replayCommandInputs().has('fixtures/replay-snapshots/fixture-layout.json'), 'verify:replay-offline names the layout fingerprint');
+    // Read by offline tests only (tests/uiContrast.test.mjs), never by a Replay check.
+    assert.deepEqual(changeScope(['tests/helpers/uiContrastPairs.mjs']), { markdownOnly: false, replay: false, replayFiles: [] });
+    assert.equal(changeScope(['tests/helpers/spelloutPayload.mjs', 'tests/helpers/browserTreeBank.mjs']).replay, false);
+  });
+
+  it('keeps every helper a Replay check spells out, however the check loads it', () => {
+    // A check that names a helper in a string (an import, a dynamic import, a
+    // root-relative module name or a command argument) reads it; the import
+    // graph must have followed each such name, whatever form it took.
+    const named = new Set();
+    for (const file of surface) {
+      if (!/\.(?:mjs|cjs|js|ts|tsx)$/.test(file)) continue;
+      for (const match of fs.readFileSync(file, 'utf8').matchAll(/['"`][\w./-]*?helpers\/([\w-]+\.mjs)['"`]/g)) named.add(`tests/helpers/${match[1]}`);
+    }
+    for (const input of replayCommandInputs()) if (input.startsWith('tests/helpers/')) named.add(input);
+    assert.ok(named.size >= 10, `the Replay checks name helpers: ${[...named].join(', ')}`);
+    for (const file of named) assert.ok(surface.has(file), `${file} is named by a Replay check but left out of its scope`);
   });
 
   it('leaves out the app screens the Replay checks never load', () => {

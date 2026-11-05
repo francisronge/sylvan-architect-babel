@@ -16,11 +16,12 @@
 //     tests, the build and browser behavior.
 //
 // "Something the Replay checks read" is the import graph of their entry
-// points (scripts/importGraph.mjs), plus the inputs no import names (fixtures, dependency locks,
-// build configuration and these rules themselves). Tailwind scans
-// components for class names, so a screen change can alter the generated
-// stylesheet the renderer page also loads; that changes no Replay geometry
-// and is not counted.
+// points (scripts/importGraph.mjs), the files their package.json commands
+// name (the exception lists and the layout fingerprint), plus the inputs no
+// import names (fixtures, dependency locks, build configuration and these
+// rules themselves). Tailwind scans components for class names, so a screen
+// change can alter the generated stylesheet the renderer page also loads;
+// that changes no Replay geometry and is not counted.
 //
 // Usage:
 //   node scripts/ciChangeScope.mjs --files <file> [--github-output]
@@ -48,11 +49,9 @@ export const REPLAY_ENTRY_POINTS = [
   'scripts/auditReplayBrowser.mjs'
 ];
 
-// Inputs no import statement names. A path ending in "/" covers its folder.
+// Inputs no import statement or command names. A path ending in "/" covers its folder.
 export const REPLAY_FIXED_INPUTS = [
   'fixtures/',
-  'tests/helpers/',
-  'scripts/visualAudit/',
   'public/',
   'package.json',
   'package-lock.json',
@@ -65,7 +64,24 @@ export const REPLAY_FIXED_INPUTS = [
   'scripts/importGraph.mjs'
 ];
 
-export const replaySurface = (root = repoRoot) => importClosure(REPLAY_ENTRY_POINTS, root);
+const REPOSITORY_FILE = /^[\w./-]+\.(?:mjs|cjs|js|ts|tsx|json|css)$/;
+
+/** The repository files the package.json commands running a Replay entry point
+ * name as arguments: `--exceptions tests/helpers/visualExceptions.mjs`, the
+ * layout fingerprint. No import statement reaches them. */
+export function replayCommandInputs(root = repoRoot) {
+  const { scripts } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const inputs = new Set();
+  for (const command of Object.values(scripts)) {
+    if (!REPLAY_ENTRY_POINTS.some(entry => command.includes(entry))) continue;
+    for (const word of command.split(/\s+/)) {
+      if (REPOSITORY_FILE.test(word) && fs.existsSync(path.join(root, word))) inputs.add(word);
+    }
+  }
+  return inputs;
+}
+
+export const replaySurface = (root = repoRoot) => new Set([...importClosure(REPLAY_ENTRY_POINTS, root), ...replayCommandInputs(root)]);
 
 const SOURCE_FILE = /\.(?:mjs|cjs|js|ts|tsx)$/;
 const MARKDOWN_NAME = /['"`]([\w./-]*\.md)['"`]/g;
