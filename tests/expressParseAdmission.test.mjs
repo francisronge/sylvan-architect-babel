@@ -3,7 +3,6 @@ import { fork } from 'node:child_process';
 import { once } from 'node:events';
 import test from 'node:test';
 import { trackProviderCalls, withTimeout } from '../server/babelParser/providerTransport.js';
-import { createDailyParseQuota } from '../server/dailyParseQuota.js';
 
 const anthropic = 'https://api.anthropic.com/v1/messages';
 const origin = 'http://app.test';
@@ -57,18 +56,27 @@ const startServer = async (t, env) => {
     await settled;
   };
   const generation = { sentence: 'Mia laughed.', framework: 'xbar', modelId: 'anthropic:claude-opus-5' };
-  // An empty body is admitted and fails validation before any provider call.
-  const admitted = { status: 400, code: 'INVALID_REQUEST' };
+  // An admitted parse whose provider answers at once with an error.
+  const admitted = { status: 503, code: 'MODEL_UNAVAILABLE' };
+  const scriptRefusal = async () => {
+    const configured = message('configured');
+    child.send({ type: 'replies', replies: [{ url: anthropic, method: 'POST',
+      status: 404, body: { type: 'error', error: { type: 'not_found_error', message: 'Scripted' } } }] });
+    await configured;
+  };
+  const parse = async () => { await scriptRefusal(); return post({ body: generation }); };
+  // Retries one scripted parse until a slot is free; a busy refusal makes no provider call.
   const waitForFreeSlot = async () => {
+    await scriptRefusal();
     let result;
     for (let attempt = 0; attempt < 100; attempt++) {
-      result = await post();
+      result = await post({ body: generation });
       if (result.code !== 'SERVER_BUSY') return result;
       await new Promise(resolve => setTimeout(resolve, 10));
     }
     return result;
   };
-  return { message, post, hold, settle, generation, admitted, waitForFreeSlot, output: () => output };
+  return { message, post, parse, hold, settle, generation, admitted, waitForFreeSlot, output: () => output };
 };
 
 test('requests refused before admission do not use the daily allowance', { timeout: 30000 }, async t => {
@@ -76,8 +84,11 @@ test('requests refused before admission do not use the daily allowance', { timeo
   assert.deepEqual(await server.post({ headers: { 'x-babel-api-token': '' } }), { status: 401, code: 'UNAUTHORIZED' });
   assert.deepEqual(await server.post({ headers: { origin: 'http://elsewhere.test' } }), { status: 403, code: 'FORBIDDEN_ORIGIN' });
   assert.deepEqual(await server.post({ headers: { 'content-type': 'text/plain' } }), { status: 415, code: 'UNSUPPORTED_MEDIA_TYPE' });
-  assert.deepEqual(await server.post(), server.admitted);
-  assert.deepEqual(await server.post(), { status: 429, code: 'RATE_LIMITED_DAILY' });
+  // A request Babel would refuse uses no allowance: an empty body, or a sentence over the length limit.
+  assert.deepEqual(await server.post(), { status: 400, code: 'INVALID_REQUEST' });
+  assert.deepEqual(await server.post({ body: { ...server.generation, sentence: 'a'.repeat(601) } }), { status: 400, code: 'INVALID_REQUEST' });
+  assert.deepEqual(await server.parse(), server.admitted);
+  assert.deepEqual(await server.post({ body: server.generation }), { status: 429, code: 'RATE_LIMITED_DAILY' });
 });
 
 test('requests refused while every slot is busy do not use the daily allowance', { timeout: 30000 }, async t => {
@@ -87,12 +98,12 @@ test('requests refused while every slot is busy do not use the daily allowance',
   const running = server.post({ body: server.generation });
   await called;
   for (let refused = 0; refused < 3; refused++) {
-    assert.deepEqual(await server.post(), { status: 503, code: 'SERVER_BUSY' });
+    assert.deepEqual(await server.post({ body: server.generation }), { status: 503, code: 'SERVER_BUSY' });
   }
   await server.settle();
   assert.notEqual((await running).code, 'SERVER_BUSY');
   assert.deepEqual(await server.waitForFreeSlot(), server.admitted);
-  assert.deepEqual(await server.post(), { status: 429, code: 'RATE_LIMITED_DAILY' });
+  assert.deepEqual(await server.post({ body: server.generation }), { status: 429, code: 'RATE_LIMITED_DAILY' });
 });
 
 test('a disconnected request keeps its slot until its provider call settles', { timeout: 30000 }, async t => {
@@ -108,33 +119,11 @@ test('a disconnected request keeps its slot until its provider call settles', { 
   await abortIgnored;
   // The request has ended, but the provider is still working on its generation.
   for (let refused = 0; refused < 3; refused++) {
-    assert.deepEqual(await server.post(), { status: 503, code: 'SERVER_BUSY' });
+    assert.deepEqual(await server.post({ body: server.generation }), { status: 503, code: 'SERVER_BUSY' });
   }
   await server.settle();
   assert.deepEqual(await server.waitForFreeSlot(), server.admitted);
   assert.doesNotMatch(server.output(), /test-only|uncaught|unhandled/i);
-});
-
-test('the daily quota counts a bounded set of clients and resets each day', () => {
-  let clock = Date.UTC(2026, 9, 22, 12);
-  const quota = createDailyParseQuota({ limit: 2, maxClients: 100, now: () => clock });
-  quota.record('steady');
-  quota.record('steady');
-  for (let client = 0; client < 50000; client++) {
-    quota.record(`client-${client}`);
-    if (client % 50 === 0) quota.record('steady');
-    assert.ok(quota.size <= 100);
-  }
-  assert.equal(quota.size, 100);
-  // Recently admitted clients are still counted; the oldest were evicted.
-  quota.record('client-49999');
-  assert.equal(quota.exhausted('client-49999'), true);
-  assert.equal(quota.exhausted('client-49998'), false);
-  assert.equal(quota.exhausted('client-0'), false);
-  assert.equal(quota.exhausted('steady'), true);
-  clock += 12 * 3600000;
-  assert.equal(quota.exhausted('steady'), false);
-  assert.equal(quota.size, 0);
 });
 
 test('tracked provider calls settle after the request stops waiting for them', async () => {

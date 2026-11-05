@@ -7,7 +7,9 @@ const ORIGIN = 'https://babel.example';
 Object.assign(process.env, {
   NODE_ENV: 'production', BABEL_SAVE_PROVIDER_RAW: '0', BABEL_ALLOWED_ORIGINS: ORIGIN,
   BABEL_PARSE_API_TOKEN: '', BABEL_REQUIRE_ORIGIN: '1', BABEL_ALLOW_NO_ORIGIN: '0',
-  OPENAI_API_KEY: 'offline-test-key', BABEL_PROVIDER_MODEL_TIMEOUT_MS: '', BABEL_PROVIDER_REQUEST_BUDGET_MS: ''
+  OPENAI_API_KEY: 'offline-test-key', BABEL_PROVIDER_MODEL_TIMEOUT_MS: '', BABEL_PROVIDER_REQUEST_BUDGET_MS: '',
+  // One instance in one process may count its allowances in memory.
+  BABEL_PARSE_COUNTER: 'memory'
 });
 const {
   default: handler, HOSTED_FUNCTION_MAX_DURATION_MS, HOSTED_PROVIDER_DEADLINE_MS

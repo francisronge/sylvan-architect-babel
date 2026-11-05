@@ -20,7 +20,9 @@ test('public HTTP parse route completes queued responses and preserves terminal 
       ...process.env, NODE_ENV: 'production', PORT: '0', OPENAI_API_KEY: 'test-only-provider-key',
       OPENAI_BACKGROUND_POLL_INTERVAL_MS: '1000', BABEL_PROVIDER_MODEL_TIMEOUT_MS: '3500', BABEL_SAVE_PROVIDER_RAW: '0',
       BABEL_REQUIRE_ORIGIN: '0', BABEL_ALLOW_NO_ORIGIN: '1', BABEL_PARSE_API_TOKEN: '',
-      BABEL_TRUST_PROXY: '0', BABEL_MAX_IN_FLIGHT_PARSES: '1'
+      BABEL_TRUST_PROXY: '0', BABEL_MAX_IN_FLIGHT_PARSES: '1',
+      // The route is exercised many times; the allowances have their own tests.
+      BABEL_PARSE_DAILY_LIMIT_PER_IP: '1000', BABEL_PARSE_DAILY_LIMIT_TOTAL: '1000'
     }
   });
   const exited = once(child, 'exit');
