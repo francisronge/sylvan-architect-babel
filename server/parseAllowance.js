@@ -31,53 +31,85 @@ export class AllowanceUnavailableError extends Error {}
  */
 export const createMemoryCounterStore = ({ maxKeys = 50_000, now = Date.now } = {}) => {
   const counts = new Map();
+  const current = (key, at) => { const entry = counts.get(key); return entry && entry.expiresAt > at ? entry : null; };
+  // Synchronous, so a check and its change can never interleave with another request's.
+  const add = (key, amount, ttlSeconds, at) => {
+    const entry = current(key, at);
+    counts.delete(key);
+    if (counts.size >= maxKeys) counts.delete(counts.keys().next().value);
+    const count = (entry?.count ?? 0) + amount;
+    counts.set(key, { count, expiresAt: entry?.expiresAt ?? at + ttlSeconds * 1000 });
+    return count;
+  };
   return {
     shared: false,
     async add(key, amount, ttlSeconds) {
+      return add(key, amount, ttlSeconds, now());
+    },
+    async takeWithin(keys, limits, ttlSeconds) {
       const at = now();
-      const entry = counts.get(key);
-      const current = entry && entry.expiresAt > at ? entry.count : 0;
-      counts.delete(key);
-      if (counts.size >= maxKeys) counts.delete(counts.keys().next().value);
-      const count = current + amount;
-      counts.set(key, { count, expiresAt: entry && entry.expiresAt > at ? entry.expiresAt : at + ttlSeconds * 1000 });
-      return count;
+      const full = keys.findIndex((key, index) => limits[index] >= 0 && (current(key, at)?.count ?? 0) >= limits[index]);
+      if (full >= 0) return full + 1;
+      for (const key of keys) add(key, 1, ttlSeconds, at);
+      return 0;
     },
     get size() { return counts.size; }
   };
 };
 
+// Takes one from every key only when none is at its limit (a limit below 0 is
+// not checked): 0 when taken, otherwise the 1-based place of the full key.
+const TAKE_WITHIN = `for i, key in ipairs(KEYS) do
+  local limit = tonumber(ARGV[i])
+  if limit >= 0 and tonumber(redis.call('GET', key) or '0') >= limit then return i end
+end
+for _, key in ipairs(KEYS) do
+  redis.call('INCR', key)
+  if redis.call('TTL', key) < 0 then redis.call('EXPIRE', key, ARGV[#ARGV]) end
+end
+return 0`;
+
 /**
  * Counts in Upstash Redis through its REST API. Each change is one atomic
- * transaction (INCRBY, then EXPIRE on a new key only), so concurrent instances
- * never lose a count.
+ * operation, so concurrent instances never lose a count and a failure leaves
+ * every count as it was.
  */
-export const createRedisRestCounterStore = ({ url, token, fetchImpl = globalThis.fetch, timeoutMs = 3000 }) => ({
-  shared: true,
-  async add(key, amount, ttlSeconds) {
+export const createRedisRestCounterStore = ({ url, token, fetchImpl = globalThis.fetch, timeoutMs = 3000 }) => {
+  const send = async (path, command) => {
     let response;
     try {
-      response = await fetchImpl(`${String(url).replace(/\/+$/, '')}/multi-exec`, {
+      response = await fetchImpl(`${String(url).replace(/\/+$/, '')}${path}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify([['INCRBY', key, String(amount)], ['EXPIRE', key, String(ttlSeconds), 'NX']]),
+        body: JSON.stringify(command),
         signal: AbortSignal.timeout(timeoutMs)
       });
     } catch (error) {
       throw new AllowanceUnavailableError(`The counter store did not answer: ${error?.name || 'error'}.`);
     }
     if (!response.ok) throw new AllowanceUnavailableError(`The counter store answered HTTP ${response.status}.`);
-    let results;
     try {
-      results = await response.json();
+      return await response.json();
     } catch {
       throw new AllowanceUnavailableError('The counter store answered without JSON.');
     }
-    const count = Array.isArray(results) ? results[0]?.result : undefined;
-    if (!Number.isSafeInteger(count)) throw new AllowanceUnavailableError('The counter store answered without a count.');
-    return count;
-  }
-});
+  };
+  const integer = value => {
+    if (!Number.isSafeInteger(value)) throw new AllowanceUnavailableError('The counter store answered without a count.');
+    return value;
+  };
+  return {
+    shared: true,
+    async add(key, amount, ttlSeconds) {
+      const results = await send('/multi-exec', [['INCRBY', key, String(amount)], ['EXPIRE', key, String(ttlSeconds), 'NX']]);
+      return integer(Array.isArray(results) ? results[0]?.result : undefined);
+    },
+    async takeWithin(keys, limits, ttlSeconds) {
+      const answer = await send('', ['EVAL', TAKE_WITHIN, String(keys.length), ...keys, ...limits.map(String), String(ttlSeconds)]);
+      return integer(answer?.result);
+    }
+  };
+};
 
 /**
  * The shared store named in the environment, or null. The Vercel marketplace's
@@ -133,32 +165,26 @@ export const createParseAllowance = ({ store, perVisitorPerDay, totalPerDay = In
       return { ok: true };
     },
 
-    /** A parse: uses one of the visitor's and one of the site's parses for today, or neither. */
+    /**
+     * A parse: uses one of the visitor's and one of the site's parses for
+     * today in one atomic step, or neither, so no refusal or store failure
+     * ever spends an allowance.
+     */
     async admitParse(address) {
       const today = day();
-      const visitor = `babel:parses:${today}:${visitorKey(address)}`;
-      const total = `babel:parses:${today}:all`;
-      const taken = [];
+      const keys = [`babel:parses:${today}:${visitorKey(address)}`, `babel:parses:${today}:all`];
+      const limits = [perVisitorPerDay, totalPerDay].map(limit => (counted(limit) ? limit : -1));
+      let full;
       try {
-        if (counted(perVisitorPerDay)) {
-          taken.push(visitor);
-          if (await store.add(visitor, 1, DAY_KEY_SECONDS) > perVisitorPerDay) {
-            await store.add(visitor, -1, DAY_KEY_SECONDS);
-            return refusal(429, 'RATE_LIMITED_DAILY', `You have used today's ${perVisitorPerDay} parses. Your Tree Bank keeps them; please come back tomorrow.`);
-          }
-        }
-        if (counted(totalPerDay)) {
-          taken.push(total);
-          if (await store.add(total, 1, DAY_KEY_SECONDS) > totalPerDay) {
-            await Promise.all(taken.map(key => store.add(key, -1, DAY_KEY_SECONDS)));
-            return refusal(429, 'DAILY_CAPACITY_REACHED', 'Babel has made all the parses it can today. Please come back tomorrow.');
-          }
-        }
-        return { ok: true };
+        full = await store.takeWithin(keys, limits, DAY_KEY_SECONDS);
       } catch (error) {
         if (!(error instanceof AllowanceUnavailableError)) throw error;
         return unavailable();
       }
+      if (full === 1) return refusal(429, 'RATE_LIMITED_DAILY', `You have used today's ${perVisitorPerDay} parses. Your Tree Bank keeps them; please come back tomorrow.`);
+      if (full === 2) return refusal(429, 'DAILY_CAPACITY_REACHED', 'Babel has made all the parses it can today. Please come back tomorrow.');
+      if (full !== 0) return unavailable();
+      return { ok: true };
     }
   };
 };

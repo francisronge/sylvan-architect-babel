@@ -52,7 +52,8 @@ test('the per-minute limit counts every request and resets each minute', async (
 });
 
 test('a store that cannot count refuses parses but lets requests through', async () => {
-  const broken = { shared: true, add: async () => { throw new AllowanceUnavailableError('down'); } };
+  const down = async () => { throw new AllowanceUnavailableError('down'); };
+  const broken = { shared: true, add: down, takeWithin: down };
   const allowance = createParseAllowance({ store: broken, perVisitorPerDay: 5, totalPerDay: 100, perVisitorPerMinute: 30 });
   const refused = await allowance.admitParse('203.0.113.1');
   assert.equal(refused.status, 503);
@@ -109,4 +110,36 @@ test('the shared store is read from either pair of names, and deployed servers d
   assert.deepEqual(readParseAllowanceLimits({}, { deployed: false }), { perVisitorPerDay: 1200, totalPerDay: Infinity, perVisitorPerMinute: 30 });
   assert.deepEqual(readParseAllowanceLimits({ BABEL_PARSE_DAILY_LIMIT_PER_IP: '3', BABEL_PARSE_DAILY_LIMIT_TOTAL: '50' }, { deployed: true }),
     { perVisitorPerDay: 3, totalPerDay: 50, perVisitorPerMinute: 30 });
+});
+
+test('a failed admission spends nothing, so a visitor keeps every parse after the store recovers', async () => {
+  const memory = createMemoryCounterStore();
+  let failures = 5;
+  const flaky = { ...memory, add: memory.add, takeWithin: async (...args) => {
+    if (failures > 0) { failures--; throw new AllowanceUnavailableError('down'); }
+    return memory.takeWithin(...args);
+  } };
+  const allowance = createParseAllowance({ store: flaky, perVisitorPerDay: 5, totalPerDay: 100 });
+  for (let attempt = 0; attempt < 5; attempt++) assert.equal((await allowance.admitParse('203.0.113.1')).body.error.code, 'LIMITS_UNAVAILABLE');
+  for (let parse = 0; parse < 5; parse++) assert.equal((await allowance.admitParse('203.0.113.1')).ok, true, `parse ${parse + 1} after recovery`);
+});
+
+test('parses admitted at the same moment never pass the limits', async () => {
+  const allowance = createParseAllowance({ store: createMemoryCounterStore(), perVisitorPerDay: 5, totalPerDay: 8 });
+  const results = await Promise.all(Array.from({ length: 20 }, (_, n) => allowance.admitParse(`203.0.113.${n % 2}`)));
+  assert.equal(results.filter(result => result.ok).length, 8);
+});
+
+test('the Redis store admits a parse in one script that checks every limit before counting', async () => {
+  const sent = [];
+  const store = createRedisRestCounterStore({ url: 'https://redis.example', token: 'secret', fetchImpl: async (url, options) => {
+    sent.push({ url, body: JSON.parse(options.body) });
+    return new Response(JSON.stringify({ result: 2 }), { status: 200 });
+  } });
+  assert.equal(await store.takeWithin(['v', 'all'], [5, 100], 172800), 2);
+  const [{ url, body: [command, script, keyCount, ...rest] }] = sent;
+  assert.equal(url, 'https://redis.example');
+  assert.equal(command, 'EVAL');
+  assert.match(script, /GET[\s\S]*return i[\s\S]*INCR[\s\S]*EXPIRE/, 'checks every key before changing any');
+  assert.deepEqual([keyCount, ...rest], ['2', 'v', 'all', '5', '100', '172800']);
 });
