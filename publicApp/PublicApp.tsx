@@ -9,12 +9,11 @@ import type { TreeBankEntrySummary } from '../services/treeBankStore';
 import type { ParseBundle, ParseResult } from '../types';
 import TreeVisualizer, { preloadTreeVisualizer } from '../components/LazyTreeVisualizer';
 import ViewErrorBoundary from '../components/ViewErrorBoundary';
-import FailurePanel, { dismissesFailure } from '../components/FailurePanel';
 import ForestBackdrop from '../components/ForestBackdrop';
 import { TreeBankView, TreeBankDeleteDialog } from '../components/TreeBankView';
 import BabelTitle from '../components/workspace/BabelTitle';
 import TreeBankBranch from '../components/workspace/TreeBankBranch';
-import SentenceForm from '../components/workspace/SentenceForm';
+import SentenceBar from '../components/workspace/SentenceBar';
 import { EmptyWorkspace, ParseChoices } from '../components/workspace/WorkspaceStates';
 import WaitingTree from '../components/workspace/WaitingTree';
 import { PUBLIC_GENERATION } from './publicGeneration';
@@ -272,39 +271,16 @@ const PublicApp: React.FC = () => {
             )}
 
             {!showsTree && (
-              <div
-                data-babel-tree-controls="bottom"
-                className="absolute left-1/2 -translate-x-1/2 z-30 w-full max-w-3xl px-4 md:px-8"
-                style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
-                onKeyDown={(event) => {
-                  if (!error || !dismissesFailure(event.nativeEvent)) return;
-                  event.preventDefault();
-                  sentenceInputRef.current?.focus();
-                  dismissFailure();
-                }}
-              >
-                <div className="glass-dark rounded-[2.5rem] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden p-4 md:p-6">
-                  {error && (
-                    <FailurePanel
-                      message={error.message}
-                      failure={error.failure}
-                      rawOutput={error.rawOutput}
-                      generationRecord={error.generationRecord}
-                      sentence={error.request?.sentence}
-                      inputTokens={error.inputTokens}
-                      onDismiss={() => { sentenceInputRef.current?.focus(); dismissFailure(); }}
-                    />
-                  )}
-                  <SentenceForm
-                    inputRef={sentenceInputRef}
-                    value={input}
-                    onChange={setInput}
-                    onSubmit={() => void handleParse()}
-                    loading={loading}
-                    placeholder="Plant a Minimalist linguistic seed..."
-                  />
-                </div>
-              </div>
+              <SentenceBar
+                inputRef={sentenceInputRef}
+                value={input}
+                onChange={setInput}
+                onSubmit={() => void handleParse()}
+                loading={loading}
+                placeholder="Plant a Minimalist linguistic seed..."
+                error={error}
+                onDismiss={() => { sentenceInputRef.current?.focus(); dismissFailure(); }}
+              />
             )}
           </>
         )}

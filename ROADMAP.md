@@ -191,9 +191,11 @@ Public Babel is a new front end in this repo on the shared engine (Francis,
 the same `replay/` engine, renderer, parser and Tree Bank records as today's
 app, so an analysis saved in one opens in the other; only the front end is
 new, and only the public front end is deployed. Today's app becomes the
-internal one Francis runs locally, with its model and effort menus; it loses
-Canopy and Notes too (#343; Francis: "we don't want them anyway"). Do not
-copy the engine, and do not keep growing today's `App.tsx`.
+internal one Francis runs locally, with its model and effort menus; it has
+lost Canopy and Notes too (Francis: "we don't want them anyway"). Done: Replay
+is its only view, and it switches between the input screen and the tree screen
+as public Babel does. Do not copy the engine, and do not keep growing today's
+`App.tsx`.
 
 ### 3A. Product Foundation
 
@@ -237,6 +239,12 @@ copy the engine, and do not keep growing today's `App.tsx`.
    small control, for example in a top corner, returns to the input screen to
    parse another sentence (Francis, 3 Nov: "anything is fine as long as it
    doesn't hog space from the tree"). Its exact form is part of the design.
+   Done in both apps: the logo returns to the input screen, whose sentence bar
+   (`components/workspace/SentenceBar.tsx`) never shows beside a tree. The
+   internal app keeps X-bar, the model and effort menus, Constituent Glyphing,
+   Save to Tree Bank and fullscreen; a dismissed failure returns it to the
+   analysis it holds. Saves made in Canopy or Notes open paused on Replay's
+   last frame.
 3. Every finished parse is saved to the Tree Bank automatically; the header
    has one "Tree Bank" entry instead of "Tree Bank" and "Save to Tree Bank";
    a star on the tree marks the analyses to keep, and unkept ones can be
@@ -261,10 +269,12 @@ copy the engine, and do not keep growing today's `App.tsx`.
    backend retention honestly through appropriate About and Privacy surfaces.
    Raw responses, hashes, provider settings, token use, latency, and other
    research details never appear in the ordinary public workspace.
-5. Retire Notes as a top-level view (#343 does this). `stageRecord` remains
-   part of every stage and stays visible with its corresponding Replay frame.
-   Decide separately, after auditing actual use, whether labeled bracketing
-   and Miles Shang output remain as exports or are retired.
+5. Done: Notes is retired as a view in both apps. `stageRecord` remains part
+   of every stage and stays visible with its corresponding Replay frame. The
+   labeled bracketing, its Miles Shang link and copy button left the app with
+   Notes; `services/milesNotation.ts` stays, unused by the app. Decide
+   separately, after auditing actual use, whether labeled bracketing and Miles
+   Shang output return as exports, for example in the research workbench.
 
 ### 3C. Product Quality
 

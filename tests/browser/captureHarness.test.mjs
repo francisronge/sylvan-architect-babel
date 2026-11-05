@@ -135,9 +135,6 @@ test('CLI failure receipts preserve thrown setters, runtime errors and invalid r
       replayVisibleNodeIds: mode === 'duplicate' ? ['n', 'n'] : ['n'] };
     const html = `<!doctype html><link rel="icon" href="data:,">${paintedSvg.replaceAll('="8"', '="0"')}<script>
       window.__BABEL_DEV_SET_ANALYSIS__ = () => { ${mode === 'setter' ? 'throw new Error("setter-negative-control");' : mode === 'runtime' ? 'setTimeout(() => { throw new Error("runtime-negative-control"); }, 0);' : ''} };
-      window.__BABEL_DEV_SET_CAPTURE_MODE__ = () => {};
-      window.__BABEL_DEV_SET_INPUT_VISIBILITY__ = () => {};
-      window.__BABEL_DEV_SET_TAB__ = () => {};
       window.__BABEL_DEV_GET_REPLAY_STEP_COUNT__ = () => 1;
       window.__BABEL_DEV_SET_REPLAY_STEP__ = () => {};
       window.__BABEL_DEV_GET_REPLAY_STEP_PAYLOAD__ = () => (${JSON.stringify(payload)});

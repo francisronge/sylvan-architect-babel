@@ -32,7 +32,7 @@ test('production builds omit the unvalidated preview import path that developmen
     assert.ok(development.includes(marker), `development keeps ${marker} for local capture tools`);
   }
   const production = await buildPreviewHook('production');
-  for (const marker of ['devBundle', '__BABEL_DEV_SET_ANALYSIS__', '__BABEL_DEV_SET_TAB__',
+  for (const marker of ['devBundle', '__BABEL_DEV_SET_ANALYSIS__',
     '__BABEL_DEV_SET_REPLAY_STEP__', '__BABEL_DEV_GET_REPLAY_STEP_PAYLOAD__', 'fetch(']) {
     assert.equal(production.includes(marker), false, `production must not contain ${marker}`);
   }
