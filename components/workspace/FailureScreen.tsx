@@ -149,26 +149,34 @@ const miniBranch = ([from, to]: [number, number]) => {
 // The grove's trees, each standing on the ground: [x of its root, scale]. The middle one is tallest.
 const GROVE: Array<[number, number]> = [[W * 0.14, 1.2], [W * 0.5, 1.55], [W * 0.86, 1.2]];
 
-/** A grove against a low sun sinking behind the ground: Babel's trees for today are all grown (Francis, 5 Nov 2026: "lets do sundown"). */
+/**
+ * A grove at sundown: the sun sinks behind the ground and is gone, leaving a
+ * warm glow on the horizon. Babel's trees for today are all grown (Francis,
+ * 5 Nov 2026: "lets do sundown"; "should it not go down and dissapear").
+ */
 const Sundown = () => {
   const sky = `failure-sky-${useId().replace(/:/g, '')}`;
   const glow = `${sky}-glow`;
   const sunX = W / 2;
-  // It comes to rest with about a third of the sun above the ground.
-  const sunY = GROUND_Y + 22;
+  const sunRadius = 58;
+  // At rest the sun stands wholly below the ground; it starts mostly above it (styles.css).
+  const sunY = GROUND_Y + sunRadius + 6;
   return (
     <>
       <defs>
-        <clipPath id={sky}><rect x={-40} y={-60} width={W + 80} height={GROUND_Y + 60} /></clipPath>
+        {/* Everything above the ground's own curve, so no sliver of sun shows under the line. */}
+        <clipPath id={sky}>
+          <path d={`M-40 -60 L ${W + 40} -60 L ${W + 40} ${GROUND_Y} L ${W + 6} ${GROUND_Y} Q ${W / 2} ${H + 15} -6 ${GROUND_Y} L -40 ${GROUND_Y} Z`} />
+        </clipPath>
         <radialGradient id={glow}>
           <stop offset="0" stopColor={BARK} stopOpacity={0.3} />
           <stop offset="1" stopColor={BARK} stopOpacity={0} />
         </radialGradient>
       </defs>
       <g clipPath={`url(#${sky})`}>
+        <circle className="failure-afterglow" cx={sunX} cy={GROUND_Y} r={130} fill={`url(#${glow})`} />
         <g className="failure-sun">
-          <circle cx={sunX} cy={sunY} r={130} fill={`url(#${glow})`} />
-          <circle cx={sunX} cy={sunY} r={58} fill={BARK} opacity={0.82} />
+          <circle cx={sunX} cy={sunY} r={sunRadius} fill={BARK} opacity={0.82} />
         </g>
       </g>
       <Ground />

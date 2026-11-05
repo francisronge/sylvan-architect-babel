@@ -92,11 +92,11 @@ test('each failure screen shows the sentence, its tree, what happened and its ac
 test('every failure tree animates; only the drizzle keeps going, and reduced motion starts at rest', async () => {
   const { readFile } = await import('node:fs/promises');
   const css = await readFile(path.join(root, 'styles.css'), 'utf8');
-  for (const name of ['failure-arm', 'failure-cloud', 'failure-rain', 'failure-moon', 'failure-star', 'failure-sun']) {
+  for (const name of ['failure-arm', 'failure-cloud', 'failure-rain', 'failure-moon', 'failure-star', 'failure-sun', 'failure-afterglow']) {
     const rule = css.match(new RegExp(`\\.${name} \\{[^}]*animation:([^;]*);`));
     assert.ok(rule, `${name} animates`);
     // Rain is weather, not progress; nothing that grows may loop, or it would look as if it were still waiting.
     if (name !== 'failure-rain') assert.ok(!/infinite/.test(rule[1]), `${name} plays once`);
   }
-  assert.match(css, /prefers-reduced-motion: reduce\) \{\s*\.failure-arm, \.failure-cloud, \.failure-rain, \.failure-moon, \.failure-star, \.failure-sun \{ animation: none; \}/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{\s*\.failure-arm, \.failure-cloud, \.failure-rain, \.failure-moon, \.failure-star, \.failure-sun, \.failure-afterglow \{ animation: none; \}/);
 });
