@@ -80,6 +80,41 @@ jobs:
           npm ci --prefix baseline
           npm ci --prefix candidate
 
+      - name: Read the locked Playwright version
+        if: steps.scope.outputs.replay == 'true'
+        id: playwright
+        working-directory: candidate
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+
+      # The browser builds and the browser system packages the nightly
+      # browser-verification run saves from main, under its keys
+      # (browser-verification.yml). Without them the install step below
+      # downloads Chromium and fetches 21 MB of font packages from a mirror
+      # that has run at 83 kB/s: 4.5 minutes in 2 of 18 measured runs. This
+      # job only restores: it has no nightly run to save from main, and a
+      # cache a pull request saved under these keys would shadow main's
+      # complete one for that pull request's browser shards.
+      - name: Restore pinned browser downloads
+        if: steps.scope.outputs.replay == 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-ubuntu-24.04-${{ steps.playwright.outputs.version }}-chromium-webkit
+
+      - name: Restore browser system packages
+        if: steps.scope.outputs.replay == 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/browser-debs
+          key: browser-debs-ubuntu-24.04-${{ steps.playwright.outputs.version }}-chromium-webkit
+
+      - name: Offer the kept packages to apt
+        if: steps.scope.outputs.replay == 'true'
+        run: |
+          if compgen -G "$HOME/browser-debs/*.deb" > /dev/null; then
+            sudo cp "$HOME"/browser-debs/*.deb /var/cache/apt/archives/
+          fi
+
       - name: Install the pinned Chromium runtime
         if: steps.scope.outputs.replay == 'true'
         working-directory: candidate

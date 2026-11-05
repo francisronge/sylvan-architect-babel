@@ -110,6 +110,23 @@ describe('CI change scope', () => {
     }
   });
 
+  it('restores the browser caches the nightly browser run saves, under the same keys', () => {
+    // renderer-performance.yml has no nightly run of its own, so the caches it
+    // restores are the ones browser-verification.yml saves from main. The paths
+    // and keys must stay identical, and the performance job must only restore:
+    // a partial cache it saved under these keys would shadow main's complete
+    // one for the pull request's browser shards.
+    const cacheSteps = workflow => [...fs.readFileSync(`.github/workflows/${workflow}`, 'utf8').matchAll(/uses: (actions\/cache(?:\/restore|\/save)?)@[^\n]*\n\s+with:\n\s+path: ([^\n]+)\n\s+key: ([^\n]+)/g)]
+      .map(([, action, cachePath, key]) => ({ action, path: cachePath, key }));
+    const saved = cacheSteps('browser-verification.yml').filter(step => step.action !== 'actions/cache/save');
+    const restored = cacheSteps('renderer-performance.yml');
+    assert.equal(restored.length, 2, 'the performance job restores the browser downloads and the system packages');
+    for (const step of restored) {
+      assert.equal(step.action, 'actions/cache/restore');
+      assert.ok(saved.some(other => other.path === step.path && other.key === step.key), `browser-verification.yml saves ${step.path} under ${step.key}`);
+    }
+  });
+
   it('runs the checks for Markdown a check reads, deletes or renames', () => {
     for (const file of ['README.md', 'docs/design/visual-relations-tier2-shape-dispatch-spec.md',
       'THIRD_PARTY_NOTICES.md', 'docs/research/relation-orchard/index.md']) {
