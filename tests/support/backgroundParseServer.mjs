@@ -66,6 +66,8 @@ process.on('message', message => {
   }
 });
 if (process.env.BABEL_TEST_SERVERLESS_ENTRY === '1') {
+  // Tests run one instance, so it may count in its own memory.
+  process.env.BABEL_PARSE_COUNTER ??= 'memory';
   const { default: express } = await import('express');
   const { default: handler } = await import('../../api/parse.js');
   const app = express();

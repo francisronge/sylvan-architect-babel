@@ -1,4 +1,5 @@
-import { formatApiError, parseFromRequest } from '../server/parseApi.js';
+import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, validateParseRequest } from '../server/parseApi.js';
+import { createMemoryCounterStore, createParseAllowance, readCounterStore, readParseAllowanceLimits } from '../server/parseAllowance.js';
 import {
   MALFORMED_JSON,
   MAX_PARSE_BODY_BYTES,
@@ -11,6 +12,26 @@ import {
 } from '../server/parseHttpPolicy.js';
 
 const accessPolicy = readParseAccessPolicy(process.env, { requireOrigin: true, allowNoOrigin: false });
+// The hosted function is public Babel's: it sends only the public request.
+const publicRequestOnly = readPublicRequestOnly(process.env, { deployed: true });
+
+// The function's instances share no memory, so its allowances need the shared
+// counter store; without one it starts no parse. BABEL_PARSE_COUNTER=memory
+// counts per instance instead, which only a test or a single instance may use.
+const counterStore = readCounterStore(process.env)
+  ?? (process.env.BABEL_PARSE_COUNTER === 'memory' ? createMemoryCounterStore() : null);
+const allowance = counterStore
+  ? createParseAllowance({ store: counterStore, ...readParseAllowanceLimits(process.env, { deployed: true }) })
+  : null;
+const NO_COUNTER = {
+  status: 503,
+  body: { error: { code: 'LIMITS_UNAVAILABLE', message: 'Babel cannot start a parse right now. Please try again in a few minutes.' } }
+};
+
+// Vercel sets the visitor's address in these headers and overwrites any the
+// browser sent, so a visitor cannot choose their own.
+const visitorAddress = (req) => String(req.headers['x-vercel-forwarded-for'] || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+  .split(',')[0].trim();
 
 // Vercel stops this function at `maxDuration` in vercel.json (300 s on the
 // current plan) and answers with its own error page. Babel ends the provider
@@ -53,8 +74,29 @@ export default async function handler(req, res) {
     return send(res, PAYLOAD_TOO_LARGE);
   }
 
+  const address = visitorAddress(req);
+  const parses = parseRequestKind(body) !== 'check';
+  if (allowance) {
+    const perMinute = await allowance.admitRequest(address);
+    if (!perMinute.ok) return send(res, perMinute);
+  }
+  if (parses) {
+    // A request Babel would refuse uses no allowance.
+    try {
+      validateParseRequest(body, { publicRequestOnly });
+    } catch (error) {
+      return send(res, formatApiError(error));
+    }
+    if (!allowance) {
+      console.error('[api/parse] refusing to start a parse: no shared counter store is configured');
+      return send(res, NO_COUNTER);
+    }
+    const admitted = await allowance.admitParse(address);
+    if (!admitted.ok) return send(res, admitted);
+  }
+
   try {
-    const result = await parseFromRequest(req, res, undefined, { deadlineAt });
+    const result = await parseFromRequest(req, res, undefined, { deadlineAt, publicRequestOnly });
     if (!res.destroyed) return res.status(200).json(result);
   } catch (error) {
     if (res.destroyed) return;

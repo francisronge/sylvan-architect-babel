@@ -92,13 +92,60 @@ const withDerivedInputTokens = async (run) => {
 
 const DEFAULT_PROVIDERS = { research: parseSentenceWithResearchModel, start: startParseTicket, check: checkParseTicket };
 
+/**
+ * Public Babel's request: Minimalism, GPT-6.1 Sol at high effort (Francis,
+ * 3 Nov 2026). A deployed server sends this whatever the browser names, so no
+ * visitor can choose a costlier model or effort, or another framework; only
+ * the sentence comes from the browser. The local runtimes keep the internal
+ * app's model and effort menus. `publicApp/publicGeneration.ts` sends the same
+ * request, and tests keep the two equal.
+ */
+export const PUBLIC_PARSE_REQUEST = Object.freeze({
+  framework: 'minimalism',
+  modelId: 'openai:gpt-6.1-sol',
+  settings: Object.freeze({ 'reasoning.effort': 'high' })
+});
+
+/**
+ * Whether a server sends only the public request. Deployed servers do; a
+ * local runtime does not. `BABEL_PUBLIC_REQUEST_ONLY=0` lets a deployed server
+ * that only Francis can reach honour the browser's choice, and `1` pins a
+ * local one.
+ */
+export const readPublicRequestOnly = (env, { deployed }) => {
+  const raw = String(env.BABEL_PUBLIC_REQUEST_ONLY ?? '').trim();
+  if (/^(1|true|yes|on)$/i.test(raw)) return true;
+  if (/^(0|false|no|off)$/i.test(raw)) return false;
+  return deployed;
+};
+
+/** The body with the public request in place of whatever it chose. A check names no request; its ticket carries one this server signed. */
+const withPublicRequest = (body, kind) => {
+  if (kind === 'check' || !body || typeof body !== 'object' || Array.isArray(body)) return body;
+  return { sentence: body.sentence, ...(kind === 'start' ? { start: true } : {}), ...PUBLIC_PARSE_REQUEST };
+};
+
+/**
+ * The request a parse body asks the provider for, validated: what a start or a
+ * long request would send, with the public request in place when the server
+ * pins it. Hosts call it before counting a parse against an allowance, so a
+ * request Babel would refuse uses none.
+ */
+export const validateParseRequest = (requestBody, { publicRequestOnly = false } = {}) => {
+  const kind = parseRequestKind(requestBody);
+  const body = publicRequestOnly ? withPublicRequest(requestBody, kind) : requestBody;
+  const { start: _start, ...request } = body ?? {};
+  return validateParseBody(kind === 'start' ? request : body);
+};
+
 export const parseFromBodyWithProviders = async (
-  body,
+  requestBody,
   providers = DEFAULT_PROVIDERS,
-  { abortSignal, deadlineAt } = {}
+  { abortSignal, deadlineAt, publicRequestOnly = false } = {}
 ) => {
   abortSignal?.throwIfAborted();
-  const kind = parseRequestKind(body);
+  const kind = parseRequestKind(requestBody);
+  const body = publicRequestOnly ? withPublicRequest(requestBody, kind) : requestBody;
   if (kind === 'check') {
     if (typeof body.ticket !== 'string' || Object.keys(body).length !== 1) {
       throw invalidRequest('A check sends only its ticket.', 'REQUEST_TICKET_ONLY', '$', null);
@@ -106,8 +153,7 @@ export const parseFromBodyWithProviders = async (
     // A finished check carries its sentence from the ticket.
     return withDerivedInputTokens(() => providers.check(body.ticket, { abortSignal }));
   }
-  const { start: _start, ...request } = body ?? {};
-  const { sentence, framework, modelId, settings } = validateParseBody(kind === 'start' ? request : body);
+  const { sentence, framework, modelId, settings } = validateParseRequest(requestBody, { publicRequestOnly });
   return withDerivedInputTokens(async () => {
     const bundle = await (kind === 'start' ? providers.start : providers.research)(sentence, framework, modelId, { settings, abortSignal, deadlineAt });
     return bundle.status === 'pending' ? bundle : { ...bundle, sentence };
@@ -120,8 +166,9 @@ export const parseFromBody = async (body, options) => parseFromBodyWithProviders
  * Both HTTP entry points cancel work only when the response connection closes early.
  * `deadlineAt` (epoch ms) is a host's hard stop for the provider call; the
  * hosted function passes one, the Express runtime does not.
+ * `publicRequestOnly` sends the public request instead of the browser's choice.
  */
-export const parseFromRequest = async (req, res, parse = parseFromBody, { deadlineAt } = {}) => {
+export const parseFromRequest = async (req, res, parse = parseFromBody, { deadlineAt, publicRequestOnly = false } = {}) => {
   const controller = new AbortController();
   const onClose = () => {
     if (!res.writableFinished) {
@@ -132,7 +179,11 @@ export const parseFromRequest = async (req, res, parse = parseFromBody, { deadli
   try {
     if (req.aborted || res.destroyed) onClose();
     controller.signal.throwIfAborted();
-    return await parse(req.body, { abortSignal: controller.signal, ...(deadlineAt === undefined ? {} : { deadlineAt }) });
+    return await parse(req.body, {
+      abortSignal: controller.signal,
+      ...(deadlineAt === undefined ? {} : { deadlineAt }),
+      ...(publicRequestOnly ? { publicRequestOnly } : {})
+    });
   } finally {
     res.removeListener('close', onClose);
   }

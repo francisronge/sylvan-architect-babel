@@ -117,6 +117,10 @@ The adjacent effort menu offers the selected model's supported settings, startin
 at `high`. Meta and GLM are on hold; Gemini is not offered in the menu.
 
 Babel uses the selected model and settings without silently switching models.
+These menus are the local runtime's. A deployed server (`NODE_ENV=production` or
+the hosted function) sends public Babel's request, Minimalism with GPT-6.1 Sol at
+high effort, whatever the browser names; `BABEL_PUBLIC_REQUEST_ONLY=0` turns that
+off for a deployment only you can reach.
 Generation records retain model information, timing, token usage and the provider
 response. Tree Bank saves that evidence alongside the analysis. Failed requests
 offer a downloadable failure record.
