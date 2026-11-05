@@ -83,19 +83,21 @@ are not.
      past the phone canvas's left edge as stage 3 begins; only a first pose
      that zooms out (by 16%) would clear it, which changes the shared camera
      rule. Francis accepted it on 3 Nov 2026 ("3. Yes.").
-7. Recognition:
-   - Neutral relations can earn a shared-lineage coindex or a single-host
-     plaque from structure alone; the adjunction fork stays off because
-     structure cannot tell scope from modification (see the
-     [dispatch spec](docs/design/visual-relations-tier2-shape-dispatch-spec.md#structure-only-recognition-of-neutral-relations)).
-     Run the same geometry-first experiment for movement and the other
-     relations: measure the wrong-picture rate where Babel already draws, and
-     decide whether each further measured rule can claim its whole envelope.
-   - Measured over 26,587 relations in about 2,100 saved model analyses
-     (29 Oct 2026, grouped by keywords in the names, so rough): relations Babel
-     can already draw are often left neutral. Binding and coreference 64%,
-     scope and negation 74%, relative clauses 76%, adjunction and modification
-     48%. Close these recognition gaps from structure first.
+7. Recognition, after launch. Structure-first recognition is done: movement
+   is read from structure (`structuralMovement.ts`), and a neutral relation
+   can earn a shared-lineage coindex or a single-host plaque from structure
+   alone. Five further measured rules stay off because each recognises only
+   part of its cases, and the adjunction fork stays off because structure
+   cannot tell scope from modification (see the
+   [dispatch spec](docs/design/visual-relations-tier2-shape-dispatch-spec.md#structure-only-recognition-of-neutral-relations)).
+   Relations with no picture of their own stay neutral by design.
+   - A keyword count on 29 Oct 2026 (26,587 relations in about 2,100 saved
+     analyses, grouped by words in the relation names, so rough) left many
+     relations of drawable kinds neutral: binding and coreference 64%, scope
+     and negation 74%, relative clauses 76%, adjunction and modification 48%.
+     Most are probably claims whose structure cannot confirm a picture (not
+     measured), so they do not show easy gains from structure. What structure work remains is
+     measuring how often Babel's existing pictures are wrong.
    - Later, Jev as the fallback for relations structure cannot settle (mostly
      non-movement relations): run it once after generation, only for claims
      recognition leaves neutral, to map the model's role names to drawing
