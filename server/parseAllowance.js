@@ -37,8 +37,24 @@ export class AllowanceUnavailableError extends Error {}
  * are kept, and a new key beyond that evicts the oldest, so memory and the
  * work per request stay bounded.
  */
-export const createMemoryCounterStore = ({ maxKeys = 50_000, now = Date.now } = {}) => {
+export const createMemoryCounterStore = ({ maxKeys = 50_000, maxMarkers = 50_000, now = Date.now } = {}) => {
   const counts = new Map();
+  // Once-only refund markers live apart from the counts, so the per-minute and
+  // daily keys that fill the counts can never push a live marker out and let a
+  // ticket refund twice. A marker leaves only when it expires; with every slot
+  // holding a live marker, a refund is refused rather than risked.
+  const markers = new Map();
+  const markOnce = (key, ttlSeconds, at) => {
+    const expiresAt = markers.get(key);
+    if (expiresAt !== undefined && expiresAt > at) return -1;
+    markers.delete(key);
+    if (markers.size >= maxMarkers) {
+      for (const [marker, until] of markers) if (until <= at) markers.delete(marker);
+      if (markers.size >= maxMarkers) return -2;
+    }
+    markers.set(key, at + ttlSeconds * 1000);
+    return 1;
+  };
   const current = (key, at) => { const entry = counts.get(key); return entry && entry.expiresAt > at ? entry : null; };
   // Synchronous, so a check and its change can never interleave with another request's.
   const add = (key, amount, ttlSeconds, at) => {
@@ -62,19 +78,21 @@ export const createMemoryCounterStore = ({ maxKeys = 50_000, now = Date.now } = 
       return 0;
     },
     // 1 when one was given back, 0 when the count was already 0, -1 when the
-    // once-key had already given one back. Synchronous, like `takeWithin`.
+    // once-key had already given one back, -2 when no marker could be kept.
+    // Synchronous, like `takeWithin`.
     async giveBack(key, onceKey, onceTtlSeconds) {
       const at = now();
       if (onceKey) {
-        if (current(onceKey, at)) return -1;
-        add(onceKey, 1, onceTtlSeconds, at);
+        const marked = markOnce(onceKey, onceTtlSeconds, at);
+        if (marked !== 1) return marked;
       }
       const entry = current(key, at);
       if (!entry || entry.count <= 0) return 0;
       entry.count -= 1;
       return 1;
     },
-    get size() { return counts.size; }
+    get size() { return counts.size; },
+    get markerCount() { return markers.size; }
   };
 };
 

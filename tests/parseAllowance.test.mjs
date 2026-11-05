@@ -229,3 +229,29 @@ test('the Redis store gives back in one script that sets the once-marker and tak
   const throwing = { shared: true, giveBack: async () => { throw new Error('bug'); } };
   assert.equal(await createParseAllowance({ store: throwing, perVisitorPerDay: 5 }).refundParse('203.0.113.1'), 'unavailable');
 });
+
+test('a refunded ticket stays refunded however many other keys fill the memory store', async () => {
+  // Codex's case on #414: once the counts filled, the marker was evicted and the ticket refunded again.
+  const store = createMemoryCounterStore({ maxKeys: 20 });
+  const allowance = createParseAllowance({ store, perVisitorPerDay: 5, totalPerDay: 100, perVisitorPerMinute: 1000 });
+  assert.equal((await allowance.admitParse('203.0.113.1')).ok, true);
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'failed.ticket' }), 'refunded');
+  for (let visitor = 0; visitor < 200; visitor++) await allowance.admitRequest(`198.51.100.${visitor % 250}.${visitor}`);
+  assert.equal((await allowance.admitParse('203.0.113.1')).ok, true);
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'failed.ticket' }), 'already');
+});
+
+test('a memory store whose markers are all live refuses a refund rather than risking a second one', async () => {
+  let clock = Date.UTC(2026, 10, 5, 12);
+  const store = createMemoryCounterStore({ maxMarkers: 2, now: () => clock });
+  const allowance = createParseAllowance({ store, perVisitorPerDay: 5, totalPerDay: 100, now: () => clock });
+  for (let parse = 0; parse < 3; parse++) await allowance.admitParse('203.0.113.1');
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'a' }), 'refunded');
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'b' }), 'refunded');
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'c' }), 'unavailable');
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'a' }), 'already');
+  // Expired markers make room again.
+  clock += 2 * 86_400_000;
+  for (let parse = 0; parse < 1; parse++) await allowance.admitParse('203.0.113.1');
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'c' }), 'refunded');
+});
