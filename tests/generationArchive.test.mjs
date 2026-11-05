@@ -42,7 +42,10 @@ test('only a deployment that names every archive setting archives, and a record 
 const request = { sentence: 'Mia laughed.', framework: 'minimalism', modelId: 'openai:gpt-6.1-sol', settings: { 'reasoning.effort': 'high' } };
 const memoryBucket = () => {
   const objects = new Map();
-  return { objects, async put(key, body) { if (objects.has(key)) throw new Error('Archive store refused the record (HTTP 412).'); objects.set(key, body); } };
+  return { objects, async put(key, body) {
+    if (objects.has(key)) throw Object.assign(new Error('Archive store refused the record (HTTP 412).'), { status: 412 });
+    objects.set(key, body);
+  } };
 };
 
 test('the archive stops at its cap and gives back what it did not store, so it never grows into billed storage', async () => {
@@ -65,9 +68,17 @@ test('the archive stops at its cap and gives back what it did not store, so it n
 test('the archive never breaks a parse: a failing bucket or a missing counter only skips the record', async () => {
   const counter = createMemoryCounterStore();
   const logs = [];
-  const broken = createGenerationArchive({ store: { put: async () => { throw new Error('network down'); } }, counter, log: line => logs.push(line) });
-  assert.equal(await broken.record({ request, outcome: { failure: { code: 'PROVIDER_TIMEOUT' } } }), 'failed');
-  assert.equal(await counter.add(ARCHIVE_BYTES_KEY, 0, 1), 0, 'bytes that were not stored are not counted');
+  const refusing = createGenerationArchive({ store: { put: async () => { throw Object.assign(new Error('HTTP 403'), { status: 403 }); } }, counter, log: line => logs.push(line) });
+  assert.equal(await refusing.record({ request, outcome: { failure: { code: 'PROVIDER_TIMEOUT' } } }), 'failed');
+  assert.equal(await counter.add(ARCHIVE_BYTES_KEY, 0, 1), 0, 'bytes the bucket refused are not counted');
+  // An upload that may have been stored (its answer lost) keeps its bytes counted, so the cap holds.
+  const stored = new Map();
+  const lostAnswer = createGenerationArchive({ counter, log: line => logs.push(line),
+    store: { put: async (key, body) => { stored.set(key, body); throw new DOMException('The operation timed out.', 'TimeoutError'); } } });
+  assert.equal(await lostAnswer.record({ request, outcome: { failure: { code: 'PROVIDER_TIMEOUT' } } }), 'failed');
+  const [body] = stored.values();
+  assert.equal(await counter.add(ARCHIVE_BYTES_KEY, 0, 1), body.length, 'the bytes that may be in the bucket stay counted');
+  await counter.add(ARCHIVE_BYTES_KEY, -body.length, 1);
   const uncounted = createGenerationArchive({ store: memoryBucket(), counter: null, log: line => logs.push(line) });
   assert.equal(await uncounted.record({ request, outcome: { failure: { code: 'PROVIDER_TIMEOUT' } } }), 'unavailable');
   // One generation is one record: a finished parse checked twice keeps its first.

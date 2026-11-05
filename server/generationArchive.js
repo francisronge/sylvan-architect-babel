@@ -75,9 +75,12 @@ export const createGenerationArchive = ({ store, counter, capBytes = ARCHIVE_CAP
       await store.put(key, body, 'application/gzip');
       return 'archived';
     } catch (error) {
-      const already = /HTTP 412/.test(error?.message || '');
-      if (reserved) await counter.add(ARCHIVE_BYTES_KEY, -body.length, ARCHIVE_BYTES_TTL_SECONDS).catch(() => {});
-      if (already) return 'already';
+      // Only the bucket's refusal (a 4xx answer) proves nothing was stored. An
+      // upload whose answer was lost or that failed on R2's side may be in the
+      // bucket, so its bytes stay counted: the count may run high, never low.
+      const refused = Number.isInteger(error?.status) && error.status >= 400 && error.status < 500;
+      if (reserved && refused) await counter.add(ARCHIVE_BYTES_KEY, -body.length, ARCHIVE_BYTES_TTL_SECONDS).catch(() => {});
+      if (error?.status === 412) return 'already';
       log(`[archive] could not archive a parse: ${error?.message || 'error'}`);
       return 'failed';
     }

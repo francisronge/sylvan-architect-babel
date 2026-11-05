@@ -44,7 +44,8 @@ export const signRequest = ({ method, url, headers, body, accessKeyId, secretAcc
 /**
  * The archive store from the environment, or null when this deployment does
  * not archive. `put(key, body, contentType)` writes one object and refuses to
- * replace an existing one, so a record, once written, is never changed.
+ * replace an existing one, so a record, once written, is never changed. A
+ * refusal throws with the HTTP `status`; a lost answer throws without one.
  */
 /** The archive settings from the environment, or null when any is missing. */
 export const readArchiveSettings = (env) => {
@@ -68,7 +69,7 @@ export const readArchiveStore = (env, { fetchImpl = fetch, timeoutMs = 10_000 } 
       const headers = signRequest({ method: 'PUT', url, body, accessKeyId, secretAccessKey,
         headers: { 'content-type': contentType, 'if-none-match': '*' } });
       const response = await fetchImpl(url, { method: 'PUT', headers, body, signal: AbortSignal.timeout(timeoutMs) });
-      if (!response.ok) throw new Error(`Archive store refused the record (HTTP ${response.status}).`);
+      if (!response.ok) throw Object.assign(new Error(`Archive store refused the record (HTTP ${response.status}).`), { status: response.status });
     }
   };
 };
