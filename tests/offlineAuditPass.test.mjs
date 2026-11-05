@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 const script = fileURLToPath(new URL('../scripts/auditReplayVisuals.mjs', import.meta.url));
+const refusePackages = fileURLToPath(new URL('./helpers/refusePackages.mjs', import.meta.url));
 const run = promisify(execFile);
 // Analyses with findings in both audits, so equal reports are not empty ones:
 // the compact-current-root cases, whose first case has a listed off-canvas first
@@ -58,7 +59,9 @@ test('shards merged report exactly what one pass does, and only a complete set o
     ...[1, 2].map(shard => audit(...reports('unused'), '--shard', `${shard}/2`, '--results-out', out(`shard-${shard}.json`)))]);
   const shards = [1, 2].map(shard => JSON.parse(readFileSync(out(`shard-${shard}.json`), 'utf8')));
   assert.deepEqual(shards.map(shard => shard.results.length), [5, 4]);
-  await audit(...reports('merged'), '--merge', out('shard-1.json'), '--merge', out('shard-2.json'));
+  // CI's merge job installs no packages, so the merge must load none.
+  await run(process.execPath, ['--import', refusePackages, script, '--fixtures', '--only', 'movement/clause-context.json#', '--jobs', '1',
+    ...reports('merged'), '--merge', out('shard-1.json'), '--merge', out('shard-2.json')]);
   const read = name => {
     const { durationMs, jobs, ...report } = JSON.parse(readFileSync(out(name), 'utf8'));
     return report;
