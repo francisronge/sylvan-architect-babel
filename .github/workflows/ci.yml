@@ -37,6 +37,7 @@ jobs:
     outputs:
       markdown-only: ${{ steps.scope.outputs.markdown-only }}
       replay: ${{ steps.scope.outputs.replay }}
+      node-version: ${{ steps.node.outputs.node-version }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,10 +48,17 @@ jobs:
             !/docs/research/assets/
           sparse-checkout-cone-mode: false
 
-      - name: Set up Node.js 24
+      # Shards and the jobs that merge them must measure on one Node.js release:
+      # the corpus comparison refuses shards with different harnesses, and
+      # runner images cache different Node.js 24 releases while a new image
+      # rolls out. This step resolves the newest Node.js 24 once for the whole
+      # run, and every Replay job installs exactly that release.
+      - name: Set up the newest Node.js 24
+        id: node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24.x
+          check-latest: true
 
       # scripts/ciChangeScope.mjs: a Markdown-only change skips every job
       # below; a change outside what the Replay checks read skips the Replay
@@ -189,38 +197,18 @@ jobs:
           NODE_COMPILE_CACHE: ${{ github.workspace }}/node_modules/.cache/node-compile
         run: node scripts/ciTestShard.mjs ${{ matrix.shard }}/6 tests/*.test.mjs
 
-  # Shards and the job that merges them must measure on one Node.js release:
-  # the corpus comparison refuses shards with different harnesses, and runner
-  # images cache different Node.js 24 releases while a new image rolls out.
-  # This job resolves the newest Node.js 24 once for the whole run.
-  # The Replay jobs below all need this job, so skipping it skips them.
-  node-release:
-    name: Resolve one Node.js 24 release
+  replay-offline-shard:
+    name: Static Replay geometry and camera (${{ matrix.shard }}/3)
     needs: scope
     if: needs.scope.outputs.replay == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      version: ${{ steps.node.outputs.node-version }}
-
-    steps:
-      - name: Set up the newest Node.js 24
-        id: node
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version: 24.x
-          check-latest: true
-
-  replay-offline-shard:
-    name: Static Replay geometry and camera (${{ matrix.shard }}/2)
-    needs: node-release
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        # Keep this list, the job name and the merge below at two shards.
-        shard: [1, 2]
+        # Keep this list, the job name and the merge below at three shards
+        # (tests/ciShardNodeRelease.test.mjs).
+        shard: [1, 2, 3]
 
     steps:
       - name: Check out repository
@@ -235,19 +223,19 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: ${{ needs.node-release.outputs.version }}
+          node-version: ${{ needs.scope.outputs.node-version }}
           cache: npm
 
       - name: Install locked dependencies
         run: npm ci
 
       # verify:visual-offline and verify:camera-offline in one pass, with the
-      # same reports and exceptions, over every second analysis. Four workers
+      # same reports and exceptions, over a third of the analyses. Four workers
       # use the runner's four vCPUs; each analysis is audited independently,
       # so the results do not depend on the shard or worker count. The shard
       # writes its raw results; the job below judges them all together.
       - name: Audit this shard's static Replay geometry and camera
-        run: npm run verify:replay-offline -- --jobs 4 --shard ${{ matrix.shard }}/2 --results-out "$RUNNER_TEMP/replay-offline-${{ matrix.shard }}.json"
+        run: npm run verify:replay-offline -- --jobs 4 --shard ${{ matrix.shard }}/3 --results-out "$RUNNER_TEMP/replay-offline-${{ matrix.shard }}.json"
 
       - name: Retain the shard results for the judgment
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -262,7 +250,7 @@ jobs:
 
   replay-offline:
     name: Static Replay geometry and camera
-    needs: [node-release, replay-offline-shard]
+    needs: [scope, replay-offline-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -279,12 +267,10 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: ${{ needs.node-release.outputs.version }}
-          cache: npm
+          node-version: ${{ needs.scope.outputs.node-version }}
 
-      - name: Install locked dependencies
-        run: npm ci
-
+      # No dependency install: judging the shards' results loads no npm package
+      # (tests/offlineAuditPass.test.mjs merges with packages refused).
       - name: Download the shard results
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -292,7 +278,7 @@ jobs:
           path: ${{ runner.temp }}/replay-offline
           merge-multiple: true
 
-      # The same command judges both shards' results as one run: it selects the
+      # The same command judges every shard's results as one run: it selects the
       # same analyses and audits, refuses unless the shards hold each analysis
       # exactly once, and then fails on new, grown or stale exceptions and on
       # any fingerprint difference, as verify:replay-offline does.
@@ -300,18 +286,21 @@ jobs:
         run: |
           npm run verify:replay-offline -- \
             --merge "$RUNNER_TEMP/replay-offline/replay-offline-1.json" \
-            --merge "$RUNNER_TEMP/replay-offline/replay-offline-2.json"
+            --merge "$RUNNER_TEMP/replay-offline/replay-offline-2.json" \
+            --merge "$RUNNER_TEMP/replay-offline/replay-offline-3.json"
 
   corpus-motion-shard:
-    name: Replay motion against the PR base (${{ matrix.shard }}/2)
-    needs: node-release
+    name: Replay motion against the PR base (${{ matrix.shard }}/3)
+    needs: scope
+    if: needs.scope.outputs.replay == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        # Keep this list, the job name and the merge below at two shards.
-        shard: [1, 2]
+        # Keep this list, the job name and the merge below at three shards
+        # (tests/ciShardNodeRelease.test.mjs).
+        shard: [1, 2, 3]
 
     steps:
       - name: Check out candidate
@@ -338,7 +327,7 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: ${{ needs.node-release.outputs.version }}
+          node-version: ${{ needs.scope.outputs.node-version }}
           cache: npm
           cache-dependency-path: candidate/package-lock.json
 
@@ -359,7 +348,7 @@ jobs:
           node scripts/buildCorpusArchiveManifest.mjs --fixtures --out "$RUNNER_TEMP/fixtures-manifest.json"
           npm run -s verify:corpus -- --baseline-root ../baseline --candidate-root . \
             --archive-manifest "$RUNNER_TEMP/fixtures-manifest.json" --timeout-ms 1200000 --jobs 4 \
-            --shard ${{ matrix.shard }}/2 --snapshots-out "$RUNNER_TEMP/corpus-motion-${{ matrix.shard }}.json"
+            --shard ${{ matrix.shard }}/3 --snapshots-out "$RUNNER_TEMP/corpus-motion-${{ matrix.shard }}.json"
 
       - name: Retain the shard measurements for the comparison
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -374,7 +363,7 @@ jobs:
 
   corpus-motion:
     name: Replay motion against the PR base
-    needs: [node-release, corpus-motion-shard]
+    needs: [scope, corpus-motion-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -404,13 +393,11 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: ${{ needs.node-release.outputs.version }}
-          cache: npm
-          cache-dependency-path: candidate/package-lock.json
+          node-version: ${{ needs.scope.outputs.node-version }}
 
-      - name: Install locked dependencies
-        run: npm ci --prefix candidate
-
+      # No dependency install: comparing the shards' measurements loads no npm
+      # package (tests/replayCorpusComparator.test.mjs merges with packages
+      # refused).
       - name: Download the shard measurements
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -434,6 +421,7 @@ jobs:
             --archive-manifest "$RUNNER_TEMP/fixtures-manifest.json" \
             --merge "$RUNNER_TEMP/corpus-motion/corpus-motion-1.json" \
             --merge "$RUNNER_TEMP/corpus-motion/corpus-motion-2.json" \
+            --merge "$RUNNER_TEMP/corpus-motion/corpus-motion-3.json" \
             --output "$RUNNER_TEMP/corpus-motion.json"
 
       - name: Retain the comparison report
@@ -447,7 +435,7 @@ jobs:
 
   verify:
     name: Provider-free verification
-    needs: [scope, contract, offline-tests, node-release, replay-offline-shard, replay-offline, corpus-motion-shard, corpus-motion]
+    needs: [scope, contract, offline-tests, replay-offline-shard, replay-offline, corpus-motion-shard, corpus-motion]
     # GitHub treats a skipped required check as passing, so this job always
     # runs. It fails unless every needed job succeeded, or was skipped
     # because the change cannot affect it.
@@ -464,7 +452,7 @@ jobs:
         run: |
           node -e '
             const results = Object.entries(JSON.parse(process.env.RESULTS));
-            const replayJobs = new Set(["node-release", "replay-offline-shard", "replay-offline", "corpus-motion-shard", "corpus-motion"]);
+            const replayJobs = new Set(["replay-offline-shard", "replay-offline", "corpus-motion-shard", "corpus-motion"]);
             const maySkip = job => job !== "scope" && (process.env.MARKDOWN_ONLY === "true" || (replayJobs.has(job) && process.env.REPLAY !== "true"));
             console.log(`Markdown only: ${process.env.MARKDOWN_ONLY}; Replay checks needed: ${process.env.REPLAY}`);
             for (const [job, { result }] of results) console.log(`${job}: ${result}`);

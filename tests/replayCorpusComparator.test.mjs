@@ -337,13 +337,17 @@ test('shards merged compare exactly as one run does, fail as it does, and only a
     const base = [path.join(root, 'scripts/compareReplayCorpus.mjs'), '--baseline-root', root, '--candidate-root', root,
       '--manifest', manifest, '--jobs', '1'];
     const cli = (...args) => spawnSync(process.execPath, [...base, ...args], { timeout: 60000, encoding: 'utf8' });
+    // CI's merge job installs no packages, so the merge must load none.
+    const refusePackages = path.join(root, 'tests/helpers/refusePackages.mjs');
+    const mergeCli = (...args) => spawnSync(process.execPath, ['--import', refusePackages, ...base, ...args], { timeout: 60000, encoding: 'utf8' });
     const shardsThenMerge = (name) => {
       for (const shard of [1, 2]) assert.equal(cli('--shard', `${shard}/2`, '--snapshots-out', out(`${name}-${shard}.json`)).status, 0);
-      return cli('--output', out(`${name}.json`), '--merge', out(`${name}-1.json`), '--merge', out(`${name}-2.json`));
+      return mergeCli('--output', out(`${name}.json`), '--merge', out(`${name}-1.json`), '--merge', out(`${name}-2.json`));
     };
     await writeFile(manifest, JSON.stringify({ records: chosen }));
     assert.equal(cli('--output', out('one.json')).status, 0);
-    assert.equal(shardsThenMerge('merged').status, 0);
+    const merged = shardsThenMerge('merged');
+    assert.equal(merged.status, 0, merged.stderr);
     const shards = await Promise.all([1, 2].map(async shard => JSON.parse(await readFile(out(`merged-${shard}.json`), 'utf8'))));
     assert.deepEqual(shards.map(shard => shard.snapshots[0].records.length).sort(), [1, 2]);
     assert.equal(await readFile(out('merged.json'), 'utf8'), await readFile(out('one.json'), 'utf8'));
