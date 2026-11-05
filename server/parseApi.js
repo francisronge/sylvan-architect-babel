@@ -209,11 +209,14 @@ const PROVIDER_REPORT_KEYS = ['providerMessage', 'transportMessage', 'providerEr
  * A failure the provider reported before any generation completed. Its message
  * and error body are the provider's own text, which can name accounts,
  * organizations or key fragments; production clients receive only Babel's
- * classification. A completed generation that stopped badly keeps its response.
+ * classification. A completed generation that stopped badly keeps its output,
+ * but a response the provider marked failed or cancelled carries no output,
+ * only the provider's error envelope (`providerErrorBody`), so it is withheld.
  */
 const isProviderReportedFailure = (error, details) =>
-  error.failure?.class !== FAILURE_CLASSES.INCOMPLETE_GENERATION
-  && PROVIDER_REPORT_KEYS.some((key) => Object.hasOwn(details, key));
+  Boolean(details.providerErrorBody)
+  || (error.failure?.class !== FAILURE_CLASSES.INCOMPLETE_GENERATION
+    && PROVIDER_REPORT_KEYS.some((key) => Object.hasOwn(details, key)));
 
 const withoutProviderReport = (error, details, generationRecord) => {
   const errorBody = Boolean(details.providerErrorBody);
