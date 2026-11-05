@@ -112,6 +112,14 @@ are not.
 8. Merge duplicated layout checks without changing a pixel, proving identical
    output with the fixture layout fingerprint (`npm run verify:visual-offline`)
    and `npm run verify:corpus`.
+9. Replace the internal app with public Babel plus a research menu, after
+   launch. Two front ends drift: each public change (the waiting tree,
+   automatic saving and the star, the grove, F for fullscreen, parse tickets)
+   would have to be rebuilt in `App.tsx`. Instead, one front end: a separate
+   local entry renders public Babel with a menu for model, effort and
+   framework, and the public build still never imports the research controls
+   (`tests/publicApp.test.mjs`). Until then the internal app is left as it is
+   and not kept in step (Francis, 5 Nov 2026, agreeing: "yes").
 
 ## Execution Order
 
