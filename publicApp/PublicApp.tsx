@@ -16,6 +16,7 @@ import TreeBankBranch from '../components/workspace/TreeBankBranch';
 import SentenceBar from '../components/workspace/SentenceBar';
 import { EmptyWorkspace, ParseChoices } from '../components/workspace/WorkspaceStates';
 import WaitingTree from '../components/workspace/WaitingTree';
+import FailureScreen from '../components/workspace/FailureScreen';
 import { PUBLIC_GENERATION } from './publicGeneration';
 
 /**
@@ -192,9 +193,25 @@ const PublicApp: React.FC = () => {
     });
   };
 
+  // The logo returns to the sentence box, leaving any failure screen behind.
   const goHome = () => {
+    dismissFailure();
     setScreen('input');
     window.requestAnimationFrame(() => sentenceInputRef.current?.focus());
+  };
+
+  // A failed parse shows its failure screen in place of the waiting screen.
+  const failedSentence = error?.request?.sentence ?? waiting?.sentence ?? input;
+  const showsFailure = Boolean(error) && !loading && screen !== 'treeBank';
+  const retryFailed = () => { void runParse({ ...PUBLIC_GENERATION, sentence: failedSentence }); };
+  const editFailed = () => {
+    setInput(failedSentence);
+    dismissFailure();
+    goHome();
+  };
+  const openTreeBankAfterFailure = () => {
+    dismissFailure();
+    setScreen('treeBank');
   };
 
   return (
@@ -247,6 +264,10 @@ const PublicApp: React.FC = () => {
             <div className="absolute inset-0 z-0">
               <ViewErrorBoundary resetKey={viewResetKey}>
                 {loading && waiting && <WaitingTree sentence={waiting.sentence} startedAt={waiting.startedAt} />}
+                {showsFailure && error && (
+                  <FailureScreen error={error} sentence={failedSentence}
+                    onRetry={retryFailed} onEdit={editFailed} onOpenTreeBank={openTreeBankAfterFailure} />
+                )}
                 {!loading && showsTree && activeParse && activeDisplay ? (
                   <TreeVisualizer
                     initialReplayStep={initialReplayStep ?? undefined}
@@ -270,7 +291,7 @@ const PublicApp: React.FC = () => {
               </div>
             )}
 
-            {!showsTree && (
+            {!showsTree && !showsFailure && (
               <SentenceBar
                 inputRef={sentenceInputRef}
                 value={input}
@@ -278,7 +299,7 @@ const PublicApp: React.FC = () => {
                 onSubmit={() => void handleParse()}
                 loading={loading}
                 placeholder="Plant a Minimalist linguistic seed..."
-                error={error}
+                error={null}
                 onDismiss={() => { sentenceInputRef.current?.focus(); dismissFailure(); }}
               />
             )}

@@ -150,3 +150,71 @@ test('two tabs remember their own parses: one finishing never loses or replaces 
     await context.close();
   } finally { await browser.close(); await server.close(); }
 });
+
+test('a failed parse shows its failure screen; Try again parses the same sentence and Edit returns to it', { timeout: 120_000 }, async () => {
+  const server = await startBrowserTestServer({ root });
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+    const page = await context.newPage(), errors = [], sent = [];
+    page.on('pageerror', error => errors.push(String(error)));
+    const replies = [
+      { status: 502, json: { error: { code: 'BAD_MODEL_RESPONSE', message: 'scripted provider text',
+        failure: { class: 'linguistic_failure', ruleId: 'SPELLOUT_MISMATCH', stageIndex: null, fieldPath: '$', offendingValue: null } } } },
+      { status: 200, json: bundle },
+      { status: 503, json: { error: { code: 'PROVIDER_UNAVAILABLE', message: 'scripted' } } },
+      { status: 429, json: { error: { code: 'RATE_LIMITED_DAILY', message: 'scripted' } } },
+      { status: 429, json: { error: { code: 'DAILY_CAPACITY_REACHED', message: 'scripted' } } }
+    ];
+    await context.route('**/api/parse', route => { sent.push(route.request().postDataJSON()); return route.fulfill(replies.shift()); });
+    await page.goto(server.url);
+    await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill('Mia laughed.');
+    await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+
+    // The model's analysis was unusable: the broken tree, and another try.
+    const screen = page.locator('[data-babel-failure-screen]');
+    await page.locator('[data-babel-failure-screen="broken"]').waitFor();
+    assert.match(await screen.innerText(), /This tree came out broken\.[\s\S]*didn't hold together/);
+    assert.ok(!(await screen.innerText()).includes('scripted provider text'), 'the provider text never shows');
+    assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).count(), 0, 'the screen replaces the sentence bar');
+    const retry = page.getByRole('button', { name: 'Try again', exact: true });
+    assert.equal(await retry.evaluate(button => button === document.activeElement), true, 'focus moves to the first action');
+    await retry.click();
+    await replayShown(page);
+    assert.equal(sent[1].sentence, 'Mia laughed.', 'Try again parses the same sentence');
+    await page.getByRole('button', { name: 'Tree Bank, 1 saved', exact: true }).waitFor();
+
+    // No answer: Edit returns to the sentence box with the sentence.
+    await page.getByRole('button', { name: 'Babel, parse a new sentence' }).click();
+    await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill('Nia smiled.');
+    await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+    await page.locator('[data-babel-failure-screen="noAnswer"]').waitFor();
+    await page.getByRole('button', { name: 'Edit sentence', exact: true }).click();
+    assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue(), 'Nia smiled.');
+    assert.equal(await screen.count(), 0);
+
+    // Today's parses are used: no retry, the Tree Bank instead.
+    await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+    await page.locator('[data-babel-failure-screen="visitorLimit"]').waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Try again', exact: true }).count(), 0);
+    await page.getByRole('button', { name: 'Open Tree Bank', exact: true }).click();
+    await page.getByRole('button', { name: 'Open Tree', exact: true }).first().waitFor();
+    assert.equal(await screen.count(), 0);
+
+    // The sentence box stops a sentence the server would refuse.
+    await page.getByRole('button', { name: 'Babel, parse a new sentence' }).click();
+    await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill('a'.repeat(700));
+    assert.equal((await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue()).length, 600);
+
+    // The logo leaves any failure screen, even one without Edit sentence.
+    await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill('Ola ran.');
+    await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+    await page.locator('[data-babel-failure-screen="siteLimit"]').waitFor();
+    await page.getByRole('button', { name: 'Babel, parse a new sentence' }).click();
+    assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue(), 'Ola ran.');
+    assert.equal(await screen.count(), 0);
+    assert.equal(sent.length, 5);
+    assert.deepEqual(errors, []);
+    await context.close();
+  } finally { await browser.close(); await server.close(); }
+});

@@ -145,7 +145,10 @@ the parse selector takes the tree's room. Click the Babel logo in the header to
 return to the input screen and parse another sentence; the Tree Bank's
 `Back to Arboretum` returns to the analysis you were reading.
 
-A failed request stays on the input screen with your draft. Dismiss the failure
+Public Babel shows a failed parse as its own screen: what likely happened, in
+one line, with Try again and Edit sentence when another try can help, or the
+Tree Bank when today's parses are used. In the internal app, a failed request
+stays on the input screen with your draft. Dismiss the failure
 with its close button or Escape: if an analysis is open you return to it at its
 paused frame, your draft and Tree Bank stay, and no request is made. Download
 its raw output or failure record first if you want them; the next request
