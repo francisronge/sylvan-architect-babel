@@ -154,7 +154,8 @@ const Sundown = () => {
   const sky = `failure-sky-${useId().replace(/:/g, '')}`;
   const glow = `${sky}-glow`;
   const sunX = W / 2;
-  const sunY = GROUND_Y + 4;
+  // It comes to rest with about a third of the sun above the ground.
+  const sunY = GROUND_Y + 22;
   return (
     <>
       <defs>
