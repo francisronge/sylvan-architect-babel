@@ -1,5 +1,8 @@
-import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, refundsFailedParse, validateParseRequest } from '../server/parseApi.js';
+import { describeArchivedFailure, failureEndsParse, formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, refundsFailedParse, validateParseRequest } from '../server/parseApi.js';
 import { createMemoryCounterStore, createParseAllowance, readCounterStore, readParseAllowanceLimits } from '../server/parseAllowance.js';
+import { readArchiveStore } from '../server/archiveStore.js';
+import { createGenerationArchive } from '../server/generationArchive.js';
+import { readParseTicket } from '../server/babelParser/parseTicket.js';
 import {
   MALFORMED_JSON,
   MAX_PARSE_BODY_BYTES,
@@ -23,6 +26,31 @@ const counterStore = readCounterStore(process.env)
 const allowance = counterStore
   ? createParseAllowance({ store: counterStore, ...readParseAllowanceLimits(process.env, { deployed: true }) })
   : null;
+// Only Babel's official deployment names an archive store, so local runs,
+// previews and forks never upload (ROADMAP, Program 6A).
+const archiveStore = readArchiveStore(process.env);
+const archive = archiveStore
+  ? createGenerationArchive({ store: archiveStore, counter: counterStore, commit: process.env.VERCEL_GIT_COMMIT_SHA })
+  : null;
+
+/**
+ * Archives one finished parse before the visitor's answer is sent, since the
+ * instance may stop once it answers. A check's request comes from its ticket,
+ * which this server signed; the record keeps the request and its outcome and
+ * nothing that names the visitor (no address, no ticket).
+ */
+const archiveParse = async (kind, body, validated, outcome) => {
+  if (!archive) return;
+  if (kind === 'check') {
+    const fields = readParseTicket(String(process.env.OPENAI_API_KEY || '').trim(), body.ticket);
+    if (!fields) return;
+    await archive.record({ request: fields, outcome, responseId: fields.responseId, startedAt: fields.startedAt });
+    return;
+  }
+  const responseId = outcome.response?.generationRecord?.outcome?.attempts?.[0]?.responseId;
+  await archive.record({ request: validated, outcome, responseId });
+};
+
 const NO_COUNTER = {
   status: 503,
   body: { error: { code: 'LIMITS_UNAVAILABLE', message: 'Babel cannot start a parse right now. Please try again in a few minutes.' } }
@@ -81,10 +109,11 @@ export default async function handler(req, res) {
     const perMinute = await allowance.admitRequest(address);
     if (!perMinute.ok) return send(res, perMinute);
   }
+  let validated = null;
   if (parses) {
     // A request Babel would refuse uses no allowance.
     try {
-      validateParseRequest(body, { publicRequestOnly });
+      validated = validateParseRequest(body, { publicRequestOnly });
     } catch (error) {
       return send(res, formatApiError(error));
     }
@@ -98,9 +127,11 @@ export default async function handler(req, res) {
 
   try {
     const result = await parseFromRequest(req, res, undefined, { deadlineAt, publicRequestOnly });
+    if (result?.status !== 'pending') await archiveParse(kind, body, validated, { response: result });
     if (!res.destroyed) return res.status(200).json(result);
   } catch (error) {
     if (res.destroyed) return;
+    if (failureEndsParse(kind, error)) await archiveParse(kind, body, validated, { failure: describeArchivedFailure(error) });
     // A failed parse gives the visitor's parse back before its failure is
     // sent, since the instance may stop once it answers. A store that cannot
     // is logged and the failure sent unchanged.

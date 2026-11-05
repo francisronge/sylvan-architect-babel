@@ -13,7 +13,20 @@ Server.prototype.listen = function (...args) {
   this.once('error', error => { console.error(error); process.exitCode = 1; process.disconnect(); });
   return listen.apply(this, args);
 };
+// The Generation Archive's bucket, when a test names one: each upload is
+// reported to the test, and a second upload to the same key is refused, as
+// R2 refuses one sent with If-None-Match: *.
+const archiveEndpoint = process.env.BABEL_ARCHIVE_R2_ENDPOINT;
+const archivedKeys = new Set();
 globalThis.fetch = async (url, options) => {
+  if (archiveEndpoint && String(url).startsWith(archiveEndpoint)) {
+    const key = new URL(url).pathname;
+    const exists = archivedKeys.has(key);
+    archivedKeys.add(key);
+    process.send({ type: 'archive-put', key, method: options.method, headers: options.headers,
+      body: Buffer.from(options.body).toString('base64'), refused: exists });
+    return new Response('', { status: exists ? 412 : 200 });
+  }
   const reply = replies.shift();
   if (!reply) process.send({ type: 'unexpected-provider-call', url: String(url), method: options.method });
   assert.ok(reply, 'No provider call is permitted beyond the scripted response sequence');

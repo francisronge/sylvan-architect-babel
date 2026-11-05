@@ -34,8 +34,8 @@ are not.
    tickets, below). The shared counter store and the OpenAI spend limit
    are in place (Program 5, item 4).
 4. **Hosting and the Generation Archive**: Babel stays on Vercel, which builds
-   public Babel (Program 5, item 2); what is left is the archive (Program 6A)
-   and the first deployment.
+   public Babel (Program 5, item 2), and the archive is built (Program 6A);
+   what is left is the first deployment.
 5. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed. On 2026-10-24 the claim
    option had not yet appeared in Billing. Spend only those credits.
@@ -455,6 +455,24 @@ Begin implementation after contract qualification and the official hosted
 generation path are stable enough to define what must be retained.
 
 ### 6A. Automatic Generation Archive
+
+Built (5 Nov 2026). Public Babel's hosted function (`api/parse.js`) saves every
+parse it finishes, successful or failed, as one gzipped JSON record in the
+private Cloudflare R2 bucket `babel-generation-archive`
+(`server/generationArchive.js`, `server/archiveStore.js`). A record holds the
+request, the whole bundle or the typed failure with the model's complete
+output, the generation record (prompt contract, settings, timing, usage, raw
+provider response) and Babel's commit; nothing that names the visitor (no
+address, visitor hash or ticket), as `PRIVACY.md` promises and
+`tests/generationArchive.test.mjs` checks. A record is never replaced; a
+finished ticket checked twice keeps one record. Babel stops archiving at 9 GB,
+below R2's free 10 GB, counting stored bytes in the shared counter store, so it
+can never be billed (Francis, 5 Nov 2026: "I don't want to spend any real money
+on this"). Only production sets the archive variables. `npm run archive:pull --
+--out DIR` downloads it (settings from the Keychain item "Babel Generation
+Archive") as a batch `scripts/buildReplayReview.mjs` reads. A visitor who
+leaves before checking back leaves no record: Babel only learns a background
+parse's outcome when the browser checks.
 
 1. Persist every attempt made through the official hosted service, including
    successful analyses and separately typed transport, malformed-output,

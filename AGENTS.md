@@ -142,6 +142,10 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
 
 - The Personal Tree Bank is browser-local. Never add server-side parse storage
   as a Tree Bank side effect.
+- The Generation Archive (`server/generationArchive.js`) is Babel's only
+  server-side parse storage: the hosted function's finished parses, production
+  only, never anything that names a visitor (`PRIVACY.md`), and capped below
+  the bucket's free tier.
 - Provider endpoints and outgoing payloads are contracts. Change them only in a
   task that targets them, and verify every affected provider.
 - Prompt, system-instruction and route-config changes are contract changes:

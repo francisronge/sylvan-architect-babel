@@ -93,6 +93,17 @@ export const refundsFailedParse = (kind, error) => {
 };
 
 /**
+ * Whether a failed request ended a parse, so the Generation Archive records it.
+ * A long request or a start ends its parse when it fails; a check ends one only
+ * with a terminal failure of the parse its valid ticket names, including an
+ * expired ticket's timeout, which is a real attempt that ran out of time.
+ */
+export const failureEndsParse = (kind, error) => {
+  if (kind !== 'check') return true;
+  return error instanceof ParseApiError && !CHECK_FAILURES_KEPT.has(error.code);
+};
+
+/**
  * A failure after the spell-out check carries the word list Babel derived
  * from the model's own words; the response serializes it from
  * `error.inputTokens`. The browser never segments the sentence itself, so an
@@ -332,6 +343,29 @@ const withoutProviderReport = (error, details, generationRecord) => {
     failure: error.failure ? { ...error.failure, offendingValue: null } : error.failure,
     rawOutput: errorBody ? undefined : error.rawOutput,
     generationRecord: errorBody && generationRecord ? recordWithoutBody : generationRecord
+  };
+};
+
+/**
+ * A failure as the Generation Archive keeps it: Babel's classification, the
+ * model's complete output and the generation record. Like a production
+ * response, it leaves out a provider's own error text, which can name accounts
+ * or key fragments; unlike one, it keeps the model's output whole.
+ */
+export const describeArchivedFailure = (error) => {
+  if (!(error instanceof ParseApiError)) return { code: 'INTERNAL_ERROR', message: 'Unexpected server error.' };
+  const details = error.details && typeof error.details === 'object' ? error.details : {};
+  const providerReported = isProviderReportedFailure(error, details);
+  const { failure, rawOutput, generationRecord } = providerReported
+    ? withoutProviderReport(error, details, details.generationRecord)
+    : { failure: error.failure, rawOutput: error.rawOutput, generationRecord: details.generationRecord };
+  return {
+    code: error.code,
+    message: error.message,
+    failure,
+    ...(rawOutput ? { rawOutput } : {}),
+    ...(Array.isArray(error.inputTokens) ? { inputTokens: error.inputTokens } : {}),
+    ...(generationRecord ? { generationRecord } : {})
   };
 };
 
