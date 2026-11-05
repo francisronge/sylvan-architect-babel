@@ -141,11 +141,16 @@ test('public HTTP parse tickets start, check and finish as one request would, an
     assert.equal(calls.length, before);
 
     if (!serverless) {
-      // Checks use none of the daily allowance: five starts and long requests fill it; no check counted.
+      // Checks use none of the daily allowance, and the three that failed gave
+      // their parses back: two parses are counted, so three more fill it.
       await script([{ url: `${endpoint}/resp_a`, method: 'GET', body: { id: 'resp_a', status: 'in_progress' } }]);
       assert.equal((await post({ ticket: started.body.ticket })).status, 200);
+      for (let n = 0; n < 3; n++) {
+        await script([{ url: endpoint, method: 'POST', body: { id: `resp_more_${n}`, status: 'queued' } }]);
+        assert.equal((await post({ ...request, start: true })).status, 200, output);
+      }
       const exhausted = await post({ ...request, start: true });
-      assert.equal(exhausted.body.error?.code, 'RATE_LIMITED_DAILY', 'the five starts and long requests used it up');
+      assert.equal(exhausted.body.error?.code, 'RATE_LIMITED_DAILY', 'five counted parses used it up');
     }
     child.send({ type: 'stop' });
     await exited;
@@ -172,12 +177,15 @@ test('a late or outdated ticket cancels its response and fails plainly, never re
     const fields = readParseTicket('unit-test-key', ticket);
 
     const late = signParseTicket('unit-test-key', { ...fields, startedAt: Date.now() - 21 * 60 * 1000 });
+    // An expired ticket's failure is marked, so it gives the visitor no parse back.
     await assert.rejects(routes.checkParseTicket(late), error => /timed out|timeout|deadline/i.test(`${error.code} ${error.message}`)
-      && error.details?.generationRecord?.outcome?.runId === fields.runId);
+      && error.details?.generationRecord?.outcome?.runId === fields.runId && error.ticketExpired === true);
     const outdated = signParseTicket('unit-test-key', { ...fields, sentRequestSha256: 'b'.repeat(64) });
-    await assert.rejects(routes.checkParseTicket(outdated), { code: 'BABEL_UPDATED', status: 409 });
-    assert.deepEqual(cancelled, ['resp_unit', 'resp_unit']);
-    assert.deepEqual(read, [], 'neither looks at the response');
+    await assert.rejects(routes.checkParseTicket(outdated), error => error.code === 'BABEL_UPDATED' && error.status === 409 && !error.ticketExpired);
+    const lateOutdated = signParseTicket('unit-test-key', { ...fields, startedAt: Date.now() - 21 * 60 * 1000, sentRequestSha256: 'b'.repeat(64) });
+    await assert.rejects(routes.checkParseTicket(lateOutdated), { code: 'BABEL_UPDATED', ticketExpired: true });
+    assert.deepEqual(cancelled, ['resp_unit', 'resp_unit', 'resp_unit']);
+    assert.deepEqual(read, [], 'none looks at the response');
 
     assert.deepEqual(await routes.checkParseTicket(ticket), { status: 'pending', ticket });
     await assert.rejects(routes.startParseTicket(fixture.sentence, fixture.framework, 'anthropic:claude-opus-5-5', { settings: {} }),

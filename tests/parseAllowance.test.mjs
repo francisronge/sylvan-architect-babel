@@ -145,3 +145,87 @@ test('the Redis store admits a parse in one script that checks every limit befor
   assert.match(script, /GET[\s\S]*return i[\s\S]*INCR[\s\S]*EXPIRE/, 'checks every key before changing any');
   assert.deepEqual([keyCount, ...rest], ['2', 'v', 'all', '5', '100', '172800']);
 });
+
+test('a failed parse gives the visitor their parse back but still counts toward the site total', async () => {
+  const allowance = createParseAllowance({ store: createMemoryCounterStore(), perVisitorPerDay: 2, totalPerDay: 4 });
+  assert.equal((await allowance.admitParse('203.0.113.1')).ok, true);
+  assert.equal((await allowance.admitParse('203.0.113.1')).ok, true);
+  assert.equal((await allowance.admitParse('203.0.113.1')).body.error.code, 'RATE_LIMITED_DAILY');
+  assert.equal(await allowance.refundParse('203.0.113.1'), 'refunded');
+  assert.equal((await allowance.admitParse('203.0.113.1')).ok, true, 'the refunded parse is the visitor\'s again');
+  assert.equal((await allowance.admitParse('203.0.113.2')).ok, true);
+  // Three parses for the first visitor and one for the second: the refund left the site total alone.
+  assert.equal((await allowance.admitParse('203.0.113.3')).body.error.code, 'DAILY_CAPACITY_REACHED');
+});
+
+test('a refund never takes a visitor below 0, and a once-key refunds only once', async () => {
+  const store = createMemoryCounterStore();
+  const allowance = createParseAllowance({ store, perVisitorPerDay: 1 });
+  assert.equal(await allowance.refundParse('203.0.113.1'), 'none', 'a visitor with no parses has nothing to give back');
+  assert.equal((await allowance.admitParse('203.0.113.1')).ok, true);
+  assert.equal((await allowance.admitParse('203.0.113.1')).ok, false, 'the early refund left nothing extra');
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'ticket-a' }), 'refunded');
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'ticket-a' }), 'already');
+  assert.equal((await allowance.admitParse('203.0.113.1')).ok, true);
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'ticket-a' }), 'already', 'a replayed ticket gives nothing back');
+  assert.equal((await allowance.admitParse('203.0.113.1')).ok, false);
+});
+
+test('the memory store gives back synchronously, so concurrent refunds of one ticket give back once', async () => {
+  const store = createMemoryCounterStore();
+  const allowance = createParseAllowance({ store, perVisitorPerDay: 5 });
+  for (let parse = 0; parse < 3; parse++) await allowance.admitParse('203.0.113.1');
+  const answers = await Promise.all(Array.from({ length: 10 }, () => allowance.refundParse('203.0.113.1', { onceKey: 't' })));
+  assert.deepEqual(answers.filter(answer => answer === 'refunded'), ['refunded']);
+  const unkeyed = await Promise.all(Array.from({ length: 10 }, () => allowance.refundParse('203.0.113.1')));
+  assert.equal(unkeyed.filter(answer => answer === 'refunded').length, 2, 'never below 0');
+  // A synchronous store answers within one turn: no other request can run between its check and its change.
+  let settled = false;
+  const pending = store.giveBack('k', 'once', 60).then(() => { settled = true; });
+  await null;
+  assert.equal(settled, true);
+  await pending;
+});
+
+test('the Redis store gives back in one script that sets the once-marker and takes one from the count together', async () => {
+  const sent = [];
+  const store = createRedisRestCounterStore({ url: 'https://redis.example', token: 'secret', fetchImpl: async (url, options) => {
+    sent.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ result: 1 }), { status: 200 });
+  } });
+  const allowance = createParseAllowance({ store, perVisitorPerDay: 5, now: () => Date.UTC(2026, 10, 5, 12) });
+  assert.equal(await allowance.refundParse('203.0.113.1', { onceKey: 'signed.ticket' }), 'refunded');
+  assert.equal(await allowance.refundParse('203.0.113.1'), 'refunded');
+  assert.equal(sent.length, 2, 'one request per refund');
+  const [[command, script, keyCount, key, marker, ttl], [, , plainCount, plainKey, ...plainRest]] = sent;
+  assert.equal(command, 'EVAL');
+  assert.match(script, /SET[\s\S]*NX[\s\S]*return -1[\s\S]*GET[\s\S]*<= 0[\s\S]*DECR/, 'the marker is set before the count is read and changed');
+  assert.doesNotMatch(script, /INCR|EXPIRE/, 'never touches another key or resets the count\'s expiry');
+  assert.equal(keyCount, '2');
+  assert.equal(key, `babel:parses:${Math.floor(Date.UTC(2026, 10, 5, 12) / DAY)}:${visitorKey('203.0.113.1')}`);
+  assert.match(marker, /^babel:refunded:[a-f0-9]{64}$/);
+  assert.doesNotMatch(marker, /ticket/, 'the store holds a hash of the ticket, not the ticket');
+  assert.ok(Number(ttl) > 20 * 60, 'the marker outlives a ticket');
+  assert.deepEqual([plainCount, plainKey], ['1', key], 'a refund without a once-key names only the count');
+  assert.equal(plainRest.length, 1);
+  assert.equal(sent.some(body => body.includes(`babel:parses:${Math.floor(Date.UTC(2026, 10, 5, 12) / DAY)}:all`)), false, 'the site total is never named');
+
+  for (const [result, expected] of [[0, 'none'], [-1, 'already']]) {
+    const answering = createRedisRestCounterStore({ url: 'https://r', token: 't',
+      fetchImpl: async () => new Response(JSON.stringify({ result }), { status: 200 }) });
+    assert.equal(await createParseAllowance({ store: answering, perVisitorPerDay: 5 }).refundParse('203.0.113.1', { onceKey: 'x' }), expected);
+  }
+  for (const fetchImpl of [
+    async () => { throw new TypeError('fetch failed'); },
+    async () => new Response('nope', { status: 500 }),
+    async () => new Response('not json', { status: 200 }),
+    async () => new Response(JSON.stringify({ error: 'NOSCRIPT' }), { status: 200 })
+  ]) {
+    const failing = createRedisRestCounterStore({ url: 'https://r', token: 't', fetchImpl });
+    await assert.rejects(failing.giveBack('k', 'm', 60), AllowanceUnavailableError);
+    assert.equal(await createParseAllowance({ store: failing, perVisitorPerDay: 5 }).refundParse('203.0.113.1'), 'unavailable',
+      'a failed refund is reported, never thrown');
+  }
+  const throwing = { shared: true, giveBack: async () => { throw new Error('bug'); } };
+  assert.equal(await createParseAllowance({ store: throwing, perVisitorPerDay: 5 }).refundParse('203.0.113.1'), 'unavailable');
+});

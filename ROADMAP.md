@@ -389,7 +389,10 @@ the next tranche or a hosted account.
    the whole site 100 a day (Francis, 5 Nov 2026: "You can build it with 5
    per visitor and 100 a day"), and each visitor 30 requests a minute,
    ticket checks included (`server/parseAllowance.js`). A refused parse
-   calls no provider. The hosted function counts in a shared Upstash Redis
+   calls no provider. A failed parse gives the visitor's parse back (once per
+   ticket) but still counts toward the site's 100, since the provider was
+   paid (Francis, 5 Nov 2026: "a failed parse shouldn't count against a
+   visitors 5"). The hosted function counts in a shared Upstash Redis
    store (`UPSTASH_REDIS_REST_URL` and `_TOKEN`, or the Vercel marketplace's
    `KV_REST_API_URL` and `_TOKEN`) and starts no parse without one, or when
    the store cannot answer. Before launch: add that store, and set a hard
