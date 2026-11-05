@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Archive, Clock3, FolderOpen, RotateCcw, Trash2 } from 'lucide-react';
 import type { TreeBankEntrySummary } from '../services/treeBankStore.ts';
 import TreeBankPreview from './TreeBankPreview';
@@ -23,10 +23,12 @@ interface TreeBankViewProps {
   onDelete: (entry: TreeBankEntrySummary) => void;
   /** What an empty Tree Bank tells the user to do. */
   emptyHint?: string;
+  /** Shown below the saved trees, such as public Babel's privacy link. */
+  footer?: ReactNode;
 }
 
 export function TreeBankView({ entries, loading, error, opening, onOpen, onDelete,
-  emptyHint = 'Parse a sentence in the Arboretum, then use "Save to Tree Bank" in the header.' }: TreeBankViewProps) {
+  emptyHint = 'Parse a sentence in the Arboretum, then use "Save to Tree Bank" in the header.', footer }: TreeBankViewProps) {
   const [visibleCount, setVisibleCount] = useState(TREE_BANK_PAGE_SIZE);
   const hiddenCount = Math.max(0, entries.length - visibleCount);
   return (
@@ -147,6 +149,7 @@ export function TreeBankView({ entries, loading, error, opening, onOpen, onDelet
           </button>
         </div>
       )}
+      {footer}
     </div>
   </div>
   );

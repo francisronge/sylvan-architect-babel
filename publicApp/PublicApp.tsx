@@ -34,6 +34,10 @@ import { PUBLIC_GENERATION } from './publicGeneration';
  */
 type Screen = 'input' | 'tree' | 'treeBank';
 
+// PRIVACY.md is the whole privacy notice; the app links to it from the Tree Bank
+// and takes no other space for it (Francis, 5 Nov 2026).
+const PRIVACY_URL = 'https://github.com/francisronge/sylvan-architect-babel/blob/main/PRIVACY.md';
+
 // A device with a precise pointer that can hover is the best available sign
 // of a keyboard; phones and tablets get no hint, and their browsers are
 // already all tree.
@@ -249,6 +253,14 @@ const PublicApp: React.FC = () => {
               entries={treeBank.entries} loading={treeBank.loading} error={treeBank.error}
               opening={treeBank.opening} onOpen={openTreeBankEntry} onDelete={treeBank.setPendingDelete}
               emptyHint=""
+              footer={(
+                <p className="text-center">
+                  <a href={PRIVACY_URL} target="_blank" rel="noreferrer"
+                    className="text-xs text-emerald-50/60 underline-offset-4 hover:text-emerald-50/80 hover:underline focus:outline-none focus-visible:text-emerald-50/80 focus-visible:underline">
+                    Privacy
+                  </a>
+                </p>
+              )}
             />
           </ViewErrorBoundary>
         ) : (

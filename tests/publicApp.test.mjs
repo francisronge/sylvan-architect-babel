@@ -107,3 +107,13 @@ test('the waiting screen shows the sentence, the tree and one line, with no time
   assert.ok(!/\d:\d\d/.test(html.replace(/<[^>]*>/g, ' ')), 'no timer');
   assert.ok(!html.includes('Synthesizing'), 'the old loading line is gone');
 });
+
+test('the Tree Bank links to the privacy notice in this repository, and the first screen does not', async () => {
+  const { readFile, access } = await import('node:fs/promises');
+  const source = await readFile(path.join(root, 'publicApp/PublicApp.tsx'), 'utf8');
+  const url = source.match(/const PRIVACY_URL = '([^']+)'/)?.[1];
+  assert.equal(url, 'https://github.com/francisronge/sylvan-architect-babel/blob/main/PRIVACY.md');
+  await access(path.join(root, 'PRIVACY.md'));
+  assert.equal((source.match(/PRIVACY_URL/g) ?? []).length, 2, 'declared once and used once, in the Tree Bank footer');
+  assert.match(source, /<TreeBankView[\s\S]*?footer=\{[\s\S]*?href=\{PRIVACY_URL\}[\s\S]*?\/>/);
+});
