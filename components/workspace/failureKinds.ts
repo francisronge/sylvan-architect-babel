@@ -28,24 +28,16 @@ export interface FailureCopy {
   actions: readonly FailureAction[];
 }
 
-const LUCK = "That's the luck of the draw: the same sentence usually works on another try.";
 const BROKEN_CODES = new Set(['BAD_MODEL_RESPONSE', 'INCOMPLETE_GENERATION', 'PARSE_FAILED', 'INSPECTION_LIMIT']);
 const MODEL_OUTPUT_CLASSES = new Set([
   'transport_serialization', 'incomplete_generation', 'contract_misunderstanding', 'linguistic_failure', 'deterministic_engine_failure'
 ]);
 
-const brokenExplanation = (error: GenerationError) => {
-  const ruleId = error.failure?.ruleId ?? '';
-  const failureClass = error.failure?.class;
-  // Public Babel's route fails a tree whose words are the sentence's in another
-  // order (SPELLOUT_WORD_ORDER); a mismatch beyond that leaves out or adds a word.
-  if (ruleId === 'SPELLOUT_WORD_ORDER') return `The model's tree puts some of your sentence's words in the wrong order. ${LUCK}`;
-  if (ruleId === 'SPELLOUT_MISMATCH') return `The model's tree leaves out a word of your sentence, or adds one. ${LUCK}`;
-  if (error.code === 'INCOMPLETE_GENERATION' || failureClass === 'incomplete_generation' || failureClass === 'transport_serialization') {
-    return `The model stopped before its analysis was finished. ${LUCK}`;
-  }
-  return `The pieces of the model's analysis don't fit together. ${LUCK}`;
-};
+// One plain line for every way the model's analysis can be unusable (words
+// missing or out of order, output cut off or malformed, pieces that do not fit):
+// a student needs to know it was the model's slip and that retrying helps, not
+// which rule caught it (Francis, 5 Nov 2026).
+const BROKEN_EXPLANATION = "Something in the model's analysis didn't hold together, so Babel can't draw it. It happens now and then; the same sentence usually works on another try.";
 
 const sentenceExplanation = (error: GenerationError) => {
   const ruleId = error.failure?.ruleId;
@@ -70,7 +62,7 @@ export const describeFailure = (error: GenerationError): FailureCopy => {
     return { kind: 'sentence', headline: "Babel couldn't send this sentence.", explanation: sentenceExplanation(error), actions: ['edit'] };
   }
   if (code !== 'INVALID_REQUEST' && (BROKEN_CODES.has(code) || (error.failure && MODEL_OUTPUT_CLASSES.has(error.failure.class)))) {
-    return { kind: 'broken', headline: 'This tree came out broken.', explanation: brokenExplanation(error), actions: ['retry', 'edit'] };
+    return { kind: 'broken', headline: 'This tree came out broken.', explanation: BROKEN_EXPLANATION, actions: ['retry', 'edit'] };
   }
   if (code === 'PROVIDER_TIMEOUT' || code === 'PROVIDER_DEADLINE_EXCEEDED') {
     return { kind: 'noAnswer', headline: 'No answer came back.',

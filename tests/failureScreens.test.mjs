@@ -25,12 +25,12 @@ const failure = (cls, ruleId) => ({ class: cls, ruleId, stageIndex: null, fieldP
 test('each failure Babel can send shows the screen for what happened, with the action that can help', () => {
   const cases = [
     // The model wrote an analysis Babel cannot use: another try usually works.
-    [{ code: 'BAD_MODEL_RESPONSE', failure: failure('linguistic_failure', 'SPELLOUT_MISMATCH') }, 'broken', /leaves out a word of your sentence, or adds one/, ['retry', 'edit']],
-    [{ code: 'BAD_MODEL_RESPONSE', failure: failure('linguistic_failure', 'SPELLOUT_WORD_ORDER') }, 'broken', /words in the wrong order/, ['retry', 'edit']],
-    [{ code: 'BAD_MODEL_RESPONSE', failure: failure('linguistic_failure', 'SPELLOUT_GROUP_SPLIT') }, 'broken', /don't fit together/, ['retry', 'edit']],
-    [{ code: 'INCOMPLETE_GENERATION', failure: failure('incomplete_generation', 'GENERATION_COMPLETED_STOP_FAILURE') }, 'broken', /stopped before/, ['retry', 'edit']],
-    [{ code: 'BAD_MODEL_RESPONSE', failure: failure('transport_serialization', 'TRANSPORT_JSON_DELIMITERS_BALANCED') }, 'broken', /stopped before/, ['retry', 'edit']],
-    [{ code: 'BAD_MODEL_RESPONSE', failure: failure('contract_misunderstanding', 'STAGE_WORKSPACE_ROOTS') }, 'broken', /don't fit together/, ['retry', 'edit']],
+    [{ code: 'BAD_MODEL_RESPONSE', failure: failure('linguistic_failure', 'SPELLOUT_MISMATCH') }, 'broken', /didn't hold together/, ['retry', 'edit']],
+    [{ code: 'BAD_MODEL_RESPONSE', failure: failure('linguistic_failure', 'SPELLOUT_WORD_ORDER') }, 'broken', /didn't hold together/, ['retry', 'edit']],
+    [{ code: 'BAD_MODEL_RESPONSE', failure: failure('linguistic_failure', 'SPELLOUT_GROUP_SPLIT') }, 'broken', /didn't hold together/, ['retry', 'edit']],
+    [{ code: 'INCOMPLETE_GENERATION', failure: failure('incomplete_generation', 'GENERATION_COMPLETED_STOP_FAILURE') }, 'broken', /didn't hold together/, ['retry', 'edit']],
+    [{ code: 'BAD_MODEL_RESPONSE', failure: failure('transport_serialization', 'TRANSPORT_JSON_DELIMITERS_BALANCED') }, 'broken', /didn't hold together/, ['retry', 'edit']],
+    [{ code: 'BAD_MODEL_RESPONSE', failure: failure('contract_misunderstanding', 'STAGE_WORKSPACE_ROOTS') }, 'broken', /didn't hold together/, ['retry', 'edit']],
     // No answer: another try usually works.
     [{ code: 'PROVIDER_TIMEOUT' }, 'noAnswer', /took too long/, ['retry', 'edit']],
     [{ code: 'PROVIDER_UNAVAILABLE' }, 'noAnswer', /busy, or the connection dropped/, ['retry', 'edit']],

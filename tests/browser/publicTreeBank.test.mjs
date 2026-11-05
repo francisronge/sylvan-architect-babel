@@ -173,7 +173,7 @@ test('a failed parse shows its failure screen; Try again parses the same sentenc
     // The model's analysis was unusable: the broken tree, and another try.
     const screen = page.locator('[data-babel-failure-screen]');
     await page.locator('[data-babel-failure-screen="broken"]').waitFor();
-    assert.match(await screen.innerText(), /This tree came out broken\.[\s\S]*leaves out a word of your sentence/);
+    assert.match(await screen.innerText(), /This tree came out broken\.[\s\S]*didn't hold together/);
     assert.ok(!(await screen.innerText()).includes('scripted provider text'), 'the provider text never shows');
     assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).count(), 0, 'the screen replaces the sentence bar');
     const retry = page.getByRole('button', { name: 'Try again', exact: true });
