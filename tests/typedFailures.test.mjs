@@ -22,6 +22,10 @@ import {
   MAX_RAW_OUTPUT_BYTES,
   withFailureDetails
 } from '../server/babelParser/validationErrors.js';
+import { loadFormatter } from './helpers/parseApiFormatter.mjs';
+
+// The route code reads NODE_ENV on each call; the formatter reads it once at load.
+const formatProductionError = await loadFormatter('production');
 
 const clone = (value) => structuredClone(value);
 
@@ -443,14 +447,21 @@ test('native OpenAI quota failures reach the public error without a replacement 
 
           await assert.rejects(() => routes.parseSentenceWithResearchModel('Mia', 'xbar', 'openai:gpt-6-astra'), (error) => {
             assert.equal(error.details.providerErrorCode, code);
-            const { status, body } = formatApiError(error);
+            // The provider's error body reaches the internal error and receipt...
+            assert.equal(Buffer.from(error.rawOutput.data, 'base64').toString('utf8'), rawResponse);
+            assert.equal(Buffer.from(error.details.generationRecord.rawProviderResponse.data, 'base64').toString('utf8'), rawResponse);
+            const { status, body } = formatProductionError(error);
             assert.equal(status, 429);
             assert.equal(body.error.code, 'PROVIDER_QUOTA');
             assert.match(body.error.message, code === 'credit_balance_exhausted' ? /credits are exhausted/ : /quota is exhausted/);
             assert.equal(body.error.failure.class, 'transport_serialization');
-            assert.equal(Buffer.from(body.error.rawOutput.data, 'base64').toString('utf8'), rawResponse);
+            // ...but production sends only Babel's classification of it.
+            assert.equal(body.error.failure.offendingValue, null);
+            assert.equal('rawOutput' in body.error, false);
+            assert.equal('details' in body.error, false);
+            assert.equal(JSON.stringify(body).includes('remaining allowance'), false);
             const receipt = body.error.generationRecord;
-            assert.equal(Buffer.from(receipt.rawProviderResponse.data, 'base64').toString('utf8'), rawResponse);
+            assert.equal('rawProviderResponse' in receipt, false);
             assert.equal(receipt.outcome.attempts.length, 1);
             assert.equal(receipt.outcome.attempts[0].outcome, 'terminal_failure');
             assert.equal(receipt.outcome.attempts[0].retryStopReason, 'not_retryable');
@@ -491,12 +502,19 @@ test('native OpenAI generic failed and cancelled responses remain incomplete gen
         });
 
         await assert.rejects(() => routes.parseSentenceWithResearchModel('Mia', 'xbar', 'openai:gpt-6-astra'), (error) => {
-          const result = formatApiError(error);
+          // A stopped response carries no output, only the provider's error envelope.
+          assert.equal(Buffer.from(error.rawOutput.data, 'base64').toString('utf8'), rawResponse);
+          const result = formatProductionError(error);
           assert.equal(result.status, 502);
           assert.equal(result.body.error.code, 'INCOMPLETE_GENERATION');
           assert.equal(result.body.error.message, `OpenAI completed with ${status.toUpperCase()} and no valid generation.`);
           assert.equal(result.body.error.failure.ruleId, 'GENERATION_COMPLETED_STOP_FAILURE');
-          assert.equal(Buffer.from(result.body.error.rawOutput.data, 'base64').toString('utf8'), rawResponse);
+          // Production withholds that envelope and the provider's wording.
+          assert.equal(result.body.error.failure.offendingValue, null);
+          assert.equal('rawOutput' in result.body.error, false);
+          assert.equal('details' in result.body.error, false);
+          assert.equal('rawProviderResponse' in result.body.error.generationRecord, false);
+          assert.equal(JSON.stringify(result.body).includes('Response stopped.'), false);
           assert.equal(result.body.error.generationRecord.outcome.attempts.length, 1);
           return true;
         });
@@ -561,12 +579,14 @@ test('a response nested too deeply is a typed contract failure on the parse rout
       generateOpenAI: async () => ({ text: rawText, status: 'completed', candidates: [{ finishReason: 'COMPLETED' }] })
     });
     await assert.rejects(() => routes.parseSentenceWithResearchModel('Mia', 'xbar', 'openai:gpt-6-astra'), (error) => {
-      const { status, body } = formatApiError(error);
+      const { status, body } = formatProductionError(error);
       assert.equal(status, 502);
       assert.equal(body.error.code, 'BAD_MODEL_RESPONSE');
       assert.equal(body.error.failure.class, FAILURE_CLASSES.CONTRACT_MISUNDERSTANDING);
       assert.equal(body.error.failure.ruleId, 'PAYLOAD_NESTING_DEPTH');
+      // A completed generation's own output is kept in production; internal details are not.
       assert.equal(Buffer.from(body.error.rawOutput.data, 'base64').toString('utf8'), rawText);
+      assert.equal('details' in body.error, false);
       return true;
     });
   } finally {
