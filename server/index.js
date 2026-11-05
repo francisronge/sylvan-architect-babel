@@ -8,7 +8,7 @@ import helmet from 'helmet';
 
 import { trackProviderCalls } from './babelParser/providerTransport.js';
 import { createDailyParseQuota } from './dailyParseQuota.js';
-import { formatApiError, parseFromRequest, parseRequestKind } from './parseApi.js';
+import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly } from './parseApi.js';
 import {
   MALFORMED_JSON,
   MAX_PARSE_BODY_BYTES,
@@ -58,6 +58,8 @@ const accessPolicy = readParseAccessPolicy(process.env, {
   localPageOrigin: isLocalRuntime
 });
 const localHostPolicy = isLocalRuntime ? readLocalHostPolicy(process.env) : null;
+// A deployed server sends only public Babel's request; the local one keeps the internal app's menus.
+const publicRequestOnly = readPublicRequestOnly(process.env, { deployed: !isLocalRuntime });
 const parseRateLimitPerMinute = toPositiveInt(process.env.BABEL_PARSE_RATE_LIMIT_PER_MINUTE, 30);
 const parseDailyLimitPerIp = toPositiveInt(process.env.BABEL_PARSE_DAILY_LIMIT_PER_IP, 1200);
 const maxInFlightParses = toPositiveInt(process.env.BABEL_MAX_IN_FLIGHT_PARSES, 8);
@@ -123,7 +125,7 @@ app.all('/api/parse', (req, res, next) => {
 app.post('/api/parse', parseLimiter, enforceParseRequestSecurity, async (req, res) => {
   if (parseRequestKind(req.body) === 'check') {
     try {
-      const result = await parseFromRequest(req, res);
+      const result = await parseFromRequest(req, res, undefined, { publicRequestOnly });
       if (!res.destroyed) res.status(200).json(result);
     } catch (error) {
       if (res.destroyed) return;
@@ -150,7 +152,7 @@ app.post('/api/parse', parseLimiter, enforceParseRequestSecurity, async (req, re
   dailyQuota.record(ip);
   inFlightParses += 1;
   // The slot stays taken after the response ends until every provider call settles.
-  const generation = trackProviderCalls(() => parseFromRequest(req, res));
+  const generation = trackProviderCalls(() => parseFromRequest(req, res, undefined, { publicRequestOnly }));
   generation.settled.then(() => { inFlightParses -= 1; });
 
   try {

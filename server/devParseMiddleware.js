@@ -1,4 +1,4 @@
-import { formatApiError, parseFromBody, parseFromRequest } from './parseApi.js';
+import { formatApiError, parseFromBody, parseFromRequest, readPublicRequestOnly } from './parseApi.js';
 import {
   MALFORMED_JSON,
   MAX_PARSE_BODY_BYTES,
@@ -44,6 +44,7 @@ export const createDevParseMiddleware = ({ env, parse = parseFromBody }) => {
     localPageOrigin: true
   });
   const hostPolicy = readLocalHostPolicy(env);
+  const publicRequestOnly = readPublicRequestOnly(env, { deployed: false });
   const rateMap = new Map();
 
   return async (req, res, next) => {
@@ -100,7 +101,7 @@ export const createDevParseMiddleware = ({ env, parse = parseFromBody }) => {
     }
 
     try {
-      send({ status: 200, body: await parseFromRequest(req, res, parse) });
+      send({ status: 200, body: await parseFromRequest(req, res, parse, { publicRequestOnly }) });
     } catch (error) {
       if (res.destroyed) return;
       const formatted = formatApiError(error);
