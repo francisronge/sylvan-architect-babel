@@ -193,7 +193,9 @@ const PublicApp: React.FC = () => {
     });
   };
 
+  // The logo returns to the sentence box, leaving any failure screen behind.
   const goHome = () => {
+    dismissFailure();
     setScreen('input');
     window.requestAnimationFrame(() => sentenceInputRef.current?.focus());
   };

@@ -52,7 +52,9 @@ export const describeFailure = (error: GenerationError): FailureCopy => {
     return { kind: 'visitorLimit', headline: "That's all your trees for today.",
       explanation: "They're saved in your Tree Bank. You can grow more tomorrow.", actions: ['treeBank'] };
   }
-  if (code === 'DAILY_CAPACITY_REACHED' || code === 'PROVIDER_QUOTA') {
+  // Only Babel's own daily limit means tomorrow. A provider's 429 (PROVIDER_QUOTA)
+  // is usually throttling that a short wait clears, so it reads as no answer.
+  if (code === 'DAILY_CAPACITY_REACHED') {
     return { kind: 'siteLimit', headline: 'Babel has grown all its trees for today.',
       explanation: 'It makes a set number each day. Come back tomorrow; your Tree Bank is still here.', actions: ['treeBank'] };
   }

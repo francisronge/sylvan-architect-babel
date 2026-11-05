@@ -163,7 +163,8 @@ test('a failed parse shows its failure screen; Try again parses the same sentenc
         failure: { class: 'linguistic_failure', ruleId: 'SPELLOUT_MISMATCH', stageIndex: null, fieldPath: '$', offendingValue: null } } } },
       { status: 200, json: bundle },
       { status: 503, json: { error: { code: 'PROVIDER_UNAVAILABLE', message: 'scripted' } } },
-      { status: 429, json: { error: { code: 'RATE_LIMITED_DAILY', message: 'scripted' } } }
+      { status: 429, json: { error: { code: 'RATE_LIMITED_DAILY', message: 'scripted' } } },
+      { status: 429, json: { error: { code: 'DAILY_CAPACITY_REACHED', message: 'scripted' } } }
     ];
     await context.route('**/api/parse', route => { sent.push(route.request().postDataJSON()); return route.fulfill(replies.shift()); });
     await page.goto(server.url);
@@ -204,7 +205,15 @@ test('a failed parse shows its failure screen; Try again parses the same sentenc
     await page.getByRole('button', { name: 'Babel, parse a new sentence' }).click();
     await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill('a'.repeat(700));
     assert.equal((await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue()).length, 600);
-    assert.equal(sent.length, 4);
+
+    // The logo leaves any failure screen, even one without Edit sentence.
+    await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill('Ola ran.');
+    await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
+    await page.locator('[data-babel-failure-screen="siteLimit"]').waitFor();
+    await page.getByRole('button', { name: 'Babel, parse a new sentence' }).click();
+    assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue(), 'Ola ran.');
+    assert.equal(await screen.count(), 0);
+    assert.equal(sent.length, 5);
     assert.deepEqual(errors, []);
     await context.close();
   } finally { await browser.close(); await server.close(); }

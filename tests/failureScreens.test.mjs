@@ -42,7 +42,8 @@ test('each failure Babel can send shows the screen for what happened, with the a
     // Today's parses are used up: only tomorrow helps.
     [{ code: 'RATE_LIMITED_DAILY' }, 'visitorLimit', /Tree Bank/, ['treeBank']],
     [{ code: 'DAILY_CAPACITY_REACHED' }, 'siteLimit', /Come back tomorrow/, ['treeBank']],
-    [{ code: 'PROVIDER_QUOTA' }, 'siteLimit', /Come back tomorrow/, ['treeBank']],
+    // A provider's 429 is usually throttling a short wait clears, not Babel's daily limit.
+    [{ code: 'PROVIDER_QUOTA' }, 'noAnswer', /Wait a minute and try again/, ['retry', 'edit']],
     // Babel would not send the sentence.
     [{ code: 'INVALID_REQUEST', failure: failure('transport_serialization', 'REQUEST_SENTENCE_LENGTH') }, 'sentence', /600 characters/, ['edit']]
   ];
