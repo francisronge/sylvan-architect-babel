@@ -172,7 +172,9 @@ A pull request runs only the checks its files can affect
   the layout fingerprint), plus `fixtures/`, `public/`, dependency locks,
   build configuration and the workflows. A test helper counts only when a
   Replay check imports or names it: `tests/helpers/uiContrastPairs.mjs` is
-  read by an offline test alone and runs none of them.
+  read by an offline test alone and runs none of them. Type-only imports are
+  not followed, since TypeScript erases them: `types.ts` and `replay/types.ts`
+  hold no code, so a change there runs typecheck and the offline tests only.
 - Anything else runs everything. So do nightly and manual runs.
 
 Every checkout leaves out `docs/research/assets` (research screenshots, about

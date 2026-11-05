@@ -8,14 +8,26 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.jsx', '.json', '.css'];
+const FROM_IMPORT = /\b(?:import|export)\b[^'"`;]*?\bfrom\s*['"]([^'"]+)['"]/g;
 const SPECIFIER_PATTERNS = [
-  /\b(?:import|export)\b[^'"`;]*?\bfrom\s*['"]([^'"]+)['"]/g,
+  FROM_IMPORT,
   /\bimport\s*['"]([^'"]+)['"]/g,
   /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
   /\brequire\(\s*['"]([^'"]+)['"]\s*\)/g,
   /\bnew URL\(\s*['"]([^'"]+)['"]\s*,\s*import\.meta\.url/g,
   /@import\s+(?:url\()?['"]([^'"]+)['"]/g
 ];
+
+// A TypeScript import or re-export that names only types (`import type …`,
+// `export type …`, or a brace list whose every name carries `type`) is erased
+// before anything runs, so the file it names contributes nothing at run time.
+// A mixed list (`import { type A, b }`) or a default import stays a value import.
+const TYPE_ONLY_CLAUSE = /^(?:import|export)\s*\{([^}]*)\}/;
+export function isTypeOnlyImport(statement) {
+  if (/^(?:import|export)\s+type\b/.test(statement)) return true;
+  const names = TYPE_ONLY_CLAUSE.exec(statement)?.[1].split(',').map(name => name.trim()).filter(Boolean);
+  return Boolean(names?.length) && names.every(name => /^type\s+\S/.test(name));
+}
 
 // Scripts also load modules by root-relative name, for example the list of
 // entry modules scripts/replayCorpusSnapshot.mjs imports from each checkout.
@@ -40,8 +52,10 @@ function resolveSpecifier(from, specifier, root) {
   return resolveFrom(path.dirname(from), specifier) ?? resolveFrom(root, specifier);
 }
 
-/** Repository-relative paths, with "/" separators, of every file the entries reach. */
-export function importClosure(entries, root) {
+/** Repository-relative paths, with "/" separators, of every file the entries
+ * reach. With `runtimeOnly`, type-only imports are not followed, so the closure
+ * is what runs; by default every import counts. */
+export function importClosure(entries, root, { runtimeOnly = false } = {}) {
   const seen = new Set();
   const queue = entries.map(file => path.join(root, file));
   while (queue.length) {
@@ -51,6 +65,7 @@ export function importClosure(entries, root) {
     const source = fs.readFileSync(file, 'utf8');
     for (const pattern of SPECIFIER_PATTERNS) {
       for (const match of source.matchAll(pattern)) {
+        if (runtimeOnly && pattern === FROM_IMPORT && isTypeOnlyImport(match[0])) continue;
         const resolved = resolveSpecifier(file, match[1], root);
         if (resolved && !resolved.includes(`${path.sep}node_modules${path.sep}`)) queue.push(resolved);
       }

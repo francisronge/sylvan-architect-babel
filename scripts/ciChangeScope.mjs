@@ -19,9 +19,12 @@
 // points (scripts/importGraph.mjs), the files their package.json commands
 // name (the exception lists and the layout fingerprint), plus the inputs no
 // import names (fixtures, dependency locks, build configuration and these
-// rules themselves). Tailwind scans components for class names, so a screen
-// change can alter the generated stylesheet the renderer page also loads;
-// that changes no Replay geometry and is not counted.
+// rules themselves). Type-only imports are not followed: TypeScript and
+// esbuild erase them, so a file reached only through them (types.ts) runs no
+// code in any check; typecheck, which every change runs, covers it. Tailwind
+// scans components for class names, so a screen change can alter the
+// generated stylesheet the renderer page also loads; that changes no Replay
+// geometry and is not counted.
 //
 // Usage:
 //   node scripts/ciChangeScope.mjs --files <file> [--github-output]
@@ -81,7 +84,7 @@ export function replayCommandInputs(root = repoRoot) {
   return inputs;
 }
 
-export const replaySurface = (root = repoRoot) => new Set([...importClosure(REPLAY_ENTRY_POINTS, root), ...replayCommandInputs(root)]);
+export const replaySurface = (root = repoRoot) => new Set([...importClosure(REPLAY_ENTRY_POINTS, root, { runtimeOnly: true }), ...replayCommandInputs(root)]);
 
 const SOURCE_FILE = /\.(?:mjs|cjs|js|ts|tsx)$/;
 const MARKDOWN_NAME = /['"`]([\w./-]*\.md)['"`]/g;

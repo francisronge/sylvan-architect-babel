@@ -1,10 +1,48 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, it } from 'node:test';
 import { changeScope, replaySurface, replayCommandInputs, REPLAY_ENTRY_POINTS } from '../scripts/ciChangeScope.mjs';
+import { importClosure, isTypeOnlyImport } from '../scripts/importGraph.mjs';
 
 describe('CI change scope', () => {
   const surface = replaySurface();
+
+  it('does not follow type-only imports, which run no code', () => {
+    for (const statement of ["import type { A } from './a'", "import type * as ns from './a'", "import type A from './a'",
+      "export type { A } from './a'", "import { type A, type B } from './a'", "export { type A } from './a'", "import {\n  type A,\n} from './a'"]) {
+      assert.equal(isTypeOnlyImport(statement), true, statement);
+    }
+    for (const statement of ["import { A } from './a'", "import { type A, b } from './a'", "import A, { type B } from './a'",
+      "import * as ns from './a'", "export * from './a'", "export { A } from './a'", "import { type } from './a'", "import './a'"]) {
+      assert.equal(isTypeOnlyImport(statement), false, statement);
+    }
+    // TypeScript erases these imports only while tsconfig keeps its default
+    // module syntax; verbatimModuleSyntax or preserveValueImports would keep
+    // `import { type A } from './a'` as a side-effect import of './a'.
+    const { compilerOptions } = JSON.parse(fs.readFileSync('tsconfig.json', 'utf8'));
+    assert.equal(compilerOptions.verbatimModuleSyntax, undefined);
+    assert.equal(compilerOptions.preserveValueImports, undefined);
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'import-graph-'));
+    try {
+      fs.writeFileSync(path.join(root, 'entry.ts'), "import type { A } from './typeOnly.ts';\nimport { type B } from './inlineTypeOnly.ts';\nimport { type C, d } from './mixed.ts';\nimport { e } from './value.ts';\nexport type { F } from './reexportedType.ts';\n");
+      for (const file of ['typeOnly', 'inlineTypeOnly', 'mixed', 'value', 'reexportedType']) fs.writeFileSync(path.join(root, `${file}.ts`), 'export {};\n');
+      assert.deepEqual([...importClosure(['entry.ts'], root)].sort(), ['entry.ts', 'inlineTypeOnly.ts', 'mixed.ts', 'reexportedType.ts', 'typeOnly.ts', 'value.ts']);
+      assert.deepEqual([...importClosure(['entry.ts'], root, { runtimeOnly: true })].sort(), ['entry.ts', 'mixed.ts', 'value.ts']);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+    // The parse contract and the Replay plan types hold no code; the Replay
+    // checks reach them through type-only imports alone, so a change there
+    // is covered by typecheck and the offline tests, not by the Replay jobs.
+    for (const file of ['types.ts', 'replay/types.ts', 'relationLinks.ts']) {
+      assert.ok(!importClosure(REPLAY_ENTRY_POINTS, '.', { runtimeOnly: true }).has(file), `${file} is reached only through type-only imports`);
+      assert.ok(importClosure(REPLAY_ENTRY_POINTS, '.').has(file), `${file} is reached when type-only imports count`);
+      assert.doesNotMatch(fs.readFileSync(file, 'utf8'), /^export\s+(?:const|let|var|function|class|enum|default|async)\b/m, `${file} holds no code`);
+    }
+    assert.deepEqual(changeScope(['types.ts', 'publicApp/PublicApp.tsx']), { markdownOnly: false, replay: false, replayFiles: [] });
+  });
 
   it('follows the Replay checks into the engine, renderer and their workers', () => {
     for (const file of ['replay/replayCompiler.ts', 'replay/replay.worker.ts', 'replay/plaqueLayout.worker.ts',
