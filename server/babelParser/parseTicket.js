@@ -56,6 +56,8 @@ export const readParseTicket = (providerKey, ticket) => {
   if (!fields || typeof fields !== 'object' || fields.v !== PARSE_TICKET_VERSION) return null;
   const { v: _version, ...rest } = fields;
   const names = Object.keys(rest);
-  if (names.length !== Object.keys(FIELDS).length || !names.every(name => FIELDS[name]?.(rest[name]))) return null;
+  // Only the ticket's own field names count; an inherited object member is not one.
+  if (names.length !== Object.keys(FIELDS).length
+    || !names.every(name => Object.hasOwn(FIELDS, name) && FIELDS[name](rest[name]))) return null;
   return rest;
 };
