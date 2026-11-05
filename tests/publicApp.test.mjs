@@ -117,3 +117,9 @@ test('the Tree Bank links to the privacy notice in this repository, and the firs
   assert.equal((source.match(/PRIVACY_URL/g) ?? []).length, 2, 'declared once and used once, in the Tree Bank footer');
   assert.match(source, /<TreeBankView[\s\S]*?footer=\{[\s\S]*?href=\{PRIVACY_URL\}[\s\S]*?\/>/);
 });
+
+test('Vercel builds public Babel, never the internal app with its research controls', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const vercel = JSON.parse(await readFile(path.join(root, 'vercel.json'), 'utf8'));
+  assert.equal(vercel.buildCommand, 'npm run build:public');
+});

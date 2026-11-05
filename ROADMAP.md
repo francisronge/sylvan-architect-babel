@@ -31,10 +31,11 @@ are not.
    and limits parses to 5 per visitor and 100 in
    total a day (Program 5, item 4). Requests that outlive Vercel's 300 s cap
    are done: public Babel starts a background parse and checks back (parse
-   tickets, below). Left for deployment: the shared counter store and the
-   OpenAI hard spend cap (Program 5, item 4).
-4. **Hosting and the Generation Archive**: the checklist in Program 5 and the
-   archive in Program 6A.
+   tickets, below). The shared counter store and the OpenAI spend limit
+   are in place (Program 5, item 4).
+4. **Hosting and the Generation Archive**: Babel stays on Vercel, which builds
+   public Babel (Program 5, item 2); what is left is the archive (Program 6A)
+   and the first deployment.
 5. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed. On 2026-10-24 the claim
    option had not yet appeared in Billing. Spend only those credits.
@@ -395,11 +396,11 @@ the next tranche or a hosted account.
    Node 24 is already selected in the package and CI. The browser features the
    code requires are listed in README (Supported browsers) and checked before
    the app loads.
-2. Choose hosting, storage, and operations vendors after measuring the public
-   model's cost, expected traffic, archive volume, privacy requirements, and
-   recovery needs. Do not lock Babel to a vendor before those facts exist.
-   The Vercel production deployment is paused on purpose until Babel is
-   ready to ship (Francis, 3 Nov 2026).
+2. Babel is hosted on Vercel (Francis, 5 Nov 2026: "Why wouldn't we stay with
+   Vercel??"), and Vercel builds public Babel (`npm run build:public` in
+   `vercel.json`). The production deployment is paused on purpose until Babel
+   is ready to ship (Francis, 3 Nov 2026). Choose the Generation Archive's
+   storage when it is built.
 3. Keep secrets server-side, preserve provider request shapes, and add abuse
    controls appropriate to the selected host.
 4. The public launch direction is anonymous generation without an account and
@@ -415,9 +416,11 @@ the next tranche or a hosted account.
    visitors 5"). The hosted function counts in a shared Upstash Redis
    store (`UPSTASH_REDIS_REST_URL` and `_TOKEN`, or the Vercel marketplace's
    `KV_REST_API_URL` and `_TOKEN`) and starts no parse without one, or when
-   the store cannot answer. Before launch: add that store, and set a hard
-   monthly spend limit on Babel's OpenAI project ($100 suggested to start),
-   which stops spending whatever the server does.
+   the store cannot answer. The store is `babel-parse-limits`, Upstash Redis
+   through the Vercel marketplace, connected to every environment of the
+   Vercel project (5 Nov 2026). Babel's OpenAI project has a hard $100 monthly
+   spend limit (Francis, 5 Nov 2026), which stops spending whatever the server
+   does.
 5. The public deployment has no research route. If the research workbench is
    ever hosted, only Francis, or the few people he gives access to, can reach
    it, and anonymous traffic never reaches experimental provider spending.
