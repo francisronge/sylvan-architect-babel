@@ -8,7 +8,7 @@ import helmet from 'helmet';
 
 import { trackProviderCalls } from './babelParser/providerTransport.js';
 import { createMemoryCounterStore, createParseAllowance, readCounterStore, readParseAllowanceLimits } from './parseAllowance.js';
-import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, validateParseRequest } from './parseApi.js';
+import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, refundsFailedParse, validateParseRequest } from './parseApi.js';
 import {
   MALFORMED_JSON,
   MAX_PARSE_BODY_BYTES,
@@ -73,6 +73,14 @@ let inFlightParses = 0;
 
 const getClientIp = (req) => String(req.ip || req.socket?.remoteAddress || 'unknown');
 
+// A failed parse gives the visitor's parse back before its failure is sent;
+// a store that cannot is logged and the failure sent unchanged.
+const refundFailedParse = async (req, kind, error) => {
+  if (!refundsFailedParse(kind, error)) return;
+  const refund = await parseAllowance.refundParse(getClientIp(req), kind === 'check' ? { onceKey: req.body.ticket } : {});
+  if (refund === 'unavailable') console.error('[api/parse] could not give back a failed parse: the counter store did not answer');
+};
+
 // `trust proxy` decides whether req.protocol reads a forwarded protocol.
 const enforceParseRequestSecurity = (req, res, next) => {
   const rejected = checkParseRequestAccess(accessPolicy, {
@@ -135,6 +143,8 @@ app.post('/api/parse', parseLimiter, enforceParseRequestSecurity, async (req, re
       if (!res.destroyed) res.status(200).json(result);
     } catch (error) {
       if (res.destroyed) return;
+      await refundFailedParse(req, 'check', error);
+      if (res.destroyed) return;
       const formatted = formatApiError(error);
       if (formatted.status >= 500 && formatted.body?.error?.code !== 'CHECK_UNAVAILABLE') {
         console.error('[api/parse] server error', describeParseServerFailure(error, formatted));
@@ -177,6 +187,8 @@ app.post('/api/parse', parseLimiter, enforceParseRequestSecurity, async (req, re
     const result = await generation.result;
     if (!res.destroyed) res.status(200).json(result);
   } catch (error) {
+    if (res.destroyed) return;
+    await refundFailedParse(req, parseRequestKind(req.body), error);
     if (res.destroyed) return;
     const formatted = formatApiError(error);
     if (formatted.status >= 500) {

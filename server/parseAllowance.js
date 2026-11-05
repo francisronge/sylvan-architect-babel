@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 
+import { PARSE_TICKET_LIFETIME_MS } from './babelParser/parseTicket.js';
+
 /**
  * Parse allowances: how many parses one visitor, and the whole site, may start
  * each UTC day, and how many requests of any kind one visitor may make each
@@ -11,6 +13,10 @@ import { createHash } from 'node:crypto';
  * no memory, so it needs a shared store (Upstash Redis over its REST API); see
  * `readCounterStore`. A store that cannot answer refuses the parse: spend
  * stays bounded when counting fails.
+ *
+ * A parse that fails gives the visitor's parse back but not the site's: the
+ * provider was paid either way, so the site total still bounds spend (Francis,
+ * 5 Nov 2026: "a failed parse shouldn't count against a visitors 5").
  */
 
 const DAY_MS = 86_400_000;
@@ -18,6 +24,8 @@ const MINUTE_MS = 60_000;
 // Day keys outlive their day so a count near midnight is never cut short.
 const DAY_KEY_SECONDS = 2 * 86_400;
 const MINUTE_KEY_SECONDS = 120;
+// A ticket's refund marker outlives every check that could still refund it.
+const REFUND_MARKER_SECONDS = 2 * Math.ceil(PARSE_TICKET_LIFETIME_MS / 1000);
 
 export const PUBLIC_PARSES_PER_VISITOR_PER_DAY = 5;
 export const PUBLIC_PARSES_PER_DAY = 100;
@@ -29,8 +37,24 @@ export class AllowanceUnavailableError extends Error {}
  * are kept, and a new key beyond that evicts the oldest, so memory and the
  * work per request stay bounded.
  */
-export const createMemoryCounterStore = ({ maxKeys = 50_000, now = Date.now } = {}) => {
+export const createMemoryCounterStore = ({ maxKeys = 50_000, maxMarkers = 50_000, now = Date.now } = {}) => {
   const counts = new Map();
+  // Once-only refund markers live apart from the counts, so the per-minute and
+  // daily keys that fill the counts can never push a live marker out and let a
+  // ticket refund twice. A marker leaves only when it expires; with every slot
+  // holding a live marker, a refund is refused rather than risked.
+  const markers = new Map();
+  const markOnce = (key, ttlSeconds, at) => {
+    const expiresAt = markers.get(key);
+    if (expiresAt !== undefined && expiresAt > at) return -1;
+    markers.delete(key);
+    if (markers.size >= maxMarkers) {
+      for (const [marker, until] of markers) if (until <= at) markers.delete(marker);
+      if (markers.size >= maxMarkers) return -2;
+    }
+    markers.set(key, at + ttlSeconds * 1000);
+    return 1;
+  };
   const current = (key, at) => { const entry = counts.get(key); return entry && entry.expiresAt > at ? entry : null; };
   // Synchronous, so a check and its change can never interleave with another request's.
   const add = (key, amount, ttlSeconds, at) => {
@@ -53,7 +77,22 @@ export const createMemoryCounterStore = ({ maxKeys = 50_000, now = Date.now } = 
       for (const key of keys) add(key, 1, ttlSeconds, at);
       return 0;
     },
-    get size() { return counts.size; }
+    // 1 when one was given back, 0 when the count was already 0, -1 when the
+    // once-key had already given one back, -2 when no marker could be kept.
+    // Synchronous, like `takeWithin`.
+    async giveBack(key, onceKey, onceTtlSeconds) {
+      const at = now();
+      if (onceKey) {
+        const marked = markOnce(onceKey, onceTtlSeconds, at);
+        if (marked !== 1) return marked;
+      }
+      const entry = current(key, at);
+      if (!entry || entry.count <= 0) return 0;
+      entry.count -= 1;
+      return 1;
+    },
+    get size() { return counts.size; },
+    get markerCount() { return markers.size; }
   };
 };
 
@@ -73,6 +112,14 @@ for _, key in ipairs(KEYS) do
   if redis.call('TTL', key) < 0 then redis.call('EXPIRE', key, ARGV[#ARGV]) end
 end
 return 0`;
+
+// Takes one from KEYS[1] without going below 0, keeping its expiry. With a
+// second key, does so only the first time that key is set: 1 when given back,
+// 0 when the count was already 0, -1 when the second key was already set.
+const GIVE_BACK = `if #KEYS > 1 and not redis.call('SET', KEYS[2], '1', 'NX', 'EX', ARGV[1]) then return -1 end
+if tonumber(redis.call('GET', KEYS[1]) or '0') <= 0 then return 0 end
+redis.call('DECR', KEYS[1])
+return 1`;
 
 /**
  * Counts in Upstash Redis through its REST API. Each change is one atomic
@@ -111,6 +158,11 @@ export const createRedisRestCounterStore = ({ url, token, fetchImpl = globalThis
     },
     async takeWithin(keys, limits, ttlSeconds) {
       const answer = await send('', ['EVAL', TAKE_WITHIN, String(keys.length), ...keys, ...limits.map(String), String(ttlSeconds)]);
+      return integer(answer?.result);
+    },
+    async giveBack(key, onceKey, onceTtlSeconds) {
+      const keys = onceKey ? [key, onceKey] : [key];
+      const answer = await send('', ['EVAL', GIVE_BACK, String(keys.length), ...keys, String(onceTtlSeconds ?? 0)]);
       return integer(answer?.result);
     }
   };
@@ -190,6 +242,30 @@ export const createParseAllowance = ({ store, perVisitorPerDay, totalPerDay = In
       if (full === 2) return refusal(429, 'DAILY_CAPACITY_REACHED', 'Babel has made all the parses it can today. Please come back tomorrow.');
       if (full !== 0) return unavailable();
       return { ok: true };
+    },
+
+    /**
+     * A failed parse: gives back one of the visitor's parses for today, never
+     * below 0, and leaves the site total alone. `onceKey` (a ticket) gives
+     * back at most once, however often its failure is checked. Never throws,
+     * so a failure response is always sent as it was: 'refunded', 'none'
+     * (nothing to give back), 'already' (the once-key gave one back) or
+     * 'unavailable' (the store failed; the caller logs it).
+     *
+     * Today's count is the one given back. A parse admitted just before
+     * midnight that fails after it gives back one of tomorrow's, so a visitor
+     * can make one extra parse that day; the site total still holds.
+     */
+    async refundParse(address, { onceKey } = {}) {
+      const key = `babel:parses:${day()}:${visitorKey(address)}`;
+      const marker = onceKey ? `babel:refunded:${createHash('sha256').update(String(onceKey)).digest('hex')}` : undefined;
+      let given;
+      try {
+        given = await store.giveBack(key, marker, REFUND_MARKER_SECONDS);
+      } catch {
+        return 'unavailable';
+      }
+      return given === 1 ? 'refunded' : given === -1 ? 'already' : given === 0 ? 'none' : 'unavailable';
     }
   };
 };

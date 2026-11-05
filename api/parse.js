@@ -1,4 +1,4 @@
-import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, validateParseRequest } from '../server/parseApi.js';
+import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, refundsFailedParse, validateParseRequest } from '../server/parseApi.js';
 import { createMemoryCounterStore, createParseAllowance, readCounterStore, readParseAllowanceLimits } from '../server/parseAllowance.js';
 import {
   MALFORMED_JSON,
@@ -75,7 +75,8 @@ export default async function handler(req, res) {
   }
 
   const address = visitorAddress(req);
-  const parses = parseRequestKind(body) !== 'check';
+  const kind = parseRequestKind(body);
+  const parses = kind !== 'check';
   if (allowance) {
     const perMinute = await allowance.admitRequest(address);
     if (!perMinute.ok) return send(res, perMinute);
@@ -100,6 +101,14 @@ export default async function handler(req, res) {
     if (!res.destroyed) return res.status(200).json(result);
   } catch (error) {
     if (res.destroyed) return;
+    // A failed parse gives the visitor's parse back before its failure is
+    // sent, since the instance may stop once it answers. A store that cannot
+    // is logged and the failure sent unchanged.
+    if (allowance && refundsFailedParse(kind, error)) {
+      const refund = await allowance.refundParse(address, kind === 'check' ? { onceKey: body.ticket } : {});
+      if (refund === 'unavailable') console.error('[api/parse] could not give back a failed parse: the counter store did not answer');
+      if (res.destroyed) return;
+    }
     const formatted = formatApiError(error);
     if (formatted.status >= 500) {
       console.error('[api/parse] server error', describeParseServerFailure(error, formatted));

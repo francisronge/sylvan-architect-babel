@@ -72,6 +72,26 @@ export const parseRequestKind = (body) => {
   return 'parse';
 };
 
+// Check failures that end nothing or prove no parse: the browser checks again
+// after CHECK_UNAVAILABLE, and a malformed body or a forged or altered ticket
+// names no parse this server started.
+const CHECK_FAILURES_KEPT = new Set(['CHECK_UNAVAILABLE', 'INVALID_TICKET', 'INVALID_REQUEST']);
+
+/**
+ * Whether a failed request gives the visitor back the parse it used. Both
+ * HTTP entry points ask here, after a request they admitted fails and while
+ * the visitor is still connected (a visitor who leaves gets nothing back).
+ * A long request or a start was admitted as a parse, so any failure refunds
+ * it. A check refunds only a terminal failure of the parse its valid ticket
+ * names, and not an expired ticket's: Babel cancels that response without
+ * looking at it, so it cannot tell a generation that ran out of time from a
+ * finished one the visitor let lapse to get their parse back.
+ */
+export const refundsFailedParse = (kind, error) => {
+  if (kind !== 'check') return true;
+  return error instanceof ParseApiError && !CHECK_FAILURES_KEPT.has(error.code) && error.ticketExpired !== true;
+};
+
 /**
  * A failure after the spell-out check carries the word list Babel derived
  * from the model's own words; the response serializes it from
