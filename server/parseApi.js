@@ -158,6 +158,41 @@ export const validateParseRequest = (requestBody, { publicRequestOnly = false } 
   return validateParseBody(kind === 'start' ? request : body);
 };
 
+/**
+ * Public Babel's bundle without the analyses whose words are the sentence's in
+ * another order (those carrying a `sentenceCheck`). The internal app and the
+ * qualification runners keep them as research evidence; public Babel's
+ * visitors are students, so there such an analysis is a failed parse they can
+ * retry (Francis, 5 Nov 2026: "Let's do public Babel failing and offering a
+ * retry"). The remaining analyses come back as a bundle the model could have
+ * sent: the shared word list already comes from the passing analyses alone,
+ * and one remaining analysis is no ambiguity. The generation record and raw
+ * output still describe the whole response. When none remain, the parse fails
+ * with that evidence, as any other model output failure does.
+ */
+const withoutWordOrderMisses = (bundle) => {
+  if (!bundle || bundle.status === 'pending' || !Array.isArray(bundle.analyses)) return bundle;
+  const kept = bundle.analyses.filter(analysis => !analysis?.sentenceCheck);
+  if (kept.length === bundle.analyses.length) return bundle;
+  if (kept.length) {
+    const ambiguityDetected = kept.length > 1;
+    return { ...bundle, analyses: kept, ambiguityDetected, ambiguityNote: ambiguityDetected ? bundle.ambiguityNote : undefined };
+  }
+  const message = 'The model\'s tree puts some of the sentence\'s words in the wrong order.';
+  throw new ParseApiError('BAD_MODEL_RESPONSE', message, 502, withFailureDetails({
+    ...(bundle.generationRecord ? { generationRecord: bundle.generationRecord } : {}),
+    ...(bundle.rawModelOutput ? { rawOutputArtifact: bundle.rawModelOutput } : {})
+  }, {
+    // Classed as the spelling check classes the mismatch it was kept from.
+    failureClass: FAILURE_CLASSES.CONTRACT_MISUNDERSTANDING,
+    ruleId: 'SPELLOUT_WORD_ORDER',
+    fieldPath: '$',
+    processingStep: 'spellout-alignment',
+    offendingValue: bundle.analyses.map(analysis => analysis.sentenceCheck.treeReading),
+    message
+  }));
+};
+
 export const parseFromBodyWithProviders = async (
   requestBody,
   providers = DEFAULT_PROVIDERS,
@@ -166,17 +201,18 @@ export const parseFromBodyWithProviders = async (
   abortSignal?.throwIfAborted();
   const kind = parseRequestKind(requestBody);
   const body = publicRequestOnly ? withPublicRequest(requestBody, kind) : requestBody;
+  const finished = bundle => (publicRequestOnly ? withoutWordOrderMisses(bundle) : bundle);
   if (kind === 'check') {
     if (typeof body.ticket !== 'string' || Object.keys(body).length !== 1) {
       throw invalidRequest('A check sends only its ticket.', 'REQUEST_TICKET_ONLY', '$', null);
     }
     // A finished check carries its sentence from the ticket.
-    return withDerivedInputTokens(() => providers.check(body.ticket, { abortSignal }));
+    return withDerivedInputTokens(async () => finished(await providers.check(body.ticket, { abortSignal })));
   }
   const { sentence, framework, modelId, settings } = validateParseRequest(requestBody, { publicRequestOnly });
   return withDerivedInputTokens(async () => {
     const bundle = await (kind === 'start' ? providers.start : providers.research)(sentence, framework, modelId, { settings, abortSignal, deadlineAt });
-    return bundle.status === 'pending' ? bundle : { ...bundle, sentence };
+    return bundle.status === 'pending' ? bundle : finished({ ...bundle, sentence });
   });
 };
 
