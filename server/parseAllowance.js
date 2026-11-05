@@ -57,6 +57,11 @@ export const createMemoryCounterStore = ({ maxKeys = 50_000, now = Date.now } = 
   };
 };
 
+// Adds to one key and gives a new key its expiry.
+const ADD = `local count = redis.call('INCRBY', KEYS[1], ARGV[1])
+if redis.call('TTL', KEYS[1]) < 0 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end
+return count`;
+
 // Takes one from every key only when none is at its limit (a limit below 0 is
 // not checked): 0 when taken, otherwise the 1-based place of the full key.
 const TAKE_WITHIN = `for i, key in ipairs(KEYS) do
@@ -101,8 +106,8 @@ export const createRedisRestCounterStore = ({ url, token, fetchImpl = globalThis
   return {
     shared: true,
     async add(key, amount, ttlSeconds) {
-      const results = await send('/multi-exec', [['INCRBY', key, String(amount)], ['EXPIRE', key, String(ttlSeconds), 'NX']]);
-      return integer(Array.isArray(results) ? results[0]?.result : undefined);
+      const answer = await send('', ['EVAL', ADD, '1', key, String(amount), String(ttlSeconds)]);
+      return integer(answer?.result);
     },
     async takeWithin(keys, limits, ttlSeconds) {
       const answer = await send('', ['EVAL', TAKE_WITHIN, String(keys.length), ...keys, ...limits.map(String), String(ttlSeconds)]);

@@ -79,18 +79,20 @@ test('the memory store keeps a bounded number of keys', async () => {
   assert.equal(await store.add('k0', 1, 60), 1, 'the oldest were evicted');
 });
 
-test('the Redis store counts in one atomic transaction and reports a store that cannot answer', async () => {
+test('the Redis store counts in one atomic script and reports a store that cannot answer', async () => {
   const sent = [];
   const store = createRedisRestCounterStore({
     url: 'https://redis.example/', token: 'secret',
     fetchImpl: async (url, options) => {
       sent.push({ url, auth: options.headers.Authorization, body: JSON.parse(options.body) });
-      return new Response(JSON.stringify([{ result: 4 }, { result: 1 }]), { status: 200 });
+      return new Response(JSON.stringify({ result: 4 }), { status: 200 });
     }
   });
-  assert.equal(await store.add('babel:parses:1:x', 1, 172800), 4);
-  assert.deepEqual(sent, [{ url: 'https://redis.example/multi-exec', auth: 'Bearer secret',
-    body: [['INCRBY', 'babel:parses:1:x', '1'], ['EXPIRE', 'babel:parses:1:x', '172800', 'NX']] }]);
+  assert.equal(await store.add('babel:minute:1:x', 1, 120), 4);
+  const [{ url, auth, body: [command, script, ...rest] }] = sent;
+  assert.deepEqual({ url, auth, command }, { url: 'https://redis.example', auth: 'Bearer secret', command: 'EVAL' });
+  assert.match(script, /INCRBY[\s\S]*TTL[\s\S]*EXPIRE/);
+  assert.deepEqual(rest, ['1', 'babel:minute:1:x', '1', '120']);
   for (const fetchImpl of [
     async () => { throw new TypeError('fetch failed'); },
     async () => new Response('nope', { status: 500 }),
