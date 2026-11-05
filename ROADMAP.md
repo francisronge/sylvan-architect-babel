@@ -27,7 +27,8 @@ are not.
 2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
    minimal version inside the Tree Bank, shipped with launch.
 3. **Server work**: done in code. A deployed server sends only public
-   Babel's request (3B, item 4) and limits parses to 5 per visitor and 100 in
+   Babel's request (3B, item 4), fails a word-order miss there (3B, item 6),
+   and limits parses to 5 per visitor and 100 in
    total a day (Program 5, item 4). Requests that outlive Vercel's 300 s cap
    are done: public Babel starts a background parse and checks back (parse
    tickets, below). Left for deployment: the shared counter store and the
@@ -275,6 +276,14 @@ as public Babel does. Do not copy the engine, and do not keep growing today's
    Notes; `services/milesNotation.ts` stays, unused by the app. Decide
    separately, after auditing actual use, whether labeled bracketing and Miles
    Shang output return as exports, for example in the research workbench.
+6. A tree whose words are the sentence's in another order is a failed parse
+   on public Babel, which a visitor can retry (Francis, 5 Nov 2026: "Let's do
+   public Babel failing and offering a retry"). Built: a server sending only
+   the public request drops such analyses from a finished bundle (a long
+   request or a ticket check) and fails the parse with `SPELLOUT_WORD_ORDER`
+   when none remain (`server/parseApi.js`). The internal app and the
+   qualification runners keep them as invalid analyses, since they are
+   research evidence.
 
 ### 3C. Product Quality
 
@@ -389,7 +398,10 @@ the next tranche or a hosted account.
    the whole site 100 a day (Francis, 5 Nov 2026: "You can build it with 5
    per visitor and 100 a day"), and each visitor 30 requests a minute,
    ticket checks included (`server/parseAllowance.js`). A refused parse
-   calls no provider. The hosted function counts in a shared Upstash Redis
+   calls no provider. A failed parse gives the visitor's parse back (once per
+   ticket) but still counts toward the site's 100, since the provider was
+   paid (Francis, 5 Nov 2026: "a failed parse shouldn't count against a
+   visitors 5"). The hosted function counts in a shared Upstash Redis
    store (`UPSTASH_REDIS_REST_URL` and `_TOKEN`, or the Vercel marketplace's
    `KV_REST_API_URL` and `_TOKEN`) and starts no parse without one, or when
    the store cannot answer. Before launch: add that store, and set a hard

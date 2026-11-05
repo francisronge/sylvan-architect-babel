@@ -582,12 +582,16 @@ export const createParseRoutes = ({
     if (!fields) throw invalid();
     const prepared = prepareGeneration(fields.sentence, fields.framework, fields.modelId, fields.settings);
     const cancel = () => { void cancelOpenAI({ apiKey: prepared.apiKey, responseId: fields.responseId }); };
+    // An expired ticket's failure is marked, so it gives no parse back (see
+    // `refundsFailedParse`): Babel cancels the response without reading it.
+    const expired = Date.now() - fields.startedAt > PARSE_TICKET_LIFETIME_MS;
+    const marked = (error) => (expired ? Object.assign(error, { ticketExpired: true }) : error);
     if (sha256Hex(JSON.stringify(prepared.sentRequest)) !== fields.sentRequestSha256) {
       // The record must name what was sent, and this server would now send something else.
       cancel();
-      throw new ParseApiError('BABEL_UPDATED', 'Babel was updated while this analysis was being written. Analyze the sentence again.', 409);
+      throw marked(new ParseApiError('BABEL_UPDATED', 'Babel was updated while this analysis was being written. Analyze the sentence again.', 409));
     }
-    if (Date.now() - fields.startedAt > PARSE_TICKET_LIFETIME_MS) {
+    if (expired) {
       cancel();
       // Classified as a provider timeout, as a long request reaching its deadline is.
       const timeout = Object.assign(new Error('The background generation timed out before its parse ticket expired.'), {
@@ -595,7 +599,7 @@ export const createParseRoutes = ({
         providerRunId: fields.runId,
         providerAttempts: [{ ...ticketAttempt(fields, null, 'terminal_failure'), retryReason: 'deadline_exhausted' }]
       });
-      throw generationFailure({ prepared, error: timeout, generationStartedAt: fields.startedAt });
+      throw marked(generationFailure({ prepared, error: timeout, generationStartedAt: fields.startedAt }));
     }
     let state;
     try {

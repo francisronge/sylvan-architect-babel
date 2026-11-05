@@ -1,12 +1,18 @@
 import assert from 'node:assert/strict';
 import { fork } from 'node:child_process';
 import { once } from 'node:events';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { trackProviderCalls, withTimeout } from '../server/babelParser/providerTransport.js';
+import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
 const anthropic = 'https://api.anthropic.com/v1/messages';
 const origin = 'http://app.test';
 const token = 'admission-test-token';
+const fixture = JSON.parse(readFileSync(new URL('../fixtures/raw/what-did-mia-see.xbar.json', import.meta.url), 'utf8'));
+// A model answer that parses: the saved analysis as a live route receives it.
+const completedAnswer = { model: 'claude-opus-5', stop_reason: 'end_turn', usage: { input_tokens: 11, output_tokens: 22 },
+  content: [{ type: 'text', text: JSON.stringify(restateAsSpellout(fixture.payload, fixture.sentence)) }] };
 
 // Starts the real Express runtime with every provider call scripted.
 const startServer = async (t, env) => {
@@ -66,17 +72,24 @@ const startServer = async (t, env) => {
   };
   const parse = async () => { await scriptRefusal(); return post({ body: generation }); };
   // Retries one scripted parse until a slot is free; a busy refusal makes no provider call.
-  const waitForFreeSlot = async () => {
-    await scriptRefusal();
+  const retryWhileBusy = async (body) => {
     let result;
     for (let attempt = 0; attempt < 100; attempt++) {
-      result = await post({ body: generation });
+      result = await post({ body });
       if (result.code !== 'SERVER_BUSY') return result;
       await new Promise(resolve => setTimeout(resolve, 10));
     }
     return result;
   };
-  return { message, post, parse, hold, settle, generation, admitted, waitForFreeSlot, output: () => output };
+  const waitForFreeSlot = async () => { await scriptRefusal(); return retryWhileBusy(generation); };
+  // A parse that succeeds, so it keeps the parse it used (a failed one gives it back).
+  const succeed = async () => {
+    const configured = message('configured');
+    child.send({ type: 'replies', replies: [{ url: anthropic, method: 'POST', body: completedAnswer }] });
+    await configured;
+    return retryWhileBusy({ ...generation, sentence: fixture.sentence, framework: fixture.framework });
+  };
+  return { message, post, parse, hold, settle, generation, admitted, waitForFreeSlot, succeed, output: () => output };
 };
 
 test('requests refused before admission do not use the daily allowance', { timeout: 30000 }, async t => {
@@ -87,7 +100,9 @@ test('requests refused before admission do not use the daily allowance', { timeo
   // A request Babel would refuse uses no allowance: an empty body, or a sentence over the length limit.
   assert.deepEqual(await server.post(), { status: 400, code: 'INVALID_REQUEST' });
   assert.deepEqual(await server.post({ body: { ...server.generation, sentence: 'a'.repeat(601) } }), { status: 400, code: 'INVALID_REQUEST' });
+  // A failed parse gives its parse back; a successful one keeps it.
   assert.deepEqual(await server.parse(), server.admitted);
+  assert.deepEqual(await server.succeed(), { status: 200, code: undefined }, server.output());
   assert.deepEqual(await server.post({ body: server.generation }), { status: 429, code: 'RATE_LIMITED_DAILY' });
 });
 
@@ -103,6 +118,9 @@ test('requests refused while every slot is busy do not use the daily allowance',
   await server.settle();
   assert.notEqual((await running).code, 'SERVER_BUSY');
   assert.deepEqual(await server.waitForFreeSlot(), server.admitted);
+  // Both admitted parses failed and gave theirs back, and no busy refusal used one: two remain.
+  assert.deepEqual(await server.succeed(), { status: 200, code: undefined }, server.output());
+  assert.deepEqual(await server.succeed(), { status: 200, code: undefined }, server.output());
   assert.deepEqual(await server.post({ body: server.generation }), { status: 429, code: 'RATE_LIMITED_DAILY' });
 });
 

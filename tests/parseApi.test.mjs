@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { formatApiError, parseFromBody, parseFromBodyWithProviders, validateParseBody } from '../server/parseApi.js';
+import { formatApiError, parseFromBody, parseFromBodyWithProviders, refundsFailedParse, validateParseBody } from '../server/parseApi.js';
 import { ParseApiError } from '../server/babelParser.js';
 
 test('a request must name its model: no model, a legacy route or an unknown model is rejected before any provider call', async (t) => {
@@ -109,4 +109,19 @@ test('a ticket check that fails after the spell-out check keeps the derived word
     const error = await parse(body, providers).then(() => assert.fail('must fail'), caught => caught);
     assert.deepEqual(format(error).body.error.inputTokens, ['Mia', 'laughed', '.'], `${Object.keys(body)[0]} keeps the word list`);
   }
+});
+
+test('a failed long request or start gives its parse back; a check only for a terminal failure of a valid, unexpired ticket', () => {
+  const failed = new ParseApiError('MODEL_FAILED', 'Scripted', 502);
+  for (const error of [failed, new Error('unexpected'), new ParseApiError('PROVIDER_TIMEOUT', 'Scripted', 504)]) {
+    assert.equal(refundsFailedParse('parse', error), true);
+    assert.equal(refundsFailedParse('start', error), true);
+  }
+  assert.equal(refundsFailedParse('check', failed), true);
+  assert.equal(refundsFailedParse('check', new ParseApiError('BABEL_UPDATED', 'Scripted', 409)), true);
+  for (const code of ['CHECK_UNAVAILABLE', 'INVALID_TICKET', 'INVALID_REQUEST']) {
+    assert.equal(refundsFailedParse('check', new ParseApiError(code, 'Scripted', 400)), false, code);
+  }
+  assert.equal(refundsFailedParse('check', Object.assign(new ParseApiError('PROVIDER_TIMEOUT', 'Scripted', 504), { ticketExpired: true })), false);
+  assert.equal(refundsFailedParse('check', new Error('unexpected')), false, 'an unexpected error proves no valid ticket');
 });
