@@ -87,13 +87,15 @@ test('without the public request a reordered analysis is still returned as an in
 const endpoint = 'https://api.openai.com/v1/responses';
 
 for (const entry of ['server/index.js', 'api/parse.js']) {
-  test(`${entry} in production fails a reordered analysis at its check with SPELLOUT_WORD_ORDER`, { timeout: 30000 }, async t => {
+  test(`${entry} in production fails a reordered analysis at its check with SPELLOUT_WORD_ORDER, and gives the parse back`, { timeout: 30000 }, async t => {
     const child = fork(new URL('./support/backgroundParseServer.mjs', import.meta.url), [], {
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       env: {
         ...process.env, NODE_ENV: 'production', PORT: '0', OPENAI_API_KEY: 'test-only-provider-key',
         BABEL_SAVE_PROVIDER_RAW: '0', BABEL_REQUIRE_ORIGIN: '0', BABEL_ALLOW_NO_ORIGIN: '1', BABEL_PARSE_API_TOKEN: '',
         BABEL_TRUST_PROXY: '0', BABEL_ALLOWED_ORIGINS: '', BABEL_PUBLIC_REQUEST_ONLY: '',
+        // One parse a day, so the next start shows whether the failure gave it back.
+        BABEL_PARSE_DAILY_LIMIT_PER_IP: '1',
         BABEL_TEST_SERVERLESS_ENTRY: entry === 'api/parse.js' ? '1' : '0'
       }
     });
@@ -137,6 +139,13 @@ for (const entry of ['server/index.js', 'api/parse.js']) {
     assert.equal(failed.body.error.generationRecord.timing.completionObservedBy, 'parse-ticket-check');
     assert.equal(failed.body.error.details, undefined, 'production bodies carry no internal details');
     assert.doesNotMatch(JSON.stringify(failed.body), /test-only-provider-key/);
+
+    // The failure gave the student's parse back: the next start is admitted, and only then is the day's one parse used.
+    await script([{ url: endpoint, method: 'POST', body: { id: 'resp_b', status: 'queued' } }]);
+    assert.equal((await post({ sentence, start: true })).status, 200, output);
+    const refused = await post({ sentence, start: true });
+    assert.equal(refused.status, 429);
+    assert.equal(refused.body.error.code, 'RATE_LIMITED_DAILY');
     child.send({ type: 'stop' });
   });
 }
