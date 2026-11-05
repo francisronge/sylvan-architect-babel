@@ -7,18 +7,8 @@ import { normalizeParseBundle } from '../server/babelParser/parseNormalization.j
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { createRawOutputArtifact } from '../server/babelParser/validationErrors.js';
 import { describeParseServerFailure, redactProviderLogText } from '../server/parseHttpPolicy.js';
+import { loadFormatter } from './helpers/parseApiFormatter.mjs';
 
-// parseApi.js reads NODE_ENV once at load, so each runtime gets its own module instance.
-const loadFormatter = async (nodeEnv) => {
-  const previous = process.env.NODE_ENV;
-  process.env.NODE_ENV = nodeEnv;
-  try {
-    return (await import(`../server/parseApi.js?node-env=${nodeEnv}`)).formatApiError;
-  } finally {
-    if (previous === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = previous;
-  }
-};
 const production = await loadFormatter('production');
 const development = await loadFormatter('development');
 
