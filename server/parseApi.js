@@ -350,7 +350,8 @@ const withoutProviderReport = (error, details, generationRecord) => {
  * A failure as the Generation Archive keeps it: Babel's classification, the
  * model's complete output and the generation record. Like a production
  * response, it leaves out a provider's own error text, which can name accounts
- * or key fragments; unlike one, it keeps the model's output whole.
+ * or key fragments, including inside each attempt's receipt; unlike one, it
+ * keeps the model's output whole.
  */
 export const describeArchivedFailure = (error) => {
   if (!(error instanceof ParseApiError)) return { code: 'INTERNAL_ERROR', message: 'Unexpected server error.' };
@@ -365,9 +366,19 @@ export const describeArchivedFailure = (error) => {
     failure,
     ...(rawOutput ? { rawOutput } : {}),
     ...(Array.isArray(error.inputTokens) ? { inputTokens: error.inputTokens } : {}),
-    ...(generationRecord ? { generationRecord } : {})
+    ...(generationRecord ? { generationRecord: projectPublicGenerationRecord(generationRecord) } : {})
   };
 };
+
+/**
+ * A finished bundle as the Generation Archive keeps it: whole, except that
+ * each attempt in its generation record keeps only the receipt fields
+ * production responses keep, since a retried attempt's message can carry a
+ * provider's own error text.
+ */
+export const describeArchivedResponse = (bundle) => (bundle?.generationRecord
+  ? { ...bundle, generationRecord: projectPublicGenerationRecord(bundle.generationRecord) }
+  : bundle);
 
 export const formatApiError = (error) => {
   if (error instanceof ParseApiError) {

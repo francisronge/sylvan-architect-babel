@@ -176,6 +176,16 @@ test('the hosted function archives each finished parse, success or failure, with
   assert.equal(failure.failure.failure.ruleId, 'SPELLOUT_WORD_ORDER');
   assert.equal(Buffer.from(failure.failure.rawOutput.data, 'base64').toString('utf8'), JSON.stringify(analysis('laughed.', 'Mia')));
 
+  // A provider's own error text (account names, key fragments) is never archived, even inside an attempt's receipt.
+  const PROVIDER_TEXT = 'org-acme-secret sk-proj-abcd';
+  await script([{ url: endpoint, method: 'POST', status: 401, body: { error: { message: `Incorrect API key provided: ${PROVIDER_TEXT}`, type: 'invalid_request_error' } } }]);
+  const refusedStart = await post({ sentence: 'Mia laughed.', start: true });
+  assert.equal(refusedStart.status >= 400, true, output);
+  assert.equal(puts.length, 4, output);
+  const providerFailure = gunzipSync(Buffer.from(puts[3].body, 'base64')).toString('utf8');
+  assert.equal(JSON.parse(providerFailure).outcome, 'failed');
+  assert.ok(!providerFailure.includes('org-acme-secret') && !providerFailure.includes('sk-proj-abcd'), providerFailure.slice(0, 2000));
+
   // Nothing in any record names the visitor: no address, no ticket, no key.
   for (const put of puts) {
     const text = gunzipSync(Buffer.from(put.body, 'base64')).toString('utf8');

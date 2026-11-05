@@ -1,4 +1,4 @@
-import { describeArchivedFailure, failureEndsParse, formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, refundsFailedParse, validateParseRequest } from '../server/parseApi.js';
+import { describeArchivedFailure, describeArchivedResponse, failureEndsParse, formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, refundsFailedParse, validateParseRequest } from '../server/parseApi.js';
 import { createMemoryCounterStore, createParseAllowance, readCounterStore, readParseAllowanceLimits } from '../server/parseAllowance.js';
 import { readArchiveStore } from '../server/archiveStore.js';
 import { createGenerationArchive } from '../server/generationArchive.js';
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
 
   try {
     const result = await parseFromRequest(req, res, undefined, { deadlineAt, publicRequestOnly });
-    if (result?.status !== 'pending') await archiveParse(kind, body, validated, { response: result });
+    if (result?.status !== 'pending') await archiveParse(kind, body, validated, { response: describeArchivedResponse(result) });
     if (!res.destroyed) return res.status(200).json(result);
   } catch (error) {
     if (res.destroyed) return;
