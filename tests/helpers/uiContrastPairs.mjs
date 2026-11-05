@@ -9,9 +9,7 @@
 const SHELL = ['#03100c', 'rgba(16,185,129,0.1)', 'rgba(16,185,129,0.05)', 'rgba(6,95,70,0.07)', 'rgba(16,185,129,0.03)'];
 const HEADER = [...SHELL, 'black/60'];
 const GLASS = [...SHELL, 'black/60'];
-const PANEL_STRIP = [...GLASS, 'black/30'];
 const FOOTER = [...SHELL, 'black/80'];
-const NOTES_CARD = [...SHELL, 'rgba(2,8,6,0.6)', 'black/60'];
 const REPLAY_PANEL = ['#04140e', 'rgba(2,8,6,0.96)'];
 const TREE = ['#04140e'];
 const FAILURE = [...GLASS, 'rose-500/10'];
@@ -51,22 +49,16 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Public: title while the Tree Bank is open', file: 'components/workspace/BabelTitle.tsx', snippet: "'text-white/50'", fg: 'white/50', bg: HEADER, min: TEXT },
   { where: 'Public: "Press F for fullscreen" hint', file: 'publicApp/PublicApp.tsx', snippet: 'tracking-wide text-emerald-100/70', fg: 'emerald-100/70', bg: TREE, min: TEXT },
   { where: 'Parse selector, unselected', file: 'components/workspace/WorkspaceStates.tsx', snippet: "'text-white/60 hover:text-emerald-300'", fg: 'white/60', bg: [...SHELL, 'black/50'], min: TEXT },
-  { where: 'Parse selector / view tab, selected', file: 'components/workspace/WorkspaceStates.tsx', snippet: "'moss-gradient text-white border border-emerald-400/50'", fg: 'white', bg: ['#065f46'], min: TEXT },
+  { where: 'Parse selector, selected', file: 'components/workspace/WorkspaceStates.tsx', snippet: "'moss-gradient text-white border border-emerald-400/50'", fg: 'white', bg: ['#065f46'], min: TEXT },
   { where: 'Loading: "Deep Parsing … Structures"', file: 'components/workspace/WorkspaceStates.tsx', snippet: 'text-emerald-500/75 font-black uppercase text-[9px]', fg: 'emerald-500/75', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
   { where: 'Waiting tree: the sentence', file: 'components/workspace/WaitingTree.tsx', snippet: 'leading-snug text-emerald-50 text-center', fg: 'emerald-50', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
   { where: 'Waiting tree: "Usually about two minutes…"', file: 'components/workspace/WaitingTree.tsx', snippet: 'leading-relaxed text-emerald-300/90 text-center', fg: 'emerald-300/90', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
   { where: 'Waiting tree: branches', file: 'components/workspace/WaitingTree.tsx', snippet: "const BARK = '#c9a46a'", fg: '#c9a46a', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: ICON },
   { where: 'Empty workspace: "Cast a thought…"', file: 'components/workspace/WorkspaceStates.tsx', snippet: 'text-emerald-500/85 font-black uppercase text-[9px] md:text-[10px] tracking-[0.5em] md:tracking-[0.8em]', fg: 'emerald-500/85', bg: SHELL, min: TEXT },
-  { where: 'View tabs, unselected icon', file: 'App.tsx', snippet: "'glass-dark text-emerald-600/70 border-white/5", fg: 'emerald-600/70', bg: GLASS, min: ICON },
-  { where: 'View tab name on hover', file: 'App.tsx', snippet: 'bg-black/90 backdrop-blur-xl text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400', fg: 'emerald-400', bg: [...SHELL, 'black/90'], min: TEXT },
 
   // Sentence console
-  { where: 'Console title "Arboretum Link"', file: 'App.tsx', snippet: 'tracking-[0.4em] text-emerald-500/80">Arboretum Link', fg: 'emerald-500/80', bg: PANEL_STRIP, min: TEXT },
-  { where: 'Console collapse and hide icons', file: 'App.tsx', snippet: 'rounded-xl transition-colors text-emerald-500/60', fg: 'emerald-500/60', bg: PANEL_STRIP, min: ICON },
   { where: 'Sentence text', file: 'components/workspace/SentenceForm.tsx', snippet: 'text-emerald-50 serif italic', fg: 'emerald-50', bg: [...GLASS, 'black/40'], min: TEXT },
   { where: 'Sentence placeholder', file: 'components/workspace/SentenceForm.tsx', snippet: 'placeholder:text-emerald-500/75', fg: 'emerald-500/75', bg: [...GLASS, 'black/40'], min: TEXT },
-  { where: 'Collapsed console: sentence', file: 'App.tsx', snippet: 'text-emerald-50/50 serif italic', fg: 'emerald-50/50', bg: GLASS, min: TEXT },
-  { where: 'Collapsed console: "Expand Arbor Control"', file: 'App.tsx', snippet: 'text-emerald-500/75 uppercase tracking-[0.4em]', fg: 'emerald-500/75', bg: GLASS, min: TEXT },
   { where: 'External API Key Required (console)', file: 'App.tsx', snippet: 'bg-amber-500/10 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-200', fg: 'amber-200', bg: [...GLASS, 'amber-500/10'], min: TEXT },
 
   // Footer
@@ -128,12 +120,4 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Delete dialog text', file: 'components/TreeBankView.tsx', snippet: 'text-emerald-50/80 leading-relaxed', fg: 'emerald-50/80', bg: DIALOG, min: TEXT },
   { where: 'Delete dialog Delete', file: 'components/TreeBankView.tsx', snippet: 'bg-rose-500/20 text-rose-200', fg: 'rose-200', bg: [...DIALOG, 'rose-500/20'], min: TEXT },
 
-  // Notes
-  { where: 'Notes paragraphs', file: 'components/DerivationNotesView.tsx', snippet: 'text-emerald-50/90 leading-relaxed', fg: 'emerald-50/90', bg: NOTES_CARD, min: TEXT },
-  { where: 'Notes "Final Tree · Miles Shang Notation"', file: 'components/DerivationNotesView.tsx', snippet: 'tracking-widest text-emerald-500/75', fg: 'emerald-500/75', bg: NOTES_CARD, min: TEXT },
-  { where: 'Notes Open in / Copy buttons', file: 'components/DerivationNotesView.tsx', snippet: 'bg-white/5 border-white/10 text-white/45 hover:text-emerald-400', fg: 'white/45', bg: [...NOTES_CARD, 'white/5'], min: TEXT },
-  { where: 'Notes copied state', file: 'components/DerivationNotesView.tsx', snippet: "'bg-emerald-500/20 border-emerald-500 text-emerald-400'", fg: 'emerald-400', bg: [...NOTES_CARD, 'black/40', 'emerald-500/20'], min: TEXT },
-  { where: 'Notes "Canopy Code"', file: 'components/DerivationNotesView.tsx', snippet: 'tracking-[0.3em] text-emerald-400/80', fg: 'emerald-400/80', bg: [...NOTES_CARD, 'black/40'], min: TEXT },
-  { where: 'Notes bracketing', file: 'components/DerivationNotesView.tsx', snippet: 'text-emerald-400 mono', fg: 'emerald-400', opacity: 0.9, bg: [...NOTES_CARD, 'black/40'], min: TEXT },
-  { where: 'Notes clipboard error', file: 'components/DerivationNotesView.tsx', snippet: 'mb-4 text-sm text-rose-300', fg: 'rose-300', bg: [...NOTES_CARD, 'black/40'], min: TEXT }
 ];

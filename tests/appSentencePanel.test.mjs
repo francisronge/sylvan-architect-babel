@@ -19,35 +19,31 @@ const compiled = await build({
 const { default: App } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled.outputFiles[0].text).toString('base64')}`
 );
-// App reads only the query string while it renders; showcase mode starts with the panel hidden.
+// App reads only the query string while it renders.
 const render = search => {
   globalThis.window = { location: { search } };
   try { return renderToStaticMarkup(React.createElement(App)); }
   finally { delete globalThis.window; }
 };
-const panel = html => /<div data-babel-tree-controls="bottom"[^>]*>/.exec(html)?.[0];
 
-test('the hidden sentence panel is inert, so its controls leave the focus order', () => {
-  const hidden = render('?showcase=1');
-  assert.match(panel(hidden), /aria-hidden="true"/);
-  assert.match(panel(hidden), /\binert=""/);
-  assert.match(hidden, /title="Restore Arboretum Link"/, 'the restore control stays outside the inert panel');
-
+test('the first screen is the sentence bar, reachable, with no view tabs or bar controls', () => {
   const shown = render('');
-  assert.doesNotMatch(panel(shown), /\binert/);
-  assert.doesNotMatch(shown, /\binert/, 'an expanded, visible panel leaves the sentence box reachable');
+  assert.match(shown, /aria-label="Sentence to analyze"/);
+  assert.match(shown, /aria-label="Analyze sentence"/);
+  assert.doesNotMatch(shown, /\binert/, 'nothing on the first screen is out of the focus order');
+  for (const absent of ['Canopy', 'Notes', 'Derivation Replay', 'Arboretum Link', 'Collapse', 'Hide Control Panel',
+    'Restore Arboretum Link', 'Expand Arbor Control', 'Labeled Bracketing', 'Miles Shang']) {
+    assert.ok(!shown.includes(absent), `the internal app shows no "${absent}"`);
+  }
 });
 
 test('icon and toggle controls expose their visible names and states to assistive technology', () => {
   const shown = render('');
-  const button = text => new RegExp(`<button[^>]*>(?:(?!</button>).)*${text}(?:(?!</button>).)*</button>`, 's').exec(shown)?.[0] ?? '';
-  assert.match(button('Canopy'), /aria-current="page"/, 'the active view tab is marked current');
-  assert.doesNotMatch(button('Notes'), /aria-current/);
+  const button = text => new RegExp(`<button[^>]*>(?:(?!</button>).)*${text.replace(/[()]/g, '\\$&')}(?:(?!</button>).)*</button>`, 's').exec(shown)?.[0] ?? '';
   assert.match(button('Constituent Glyphing'), /aria-pressed="false"/);
-  assert.match(shown, /<button[^>]*title="Collapse"[^>]*aria-label="Collapse"/);
-  assert.match(shown, /<button[^>]*title="Hide Control Panel"[^>]*aria-label="Hide Control Panel"/);
-
-  const hidden = render('?showcase=1');
-  assert.match(hidden, /<button[^>]*title="Restore Arboretum Link"[^>]*aria-label="Restore Arboretum Link"/,
-    'the restore button is named by its title, not by the logo image inside it');
+  assert.match(shown, /<button[^>]*title="Parse a new sentence"[^>]*aria-label="Babel, parse a new sentence"/,
+    'the logo is the way back to the sentence box, named for what it does');
+  for (const kept of ['Minimalist Program', 'Save to Tree Bank', 'Tree Bank (0)', 'Fullscreen']) {
+    assert.ok(button(kept), `the internal app keeps "${kept}"`);
+  }
 });

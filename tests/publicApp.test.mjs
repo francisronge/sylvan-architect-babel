@@ -15,7 +15,7 @@ const require = createRequire(import.meta.url);
 test('public Babel never reaches the research controls or the internal app', () => {
   const reached = importClosure(['publicApp/main.tsx'], root);
   for (const file of ['App.tsx', 'index.tsx', 'components/ModelControls.tsx', 'hooks/useModelSelection.ts',
-    'server/babelParser/researchModelCatalog.js', 'components/DerivationNotesView.tsx']) {
+    'server/babelParser/researchModelCatalog.js']) {
     assert.ok(!reached.has(file), `public Babel must not import ${file}`);
   }
   assert.ok(reached.has('components/LazyTreeVisualizer.tsx'), 'public Babel shows Replay');
