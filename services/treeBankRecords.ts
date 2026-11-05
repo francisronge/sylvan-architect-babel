@@ -18,6 +18,8 @@ export interface TreeBankWork {
   analysisIds: string[];
   contextId: string;
   activeParseIndex: number;
+  /** The view it was saved from. Replay ('derivation') is Babel's only view;
+   * Canopy ('tree') and Notes ('notes') stay readable in earlier saves. */
   view: 'tree' | 'derivation' | 'notes';
   replayStep: number | null;
   abstractionMode: boolean;
@@ -31,6 +33,14 @@ export interface TreeBankWork {
   previewId?: string;
   sha256: string;
 }
+/**
+ * The Replay frame a saved work reopens on, or null to play from the start.
+ * A Replay save keeps its frame. A save from the retired Canopy or Notes view
+ * reopens paused on the last frame, the finished tree Canopy showed; Replay
+ * bounds the request to its own last frame.
+ */
+export const reopenedReplayStep = (view: TreeBankWork['view'], replayStep: number | null): number | null =>
+  view === 'derivation' ? replayStep : Number.MAX_SAFE_INTEGER;
 export interface TreeBankPreview {
   id: string;
   dataUrl: string;
@@ -197,7 +207,7 @@ export async function prepareTreeBankSave(input: TreeBankSaveInput): Promise<Pre
     analysisIds,
     contextId,
     activeParseIndex: input.activeParseIndex,
-    view: input.view ?? 'tree',
+    view: input.view ?? 'derivation',
     replayStep: input.replayStep ?? null,
     abstractionMode: input.abstractionMode ?? false,
     stageCounts: analyses.map(item => item.derivationStages?.length ?? 0),

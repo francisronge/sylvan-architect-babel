@@ -11,7 +11,7 @@ import { parseModelJson } from '../../server/babelParser/modelJson.js';
 import { attachGenerationFailureEvidence } from '../../server/babelParser/routeErrors.js';
 import { formatApiError } from '../../server/parseApi.js';
 import { createRawOutputArtifact } from '../../server/babelParser/validationErrors.js';
-import { waitForCanopyPaint, waitForReplayPaint, waitForNotesPaint } from '../../scripts/captureReadiness.mjs';
+import { waitForReplayPaint } from '../../scripts/captureReadiness.mjs';
 import { startBrowserTestServer } from '../helpers/browserTestServer.mjs';
 import { readTreeBankSnapshot } from '../helpers/browserTreeBank.mjs';
 import { recordVideo } from '../helpers/browserVideo.mjs';
@@ -21,6 +21,17 @@ const saved = JSON.parse(await readFile(new URL('../../fixtures/normalized/mia-l
 const bundle = { ...saved, sentence: 'Mia laughed.', inputTokens: ['Mia', 'laughed', '.'],
   ambiguityDetected: true, analyses: [saved.analyses[0], saved.analyses[0]] };
 const sentenceInput = page => page.getByRole('textbox', { name: 'Sentence to analyze' });
+const replaySlider = page => page.getByRole('slider', { name: 'Replay frame' });
+// The logo returns from a tree to the input screen (ROADMAP, Program 3B.2).
+const homeButton = page => page.getByRole('button', { name: 'Babel, parse a new sentence', exact: true });
+/** Pauses Replay on its last frame, the finished tree, and waits for it to paint. */
+async function showFinalFrame(page) {
+  await replaySlider(page).waitFor();
+  const finalFrame = Number(await replaySlider(page).getAttribute('max'));
+  await replaySlider(page).fill(String(finalFrame));
+  await waitForReplayPaint(page, finalFrame);
+  return finalFrame;
+}
 
 /** Screen box of the painted syntax labels: how large the camera shows the tree. */
 const paintedTreeBox = page => page.locator('svg[data-babel-tree]').evaluate(svg => {
@@ -31,11 +42,11 @@ const paintedTreeBox = page => page.locator('svg[data-babel-tree]').evaluate(svg
     height: Math.max(...boxes.map(box => box.bottom)) - Math.min(...boxes.map(box => box.top)) };
 });
 
-/** Replay gives the sentence input's place to the tree and its panel, and
- * leaves no hidden control behind to receive focus. */
+/** The tree screen gives the sentence input's place to the tree and its
+ * Replay panel, and leaves no hidden control behind to receive focus. */
 async function assertReplayWithoutInput(page) {
-  assert.equal(await sentenceInput(page).count(), 0, 'Replay removes the sentence input');
-  assert.equal(await page.locator('[data-babel-tree-controls="bottom"]').count(), 0, 'Replay removes the input bar and its restore control');
+  assert.equal(await sentenceInput(page).count(), 0, 'the tree screen removes the sentence input');
+  assert.equal(await page.locator('[data-babel-tree-controls="bottom"]').count(), 0, 'the tree screen removes the input bar');
   const clearance = await page.locator('[data-babel-replay-panel]').evaluate(panel =>
     panel.closest('[data-babel-workspace]').getBoundingClientRect().bottom - panel.getBoundingClientRect().bottom);
   assert.ok(clearance <= 24, `the Replay panel takes the input bar's place: ${clearance}px below it`);
@@ -73,17 +84,12 @@ test('recovered optional word addresses render quietly and survive Tree Bank rel
         await page.goto(server.url);
         await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill(sentence);
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
-        await waitForCanopyPaint(page);
+        // A new analysis opens in Replay, Babel's only view, and plays.
+        await page.getByRole('button', { name: 'Pause', exact: true }).waitFor();
         assert.equal(await page.getByRole('alert').count(), 0);
         await page.getByRole('button', { name: 'Parse 2', exact: true }).click();
-        await waitForCanopyPaint(page);
+        const finalFrame = await showFinalFrame(page);
         assert.match(await page.locator('svg[data-babel-tree]').textContent(), /IP/);
-        await page.getByRole('button', { name: 'Derivation Replay', exact: true }).click();
-        await page.getByRole('button', { name: 'Pause', exact: true }).click();
-        const slider = page.getByRole('slider', { name: 'Replay frame' });
-        const finalFrame = Number(await slider.getAttribute('max'));
-        await slider.fill(String(finalFrame));
-        await waitForReplayPaint(page, finalFrame);
         await page.screenshot({ path: path.join(output, `token-recovery-${name}-${width}.png`) });
         await page.getByRole('button', { name: 'Save to Tree Bank', exact: true }).click();
         await page.getByRole('button', { name: 'Saved', exact: true }).waitFor();
@@ -150,7 +156,8 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             await page.goto(server.url);
             await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill(distinct.sentence);
             await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
-            await waitForCanopyPaint(page);
+            // Paused on the finished tree, so no Replay step moves while the header is measured.
+            await showFinalFrame(page);
             const pollen = page.locator('.spore-layer .spore');
             const initialTransforms = await pollen.evaluateAll(elements => elements.map(element => getComputedStyle(element).transform));
             await page.waitForFunction(before => [...document.querySelectorAll('.spore-layer .spore')]
@@ -188,7 +195,9 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
                 .map(element => element.textContent.trim()));
               assert.deepEqual(clipped, [], `all header controls remain reachable at ${headerWidth}px`);
               if (headerWidth >= 1280) {
+                // The logo is the brand, not one of the controls' row.
                 const centers = await page.getByRole('banner').evaluate(header => [...header.querySelectorAll('button,select')]
+                  .filter(element => element.getAttribute('aria-label') !== 'Babel, parse a new sentence')
                   .map(element => { const box = element.getBoundingClientRect(); return box.y + box.height / 2; }));
                 assert.ok(Math.max(...centers) - Math.min(...centers) < 1, `desktop controls share one row at ${headerWidth}px: ${centers}`);
                 const gap = await page.getByRole('banner').evaluate(header => {
@@ -241,40 +250,32 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             }
             assert.match(await page.locator('svg[data-babel-tree]').textContent(), /TP/);
             await page.getByRole('button', { name: 'Parse 2', exact: true }).click();
-            await waitForCanopyPaint(page);
+            await showFinalFrame(page);
             assert.match(await page.locator('svg[data-babel-tree]').textContent(), /IP/);
-            await page.getByRole('button', { name: 'Derivation Replay', exact: true }).click();
-            await page.getByRole('button', { name: 'Pause', exact: true }).click();
-            await page.getByRole('slider', { name: 'Replay frame' }).fill('4');
+            await replaySlider(page).fill('4');
             await waitForReplayPaint(page, 4);
             await assertReplayWithoutInput(page);
             const treeBefore = await paintedTreeBox(page);
             assert.ok(treeBefore.width > 0 && treeBefore.height > 0, 'the frame shows its tree');
             await page.screenshot({ path: path.join(output, `recovery-before-${engine}-${width}.png`) });
-            // A new sentence is entered from Canopy. Its failure keeps the input
-            // in Replay, so the later attempts are retried from there.
-            await page.getByRole('button', { name: 'Canopy', exact: true }).click();
-            await waitForCanopyPaint(page);
+            // A new sentence is entered on the input screen, which the logo opens.
+            // Its failures stay there with the input, so the later attempts are
+            // retried from there.
+            await homeButton(page).click();
+            await sentenceInput(page).waitFor();
+            assert.equal(await page.locator('svg[data-babel-tree]').count(), 0, 'the input screen shows no tree');
             const failedDraft = 'Nia laughed.';
             await sentenceInput(page).fill(failedDraft);
-            for (const [attempt, kind] of ['connection-closed', 'invalid-json', 'empty-result', 'provider-unavailable', 'malformed-model-output'].entries()) {
+            for (const kind of ['connection-closed', 'invalid-json', 'empty-result', 'provider-unavailable', 'malformed-model-output']) {
               response = kind;
               const request = page.waitForRequest('**/api/parse');
               await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
               await request;
               await page.getByRole('button', { name: 'Analyze sentence', exact: true }).waitFor();
-              if (attempt === 0) {
-                await waitForCanopyPaint(page);
-                await page.getByRole('button', { name: 'Derivation Replay', exact: true }).click();
-              }
-              await waitForReplayPaint(page, 4);
-              assert.equal(await page.getByRole('button', { name: 'Parse 2', exact: true }).getAttribute('aria-pressed'), 'true');
-              assert.equal(await page.getByRole('slider', { name: 'Replay frame' }).inputValue(), '4');
-              assert.equal(await page.getByRole('button', { name: 'Pause', exact: true }).count(), 0);
-              assert.equal(await page.getByRole('button', { name: 'Play', exact: true }).count(), 1);
-              assert.ok(await sentenceInput(page).isVisible(), 'a failure keeps the input in Replay');
+              assert.ok(await sentenceInput(page).isVisible(), 'a failure keeps the input screen');
               assert.equal(await sentenceInput(page).inputValue(), failedDraft);
               assert.equal(await page.getByRole('alert').count(), 1, 'failure remains visible and announced');
+              assert.equal(await page.locator('svg[data-babel-tree]').count(), 0, 'a failure never opens the tree screen');
               if (kind === 'malformed-model-output') {
                 // Choosing the next request's model or effort keeps this failure and its downloads.
                 const [model, effort] = [0, 1].map(index => page.getByRole('banner').locator('select').nth(index));
@@ -306,14 +307,13 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
                 await page.keyboard.press('Escape');
                 await page.getByRole('dialog').waitFor({ state: 'detached' });
                 assert.equal(await page.getByRole('alert').count(), 1, 'Escape in the inspection keeps the failure');
-                await waitForReplayPaint(page, 4);
               }
               observations.push({ engine, width, kind, selectedAnalysis: 2, replayStep: 4, paused: true });
             }
             await page.screenshot({ path: path.join(output, `recovery-after-${engine}-${width}.png`) });
             // Dismissing the failure from the keyboard returns to the same
-            // analysis and paused frame, and Replay removes the input again.
-            // Focus moves to the current view; the draft waits in Canopy, and
+            // analysis and paused frame, with nothing taking the tree's room.
+            // Focus moves to the logo, which leads back to the draft, and
             // nothing is requested.
             await page.getByRole('button', { name: 'Dismiss failure', exact: true }).focus();
             await page.keyboard.press('Enter');
@@ -321,22 +321,21 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             await waitForReplayPaint(page, 4);
             assert.equal(await page.getByRole('alert').count(), 0, 'the dismissed failure is gone');
             assert.equal(await page.getByRole('button', { name: 'Parse 2', exact: true }).getAttribute('aria-pressed'), 'true');
-            assert.equal(await page.getByRole('slider', { name: 'Replay frame' }).inputValue(), '4');
+            assert.equal(await replaySlider(page).inputValue(), '4');
             assert.equal(await page.getByRole('button', { name: 'Play', exact: true }).count(), 1);
-            assert.ok(await page.getByRole('button', { name: 'Derivation Replay', exact: true })
-              .evaluate(button => button === document.activeElement), 'focus moves to the current view');
+            assert.ok(await homeButton(page).evaluate(button => button === document.activeElement), 'focus moves to the logo');
             await assertReplayWithoutInput(page);
-            // The tree takes back the space the console held, at the size it had
-            // before the failure, not the strip it was fitted into above the console.
+            // The tree has the whole workspace again, at the size it had before the failure.
             const treeAfter = await paintedTreeBox(page);
             assert.ok(treeAfter.width >= 0.8 * treeBefore.width && treeAfter.height >= 0.8 * treeBefore.height,
               `the dismissed failure's space returns to the tree: ${JSON.stringify({ treeBefore, treeAfter })}`);
             await page.screenshot({ path: path.join(output, `recovery-dismissed-${engine}-${width}.png`) });
-            await page.getByRole('button', { name: 'Canopy', exact: true }).click();
-            await waitForCanopyPaint(page);
+            await homeButton(page).click();
             assert.equal(await sentenceInput(page).inputValue(), failedDraft, 'dismissal keeps the failed draft');
             assert.equal(await page.getByRole('alert').count(), 0);
-            await page.getByRole('button', { name: 'Derivation Replay', exact: true }).click();
+            // Leaving the Tree Bank returns to the analysis the app kept.
+            await page.getByTitle('Open Tree Bank', { exact: true }).click();
+            await page.getByTitle('Return to Arboretum', { exact: true }).click();
             await waitForReplayPaint(page, 4);
             assert.equal(requests, 6, 'dismissal makes no request');
             await page.getByRole('button', { name: 'Save to Tree Bank', exact: true }).click();
@@ -346,6 +345,7 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             const work = stored.savedWorks[0];
             assert.equal(work.sentence, distinct.sentence, 'the failed draft does not relabel the accepted work');
             assert.equal(work.activeParseIndex, 1);
+            assert.equal(work.view, 'derivation');
             assert.equal(work.replayStep, 4);
             assert.deepEqual(work.analysisIds.map(id => stored.records.find(record => record.id === id).payload),
               JSON.parse(JSON.stringify(distinct.analyses)));
@@ -356,15 +356,11 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             assert.equal(await page.getByRole('button', { name: 'Parse 2', exact: true }).getAttribute('aria-pressed'), 'true');
             assert.equal(await page.getByRole('button', { name: 'Play', exact: true }).count(), 1);
             await assertReplayWithoutInput(page);
-            await page.getByRole('button', { name: 'Notes', exact: true }).click();
-            await waitForNotesPaint(page);
-            assert.ok(await sentenceInput(page).isVisible(), 'Notes keeps the sentence input');
-            await page.getByRole('button', { name: 'Canopy', exact: true }).click();
-            await waitForCanopyPaint(page);
-            assert.match(await page.locator('svg[data-babel-tree]').textContent(), /IP/);
+            await homeButton(page).click();
+            assert.equal(await sentenceInput(page).inputValue(), distinct.sentence, 'an opened save puts its sentence in the box');
             response = 'complete';
             await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
-            await waitForCanopyPaint(page);
+            await page.getByRole('button', { name: 'Pause', exact: true }).waitFor();
             assert.equal(await page.getByRole('button', { name: 'Parse 1', exact: true }).getAttribute('aria-pressed'), 'true');
             assert.equal(await page.getByRole('alert').count(), 0);
             assert.equal(requests, 7, 'only the explicitly controlled submissions occurred');
@@ -390,7 +386,7 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
     const evidence = process.env.BABEL_WORKFLOW_EVIDENCE;
     if (evidence) await mkdir(evidence, { recursive: true });
     for (const width of [1440, 390]) {
-      const context = await browser.newContext({ viewport: { width, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'],
+      const context = await browser.newContext({ viewport: { width, height: 1000 },
         ...recordVideo(evidence, { width, height: 1000 }) });
       let page;
       const errors = [], consoleMessages = [], pendingRequests = new Set();
@@ -431,24 +427,9 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         const emptyBank = { records: [], savedWorks: [], previews: [], treeBank: [] };
         const ready = () => page.locator('svg[data-babel-tree="true"]').waitFor();
         await page.goto(server.url);
-        // A collapsed or hidden sentence panel stays mounted for its transition,
-        // but its controls cannot receive focus.
-        const sentenceFocusable = () => page.evaluate(() => {
-          const box = document.querySelector('textarea[aria-label="Sentence to analyze"]');
-          box.focus();
-          const focused = document.activeElement === box;
-          box.blur();
-          return focused;
-        });
-        assert.equal(await sentenceFocusable(), true);
-        await page.getByTitle('Collapse', { exact: true }).click();
-        assert.equal(await sentenceFocusable(), false, 'the collapsed panel body is out of the focus order');
-        await page.getByRole('button', { name: 'Expand Arbor Control', exact: true }).click();
-        assert.equal(await sentenceFocusable(), true);
-        await page.getByTitle('Hide Control Panel', { exact: true }).click();
-        assert.equal(await sentenceFocusable(), false, 'the hidden panel is out of the focus order');
-        await page.getByTitle('Restore Arboretum Link', { exact: true }).click();
-        assert.equal(await sentenceFocusable(), true);
+        // The first screen is the sentence bar, with nothing to collapse or hide.
+        assert.ok(await sentenceInput(page).evaluate(box => { box.focus(); const focused = document.activeElement === box; box.blur(); return focused; }));
+        assert.equal(await page.getByRole('button', { name: /^(Collapse|Expand|Hide Control Panel|Restore Arboretum Link)$/ }).count(), 0);
         // Minimalism is the default; this fixture is an X-bar analysis.
         await page.getByRole('button', { name: 'Minimalist Program', exact: true }).click();
         await page.getByRole('button', { name: 'X-Bar Theory', exact: true }).waitFor();
@@ -464,8 +445,8 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
         await page.getByText('Fixture request interrupted.', { exact: true }).waitFor();
         assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue(), bundle.sentence);
-        // Outside Replay, Escape in the sentence input dismisses the failure and
-        // leaves the input, its draft and its focus for a retry.
+        // With no analysis to return to, Escape in the sentence input dismisses
+        // the failure and leaves the input, its draft and its focus for a retry.
         await page.getByRole('textbox', { name: 'Sentence to analyze' }).focus();
         await page.keyboard.press('Escape');
         await page.getByText('Fixture request interrupted.', { exact: true }).waitFor({ state: 'detached' });
@@ -476,8 +457,8 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         failRequest = false;
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
         await ready();
+        await assertReplayWithoutInput(page);
         await page.getByRole('button', { name: 'Parse 2', exact: true }).click();
-        await page.getByRole('button', { name: 'Derivation Replay', exact: true }).click();
         await page.getByRole('slider', { name: 'Replay frame' }).waitFor();
         if (await page.getByRole('button', { name: 'Pause', exact: true }).count()) await page.getByRole('button', { name: 'Pause', exact: true }).click();
         await page.getByRole('slider', { name: 'Replay frame' }).fill('0');
@@ -528,16 +509,10 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         await page.getByRole('button', { name: 'X-Bar Theory', exact: true }).waitFor();
         assert.equal(await page.getByRole('button', { name: 'Parse 2', exact: true }).getAttribute('aria-pressed'), 'true');
         await page.waitForFunction(() => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === '1');
-        await page.getByRole('button', { name: 'Notes', exact: true }).click();
-        await page.getByRole('button', { name: 'Copy Canopy', exact: true }).click();
-        await page.getByRole('button', { name: 'Copied to Soil', exact: true }).waitFor();
-        assert.match(await page.evaluate(() => navigator.clipboard.readText()), /Mia/);
-        assert.equal(await page.getByText('Movement Indexed', { exact: false }).count(), 0, 'Notes offers one final-tree bracketing');
-        await page.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new DOMException('Denied', 'NotAllowedError')); });
-        // The confirmed label reverts after two seconds; either label is the same button.
-        await page.getByRole('button', { name: /^(Copy Canopy|Copied to Soil)$/ }).click();
-        await page.getByRole('alert').filter({ hasText: 'The browser blocked clipboard access' }).waitFor();
-        await page.getByRole('button', { name: 'Copy Canopy', exact: true }).waitFor();
+        assert.equal(await page.getByRole('button', { name: 'Play', exact: true }).count(), 1, 'a saved frame reopens paused');
+        // Replay is the only view: no Canopy or Notes tab and no bracketing to copy.
+        assert.equal(await page.getByRole('button', { name: /^(Canopy|Notes|Derivation Replay)$/ }).count(), 0);
+        assert.equal(await page.getByText(/Labeled Bracketing|Miles Shang|Copy Canopy/).count(), 0);
         await page.getByTitle('Open Tree Bank', { exact: true }).click();
         await page.getByRole('button', { name: 'Delete', exact: true }).click();
         // The confirmation is modal: focus starts on Cancel, Escape cancels, and

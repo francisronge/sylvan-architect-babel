@@ -50,7 +50,6 @@ Babel has two primary users:
 - Evaluate whether output reflects framework constraints vs shallow pattern matching.
 - Run prompt-level comparisons between X-bar and Minimalist settings.
 - Inspect movement, derivational order, and structural alternatives.
-- Export bracketed notation for external workflows.
 
 #### Babel as a benchmark framework
 
@@ -128,36 +127,38 @@ Babel includes a `Constituent Glyphing` abstraction toggle.
 
 This gives an alternate visual layer for reading structure at a higher level of abstraction, while preserving the underlying parse output.
 
-### 4) Input console (Arboretum Link)
+### 4) Input screen and tree screen
 
-The bottom control panel supports:
+Babel has two screens around an analysis. The input screen holds the sentence
+bar:
 
 - Sentence entry and submission
-- Expand/collapse behavior
-- Temporary hide/show behavior
 - Framework-sensitive placeholder guidance
 - In-panel error/status feedback
 
-The console appears in Canopy and Notes. Derivation Replay leaves its space to
-the tree and the Replay panel; return to Canopy to enter a new sentence. Replay
-keeps the console only while a request is running or a failure is shown.
-Dismiss a failure with its close button or Escape: you return to the analysis
-and paused frame you were reading, your draft and Tree Bank stay, and no request
-is made. Download its raw output or failure record first if you want them; the
-next request clears the failure in any case.
+A finished analysis opens on the tree screen, where nothing but the header and
+the parse selector takes the tree's room. Click the Babel logo in the header to
+return to the input screen and parse another sentence; the Tree Bank's
+`Back to Arboretum` returns to the analysis you were reading.
+
+A failed request stays on the input screen with your draft. Dismiss the failure
+with its close button or Escape: if an analysis is open you return to it at its
+paused frame, your draft and Tree Bank stay, and no request is made. Download
+its raw output or failure record first if you want them; the next request
+clears the failure in any case.
 
 ### 5) Parse execution flow
 
 When you submit a sentence, Babel shows:
 
 - Loading state
-- Parse success state (tree + supporting views)
+- Parse success state (the tree in Replay)
 - Parse error state with user-readable messages
 
-If a view fails to display, its area shows a notice with the error details and
-`Retry view`; the header, view buttons and console stay, and so does the
-analysis, which you can still save. Choosing another view, parse or analysis
-also clears the notice. If Babel as a whole fails, the page shows `Restart
+If the tree fails to display, its area shows a notice with the error details
+and `Retry view`; the header stays, and so does the analysis, which you can
+still save. Choosing another parse or analysis, or leaving for the input screen
+or the Tree Bank, also clears the notice. If Babel as a whole fails, the page shows `Restart
 Babel` instead of going blank; your Tree Bank is kept, but an unsaved analysis
 may need to be generated again.
 
@@ -165,17 +166,13 @@ may need to be generated again.
 
 An ambiguous sentence may have more than one meaning and more than one corresponding tree. Babel's internal parse bundle preserves every supplied distinct analysis rather than imposing a two-parse ceiling.
 
-The parse selector exposes `Parse 1`, `Parse 2`, and any additional analyses. Selecting one updates Canopy, Derivation Replay, and Notes together.
+The parse selector exposes `Parse 1`, `Parse 2`, and any additional analyses. Selecting one shows it in Replay, resuming at the frame you left it on.
 
-### 7) Canopy view
+### 7) Derivation Replay
 
-`Canopy` is the clean final-workspace view. It shows each authored final root without adding a syntactic parent.
-
-It draws the tree exactly where the last Replay frame leaves it, without the relation marks, so switching between the two views moves nothing.
-
-### 8) Derivation Replay view
-
-`Derivation Replay` presents the ordered structural states compiled from `derivationStages`.
+Replay is Babel's only view of an analysis. A new analysis opens in Replay and
+plays; its last frame is the finished tree. It presents the ordered structural
+states compiled from `derivationStages`.
 
 It includes:
 
@@ -183,6 +180,7 @@ It includes:
 - Playback controls (previous step, play or pause, next step, and Fit)
 - A stage rail: one segment per stage, sized by its steps, to drag or tap through
 - Operation labels per step, with the stage's statement as its goal
+- Each stage's `stageRecord`, shown with that stage's frames
 - On construction steps, the workspace and the lexical array in labelled bracketing (WS = [ … ], LA = { … })
 - Workspace-forest state updates
 - Open `relations` rendered when Babel has a supported visual treatment
@@ -190,18 +188,7 @@ It includes:
 
 This view is designed to expose process, not just endpoint.
 
-### 9) Notes view
-
-`Notes` presents the ordered, non-empty `derivationStages[].stageRecord` strings directly. Babel does not synthesize a parallel explanation or compiled analysis layer.
-
-The view also includes:
-
-- Labeled bracketing derived from each final root
-- One-click copy for bracketed notation
-- Direct external link support for notation tooling
-- Use bracketed notation in traditional tools (for example, MShang) when you want a classic tree workflow outside Babel's renderer.
-
-### 10) Output artifacts
+### 8) Output artifacts
 
 The authored model output is exactly `derivationStages`. Every stage has five required fields:
 
@@ -213,20 +200,20 @@ The authored model output is exactly `derivationStages`. Every stage has five re
 
 Babel expands `workspace` and `nodes` into a nested `workspaceForest` before any other check. Analyses written directly as nested forests, including every record saved earlier, are read unchanged.
 
-Babel sends the model only the sentence; the model decides where its words are, and Babel checks that the final stage spells the sentence. A complete tree whose words are the sentence's in another order is still drawn, marked as an invalid analysis: the header says how many words are out of order, and the last step and the Canopy show the sentence beside the model's tree, with those words in amber. An optional `realizations` field associates existing syntax nodes with the text they realize. For example, separate `walk` and `-ed` leaves may jointly realize `walked`, and one node may realize separate pieces such as French *ne … pas*. The model supplies the association; Babel preserves the pieces and checks the spelling without deriving morphology or changing the tree. Analyses whose nodes' own words spell the sentence omit the field. See the [realization contract](docs/research/morphology-realization-audit.md#contract-reuse-check-and-proposed-extension).
+Babel sends the model only the sentence; the model decides where its words are, and Babel checks that the final stage spells the sentence. A complete tree whose words are the sentence's in another order is still drawn, marked as an invalid analysis: the header says how many words are out of order, and the last step shows the sentence beside the model's tree, with those words in amber. An optional `realizations` field associates existing syntax nodes with the text they realize. For example, separate `walk` and `-ed` leaves may jointly realize `walked`, and one node may realize separate pieces such as French *ne … pas*. The model supplies the association; Babel preserves the pieces and checks the spelling without deriving morphology or changing the tree. Analyses whose nodes' own words spell the sentence omit the field. See the [realization contract](docs/research/morphology-realization-audit.md#contract-reuse-check-and-proposed-extension).
 
 Babel validates those stages, replays them, and derives the final forest, surface order, relation render plans, and replay steps. A single-root analysis also has a `tree` convenience field. Several final roots are allowed when their combined pronounced terminals account for the exact input; that structural check does not decide whether the analysis is linguistically convincing. A malformed relation stays attached to its stage as a neutral Replay moment with its original payload and field diagnostic, while intact sibling relations remain drawable. A malformed workspace or incomplete surface coverage still fails the analysis. Relation names and anchor-role names remain open rather than being projected into a fixed ontology.
 
 These outputs are intended for both human reading and downstream inspection workflows.
 
-### 11) Tree Bank
+### 9) Tree Bank
 
 `Tree Bank` is Babel's local save-and-reopen workspace.
 
 It includes:
 
 - Save current parse state from the header (`Save to Tree Bank`)
-- Reopen saved analyses with their active framework and parse selection
+- Reopen saved analyses with their active framework, parse selection and Replay frame; saves made in the retired Canopy or Notes views open paused on the finished tree
 - Store rendered tree snapshot previews for quick browsing
 - Delete saved entries directly from the Tree Bank panel
 - Keep data local to the current browser/device
@@ -235,10 +222,9 @@ It includes:
 
 1. Choose a framework (Minimalism, the default, or X-bar).
 2. Parse a sentence.
-3. Inspect the final structure in Canopy.
-4. Inspect derivational behavior in Derivation Replay.
-5. Compare outputs across frameworks and across reruns.
-6. Record differences in structure, visual relations, and stage records.
+3. Inspect derivational behavior in Replay, and the final structure on its last frame.
+4. Compare outputs across frameworks and across reruns.
+5. Record differences in structure, visual relations, and stage records.
 
 ## Supported browsers
 
