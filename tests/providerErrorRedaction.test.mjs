@@ -28,6 +28,9 @@ const providerBody = JSON.stringify({ error: {
   message: `Upstream overloaded for organization ${secret}, key ${keyTail}.`, code: 'server_error'
 } });
 const decode = (artifact) => Buffer.from(artifact.data, 'base64').toString('utf8');
+// Artifacts carry their text base64-encoded, so a plain search of the body would miss it.
+const decodedText = (body) => JSON.stringify(body, (key, value) => (
+  key === 'data' && typeof value === 'string' ? Buffer.from(value, 'base64').toString('utf8') : value));
 
 const withProviderKey = (t) => {
   const previous = process.env.OPENAI_API_KEY;
@@ -61,7 +64,7 @@ test('production failure bodies carry no provider error text or body', async (t)
     assert.equal(error.code, code);
     const publicBody = production(error);
     assert.equal(publicBody.status, status);
-    const serialized = JSON.stringify(publicBody.body);
+    const serialized = decodedText(publicBody.body);
     assert.equal(serialized.includes(secret), false, code);
     assert.equal(serialized.includes('WXYZ'), false, code);
     assert.equal(publicBody.body.error.failure.offendingValue, null, code);
@@ -107,11 +110,50 @@ test('production withholds a partial body of an unsuccessful provider response',
     code: 'ECONNRESET', status: 503, responseReceived: false, partialProviderResponse: createRawOutputArtifact(partialError)
   }));
   const publicBody = production(error);
-  const serialized = JSON.stringify(publicBody.body);
+  const serialized = decodedText(publicBody.body);
   assert.equal(serialized.includes(secret), false);
   assert.equal(publicBody.body.error.generationRecord?.rawProviderResponse, undefined);
   // Development keeps the partial body for diagnosis.
   assert.equal(decode(development(error).body.error.generationRecord.rawProviderResponse), partialError);
+});
+
+test('production withholds the error envelope of a response the provider marked failed or cancelled', async (t) => {
+  withProviderKey(t);
+  // OpenAI answers a stopped background response with its own error, not with model output.
+  const envelope = (status) => JSON.stringify({ id: 'resp_stopped', object: 'response', status, output: [],
+    error: { code: 'rate_limit_exceeded', message: `Rate limit reached for organization ${secret}, key ${keyTail}.` } });
+  const replies = [];
+  t.mock.method(globalThis, 'fetch', async () => new Response(replies.shift()));
+  const routes = createParseRoutes({ ParseApiError, normalizeParseBundle, parseModelJsonDetailed });
+  const request = ['Mia laughed.', 'xbar', 'openai:gpt-6-sol', { settings: {} }];
+  const failure = (promise) => promise.then(() => assert.fail('expected a typed failure'), (error) => error);
+  for (const status of ['failed', 'cancelled']) {
+    // One long request: the creation itself answers with the stopped response.
+    replies.push(envelope(status));
+    const held = await failure(routes.parseSentenceWithResearchModel(...request));
+    // One ticket: the creation is queued, and the check finds the response stopped.
+    replies.push(JSON.stringify({ id: 'resp_stopped', status: 'queued' }), envelope(status));
+    const { ticket } = await routes.startParseTicket(...request);
+    const checked = await failure(routes.checkParseTicket(ticket));
+    assert.equal(replies.length, 0);
+    for (const [path, error] of [['long request', held], ['ticket check', checked]]) {
+      const label = `${status} via ${path}`;
+      assert.equal(error.code, 'INCOMPLETE_GENERATION', label);
+      const publicBody = production(error);
+      assert.equal(publicBody.status, 502, label);
+      assert.match(publicBody.body.error.message, new RegExp(status, 'iu'), label);
+      assert.equal(publicBody.body.error.failure.ruleId, 'GENERATION_COMPLETED_STOP_FAILURE', label);
+      const serialized = decodedText(publicBody.body);
+      assert.equal(serialized.includes(secret), false, label);
+      assert.equal(serialized.includes('WXYZ'), false, label);
+      assert.equal(publicBody.body.error.rawOutput, undefined, label);
+      assert.equal(publicBody.body.error.generationRecord?.rawProviderResponse, undefined, label);
+      assert.equal(publicBody.body.error.generationRecord?.outcome?.finishStatus, 'COMPLETED_STOP_FAILURE', label);
+      // Development keeps the envelope, and the server log keeps a redacted provider message.
+      assert.equal(decode(development(error).body.error.rawOutput), envelope(status), label);
+      assert.match(describeParseServerFailure(error, publicBody).providerMessage, /org-SECRETORG123/u, label);
+    }
+  }
 });
 
 test('provider log text masks credential-shaped runs', () => {
