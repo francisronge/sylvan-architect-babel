@@ -53,7 +53,12 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Loading: "Deep Parsing … Structures"', file: 'components/workspace/WorkspaceStates.tsx', snippet: 'text-emerald-500/75 font-black uppercase text-[9px]', fg: 'emerald-500/75', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
   { where: 'Waiting tree: the sentence', file: 'components/workspace/WaitingTree.tsx', snippet: 'leading-snug text-emerald-50 text-center', fg: 'emerald-50', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
   { where: 'Waiting tree: "Usually about two minutes…"', file: 'components/workspace/WaitingTree.tsx', snippet: 'leading-relaxed text-emerald-300/90 text-center', fg: 'emerald-300/90', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
-  { where: 'Waiting tree: branches', file: 'components/workspace/WaitingTree.tsx', snippet: "const BARK = '#c9a46a'", fg: '#c9a46a', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: ICON },
+  { where: 'Waiting and failure trees: branches', file: 'components/workspace/syntaxTreeArt.ts', snippet: "export const BARK = '#c9a46a'", fg: '#c9a46a', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: ICON },
+  { where: 'Failure screen: the sentence', file: 'components/workspace/FailureScreen.tsx', snippet: 'leading-snug text-emerald-50 max-w-xl', fg: 'emerald-50', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
+  { where: 'Failure screen: what happened', file: 'components/workspace/FailureScreen.tsx', snippet: 'leading-tight text-emerald-50', fg: 'emerald-50', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
+  { where: 'Failure screen: why, and what to do', file: 'components/workspace/FailureScreen.tsx', snippet: 'leading-relaxed text-emerald-300/90', fg: 'emerald-300/90', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
+  { where: 'Failure screen: first action ("Try again", "Open Tree Bank")', file: 'components/workspace/FailureScreen.tsx', snippet: 'bg-[#a7f3d0] text-[#04261b]', fg: '[#04261b]', bg: ['#a7f3d0'], min: TEXT },
+  { where: 'Failure screen: second action ("Edit sentence")', file: 'components/workspace/FailureScreen.tsx', snippet: 'text-[#a7f3d0] border border-[#a7f3d0]/35', fg: '[#a7f3d0]', bg: [...SHELL, 'rgba(2,8,6,0.95)'], min: TEXT },
   { where: 'Empty workspace: "Cast a thought…"', file: 'components/workspace/WorkspaceStates.tsx', snippet: 'text-emerald-500/85 font-black uppercase text-[9px] md:text-[10px] tracking-[0.5em] md:tracking-[0.8em]', fg: 'emerald-500/85', bg: SHELL, min: TEXT },
 
   // Sentence console
