@@ -98,11 +98,12 @@ are not.
      Most are probably claims whose structure cannot confirm a picture (not
      measured), so they do not show easy gains from structure. What structure work remains is
      measuring how often Babel's existing pictures are wrong.
-   - Later, Jev as the fallback for relations structure cannot settle (mostly
-     non-movement relations): run it once after generation, only for claims
-     recognition leaves neutral, to map the model's role names to drawing
-     roles; Babel still checks the structure, and Jev's answer is saved with
-     the analysis so Replay stays offline and repeatable.
+   - Jev, a model reading the role names of claims recognition leaves
+     neutral, was tried (#288, closed). Over 984 neutral claims in 247
+     analyses it drew 30 (3%), all correct in a hand-check; an earlier prompt
+     drew 57 with 2 wrong pictures in 25 checked. Francis, 5 Nov 2026: "it
+     recognised like 20 new things, and hallucinated a little too, seemed
+     completely worthless." It is not planned.
    - Possibly, if it proves worth it: shared structure (multidominance) as an
      alternative to copies for movement and sharing.
 8. Merge duplicated layout checks without changing a pixel, proving identical
