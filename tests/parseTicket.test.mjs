@@ -30,6 +30,13 @@ test('a ticket reads back only with its key, unchanged and in its exact shape', 
   for (const bad of [{ ...fields, extra: 1 }, { ...fields, startedAt: 'now' }, { ...fields, sentRequestSha256: 'short' }]) {
     assert.equal(readParseTicket('key-one', signParseTicket('key-one', bad)), null, 'a signed ticket of the wrong shape is refused');
   }
+  // A field name is one of the ticket's own; an inherited object member is not one and never runs.
+  const { settings: _settings, ...noSettings } = fields;
+  for (const name of ['constructor', 'toString', 'hasOwnProperty']) {
+    assert.equal(readParseTicket('key-one', signParseTicket('key-one', { ...noSettings, [name]: 1 })), null, `${name} is not a ticket field`);
+  }
+  const withProto = JSON.parse(`{${JSON.stringify(noSettings).slice(1, -1)},"__proto__":{}}`);
+  assert.equal(readParseTicket('key-one', signParseTicket('key-one', withProto)), null, '__proto__ is not a ticket field');
   assert.equal(readParseTicket('key-one', 42), null);
 });
 
