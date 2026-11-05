@@ -113,6 +113,7 @@ export const UI_CONTRAST_PAIRS = [
   { where: 'Tree Bank invalid analysis tag', file: 'components/TreeBankView.tsx', snippet: 'border-amber-500/40 text-amber-300 bg-amber-500/10', fg: 'amber-300', bg: [...GLASS, 'amber-500/10'], min: TEXT },
   { where: 'Tree Bank count', file: 'components/TreeBankView.tsx', snippet: 'uppercase tracking-widest text-emerald-400/80', fg: 'emerald-400/80', bg: GLASS, min: TEXT },
   { where: 'Tree Bank loading', file: 'components/TreeBankView.tsx', snippet: 'text-emerald-200/80', fg: 'emerald-200/80', bg: GLASS, min: TEXT },
+  { where: 'Public: Tree Bank privacy link', file: 'publicApp/PublicApp.tsx', snippet: 'text-xs text-emerald-50/60 underline-offset-4', fg: 'emerald-50/60', bg: SHELL, min: TEXT },
   { where: 'Tree Bank empty message', file: 'components/TreeBankView.tsx', snippet: 'text-emerald-50/60 max-w-xl', fg: 'emerald-50/60', bg: GLASS, min: TEXT },
   { where: 'Saved tree framework label', file: 'components/TreeBankView.tsx', snippet: 'tracking-[0.35em] text-emerald-400/70', fg: 'emerald-400/70', bg: GLASS, min: TEXT },
   { where: 'Saved tree date', file: 'components/TreeBankView.tsx', snippet: 'font-black text-emerald-500/75 shrink-0', fg: 'emerald-500/75', bg: GLASS, min: TEXT },
