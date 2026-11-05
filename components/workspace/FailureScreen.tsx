@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import type { GenerationError } from '../../services/generationState';
 import { describeFailure, FAILURE_ACTION_LABELS, type FailureAction, type FailureKind } from './failureKinds';
 import {
@@ -10,7 +10,8 @@ import {
  * state that says what happened, what likely went wrong, and what to do next
  * (Francis, 5 Nov 2026). Each tree plays one short moment when the screen
  * appears and then rests, so nothing looks as if it were still waiting: a
- * snapped arm falls, the moon rises and its stars twinkle in, or a cloud drifts
+ * snapped arm falls, the moon rises and its stars twinkle in, the sun sinks
+ * behind the grove, or a cloud drifts
  * in and drizzles. The drizzle keeps falling, slowly; it is weather, not
  * progress. With reduced motion each starts in its resting state (styles.css).
  */
@@ -146,32 +147,56 @@ const miniBranch = ([from, to]: [number, number]) => {
   return `M${x1} ${y1} C ${x1} ${middle}, ${x2} ${middle}, ${x2} ${y2}`;
 };
 // The grove's trees, each standing on the ground: [x of its root, scale]. The middle one is tallest.
-const GROVE: Array<[number, number]> = [[W * 0.18, 1], [W * 0.5, 1.3], [W * 0.82, 1]];
+const GROVE: Array<[number, number]> = [[W * 0.14, 1.2], [W * 0.5, 1.55], [W * 0.86, 1.2]];
 
-/** A grove resting under the moon: Babel's trees for today are all grown. */
-const RestingGrove = () => (
-  <>
-    <Ground />
-    <NightSky lower={70} />
-    {GROVE.map(([x, scale], tree) => (
-      <g key={tree} transform={`translate(${x} ${GROUND_Y - 8 - 52 * scale}) scale(${scale})`}>
-        {MINI_BRANCHES.map(branch => (
-          <path key={branch.join('-')} d={miniBranch(branch)} fill="none" stroke={BARK} strokeWidth={2.2 / scale} strokeLinecap="round" opacity={0.8} />
-        ))}
-        {MINI_NODES.map(([nx, ny, leaf], node) => (
-          <circle key={node} cx={nx} cy={ny} r={(leaf ? 3.6 : 2.8) / scale} fill={NODE} />
-        ))}
+/** A grove against a low sun sinking behind the ground: Babel's trees for today are all grown (Francis, 5 Nov 2026: "lets do sundown"). */
+const Sundown = () => {
+  const sky = `failure-sky-${useId().replace(/:/g, '')}`;
+  const glow = `${sky}-glow`;
+  const sunX = W / 2;
+  const sunY = GROUND_Y + 4;
+  return (
+    <>
+      <defs>
+        <clipPath id={sky}><rect x={-40} y={-60} width={W + 80} height={GROUND_Y + 60} /></clipPath>
+        <radialGradient id={glow}>
+          <stop offset="0" stopColor={BARK} stopOpacity={0.3} />
+          <stop offset="1" stopColor={BARK} stopOpacity={0} />
+        </radialGradient>
+      </defs>
+      <g clipPath={`url(#${sky})`}>
+        <g className="failure-sun">
+          <circle cx={sunX} cy={sunY} r={130} fill={`url(#${glow})`} />
+          <circle cx={sunX} cy={sunY} r={58} fill={BARK} opacity={0.82} />
+        </g>
       </g>
-    ))}
-  </>
-);
+      <Ground />
+      {GROVE.map(([x, scale], tree) => (
+        <g key={tree} transform={`translate(${x} ${GROUND_Y - 8 - 52 * scale}) scale(${scale})`}>
+          {MINI_BRANCHES.map(branch => (
+            <path key={branch.join('-')} d={miniBranch(branch)} fill="none" stroke={BARK} strokeWidth={2.2 / scale} strokeLinecap="round" />
+          ))}
+          {MINI_NODES.map(([nx, ny, leaf], node) => (
+            <circle key={node} cx={nx} cy={ny} r={(leaf ? 3.6 : 2.8) / scale} fill={NODE} />
+          ))}
+        </g>
+      ))}
+    </>
+  );
+};
 
-const ART: Record<FailureKind, React.FC> = {
-  broken: BrokenTree,
-  sentence: BrokenTree,
-  noAnswer: RainedOnTree,
-  visitorLimit: RestingTree,
-  siteLimit: RestingGrove
+// Each picture and the part of the drawing it shows. The trees need the tall
+// frame; the sundown is a wide horizon, cropped close so it fills the same width.
+const TALL_VIEW = `-20 -42 ${W + 40} ${H + 74}`;
+const HORIZON_VIEW = `-20 ${GROUND_Y - 146} ${W + 40} 170`;
+const TALL_SIZE = 'w-[min(280px,74vw)]';
+const WIDE_SIZE = 'w-[min(380px,86vw)]';
+const ART: Record<FailureKind, { Art: React.FC; viewBox: string; size: string }> = {
+  broken: { Art: BrokenTree, viewBox: TALL_VIEW, size: TALL_SIZE },
+  sentence: { Art: BrokenTree, viewBox: TALL_VIEW, size: TALL_SIZE },
+  noAnswer: { Art: RainedOnTree, viewBox: TALL_VIEW, size: TALL_SIZE },
+  visitorLimit: { Art: RestingTree, viewBox: TALL_VIEW, size: TALL_SIZE },
+  siteLimit: { Art: Sundown, viewBox: HORIZON_VIEW, size: WIDE_SIZE }
 };
 
 export interface FailureScreenProps {
@@ -185,7 +210,7 @@ export interface FailureScreenProps {
 
 const FailureScreen: React.FC<FailureScreenProps> = ({ error, sentence, onRetry, onEdit, onOpenTreeBank }) => {
   const copy = describeFailure(error);
-  const Art = ART[copy.kind];
+  const { Art, viewBox, size } = ART[copy.kind];
   const firstAction = useRef<HTMLButtonElement>(null);
   // The screen replaces the waiting screen, so focus moves to its first action.
   useEffect(() => { firstAction.current?.focus(); }, [copy.kind]);
@@ -206,7 +231,7 @@ const FailureScreen: React.FC<FailureScreenProps> = ({ error, sentence, onRetry,
           “{sentence}”
         </p>
       )}
-      <svg viewBox={`-20 -42 ${W + 40} ${H + 74}`} className="w-[min(280px,74vw)] h-auto overflow-visible" aria-hidden="true">
+      <svg viewBox={viewBox} className={`${size} h-auto overflow-visible`} aria-hidden="true">
         <Art />
       </svg>
       <div role="alert" className="mt-6 md:mt-8">

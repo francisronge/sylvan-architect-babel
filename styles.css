@@ -275,9 +275,11 @@ body,
 }
 .failure-moon { animation: failure-moon-rise 1.6s cubic-bezier(.2, .7, .3, 1) .2s backwards; }
 @keyframes failure-moon-rise { from { transform: translateY(16px); opacity: 0; } }
+.failure-sun { animation: failure-sun-sink 2.8s cubic-bezier(.3, 0, .3, 1) .2s backwards; }
+@keyframes failure-sun-sink { from { transform: translateY(-26px); } }
 .failure-star { transform-box: view-box; animation: failure-star-twinkle 1.1s cubic-bezier(.3, 1.4, .6, 1) backwards; }
 @keyframes failure-star-twinkle { from { transform: scale(0); opacity: 0; } 60% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .failure-arm, .failure-cloud, .failure-rain, .failure-moon, .failure-star { animation: none; }
+  .failure-arm, .failure-cloud, .failure-rain, .failure-moon, .failure-star, .failure-sun { animation: none; }
   .failure-rain { opacity: .5; }
 }

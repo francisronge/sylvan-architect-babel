@@ -75,11 +75,15 @@ test('each failure screen shows the sentence, its tree, what happened and its ac
   assert.equal((rained.match(/class="failure-rain"/g) ?? []).length, 3, 'a sparse drizzle of teardrops');
 
   const treesIn = html => (html.match(/<g transform="translate/g) ?? []).length;
-  for (const [code, trees] of [['RATE_LIMITED_DAILY', 0], ['DAILY_CAPACITY_REACHED', 3]]) {
-    const resting = render({ code });
-    assert.match(resting, /class="failure-moon"/);
-    assert.equal((resting.match(/class="failure-star"/g) ?? []).length, 3);
-    assert.equal(treesIn(resting), trees, code === 'RATE_LIMITED_DAILY' ? "the visitor's one tree" : "Babel's grove of three");
+  const yours = render({ code: 'RATE_LIMITED_DAILY' });
+  assert.match(yours, /class="failure-moon"/, "the visitor's one tree rests under the moon");
+  assert.equal((yours.match(/class="failure-star"/g) ?? []).length, 3);
+  assert.equal(treesIn(yours), 0);
+  const babels = render({ code: 'DAILY_CAPACITY_REACHED' });
+  assert.match(babels, /class="failure-sun"/, "Babel's grove stands against the setting sun");
+  assert.equal(treesIn(babels), 3);
+  assert.ok(!babels.includes('failure-moon'));
+  for (const resting of [yours, babels]) {
     assert.match(resting, />Open Tree Bank</);
     assert.ok(!resting.includes('Try again'), 'no retry that cannot work until tomorrow');
   }
@@ -88,11 +92,11 @@ test('each failure screen shows the sentence, its tree, what happened and its ac
 test('every failure tree animates; only the drizzle keeps going, and reduced motion starts at rest', async () => {
   const { readFile } = await import('node:fs/promises');
   const css = await readFile(path.join(root, 'styles.css'), 'utf8');
-  for (const name of ['failure-arm', 'failure-cloud', 'failure-rain', 'failure-moon', 'failure-star']) {
+  for (const name of ['failure-arm', 'failure-cloud', 'failure-rain', 'failure-moon', 'failure-star', 'failure-sun']) {
     const rule = css.match(new RegExp(`\\.${name} \\{[^}]*animation:([^;]*);`));
     assert.ok(rule, `${name} animates`);
     // Rain is weather, not progress; nothing that grows may loop, or it would look as if it were still waiting.
     if (name !== 'failure-rain') assert.ok(!/infinite/.test(rule[1]), `${name} plays once`);
   }
-  assert.match(css, /prefers-reduced-motion: reduce\) \{\s*\.failure-arm, \.failure-cloud, \.failure-rain, \.failure-moon, \.failure-star \{ animation: none; \}/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{\s*\.failure-arm, \.failure-cloud, \.failure-rain, \.failure-moon, \.failure-star, \.failure-sun \{ animation: none; \}/);
 });
