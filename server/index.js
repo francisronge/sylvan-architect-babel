@@ -7,7 +7,7 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 
 import { trackProviderCalls } from './babelParser/providerTransport.js';
-import { createDailyParseQuota } from './dailyParseQuota.js';
+import { createMemoryCounterStore, createParseAllowance, readCounterStore, readParseAllowanceLimits } from './parseAllowance.js';
 import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly } from './parseApi.js';
 import {
   MALFORMED_JSON,
@@ -61,9 +61,14 @@ const localHostPolicy = isLocalRuntime ? readLocalHostPolicy(process.env) : null
 // A deployed server sends only public Babel's request; the local one keeps the internal app's menus.
 const publicRequestOnly = readPublicRequestOnly(process.env, { deployed: !isLocalRuntime });
 const parseRateLimitPerMinute = toPositiveInt(process.env.BABEL_PARSE_RATE_LIMIT_PER_MINUTE, 30);
-const parseDailyLimitPerIp = toPositiveInt(process.env.BABEL_PARSE_DAILY_LIMIT_PER_IP, 1200);
 const maxInFlightParses = toPositiveInt(process.env.BABEL_MAX_IN_FLIGHT_PARSES, 8);
-const dailyQuota = createDailyParseQuota({ limit: parseDailyLimitPerIp });
+// One process counts in its own memory unless a shared store is configured.
+// The per-minute limit is parseLimiter's, below.
+const parseAllowance = createParseAllowance({
+  store: readCounterStore(process.env) ?? createMemoryCounterStore(),
+  ...readParseAllowanceLimits(process.env, { deployed: !isLocalRuntime }),
+  perVisitorPerMinute: Infinity
+});
 let inFlightParses = 0;
 
 const getClientIp = (req) => String(req.ip || req.socket?.remoteAddress || 'unknown');
@@ -120,8 +125,9 @@ app.all('/api/parse', (req, res, next) => {
   return next();
 });
 
-// Only an admitted request uses the daily allowance and an in-flight slot. A
-// ticket check starts no generation, so it uses neither.
+// Only an admitted request uses the daily allowances and an in-flight slot. A
+// ticket check starts no generation, so it uses neither; it counts only
+// against the per-minute limit.
 app.post('/api/parse', parseLimiter, enforceParseRequestSecurity, async (req, res) => {
   if (parseRequestKind(req.body) === 'check') {
     try {
@@ -137,20 +143,25 @@ app.post('/api/parse', parseLimiter, enforceParseRequestSecurity, async (req, re
     }
     return;
   }
-  const ip = getClientIp(req);
-  if (dailyQuota.exhausted(ip)) {
-    return res.status(429).json({
-      error: { code: 'RATE_LIMITED_DAILY', message: 'Daily parse limit reached for this IP. Please retry tomorrow.' }
-    });
-  }
   if (inFlightParses >= maxInFlightParses) {
     return res.status(503).json({
       error: { code: 'SERVER_BUSY', message: 'Too many parse requests are in-flight. Please retry shortly.' }
     });
   }
-
-  dailyQuota.record(ip);
+  // The slot is taken before counting, so concurrent requests cannot overfill it.
   inFlightParses += 1;
+  let admitted;
+  try {
+    admitted = await parseAllowance.admitParse(getClientIp(req));
+  } catch (error) {
+    inFlightParses -= 1;
+    console.error('[api/parse] allowance error', error?.name || 'error');
+    return res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Unexpected server error.' } });
+  }
+  if (!admitted.ok) {
+    inFlightParses -= 1;
+    return res.status(admitted.status).json(admitted.body);
+  }
   // The slot stays taken after the response ends until every provider call settles.
   const generation = trackProviderCalls(() => parseFromRequest(req, res, undefined, { publicRequestOnly }));
   generation.settled.then(() => { inFlightParses -= 1; });

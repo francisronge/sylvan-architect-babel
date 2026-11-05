@@ -26,10 +26,12 @@ are not.
    one.
 2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
    minimal version inside the Tree Bank, shipped with launch.
-3. **Server work**: visitor and spend limits (Programs 3 and 5). A deployed
-   server already sends only public Babel's request (3B, item 4). Requests
-   that outlive Vercel's 300 s cap are done: public Babel starts a background
-   parse and checks back (parse tickets, below).
+3. **Server work**: done in code. A deployed server sends only public
+   Babel's request (3B, item 4) and limits parses to 5 per visitor and 100 in
+   total a day (Program 5, item 4). Requests that outlive Vercel's 300 s cap
+   are done: public Babel starts a background parse and checks back (parse
+   tickets, below). Left for deployment: the shared counter store and the
+   OpenAI hard spend cap (Program 5, item 4).
 4. **Hosting and the Generation Archive**: the checklist in Program 5 and the
    archive in Program 6A.
 5. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
@@ -360,9 +362,18 @@ the next tranche or a hosted account.
 3. Keep secrets server-side, preserve provider request shapes, and add abuse
    controls appropriate to the selected host.
 4. The public launch direction is anonymous generation without an account and
-   without a user charge. The hosted function has no rate or spend limit yet;
-   Francis and the agent set the per-visitor and daily limits together (3 Nov). Set explicit request, rate, and spend limits after
-   selecting and costing the public model.
+   without a user charge. GPT-6.1 Sol at high effort costs about $0.08 a
+   parse at list price (mean of 121 completed parses; 90th percentile
+   $0.14, most $0.22). A deployed server allows each visitor 5 parses and
+   the whole site 100 a day (Francis, 5 Nov 2026: "You can build it with 5
+   per visitor and 100 a day"), and each visitor 30 requests a minute,
+   ticket checks included (`server/parseAllowance.js`). A refused parse
+   calls no provider. The hosted function counts in a shared Upstash Redis
+   store (`UPSTASH_REDIS_REST_URL` and `_TOKEN`, or the Vercel marketplace's
+   `KV_REST_API_URL` and `_TOKEN`) and starts no parse without one, or when
+   the store cannot answer. Before launch: add that store, and set a hard
+   monthly spend limit on Babel's OpenAI project ($100 suggested to start),
+   which stops spending whatever the server does.
 5. The public deployment has no research route. If the research workbench is
    ever hosted, only Francis, or the few people he gives access to, can reach
    it, and anonymous traffic never reaches experimental provider spending.

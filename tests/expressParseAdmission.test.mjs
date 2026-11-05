@@ -3,7 +3,6 @@ import { fork } from 'node:child_process';
 import { once } from 'node:events';
 import test from 'node:test';
 import { trackProviderCalls, withTimeout } from '../server/babelParser/providerTransport.js';
-import { createDailyParseQuota } from '../server/dailyParseQuota.js';
 
 const anthropic = 'https://api.anthropic.com/v1/messages';
 const origin = 'http://app.test';
@@ -113,28 +112,6 @@ test('a disconnected request keeps its slot until its provider call settles', { 
   await server.settle();
   assert.deepEqual(await server.waitForFreeSlot(), server.admitted);
   assert.doesNotMatch(server.output(), /test-only|uncaught|unhandled/i);
-});
-
-test('the daily quota counts a bounded set of clients and resets each day', () => {
-  let clock = Date.UTC(2026, 9, 22, 12);
-  const quota = createDailyParseQuota({ limit: 2, maxClients: 100, now: () => clock });
-  quota.record('steady');
-  quota.record('steady');
-  for (let client = 0; client < 50000; client++) {
-    quota.record(`client-${client}`);
-    if (client % 50 === 0) quota.record('steady');
-    assert.ok(quota.size <= 100);
-  }
-  assert.equal(quota.size, 100);
-  // Recently admitted clients are still counted; the oldest were evicted.
-  quota.record('client-49999');
-  assert.equal(quota.exhausted('client-49999'), true);
-  assert.equal(quota.exhausted('client-49998'), false);
-  assert.equal(quota.exhausted('client-0'), false);
-  assert.equal(quota.exhausted('steady'), true);
-  clock += 12 * 3600000;
-  assert.equal(quota.exhausted('steady'), false);
-  assert.equal(quota.size, 0);
 });
 
 test('tracked provider calls settle after the request stops waiting for them', async () => {
