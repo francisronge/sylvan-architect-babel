@@ -48,6 +48,13 @@ for (const entry of ['server/index.js', 'api/parse.js']) {
       return post(visitor, { sentence: 'Mia laughed.', start: true });
     };
 
+    // Requests Babel refuses use none of the visitor's parses.
+    for (const sentence of ['a'.repeat(601), ' ', 'b'.repeat(601), 'c'.repeat(601), 'd'.repeat(601), 'e'.repeat(601)]) {
+      const refused = await post('203.0.113.1', { sentence, start: true });
+      assert.equal(refused.status, 400);
+      assert.equal(refused.body.error.code, 'INVALID_REQUEST');
+    }
+
     let ticket;
     for (let n = 1; n <= 5; n++) {
       const started = await start('203.0.113.1', n);

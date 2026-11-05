@@ -1,4 +1,4 @@
-import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly } from '../server/parseApi.js';
+import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, validateParseRequest } from '../server/parseApi.js';
 import { createMemoryCounterStore, createParseAllowance, readCounterStore, readParseAllowanceLimits } from '../server/parseAllowance.js';
 import {
   MALFORMED_JSON,
@@ -76,18 +76,23 @@ export default async function handler(req, res) {
 
   const address = visitorAddress(req);
   const parses = parseRequestKind(body) !== 'check';
-  if (!allowance) {
-    if (parses) {
+  if (allowance) {
+    const perMinute = await allowance.admitRequest(address);
+    if (!perMinute.ok) return send(res, perMinute);
+  }
+  if (parses) {
+    // A request Babel would refuse uses no allowance.
+    try {
+      validateParseRequest(body, { publicRequestOnly });
+    } catch (error) {
+      return send(res, formatApiError(error));
+    }
+    if (!allowance) {
       console.error('[api/parse] refusing to start a parse: no shared counter store is configured');
       return send(res, NO_COUNTER);
     }
-  } else {
-    const perMinute = await allowance.admitRequest(address);
-    if (!perMinute.ok) return send(res, perMinute);
-    if (parses) {
-      const admitted = await allowance.admitParse(address);
-      if (!admitted.ok) return send(res, admitted);
-    }
+    const admitted = await allowance.admitParse(address);
+    if (!admitted.ok) return send(res, admitted);
   }
 
   try {

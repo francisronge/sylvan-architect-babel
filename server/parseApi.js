@@ -125,6 +125,19 @@ const withPublicRequest = (body, kind) => {
   return { sentence: body.sentence, ...(kind === 'start' ? { start: true } : {}), ...PUBLIC_PARSE_REQUEST };
 };
 
+/**
+ * The request a parse body asks the provider for, validated: what a start or a
+ * long request would send, with the public request in place when the server
+ * pins it. Hosts call it before counting a parse against an allowance, so a
+ * request Babel would refuse uses none.
+ */
+export const validateParseRequest = (requestBody, { publicRequestOnly = false } = {}) => {
+  const kind = parseRequestKind(requestBody);
+  const body = publicRequestOnly ? withPublicRequest(requestBody, kind) : requestBody;
+  const { start: _start, ...request } = body ?? {};
+  return validateParseBody(kind === 'start' ? request : body);
+};
+
 export const parseFromBodyWithProviders = async (
   requestBody,
   providers = DEFAULT_PROVIDERS,
@@ -140,8 +153,7 @@ export const parseFromBodyWithProviders = async (
     // A finished check carries its sentence from the ticket.
     return withDerivedInputTokens(() => providers.check(body.ticket, { abortSignal }));
   }
-  const { start: _start, ...request } = body ?? {};
-  const { sentence, framework, modelId, settings } = validateParseBody(kind === 'start' ? request : body);
+  const { sentence, framework, modelId, settings } = validateParseRequest(requestBody, { publicRequestOnly });
   return withDerivedInputTokens(async () => {
     const bundle = await (kind === 'start' ? providers.start : providers.research)(sentence, framework, modelId, { settings, abortSignal, deadlineAt });
     return bundle.status === 'pending' ? bundle : { ...bundle, sentence };

@@ -8,7 +8,7 @@ import helmet from 'helmet';
 
 import { trackProviderCalls } from './babelParser/providerTransport.js';
 import { createMemoryCounterStore, createParseAllowance, readCounterStore, readParseAllowanceLimits } from './parseAllowance.js';
-import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly } from './parseApi.js';
+import { formatApiError, parseFromRequest, parseRequestKind, readPublicRequestOnly, validateParseRequest } from './parseApi.js';
 import {
   MALFORMED_JSON,
   MAX_PARSE_BODY_BYTES,
@@ -142,6 +142,13 @@ app.post('/api/parse', parseLimiter, enforceParseRequestSecurity, async (req, re
       res.status(formatted.status).json(formatted.body);
     }
     return;
+  }
+  // A request Babel would refuse uses no allowance or slot.
+  try {
+    validateParseRequest(req.body, { publicRequestOnly });
+  } catch (error) {
+    const formatted = formatApiError(error);
+    return res.status(formatted.status).json(formatted.body);
   }
   if (inFlightParses >= maxInFlightParses) {
     return res.status(503).json({
