@@ -22,7 +22,7 @@ are not.
    engine, with today's first screen minus its framework switch (Minimalism
    only); Replay as the only view; no model controls; automatic saving; a
    small way back to the input screen; the waiting screen; the failure
-   screen. Today's app stays as the internal
+   screen (built, below in 3C). Today's app stays as the internal
    one.
 2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
    minimal version inside the Tree Bank, shipped with launch.
@@ -289,7 +289,7 @@ as public Babel does. Do not copy the engine, and do not keep growing today's
 
 1. Preserve and characterize the existing loading experience, arbitrary-count
    parse selection, and the single provider request per parse (no automatic
-   transport retry; a retry on the public site may come later). Each workspace
+   transport retry). Each workspace
    view and the page root have error boundaries; give any new page its own.
    Decide separately whether
    user-triggered parse cancellation or additional retry UI is useful.
@@ -307,6 +307,17 @@ as public Babel does. Do not copy the engine, and do not keep growing today's
    parse allowance. The internal app keeps the one long request. The waiting
    screen grows a syntax tree on the measured wait (Francis, 4 Nov 2026,
    option A).
+   Built: public Babel's failure screens (Francis, 5 Nov 2026: "make some
+   cute failure screens similar to the loading screen ... They should be able
+   to retry"). A failed parse replaces the waiting screen with the sentence,
+   the waiting screen's tree in a state for what happened, one plain line and
+   its actions (`components/workspace/FailureScreen.tsx`, `failureKinds.ts`):
+   a broken tree whose arm falls when the model's analysis is unusable, and a
+   half-grown tree under a drizzling cloud when no answer came back (both offer
+   Try again and Edit sentence); the visitor's tree under the moon when their
+   parses for today are used, and a grove at sundown when Babel's are (both
+   offer the Tree Bank). It shows only Babel's own codes, never provider text,
+   and the sentence box stops at the route's 600 characters.
 2. Make desktop and mobile layouts explicit. Verify all key flows with
    screenshots and interaction tests, not only component snapshots.
 3. Preserve local-first operation. Hosted accounts or synchronization remain a
@@ -545,8 +556,9 @@ review authority, and correction path.
 - Every model admitted to the research workbench's catalog and how each
   proprietary or open-weight model is operated. Arbitrary model identifiers
   stay out unless Francis approves them.
-- Detailed public failure presentation and retry behavior. Babel must never
-  silently switch providers.
+- Public failure presentation and retry behavior beyond the screens Francis
+  chose on 5 Nov 2026 (3C, item 1). Babel must never silently switch
+  providers.
 - Whether contract-review artifacts live inside the research workbench, as
   generated click-through files, or both.
 - Whether labeled bracketing and Miles Shang output remain supported exports.
