@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -31,6 +33,14 @@ test('the archive manifest names every committed fixture analysis that has a sav
     assert.equal(record.input.sentence, expected.sentence, record.id);
     assert.deepEqual(record.input.derivationStages, expected.derivationStages, record.id);
   }
+}));
+
+test('the fixture manifest builds without installed packages, as the Replay motion merge job builds it', () => withScratch(async scratch => {
+  const out = path.join(scratch, 'fixtures-manifest.json');
+  const result = spawnSync(process.execPath, ['--import', path.join(repoRoot, 'tests/helpers/refusePackages.mjs'),
+    path.join(repoRoot, 'scripts/buildCorpusArchiveManifest.mjs'), '--fixtures', '--out', out], { encoding: 'utf8', timeout: 60000 });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(out, 'utf8')).records, fixtureRecords().records);
 }));
 
 test('fixture records name no allowance; the run judges the ones the layout fingerprint covers by motion', () => withScratch(async scratch => {
