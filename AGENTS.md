@@ -119,7 +119,9 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
   whose pronounced words are exactly the sentence's words in another order is
   the one failure the app keeps: its `sentenceCheck` names the words out of
   order and carries its own reading and word list, it is drawn as an invalid
-  analysis, and qualification still records it as failed.
+  analysis, and qualification still records it as failed. Public Babel's route
+  (`publicRequestOnly`) drops such analyses instead, and fails the parse with
+  `SPELLOUT_WORD_ORDER` when none remain, so a student can retry.
 - Final trees, surface order, render plans, Replay steps and stage explanations
   are derived. Never reintroduce parallel authored ledgers, growth frames,
   commitment graphs or compatibility aliases. Stages are syntactic states, not
