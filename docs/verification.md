@@ -182,15 +182,18 @@ Every checkout leaves out `docs/research/assets` (research screenshots, about
 took most of each job's first minute and a half.
 
 CI splits the heavy gates across runners without changing what they judge.
-`verify:replay-offline` and `verify:corpus` each run as two shards
-(`--shard I/2`, writing raw results with `--results-out` or `--snapshots-out`)
+`verify:replay-offline` and `verify:corpus` each run as three shards
+(`--shard I/3`, writing raw results with `--results-out` or `--snapshots-out`)
 and a job that judges them together (`--merge FILE`, once per shard). The merge
 selects the same analyses and options itself, refuses unless the shards hold
 each analysis exactly once, and then reports, fails and checks exceptions and
-fingerprints as one run does. Runner images cache different Node.js 24
+fingerprints as one run does. A merge loads no npm package, so the merge jobs
+skip `npm ci`; the merge tests run with packages refused
+(`tests/helpers/refusePackages.mjs`). Runner images cache different Node.js 24
 releases and the corpus merge refuses shards measured on another one, so the
-`node-release` job resolves one release per run and every shard and merge job
-installs exactly that release (`tests/ciShardNodeRelease.test.mjs`). Offline tests run as six shards balanced by the
+`scope` job resolves one release per run and every shard and merge job
+installs exactly that release (`tests/ciShardNodeRelease.test.mjs`, which also
+keeps each shard matrix, job name and merge at one shard count). Offline tests run as six shards balanced by the
 measured file weights in `scripts/ciTestShard.mjs`, and browser specs as three
 shards balanced by `ciSeconds` in `scripts/browserSuites.mjs`; both checks
 fail unless every file runs exactly once. GitHub's runners differ in CPU (an
