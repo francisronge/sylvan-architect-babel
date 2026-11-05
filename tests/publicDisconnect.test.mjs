@@ -19,7 +19,8 @@ for (const entry of ['express', 'function']) {
   test(`${entry}: disconnected public requests stop transport and leave subsequent requests usable`, { timeout: 45000 }, async t => {
     const child = fork(new URL('./support/backgroundParseServer.mjs', import.meta.url), [], {
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-      env: { ...process.env, NODE_ENV: 'production', PORT: '0',
+      // Each provider's transport is checked, so the server honours the requested model.
+      env: { ...process.env, NODE_ENV: 'production', PORT: '0', BABEL_PUBLIC_REQUEST_ONLY: '0',
         OPENAI_API_KEY: 'test-only', ANTHROPIC_API_KEY: 'test-only', MOONSHOT_API_KEY: 'test-only', XAI_API_KEY: 'test-only',
         BABEL_TEST_SERVERLESS_ENTRY: entry === 'function' ? '1' : '0',
         OPENAI_BACKGROUND_POLL_INTERVAL_MS: '1000', BABEL_PROVIDER_MODEL_TIMEOUT_MS: '30000',

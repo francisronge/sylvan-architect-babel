@@ -26,7 +26,8 @@ are not.
    one.
 2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
    minimal version inside the Tree Bank, shipped with launch.
-3. **Server work**: visitor and spend limits (Programs 3 and 5). Requests
+3. **Server work**: visitor and spend limits (Programs 3 and 5). A deployed
+   server already sends only public Babel's request (3B, item 4). Requests
    that outlive Vercel's 300 s cap are done: public Babel starts a background
    parse and checks back (parse tickets, below).
 4. **Hosting and the Generation Archive**: the checklist in Program 5 and the
@@ -233,7 +234,10 @@ copy the engine, and do not keep growing today's `App.tsx`.
    2026, will replace its design entirely and keep only its behaviour, where
    a saved parse opens and you leave it as easily.
 4. Hide provider, model, and reasoning controls; the server chooses them and
-   ignores the browser's choice. The public model is GPT-6.1 Sol at high effort
+   ignores the browser's choice. Built: a deployed server (`NODE_ENV=production`
+   or the hosted function) sends Minimalism with GPT-6.1 Sol at high effort
+   whatever the browser names (`PUBLIC_PARSE_REQUEST`); local runtimes keep the
+   internal app's menus. The public model is GPT-6.1 Sol at high effort
    (Francis, 3 Nov 2026: "Then we'll go with high."), through the OpenAI API key
    already saved for Babel (Francis, 3 Nov: "yes we already have one saved").
    The generation route calls GPT-6.1 Sol through that key at low to max
@@ -267,7 +271,7 @@ copy the engine, and do not keep growing today's `App.tsx`.
    background (`{ start: true }` to `/api/parse`), receives a signed ticket,
    and checks back every 4 s (`{ ticket }`), so no request outlives a check,
    and a phone that sleeps or a page that reloads resumes the same parse from
-   the ticket kept in local storage. A ticket lives 20 minutes; checks use no
+   the ticket kept in the tab's session storage. A ticket lives 20 minutes; checks use no
    parse allowance. The internal app keeps the one long request. The waiting
    screen grows a syntax tree on the measured wait (Francis, 4 Nov 2026,
    option A).

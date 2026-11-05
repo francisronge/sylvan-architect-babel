@@ -14,6 +14,8 @@ const startServer = async (t, env) => {
   const child = fork(new URL('./support/backgroundParseServer.mjs', import.meta.url), [], {
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     env: { ...process.env, NODE_ENV: 'production', PORT: '0', ANTHROPIC_API_KEY: 'test-only',
+      // Admission is the same for any model; these requests name several to hold slots.
+      BABEL_PUBLIC_REQUEST_ONLY: '0',
       BABEL_SAVE_PROVIDER_RAW: '0', BABEL_TRUST_PROXY: '0', BABEL_PARSE_RATE_LIMIT_PER_MINUTE: '200',
       BABEL_ALLOWED_ORIGINS: origin, BABEL_PARSE_API_TOKEN: token, ...env }
   });

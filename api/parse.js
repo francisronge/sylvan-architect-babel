@@ -1,4 +1,4 @@
-import { formatApiError, parseFromRequest } from '../server/parseApi.js';
+import { formatApiError, parseFromRequest, readPublicRequestOnly } from '../server/parseApi.js';
 import {
   MALFORMED_JSON,
   MAX_PARSE_BODY_BYTES,
@@ -11,6 +11,8 @@ import {
 } from '../server/parseHttpPolicy.js';
 
 const accessPolicy = readParseAccessPolicy(process.env, { requireOrigin: true, allowNoOrigin: false });
+// The hosted function is public Babel's: it sends only the public request.
+const publicRequestOnly = readPublicRequestOnly(process.env, { deployed: true });
 
 // Vercel stops this function at `maxDuration` in vercel.json (300 s on the
 // current plan) and answers with its own error page. Babel ends the provider
@@ -54,7 +56,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const result = await parseFromRequest(req, res, undefined, { deadlineAt });
+    const result = await parseFromRequest(req, res, undefined, { deadlineAt, publicRequestOnly });
     if (!res.destroyed) return res.status(200).json(result);
   } catch (error) {
     if (res.destroyed) return;
