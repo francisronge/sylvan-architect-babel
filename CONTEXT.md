@@ -64,11 +64,18 @@ evidence.
 _Avoid_: contract qualification, product verification
 
 **Personal Tree Bank**:
-The user's browser-local library of explicitly saved Babel work, annotations,
-collections, and exports. It grows into a syntactician's workbench, starting
-simple and minimal and not opinionated about method. Saving or deleting here
+The user's browser-local library of Babel work: every finished parse, saved
+automatically, with folders, notes, annotated copies, files, share links and
+exports. It is a syntactician's workbench, not opinionated about method. Saving or deleting here
 does not control backend research retention by the official hosted service.
 _Avoid_: Generation Archive, Reviewed Derivational Corpus
+
+**Annotated copy**:
+A copy of a saved analysis in the Personal Tree Bank that the user marks up
+(notes on nodes, text boxes, arrows, hidden relations, triangles) or edits.
+Babel checks an edited copy's derivation and rebuilds its Replay; the original
+analysis and its Replay never change.
+_Avoid_: sandbox, fork, edited analysis
 
 **Generation Archive**:
 The official hosted service's automatic backend record of generation attempts,

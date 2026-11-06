@@ -1,6 +1,6 @@
 # Babel Roadmap
 
-Status date: 2026-11-03
+Status date: 2026-11-06
 
 This is Babel's single list of remaining work, in order. Completed work and its
 evidence live in Git history. Durable rules and contracts live in the canonical
@@ -24,8 +24,10 @@ are not.
    small way back to the input screen; the waiting screen; the failure
    screen (built, below in 3C). Today's app stays as the internal
    one.
-2. **The Tree Bank as a syntactician's workbench** (Program 4): a first,
-   minimal version inside the Tree Bank, shipped with launch.
+2. **The Tree Bank as a syntactician's workbench** (Program 4): decided on
+   5–6 Nov 2026 and all launch work: folders, search, notes, backup files,
+   share links, exports (PNG, SVG, GIF, MP4, frames) and annotated copies with
+   marks, relation toggles and editing. The screen design comes first.
 3. **Server work**: done in code. A deployed server sends only public
    Babel's request (3B, item 4), fails a word-order miss there (3B, item 6),
    and limits parses to 5 per visitor and 100 in
@@ -128,7 +130,7 @@ are not.
 Programs run in numeric order, except for small provider-free maintenance that
 keeps later work buildable. Launch is public Babel only, as defined in
 [CONTEXT.md](CONTEXT.md): it needs public generation from Program 1, public
-Babel from Program 3, the first minimal Tree Bank workbench from Program 4,
+Babel from Program 3, the Tree Bank workbench from Program 4,
 Program 5 and the Generation Archive (6A). It also needed the Replay layout
 follow-ups in the current work order, item 6 (Francis, 2026-11-02, on calling
 them optional: "Wtf are you saying? NO"); he decided the last of them on
@@ -136,7 +138,7 @@ them optional: "Wtf are you saying? NO"); he decided the last of them on
 
 The research workbench is not part of the public app (see
 [Research workbench](#research-workbench-outside-the-public-app)). It, the
-later Tree Bank workbench tranches, the Reviewed Derivational Corpus (6B) and
+the Reviewed Derivational Corpus (6B) and
 the benchmark in Programs 7 and 8 come after launch.
 
 ## Program 1: Contract Qualification
@@ -165,7 +167,8 @@ release criteria.
 
 [derivationalDatabase/README.md](derivationalDatabase/README.md#browser-local-tree-bank)
 describes the browser-local record layer. The remaining work is explicit import
-and export, designed with the new application in Program 3.
+and export. Francis chose its form on 6 Nov 2026: Babel files holding the whole
+Tree Bank, one folder or one tree (Program 4A, item 7).
 
 1. Design explicit backup, import and export with the application. Version-1
    entries keep their existing read path and do not need a migration project.
@@ -274,9 +277,8 @@ as public Babel does. Do not copy the engine, and do not keep growing today's
 5. Done: Notes is retired as a view in both apps. `stageRecord` remains part
    of every stage and stays visible with its corresponding Replay frame. The
    labeled bracketing, its Miles Shang link and copy button left the app with
-   Notes; `services/milesNotation.ts` stays, unused by the app. Decide
-   separately, after auditing actual use, whether labeled bracketing and Miles
-   Shang output return as exports, for example in the research workbench.
+   Notes; `services/milesNotation.ts` stays, unused by the app. Exports are
+   now planned in Program 4B; `forest` code is parked there.
 6. A tree whose words are the sentence's in another order is a failed parse
    on public Babel, which a visitor can retry (Francis, 5 Nov 2026: "Let's do
    public Babel failing and offering a retry"). Built: a server sending only
@@ -347,48 +349,100 @@ qualification runners serve this purpose.
 
 Goal: make the Personal Tree Bank much more interesting by turning it into a
 syntactician's workbench, without being opinionated about how syntacticians
-work. It starts simple and minimal, inside the Tree Bank: the first version
-ships with launch (Francis, 3 Nov 2026, quoted in the current work order).
-What that first version holds, and how it looks, is decided with Francis
-later (3 Nov: "tree bank workbench: we'll figure this out later").
+work (Francis, 3 Nov 2026, quoted in the current work order). Francis decided
+what it holds in the Tree Bank grilling of 5–6 Nov 2026, and all of it is
+launch work: "I think we can at least try tackling all of these for launch."
+How each screen looks is designed later, with mockups; the screen is being
+redesigned as a whole.
 
-Triangles (constituent glyphing) come back here as something you do by hand,
-not as automatic pattern matching: you click a phrase to collapse it into a
-triangle or open it again, as in Miles Shang's tool, because no rule can say
-which phrases should be shortened. The textbook use is to abbreviate a phrase
-whose inner structure is not the point of the tree. Guard rails: only phrases,
-never a single head; never a phrase holding something the tree shows (a
-movement's start or end, a coindex, a plaque's word); and a view setting on
-the saved analysis that never changes the derivation. Whether triangles also
-apply during Replay is decided in the design, and the collapsed tree must
-still look right.
+Two rules shape everything below:
 
-The capabilities below are the longer list, in dependency order. Each later
-tranche comes after launch, and its workflow and visual form are found with
-Francis through prototypes rather than assumed from this roadmap.
+- **Replay is only the derivation Babel made.** Organising, exporting,
+  hiding relations and editing never happen in Replay (Francis: "I don't want
+  either in Replay, they should be in the treebank only"; on a relation toggle
+  in Replay: "Are you sure it's elegant…").
+- **The original never changes.** Marks and edits live in an annotated copy.
 
-1. **Examples and Collections**: user-authored notes, judgments, citations,
-   tags, and ordered collections reference immutable analysis records. These
-   are genuine user notes and must remain distinct from model-authored
-   `stageRecord` text shown in Replay.
-2. **Notebook/Saved Work**: thin wrappers group work without embedding record
-   payloads.
-3. **Sibling analyses and comparison**: preserve alternatives as siblings,
-   show authored and derived differences, and never rewrite the original.
-4. **Structural query**: first run a real query-needs study; then implement only
-   predicates supported by record structure and user evidence.
-5. **Interchange**: explicit bundles with checksums, provenance, conflict
-   policy, and version support.
-6. **Research outputs**: export canonical bundles and faithful static or
-   interactive views without claiming interchange formats preserve the full
-   derivation when they only carry final trees.
-7. **Group exchange**: add collaboration only after local import/export and
-   attribution are reliable.
-8. **Public releases**: require licensing, citation, withdrawal, correction,
-   and governance decisions before any shared corpus is called a database.
+### 4A. The Tree Bank
 
-Done progressively: every tranche must be useful end to end without requiring
-the next tranche or a hosted account.
+1. Every finished parse saves automatically under **All**, newest first. The
+   star ("kept") is dropped ("Sure, we can drop it").
+2. **Folders**, one level deep, managed only in the Tree Bank, plus search
+   ("I think there's a good reason to have folders for trees"). Search covers
+   sentences, titles and notes, and also node labels and relation names (every
+   tree with a vP, every tree with head movement).
+3. Each tree has an optional **title** (defaulting to the sentence) and one
+   plain-text **note**.
+4. **Several trees at once**: select many to move, export or delete.
+5. **Undo after deleting**, or a Recently deleted folder. Today a delete is
+   final after a confirm box.
+6. **Keeping work safe**: ask the browser for persistent storage, and remind
+   people now and then to save a backup file. Safari wipes a site's storage
+   after seven days of use without visiting it; whether a persistence grant
+   overrides that is unverified, so the backup file is the guarantee.
+7. **Babel files** (Program 2): export the whole Tree Bank, one folder or one
+   tree, and import it anywhere, for backup and moving devices.
+8. **Share links** for one tree: the tree travels inside the link, so the
+   server never stores it (`PRIVACY.md`). Whoever opens it sees the tree with
+   Replay and can save it. Annotated copies share the same way. Long
+   derivations may make links too long for some chat apps; the file always
+   works.
+
+### 4B. Exports
+
+Exports start from the Tree Bank, never from Replay ("in the treebank of
+course"); a screenshot covers a quick picture.
+
+1. **PNG and SVG** of any moment, chosen on a step slider that starts on the
+   finished tree, always on Babel's own background ("Absolutely not on a white
+   background").
+2. **The derivation**: GIF, MP4, and a zip with one PNG per Replay step.
+3. **Credit**: an optional caption naming Babel, the model and the date, and a
+   "How to cite Babel" line, so a figure in a paper says a model wrote it.
+4. Annotated copies export exactly as the user left them.
+5. Parked: `forest` code ("we'll see what we do with forest when we get
+   there"). Merlin's Syntax Studio exports SVG, PNG and `forest`; Francis wants
+   at least that ("We need to win"). `forest` sits on TikZ, so every Babel mark
+   can be drawn, at the cost of long custom drawing code and LaTeX's own
+   spacing.
+
+### 4C. Annotated copies
+
+A copy of a saved tree, made from the Tree Bank, that the user marks up and
+edits. Laptops and tablets only; on a phone a copy opens read-only ("We can
+keep annotated copies out of phones for now").
+
+1. **Marks**: notes pinned to nodes, free text boxes and the user's own arrows.
+2. **Relation toggles**: hide or show each relation, show only one, show all.
+   Hiding never moves anything else.
+3. **Triangles**, by hand: click a phrase to collapse it or open it again, as
+   in Miles Shang's tool, because no rule can say which phrases to shorten.
+   Only phrases, never a single head, and never a phrase holding something the
+   tree shows (a movement's start or end, a coindex, a plaque's word).
+4. **Editing**, two ways into one engine ("1 and 2 would be really really
+   cool"): edit the finished tree directly (rename a label, move a branch,
+   delete), or open a stage and edit it. An edit on the finished tree is
+   translated into the stage that built that piece, since every node keeps its
+   ID through the derivation; Babel then checks the derivation with the same
+   rules a model's answer passes and rebuilds Replay. Edits that touch
+   movement may open the stage editor at the right stage. Editing the code by
+   hand is an advanced panel. Whether those checks can run in the browser is
+   not yet verified (they run on the server today).
+5. **Broken edits are allowed**: the copy is flagged, Babel names the rule and
+   points at the spot, draws the tree, and plays Replay up to the stage that
+   breaks ("wrong trees are useful too: a teacher may want to show students
+   why an analysis fails": "And this is true!").
+
+### Not now
+
+- Side-by-side comparison. The analysis switcher already lets a visitor flip
+  between a sentence's analyses, each keeping its Replay step; revisit if
+  teachers ask.
+- Collaboration, hosted sync and public corpora, until local files, links and
+  attribution are reliable (Program 6B).
+
+Done when each item above works end to end in a fresh browser, with no account
+and no server-side storage of anyone's Tree Bank.
 
 ## Program 5: Operations And Shipping
 
@@ -568,8 +622,8 @@ review authority, and correction path.
 - The import/export experience, including any legacy importer or export-only
   retirement, during application design.
 - Public Babel's information architecture and visual direction.
-- What the first, minimal Tree Bank workbench holds, and the workflows and
-  interaction model of each later tranche.
+- How each Tree Bank screen looks (Program 4), and whether `forest` code is
+  exported.
 - The exact public anonymous-use limits after the selected model's cost and
   reliability are measured.
 - Whether the research workbench is built, who besides Francis may use it,
@@ -582,7 +636,6 @@ review authority, and correction path.
   providers.
 - Whether contract-review artifacts live inside the research workbench, as
   generated click-through files, or both.
-- Whether labeled bracketing and Miles Shang output remain supported exports.
 - Every provider/model launch, cost ceiling, and model manifest.
 - Contract/recovery adoptions after empirical comparison.
 - Reviewer and methods authority for claim-bearing benchmark stages.
@@ -652,7 +705,6 @@ review authority, and correction path.
 - Undisclosed server parse logging or persistence, and automatic uploads from
   self-hosted or forked installations.
 - Benchmark settings inside the ordinary Babel workbench.
-- A manual syntax editor before the analysis and record workflows are proven.
 - Additional teaching layers beyond the model-authored Replay record without a
   concrete demonstrated need.
 - Hosted sync before local persistence, export/import, integrity, and conflict
