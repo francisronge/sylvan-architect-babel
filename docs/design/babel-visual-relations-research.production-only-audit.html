@@ -847,47 +847,18 @@
     .babel-render-card--wide {
       grid-template-columns: minmax(0, 1fr);
     }
-    .babel-render-card--wide .babel-render-mount {
-      height: 62vh;
-      max-height: 780px;
-    }
+    /* A card's canvas is sized like Babel's own canvas on the reader's screen,
+       nearly the window's height, so the app's Replay header and panel leave the
+       tree the room they leave it in the app. Marks the renderer places below
+       the fitted tree (anchor-set rails, PF plaques) need that room to clear the
+       panel; npm run orchard:verify fails a card whose drawing leaves the area
+       above its controls. */
     .babel-render-mount {
-      min-height: 480px;
-      height: 54vh;
-      max-height: 620px;
-      border: 1px solid rgba(16, 185, 129, 0.14);
-      border-radius: 22px;
-      background: linear-gradient(180deg, #04140e 0%, #020806 100%);
+      height: clamp(560px, calc(100svh - 96px), 900px);
+      /* The app's canvas inside draws the outline and background. */
+      border-radius: 3rem;
       overflow: hidden;
       position: relative;
-    }
-    .babel-render-mount[data-archetype^="H5."] {
-      min-height: 840px;
-      height: 92vh;
-      max-height: 960px;
-    }
-    .babel-render-mount > div {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      overflow: hidden;
-      border-radius: 22px;
-      background: linear-gradient(180deg, #04140e 0%, #020806 100%);
-    }
-    .babel-render-mount > div:focus {
-      outline: none;
-    }
-    .babel-render-mount > div:focus-visible [data-babel-replay-panel="true"] {
-      border-color: rgba(110, 231, 183, 0.48);
-    }
-    .babel-render-mount > div::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image: radial-gradient(rgba(16, 185, 129, 0.08) 0.8px, transparent 0.8px);
-      background-size: 8px 8px;
-      opacity: 0.08;
-      pointer-events: none;
     }
     /* Only the tree canvas fills the card; a plaque's scrolling viewport is a
        nested svg that keeps the size the renderer gives it. */
@@ -897,70 +868,6 @@
       display: block;
       position: relative;
       z-index: 1;
-    }
-    .babel-render-mount > div > div:first-child {
-      position: absolute;
-      top: 18px;
-      left: 20px;
-      z-index: 5;
-      pointer-events: none;
-      opacity: 0.78;
-      color: rgba(16, 185, 129, 0.82);
-      font: 800 10px/1.4 "JetBrains Mono", monospace;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-    }
-    .babel-render-mount [data-babel-replay-panel="true"] {
-      position: absolute;
-      left: 14px;
-      right: 14px;
-      bottom: 14px;
-      z-index: 8;
-      height: 142px;
-      max-height: 142px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      border-radius: 16px;
-      background: rgba(2, 8, 6, 0.94);
-      padding: 10px;
-      color: rgba(236, 253, 245, 0.86);
-      font: 11px/1.45 "JetBrains Mono", monospace;
-      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
-    }
-    .babel-render-mount [data-babel-replay-timeline="true"] {
-      display: none;
-    }
-    .babel-render-mount [data-babel-replay-details="true"] {
-      min-height: 0;
-      flex: 1 1 auto;
-      overflow-y: auto;
-    }
-    .babel-render-mount [data-babel-replay-panel="true"] button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 23px;
-      box-sizing: border-box;
-      vertical-align: bottom;
-      margin: 0 6px 8px 0;
-      border: 1px solid rgba(16, 185, 129, 0.24);
-      border-radius: 8px;
-      background: rgba(16, 185, 129, 0.08);
-      color: rgba(236, 253, 245, 0.78);
-      padding: 0 8px;
-      font: 800 9px/1 "JetBrains Mono", monospace;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-    .babel-render-mount [data-babel-replay-panel="true"] button[aria-label="Fit tree"] svg {
-      width: 11px;
-      height: 11px;
-    }
-    .babel-render-mount [data-babel-replay-panel="true"] input[type="range"] {
-      display: none;
     }
     .babel-render-code {
       min-width: 0;
@@ -991,9 +898,6 @@
       .current-renderer-lab { padding: 16px; border-radius: 26px; }
       .babel-render-card,
       .babel-render-card-header { grid-template-columns: 1fr; }
-      .babel-render-mount { min-height: 430px; height: 64vh; }
-      .babel-render-mount[data-archetype^="H5."] { min-height: 860px; height: 96vh; }
-      .babel-render-mount[data-archetype^="H6."] { min-height: 720px; height: 82vh; }
       .compiler-route div { grid-template-columns: 48px 1fr; }
       .compiler-route em { grid-column: 2; }
     }
@@ -1459,6 +1363,8 @@
       }
     }
   </style>
+  <!-- After the page styles: inside a card, the app's chrome rules must beat the page's element rules. -->
+  <link rel="stylesheet" href="../research/relation-orchard/replay-chrome.css?v=a71831a1b7d8">
 </head>
 <body>
   <div id="archive-top" class="page">
@@ -1554,6 +1460,6 @@
   </div>
 
   <script>window.__BABEL_LOGO_SRC__ = "../../public/babellogo.png";</script>
-    <script src="./visual-relations-current-lab.production-only-audit.r96.bundle.js?v=b822c4655057"></script>
+    <script src="./visual-relations-current-lab.production-only-audit.r96.bundle.js?v=26e126551aab"></script>
 </body>
 </html>

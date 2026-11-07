@@ -1,10 +1,12 @@
 // The Relation Orchard's cards are examples of what Babel draws. Their page
 // cannot load the app's stylesheet, so these checks keep the conditions a card
-// paints under the same as the app's: the same font faces, a tree canvas sized
-// like the app's, and a Replay that opens and is framed as Babel's is.
+// paints under the same as the app's: the same font faces, the app's own Replay
+// chrome styles, a tree canvas sized like the app's, and a Replay that opens and
+// is framed as Babel's is.
 import assert from 'node:assert/strict';
 import { access, readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { buildReplayChromeCss, REPLAY_CHROME_PATH } from '../scripts/orchardReplayChrome.mjs';
 
 const root = new URL('../', import.meta.url);
 const read = path => readFile(new URL(path, root), 'utf8');
@@ -56,4 +58,23 @@ test('a card opens on its last Replay frame as Babel restores one, and page scro
   assert.doesNotMatch(lab, /\.click\(\)/, 'the lab must not step Replay by clicking its controls');
   assert.match(lab, /addEventListener\('wheel', keepPageScroll, \{ capture: true, passive: true \}\)/);
   assert.match(lab, /if \(!event\.ctrlKey\) event\.stopPropagation\(\);/);
+});
+
+test('a card\'s Replay chrome is styled by the app\'s own rules, not a hand-made copy', async () => {
+  // The Orchard once restyled the header and panel by hand; when the app added
+  // a growth icon to the header, the copy left it unsized, it filled each card,
+  // and the camera fitted every tree into a sliver below it.
+  const published = await read(REPLAY_CHROME_PATH).catch(() => '');
+  assert.equal(published, await buildReplayChromeCss(), `${REPLAY_CHROME_PATH} differs from the app's styles; run npm run orchard:build`);
+  for (const page of PAGES) {
+    const html = await read(page);
+    const style = /<style>([\s\S]*?)<\/style>/.exec(html)?.[1] ?? '';
+    assert.doesNotMatch(style, /data-babel-replay-(panel|header|timeline|details)|\.babel-replay-|\.babel-render-mount > div/,
+      `${page} restyles the app's Replay chrome`);
+    const link = /<link rel="stylesheet" href="([^"?]*replay-chrome\.css)(?:\?[^"]*)?">/.exec(html);
+    assert(link, `${page} does not load ${REPLAY_CHROME_PATH}`);
+    assert.equal(new URL(link[1], new URL(page, root)).href, new URL(REPLAY_CHROME_PATH, root).href);
+    // Inside a card the app's element resets must beat the page's own element rules.
+    assert(link.index > html.indexOf('</style>'), `${page} must load ${REPLAY_CHROME_PATH} after its own styles`);
+  }
 });
