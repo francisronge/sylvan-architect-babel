@@ -14,7 +14,9 @@ listed in [`ROADMAP.md`](../../ROADMAP.md) and earlier review evidence is in
 - The 69-piece raster comparison compares isolated specimens. It is not
   production-tree parity evidence.
 - Illicit-analysis verdicts bind the glyph and optional open label to one exact
-  analysis anchor and keep that compound together through camera zoom.
+  analysis anchor and keep that compound together through camera zoom. At
+  initial fitting the compound may shrink, never grow, to end at the view's
+  left edge when the fit's left gutter is narrower than it.
 - Archived construction examples remain ordinary primitive compositions; they
   do not restore retired renderer identities.
 - Relation hover uses the shared emerald ink with a `6px`, alpha `0.50` halo.
@@ -262,7 +264,9 @@ Binding ellipses retain the accepted padded-rectangle geometry and the whole
 authored domain. Replay reserves their extent across the stage before reveal;
 the existing containment correction pans or scales only when needed. Static
 painting measures the same ellipse before fitting. This prevents a whole-clause
-ellipse from being cut off without silently narrowing its scope.
+ellipse from being cut off without silently narrowing its scope. Argument-sharing
+ovals are contained the same way: the painter and the tree-first stage
+containment share one oval geometry (`argumentSharingGeometry.ts`).
 
 The idiom domain bracket keeps its 320-unit right gutter, 96-unit cap and
 80-unit vertical margins when they fit. At initial fitting, bound its gutter
@@ -1120,11 +1124,17 @@ Stage framing retains its existing margins for ordinary labels. When a revealed
 label exceeds those margins, expand the shared stage envelope by only that
 excess, using the same styled text bounds as layout. Include every revealed
 label variant across the stage without reserving never-visible future syntax.
+Quadratic movement curves fit the tree first in the same way: a curve whose
+belly bows past the stage margin expands the envelope by only that excess.
 
 Detached morphology panels retain a clear preferred position. If that position
 covers the tree, choose the nearest available position inside the space between
 the Replay header and controls. Move the complete panel in one coordinate group;
-do not resize its contents or change syntax coordinates to make room.
+do not resize its contents or change syntax coordinates to make room. A Replay
+stage showing Local Dislocation's panel fits its tree above a band for the panel
+when the ordinary fit leaves it no clear place beside, above or below the tree
+(`detachedPanelFitViewport`); a view too short for both keeps the tree, and the
+panel stays inside that space.
 During an automatic camera transition, resolve that placement against the
 destination fit. The panel then travels with the tree without being repositioned
 from an intermediate screen transform. Retained manual framing uses its own pose.

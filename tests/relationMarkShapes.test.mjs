@@ -7,6 +7,7 @@ import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { dottedCollectionControls, splitAntecedenceLinkPath } from '../replay/relations/markGeometry.ts';
 import {
   analysisVerdictCompoundOrigin,
+  analysisVerdictGutterScale,
   analysisVerdictInitialLocalScale,
   planAnalysisVerdictRows,
   placeRectBelowCollisions,
@@ -433,6 +434,14 @@ test('analysis verdict geometry keeps the complete compound outside its tree', (
     assert.ok(Math.abs(wordScale * initialCameraScale * 160 - Math.min(28, 56 * initialCameraScale)) < 1e-9,
       'word verdicts must not dwarf the terminal labels when a large tree is fitted');
   }
+
+  // At initial fitting a verdict wider than the fit's left gutter shrinks to end at
+  // the view's edge; one that fits, or a gutter with no room, keeps its scale.
+  const reduced = analysisVerdictGutterScale(treeRect, compoundRect, 0.5, 5, 70);
+  assert.ok(Math.abs(treeRect.x - 5 - compoundRect.width * reduced - 70) < 1e-9);
+  assert.equal(analysisVerdictGutterScale(treeRect, compoundRect, 0.5, 5, 0), 0.5);
+  assert.equal(analysisVerdictGutterScale(treeRect, compoundRect, 0.5, 5, 120), 0.5);
+  assert.equal(analysisVerdictGutterScale(treeRect, compoundRect, 0.5, 5, undefined), 0.5);
 
   const anchors = [
     { analysisNodeId: 'later', desiredY: 110, order: 1 },

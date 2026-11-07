@@ -163,6 +163,26 @@ export function availableTreeViewport(
   };
 }
 
+/** Local Dislocation's before/after panel (realizationDrawing.ts): a fixed
+ * screen size, kept this far from the tree. */
+export const LOCAL_DISLOCATION_PANEL = { width: 290, height: 66, gap: 14 } as const;
+
+/**
+ * The view a stage with a detached panel fits its tree into. The panel never
+ * shrinks and never covers the tree, so it needs a clear place beside, above or
+ * below the tree inside `view`, the space between the Replay header and
+ * controls. When the ordinary fit (`tree`, its screen box) leaves none, the
+ * tree fits above a band the panel takes, provided it keeps at least that much
+ * height; a smaller view has no room for both, and the panel stays inside it.
+ */
+export function detachedPanelFitViewport(view: ViewportRect, tree: ViewportRect,
+  panel: { width: number; height: number; gap: number }): ViewportRect {
+  const across = panel.width + panel.gap, down = panel.height + panel.gap;
+  const clear = tree.left - view.left >= across || view.right - tree.right >= across
+    || tree.top - view.top >= down || view.bottom - tree.bottom >= down;
+  return clear || view.bottom - view.top < 2 * down ? view : { ...view, bottom: view.bottom - down };
+}
+
 /** Keep the existing two-column plate beside the tree, or fit both vertically on narrow canvases. */
 export function linearizationViewport(view: ViewportRect, plateHeight: number) {
   const width = Math.max(1, view.right - view.left);

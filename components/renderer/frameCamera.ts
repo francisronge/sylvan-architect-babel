@@ -11,7 +11,7 @@ import {
   STAGE_CAMERA_PADDING
 } from '../../replay/stageCamera.ts';
 import { type SyntaxNode } from '../../types.ts';
-import { availableTreeViewport, linearizationViewport } from '../treeViewport.ts';
+import { availableTreeViewport, detachedPanelFitViewport, linearizationViewport, LOCAL_DISLOCATION_PANEL, type ViewportRect } from '../treeViewport.ts';
 import { createFittedCamera } from './cameraFitting.ts';
 import type { CameraSession } from './cameraState.ts';
 import type { DrawingLayer } from './drawingContext.ts';
@@ -55,6 +55,32 @@ export function treeFitViewport(relationRenderPlan: RelationRenderPlan | null, s
     right: placement?.treeRight ?? treeViewport.right, bottom: treeViewport.bottom };
 }
 
+/** The pose that fits a stage's bounds, with the shared stage margin, into `view`. */
+function fitStageBounds(bounds: OverlayBounds, view: ViewportRect, minimumScale: number) {
+  const availableWidth = Math.max(1, view.right - view.left);
+  const availableHeight = Math.max(1, view.bottom - view.top);
+  const contentWidth = Math.max(1, (bounds.maxX - bounds.minX) + 2 * STAGE_CAMERA_PADDING.x);
+  const contentHeight = Math.max(1, (bounds.maxY - bounds.minY) + 2 * STAGE_CAMERA_PADDING.y);
+  const k = Math.max(minimumScale, Math.min(availableWidth / contentWidth, availableHeight / contentHeight, 1));
+  return {
+    k,
+    x: view.left + (availableWidth / 2) - ((bounds.minX + bounds.maxX) / 2) * k,
+    y: view.top + (availableHeight / 2) - ((bounds.minY + bounds.maxY) / 2) * k
+  };
+}
+
+/** A Replay stage showing Local Dislocation's panel fits its tree where the
+ * panel keeps a clear place (`detachedPanelFitViewport`). */
+function localDislocationFitViewport(relationRenderPlan: RelationRenderPlan | null, stageIndex: number,
+  bounds: OverlayBounds | null, view: ViewportRect, minimumScale: number): ViewportRect {
+  const panel = relationRenderPlan?.frames[stageIndex]?.items.some(item =>
+    item.familyId === 'pf.local-dislocation' && item.kind === 'node-plaque');
+  if (!panel || !bounds) return view;
+  const { k, x, y } = fitStageBounds(bounds, view, minimumScale);
+  return detachedPanelFitViewport(view, { left: x + bounds.minX * k, right: x + bounds.maxX * k,
+    top: y + bounds.minY * k, bottom: y + bounds.maxY * k }, LOCAL_DISLOCATION_PANEL);
+}
+
 export function fitTreeCamera({ session, layout }: { session: CameraSession; layout: FrameCameraLayout }) {
   const { containerWidth, containerHeight } = session;
   const {
@@ -74,9 +100,16 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
   } = layout;
   const hasCyclicLinearizationPlate = Boolean(cyclicLinearizationPlate(relationRenderPlan, activeDerivationFrameIndex));
   const compactViewport = isCompactViewport(containerWidth);
+  // The Canopy (not animated) always shows its whole tree, however small that
+  // makes it; the user zooms in to read.
+  const minimumInitialScale = !session.animated ? 0
+    : CAMERA_ZOOM.minimumFitScale[compactViewport || hasCyclicLinearizationPlate ? 'compact' : 'regular'];
+  const treeViewport = treeFitViewport(relationRenderPlan, activeDerivationFrameIndex, availableTreeViewport(containerWidth, containerHeight, uiBounds));
   const {
     left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom
-  } = treeFitViewport(relationRenderPlan, activeDerivationFrameIndex, availableTreeViewport(containerWidth, containerHeight, uiBounds));
+  } = session.animated
+    ? localDislocationFitViewport(relationRenderPlan, activeDerivationFrameIndex, stageCameraBounds, treeViewport, minimumInitialScale)
+    : treeViewport;
   // Retained framing must protect the same label margin as a fresh Fit.
   const stageFitContainmentBounds = stageCameraBounds ? {
     minX: Math.min(stagePlaqueContainmentBounds?.minX ?? Infinity, stageCameraBounds.minX - STAGE_CAMERA_PADDING.x),
@@ -103,10 +136,6 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
         { x: node.x, y: node.y, parentId: node.parent ? getNodeId(node.parent) : null }]))
     }
   });
-  // The Canopy (not animated) always shows its whole tree, however small that
-  // makes it; the user zooms in to read.
-  const minimumInitialScale = !session.animated ? 0
-    : CAMERA_ZOOM.minimumFitScale[compactViewport || hasCyclicLinearizationPlate ? 'compact' : 'regular'];
   const fitToRenderedBounds = () => {
     if (derivationFrameFitNodes && derivationFrameFitNodes.length > 0) {
       const minNodeX = stageCameraBounds?.minX ?? Math.min(
@@ -125,18 +154,9 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
         d3.max(derivationFrameFitNodes, (node) => node.y + (!node.children || node.children.length === 0 ? LEAF_INK_EXTENT_Y : 0)) ?? 0,
         overlayFitBounds?.maxY ?? -Infinity
       );
-      const availableWidth = Math.max(1, fitRight - fitLeft);
-      const availableHeight = Math.max(1, fitBottom - fitTop);
-      const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 2 * STAGE_CAMERA_PADDING.x);
-      const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 2 * STAGE_CAMERA_PADDING.y);
-      const scaleX = availableWidth / contentWidth;
-      const scaleY = availableHeight / contentHeight;
-      const initialScale = Math.max(minimumInitialScale, Math.min(scaleX, scaleY, 1));
-      const centerX = (minNodeX + maxNodeX) / 2;
-      const centerY = (minNodeY + maxNodeY) / 2;
-      const initialX = fitLeft + (availableWidth / 2) - centerX * initialScale;
-      const initialY = fitTop + (availableHeight / 2) - centerY * initialScale;
-      applyFittedCamera(d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
+      const pose = fitStageBounds({ minX: minNodeX, maxX: maxNodeX, minY: minNodeY, maxY: maxNodeY },
+        { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom }, minimumInitialScale);
+      applyFittedCamera(d3.zoomIdentity.translate(pose.x, pose.y).scale(pose.k));
       return true;
     }
 
