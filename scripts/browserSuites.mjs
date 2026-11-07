@@ -9,6 +9,7 @@ export const BROWSER_SPECS = [
   { file: 'featureComposition.test.mjs', owner: 'renderer', focused: true, ciSeconds: 64 },
   { file: 'plaqueClearance.test.mjs', owner: 'renderer', focused: true, ciSeconds: 46 },
   { file: 'operatorBindingComposition.test.mjs', owner: 'renderer', focused: true, ciSeconds: 5 },
+  { file: 'relationMarksInView.test.mjs', owner: 'renderer', ciSeconds: 20 },
   { file: 'relationInkObstacles.test.mjs', owner: 'renderer', ciSeconds: 1 },
   { file: 'relationEmphasis.test.mjs', owner: 'renderer', ciSeconds: 9 },
   { file: 'relationOutcomePaint.test.mjs', owner: 'renderer', ciSeconds: 35 },

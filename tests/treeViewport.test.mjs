@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  advanceFittedCamera, availableTreeViewport, carryCamera, containCamera, createViewportSettler, linearizationViewport,
+  advanceFittedCamera, availableTreeViewport, carryCamera, containCamera, createViewportSettler, detachedPanelFitViewport, linearizationViewport,
   VIEWPORT_SETTLE_MS
 } from '../components/treeViewport.ts';
 
@@ -217,4 +217,17 @@ test('a stage crossing carries the camera with static syntax, not a larger subtr
   const smallBefore = new Map([...before].filter(([id]) => !without.includes(id)));
   const loose = carryCamera(pose, smallBefore, small);
   assert.deepEqual(screen(loose, small.get('T')), screen(pose, smallBefore.get('T')), 'the larger lowered subtree is the reference then');
+});
+
+test('a detached panel keeps a clear place: the tree yields a band only when none is left', () => {
+  const panel = { width: 290, height: 66, gap: 14 };
+  const view = { left: 16, top: 50, right: 370, bottom: 552 };
+  const filling = { left: 40, top: 80, right: 340, bottom: 530 };
+  assert.deepEqual(detachedPanelFitViewport(view, filling, panel), { ...view, bottom: 472 });
+  for (const tree of [{ ...filling, bottom: 472 }, { ...filling, top: 130 }]) assert.equal(detachedPanelFitViewport(view, tree, panel), view);
+  const wide = { left: 16, top: 50, right: 1420, bottom: 552 };
+  assert.equal(detachedPanelFitViewport(wide, { ...filling, right: 1000 }, panel), wide, 'beside the tree is clear');
+  const short = { left: 16, top: 50, right: 370, bottom: 200 };
+  assert.equal(detachedPanelFitViewport(short, { ...filling, top: 60, bottom: 190 }, panel), short,
+    'a view too short for both keeps the tree, and the panel stays inside it');
 });

@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import { getNodeId } from '../../replay/displayIdentity.ts';
+import { argumentSharingDomainEllipse } from '../../replay/relations/argumentSharingGeometry.ts';
 import {
   type RelationPlanItem
 } from '../../replay/relations/renderPlan.ts';
@@ -143,11 +144,7 @@ export function createSharingDrawing({
             sharedNodeId
           ]);
           if (!combinedRect) return;
-          const cx = combinedRect.x + combinedRect.width / 2;
-          const cy = combinedRect.y + combinedRect.height / 2;
-          const rx = (combinedRect.width / 2 + 18) * Math.SQRT2;
-          const ry = (combinedRect.height / 2 + 16) * Math.SQRT2;
-          const rotation = domainIndex === 0 ? -10 : 10;
+          const { cx, cy, rx, ry, rotation } = argumentSharingDomainEllipse(combinedRect, domainIndex);
           layer.append('ellipse')
             .attr('class', 'babel-argument-sharing-domain')
             .attr('data-argument-domain', String(domainIndex + 1))

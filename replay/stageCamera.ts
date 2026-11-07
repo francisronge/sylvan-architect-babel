@@ -3,10 +3,11 @@ import type { SyntaxNode } from '../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { paintedShift, type PaintedNodes } from './cameraCarry.ts';
-import { bindingEllipseBounds, sceneBindingDomainEllipse } from './relations/bindingDomainGeometry.ts';
+import { argumentSharingDomainEllipse, argumentSharingEllipseBounds } from './relations/argumentSharingGeometry.ts';
+import { bindingDomainTreeRect, bindingEllipseBounds, sceneBindingDomainEllipse } from './relations/bindingDomainGeometry.ts';
 import { bindRelationPlanFrame } from './relations/geometryBinding.ts';
 import { stagePositionProvider, trajectoryPlaqueObstacles, treeLabelBoxes } from './relations/trajectoryObstacles.ts';
-import { boundOverlayBounds, type OverlayBounds } from './relations/geometryBounds.ts';
+import { boundOverlayBounds, quadraticRouteBounds, type OverlayBounds } from './relations/geometryBounds.ts';
 import { controlPlaqueObstacles } from './relations/controlPlaqueSpace.ts';
 import { predicationPlaqueObstacles } from './relations/predicationPlaqueSpace.ts';
 import { nativePlaqueFootprints, nativePlaqueObstacles } from './relations/nativePlaqueSpace.ts';
@@ -1592,7 +1593,7 @@ type StageCameraInput = StageLayoutInput & {
   coordinates?: MeasuredStageCoordinates;
   /** A completed Replay fits its present drawing, without earlier source positions. */
   stepIndex?: number;
-  includeOverlays?: boolean; includePlaques?: boolean; includeBindingDomains?: boolean; plaqueLayout?: Map<number, PlaquePlacement>; plaqueSchedule?: ReplayPlaqueSchedule
+  includeOverlays?: boolean; includePlaques?: boolean; includeDomainEnclosures?: boolean; plaqueLayout?: Map<number, PlaquePlacement>; plaqueSchedule?: ReplayPlaqueSchedule
 };
 
 /** Reserved by every stage camera, including retained fits. */
@@ -1628,7 +1629,7 @@ export const isTreeFirstComposition = (items: readonly { familyId?: string }[]) 
 type StageCameraMeasures = { [Key in 'measurePlaqueText' | 'measureCategoryText' | 'measureTreeInk' | 'treeLabelRuns' | 'measureTreeLabel']-?:
   StageLayoutInput[Key] | undefined };
 
-export type StageCameraFitInput = Omit<StageCameraInput, 'includeOverlays' | 'includePlaques' | 'includeBindingDomains'
+export type StageCameraFitInput = Omit<StageCameraInput, 'includeOverlays' | 'includePlaques' | 'includeDomainEnclosures'
   | 'plaqueLayout' | 'completedCanvas' | keyof StageCameraMeasures> & StageCameraMeasures & {
   /** The active stage's renderable workspace; null for an empty workspace. */
   completedCanvas: SyntaxNode | null;
@@ -1637,8 +1638,9 @@ export type StageCameraFitInput = Omit<StageCameraInput, 'includeOverlays' | 'in
 
 export type StageCameraFit = { bounds: OverlayBounds | null; containment: OverlayBounds | null };
 
-/** The stage camera Replay fits: its bounds, plus the plaque containment that
- * tree-first compositions and binding domains add. TreeVisualizer and the offline
+/** The stage camera Replay fits: its bounds, plus the containment of plaques and
+ * domain enclosures (binding ellipses, argument-sharing ovals) that tree-first
+ * compositions and binding domains add. TreeVisualizer and the offline
  * camera audit both call this, so the audit checks the camera the app fits.
  * Normalization accepts an empty workspace before the final stage; it has no
  * syntax to frame, so it contributes no bounds and the ordinary fit applies. */
@@ -1650,14 +1652,14 @@ export function buildStageCameraFit({ completedCanvas, ...rest }: StageCameraFit
   const common = { ...input, plaqueLayout: selectReplayPlaqueLayout(input.plaqueSchedule, input.stageIndex) };
   const bounds = buildStageCameraBounds({ ...common, includeOverlays: !treeFirst });
   const containment = bounds && (treeFirst || items.some(item => item.kind === 'binding-domain'))
-    ? buildStageCameraBounds({ ...common, includeOverlays: false, includePlaques: true, includeBindingDomains: true })
+    ? buildStageCameraBounds({ ...common, includeOverlays: false, includePlaques: true, includeDomainEnclosures: true })
     : null;
   return { bounds, containment };
 }
 
 function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
   abstractionMode = false, protectedNodeIds = new Set<string>(), includeOverlays = true,
-  includePlaques = includeOverlays, includeBindingDomains = false,
+  includePlaques = includeOverlays, includeDomainEnclosures = false,
   plaqueLayout, plaqueSchedule, coordinates, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, measurePlaqueText, stepIndex }: StageCameraInput): OverlayBounds | null {
   let bounds: OverlayBounds | null = null;
   const include = (next: OverlayBounds | null) => {
@@ -1708,13 +1710,24 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       include({ minX: rect.x + STAGE_CAMERA_PADDING.x, maxX: rect.x + rect.width - STAGE_CAMERA_PADDING.x,
         minY: rect.y + STAGE_CAMERA_PADDING.y, maxY: rect.y + rect.height - STAGE_CAMERA_PADDING.y });
     }
-    if (includeBindingDomains && plan) {
-      for (const item of plan.frames[stageIndex]?.items ?? []) {
+    if (includeDomainEnclosures && plan) {
+      const frameItems = plan.frames[stageIndex]?.items ?? [];
+      for (const item of frameItems) {
         if (item.kind !== 'binding-domain') continue;
-        const ellipse = sceneBindingDomainEllipse(item.domainNodeId, byId, fitNodes, plan.frames[stageIndex]?.items ?? [],
+        const ellipse = sceneBindingDomainEllipse(item.domainNodeId, byId, fitNodes, frameItems,
           projectedPlaques, measureCategoryText);
         if (ellipse) include(bindingEllipseBounds(ellipse));
       }
+      // Argument-sharing ovals enclose each predicate's domain together with the
+      // shared object, as sharingDrawing.ts paints them.
+      const sharingDomains = frameItems.filter(item => item.familyId === 'argument-sharing.domains' && item.kind === 'domain-mark');
+      sharingDomains.forEach((item, domainIndex) => {
+        if (item.kind !== 'domain-mark' || !item.rootNodeId || !item.sharedNodeId) return;
+        const visible = new Set(fitNodes);
+        const members = new Set([item.rootNodeId, item.sharedNodeId].flatMap(id => byId.get(id)?.descendants() ?? []));
+        const rect = bindingDomainTreeRect([...members].filter(node => visible.has(node)), measureCategoryText);
+        if (rect) include(argumentSharingEllipseBounds(argumentSharingDomainEllipse(rect, domainIndex)));
+      });
     }
     const items = plan?.frames[stageIndex]?.items ?? [];
     if (includePlaques && items.some(item => item.kind === 'undirected-link' && item.linkStyle === 'feature-sharing'
@@ -1741,6 +1754,17 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
     });
     // The shared stage allocation above owns plaque extents, not their legacy anchor-relative estimates.
     include(boundOverlayBounds({ ...bound, primitives: bound.primitives.filter(primitive => primitive.type !== 'plaque') }, { markerScale: 1 }));
+    // A movement curve fits the tree first (boundOverlayBounds leaves it out), so
+    // it never shrinks a fit while it stays inside the stage margin. Its belly
+    // deepens with its span, though, and a long movement can bow past that
+    // margin and under the Replay controls. As with labels above, extend the
+    // stage by only the part that leaves the margin.
+    for (const primitive of bound.primitives) {
+      if (primitive.type !== 'trajectory-path' || primitive.route !== 'quadratic') continue;
+      const route = quadraticRouteBounds(primitive);
+      include({ minX: route.minX + STAGE_CAMERA_PADDING.x, maxX: route.maxX - STAGE_CAMERA_PADDING.x,
+        minY: route.minY + STAGE_CAMERA_PADDING.y, maxY: route.maxY - STAGE_CAMERA_PADDING.y });
+    }
   }
   return bounds;
 }

@@ -13,7 +13,7 @@ import {
 import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
 import { detachedPlaqueOrigin } from '../detachedPlaquePlacement.ts';
-import { availableTreeViewport } from '../treeViewport.ts';
+import { availableTreeViewport, LOCAL_DISLOCATION_PANEL } from '../treeViewport.ts';
 import { settledClientPoint } from './cameraState.ts';
 import type { ClaimDrawing, DrawingLayer, RelationEmphasis, TreeMeasurements } from './drawingContext.ts';
 
@@ -498,25 +498,23 @@ export function createRealizationDrawing({
           if (cursor < labels.length) groups.push(...labels.slice(cursor));
           return groups.join(' · ');
         };
-        const widthPx = 290;
-        const heightPx = 66;
-        const width = localPx(widthPx);
-        const height = localPx(heightPx);
-        const plaqueGap = localPx(14);
-        let plaqueX = viewport.left + ((viewport.right - viewport.left) - width) / 2;
-        plaqueX = Math.min(Math.max(plaqueX, viewport.left), viewport.right - width);
+        const width = localPx(LOCAL_DISLOCATION_PANEL.width);
+        const height = localPx(LOCAL_DISLOCATION_PANEL.height);
+        const plaqueGap = localPx(LOCAL_DISLOCATION_PANEL.gap);
+        // The panel belongs between the Replay header and controls. The stage
+        // camera keeps it a clear place there (detachedPanelFitViewport); if a
+        // manual camera leaves none, it stays in that space over the tree.
+        const safe = availableTreeViewport(svgRect.width, svgRect.height, uiBounds);
+        const safeTopLeft = toLocal(svgRect.left + safe.left, svgRect.top + safe.top);
+        const safeBottomRight = toLocal(svgRect.left + safe.right, svgRect.top + safe.bottom);
+        const view = { left: safeTopLeft.x, top: safeTopLeft.y, right: safeBottomRight.x, bottom: safeBottomRight.y };
+        let plaqueX = view.left + ((view.right - view.left) - width) / 2;
+        plaqueX = Math.min(Math.max(plaqueX, view.left), view.right - width);
         let plaqueY = rootRect.y + rootRect.height + plaqueGap;
-        if (plaqueY + height > viewport.bottom) {
+        if (plaqueY + height > view.bottom) {
           const besideX = rootRect.x + rootRect.width + plaqueGap;
-          if (besideX + width <= viewport.right) {
-            plaqueX = besideX;
-            plaqueY = Math.max(
-              viewport.top,
-              Math.min(rootRect.y + rootRect.height - height, viewport.bottom - height)
-            );
-          } else {
-            plaqueY = rootRect.y + rootRect.height + localPx(6);
-          }
+          if (besideX + width <= view.right) plaqueX = besideX;
+          plaqueY = Math.max(view.top, Math.min(rootRect.y + rootRect.height - height, view.bottom - height));
         }
         const origin = clearPlaqueOrigin({ x: plaqueX, y: plaqueY }, width, height);
         setScreenStroke(
