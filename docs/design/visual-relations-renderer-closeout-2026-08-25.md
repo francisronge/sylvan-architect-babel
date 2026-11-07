@@ -37,6 +37,12 @@ Drawing paint is owned by the renderer in
 imports it and the Tier-2 review build includes it. Both Orchard pages link the
 research site's exact copy, which `npm run orchard:build` refreshes and
 `tests/relationVisualStyles.test.mjs` compares byte for byte.
+A card's Replay chrome (header, panel, canvas) is the app's own as well: the
+build writes `replay-chrome.css`, the app's `styles.css` and Tailwind utilities
+confined to a card mount, which `tests/orchardAppParity.test.mjs` rebuilds and
+compares. Pages size cards, never restyle that chrome. `npm run orchard:verify`
+fails a card whose drawing leaves its canvas or lies under its Replay panel at a
+laptop or phone viewport.
 Keep page layout and lens visibility outside that stylesheet. Hover uses the
 shared ink/halo class without replacing relation-moment opacity.
 
