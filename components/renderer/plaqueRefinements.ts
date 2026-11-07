@@ -4,6 +4,7 @@ import {
 } from '../../replay/relations/markGeometry.ts';
 import {
   analysisVerdictCompoundOrigin,
+  analysisVerdictGutterScale,
   analysisVerdictInitialLocalScale,
   planAnalysisVerdictRows,
   type AnalysisVerdictAnchor
@@ -184,27 +185,29 @@ export function createPlaqueRefinements({
       }),
       34 / Math.max(0.001, initialCameraScale || 1)
     );
+    // The view's left edge under the settled camera, as the idiom bracket bounds its gutter.
+    const svgRect = svg.node()?.getBoundingClientRect();
+    const settledMatrix = deferredTreeMatrix();
+    const viewportLeft = svgRect && settledMatrix
+      ? new DOMPoint(svgRect.left + 12, svgRect.top).matrixTransform(settledMatrix.inverse()).x
+      : undefined;
+    const treeGap = 5 / Math.max(0.001, initialCameraScale || 1);
     entries.forEach(({ node, y }) => {
       const verdict = d3.select(node);
-      const localScale = analysisVerdictInitialLocalScale(
-        initialCameraScale, verdict.select('.babel-analysis-judgment').text()
-      );
       const compound = verdict.select<SVGTextElement>('.babel-analysis-verdict-text');
       const compoundNode = compound.node();
       if (!compoundNode) return;
       const compoundRect = compoundNode.getBBox();
+      const localScale = analysisVerdictGutterScale(treeRect, compoundRect, analysisVerdictInitialLocalScale(
+        initialCameraScale, verdict.select('.babel-analysis-judgment').text()
+      ), treeGap, viewportLeft);
       const scaledCompoundRect = {
         x: compoundRect.x * localScale,
         y: compoundRect.y * localScale,
         width: compoundRect.width * localScale,
         height: compoundRect.height * localScale
       };
-      const origin = analysisVerdictCompoundOrigin(
-        treeRect,
-        scaledCompoundRect,
-        y,
-        5 / Math.max(0.001, initialCameraScale || 1)
-      );
+      const origin = analysisVerdictCompoundOrigin(treeRect, scaledCompoundRect, y, treeGap);
       verdict.attr(
         'transform',
         `translate(${origin.x.toFixed(1)},${origin.y.toFixed(1)}) scale(${localScale.toFixed(6)})`
