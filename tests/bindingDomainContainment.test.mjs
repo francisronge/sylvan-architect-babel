@@ -70,7 +70,7 @@ for (const [relation, domain] of [
       assert.equal(items[0].domainNodeId, domain);
       assert(items[0].domainMemberNodeIds.includes('book'), 'the last word remains part of the authored domain');
       const ordinary = buildStageCameraBounds(input);
-      const bounds = buildStageCameraBounds({ ...input, includeBindingDomains: true });
+      const bounds = buildStageCameraBounds({ ...input, includeDomainEnclosures: true });
       const view = availableTreeViewport(width, height, { headerBottom: 80, panelTop: height - 230 });
       const camera = containCamera(preferredFit(ordinary, view), bounds, view);
       const scene = measureStagePlaqueSpace(input);
@@ -91,7 +91,7 @@ for (const [relation, domain] of [
       }
       assert(checked > 0);
       assert(prepared.playbackSteps.some(step => step.replayKind === 'relation'));
-      assert.deepEqual(buildStageCameraBounds({ ...input, includeBindingDomains: true,
+      assert.deepEqual(buildStageCameraBounds({ ...input, includeDomainEnclosures: true,
         steps: [...prepared.playbackSteps].reverse() }), bounds, 'Replay traversal does not change the reserved camera');
     });
   }

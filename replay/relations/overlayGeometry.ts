@@ -243,6 +243,23 @@ export const analysisVerdictInitialLocalScale = (
   28 / (Math.max(0.001, initialCameraScale || 1) * 160)
 );
 
+/** The verdict's gutter is the fit's left margin, which narrows with the camera
+ * scale while the verdict keeps its screen size. At initial fitting, reduce the
+ * compound so it ends at `viewportLeft` instead of leaving the view. It is never
+ * enlarged, and a gutter with no room at all leaves the scale unchanged. */
+export const analysisVerdictGutterScale = (
+  treeRect: Rect,
+  compoundRect: Rect,
+  localScale: number,
+  treeGap: number,
+  viewportLeft: number | undefined
+): number => {
+  if (viewportLeft === undefined) return localScale;
+  const available = treeRect.x - treeGap - viewportLeft;
+  const width = compoundRect.width * localScale;
+  return available > 0 && width > available ? localScale * available / width : localScale;
+};
+
 const rectOverlapArea = (left: Rect, right: Rect): number => {
   const overlapWidth = Math.max(
     0,

@@ -8,6 +8,35 @@ import type { BoundFrame } from './boundGeometry.ts';
  */
 export type OverlayBounds = { minX: number; minY: number; maxX: number; maxY: number };
 
+/** Exact axis extrema of a quadratic Bézier (closed form, clamped). */
+const quadraticExtreme = (p0: number, p1: number, p2: number): [number, number] => {
+  let lo = Math.min(p0, p2);
+  let hi = Math.max(p0, p2);
+  const denominator = p0 - 2 * p1 + p2;
+  if (denominator !== 0) {
+    const t = (p0 - p1) / denominator;
+    if (t > 0 && t < 1) {
+      const u = 1 - t;
+      const at = u * u * p0 + 2 * u * t * p1 + t * t * p2;
+      lo = Math.min(lo, at);
+      hi = Math.max(hi, at);
+    }
+  }
+  return [lo, hi];
+};
+
+type QuadraticRoute = { start: { x: number; y: number }; control: { x: number; y: number }; end: { x: number; y: number } };
+
+/** A quadratic movement route's painted extent: its exact extrema plus the
+ * accepted 7-unit arrowhead and stroke clearance. The path already insets its
+ * endpoints by eight tree units, so this covers the glyph. */
+export const quadraticRouteBounds = ({ start, control, end }: QuadraticRoute): OverlayBounds => {
+  const clearance = 8;
+  const [loX, hiX] = quadraticExtreme(start.x, control.x, end.x);
+  const [loY, hiY] = quadraticExtreme(start.y, control.y, end.y);
+  return { minX: loX - clearance, minY: loY - clearance, maxX: hiX + clearance, maxY: hiY + clearance };
+};
+
 export const boundOverlayBounds = (
   frame: BoundFrame,
   options: { markerScale?: number } = {}
@@ -74,22 +103,6 @@ export const boundOverlayBounds = (
     point(markerX + (localOffsetX - left) * k, markerY - fontSize * k);
     point(markerX + (localOffsetX + right) * k, markerY + fontSize * k);
   };
-  /** Exact axis extrema of a quadratic Bézier (closed form, clamped). */
-  const quadraticExtreme = (p0: number, p1: number, p2: number): [number, number] => {
-    let lo = Math.min(p0, p2);
-    let hi = Math.max(p0, p2);
-    const denominator = p0 - 2 * p1 + p2;
-    if (denominator !== 0) {
-      const t = (p0 - p1) / denominator;
-      if (t > 0 && t < 1) {
-        const u = 1 - t;
-        const at = u * u * p0 + 2 * u * t * p1 + t * t * p2;
-        lo = Math.min(lo, at);
-        hi = Math.max(hi, at);
-      }
-    }
-    return [lo, hi];
-  };
   frame.primitives.forEach((primitive) => {
     switch (primitive.type) {
       case 'trajectory-path': {
@@ -102,15 +115,9 @@ export const boundOverlayBounds = (
         if (primitive.trajectoryKind === 'atb'
           || primitive.trajectoryKind === 'sideward'
           || primitive.fitPolicy === 'tree-first') return;
-        // Exact quadratic extrema plus the accepted 7-unit arrowhead and
-        // stroke clearance. The path already insets its endpoints by eight
-        // tree units, so this covers the glyph without shifting a tree whose
-        // path remains inside its ordinary extent.
-        const clearance = 8;
-        const [loX, hiX] = quadraticExtreme(primitive.start.x, primitive.control.x, primitive.end.x);
-        const [loY, hiY] = quadraticExtreme(primitive.start.y, primitive.control.y, primitive.end.y);
-        point(loX, loY, clearance);
-        point(hiX, hiY, clearance);
+        const route = quadraticRouteBounds(primitive);
+        point(route.minX, route.minY);
+        point(route.maxX, route.maxY);
         return;
       }
       case 'index-badge':
